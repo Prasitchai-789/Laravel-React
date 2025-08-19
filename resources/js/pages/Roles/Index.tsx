@@ -48,7 +48,7 @@ export default function Index({ roles }) {
                                         <td className="px-3 py-4 text-sm text-gray-600">{name}</td>
                                         <td className="px-3 py-4 text-sm text-gray-600">
                                             {permissions.map((permission) => (
-                                                <span key={permission.id} className="bg-gray-100 text-gray-800 text-sx font-medium mr-2 px-2.5 py-0.5 rounded" className='bg-green-100 text-green-800 text-sx font-medium mr-2 px-2.5 py-0.5 rounded'>
+                                                <span key={permission.id} className='bg-green-100 text-green-800 text-sx font-medium mr-2 px-2.5 py-0.5 rounded'>
                                                     {permission.name}
                                                 </span>
                                             ))}
