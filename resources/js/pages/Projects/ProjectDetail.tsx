@@ -2,7 +2,7 @@ import ModalForm from '@/components/ModalForm';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { ChevronLeft, Pencil, Plus ,FilePlus2} from 'lucide-react';
+import { ChevronLeft, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import MilestoneForm from './MilestoneForm';
 import TaskForm from './TaskForm';
@@ -81,6 +81,17 @@ export default function ProjectDetail({ project }) {
         setSelectedProjectId(null);
     };
 
+    const toDMY = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // เดือนเริ่มจาก 0
+    const year = date.getFullYear();
+
+    return `${day}-${month}-${year}`;
+};
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={p.name} />
@@ -107,7 +118,7 @@ export default function ProjectDetail({ project }) {
                                             />
                                         </svg>
                                         <span className="text-md mr-4">
-                                            {p.start_date} - {p.end_date}
+                                            {toDMY(p.start_date)} - {toDMY(p.end_date)}
                                         </span>
                                         <StatusBadge status={p.status} />
                                     </div>
@@ -208,7 +219,7 @@ export default function ProjectDetail({ project }) {
                                             <tr key={m.id} className="transition-colors hover:bg-gray-50">
                                                 <td className="px-4 py-3 text-sm font-medium whitespace-nowrap text-gray-900">{m.name}</td>
                                                 <td className="px-4 py-3 text-sm text-gray-700">{m.description}</td>
-                                                <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-500">{m.due_date}</td>
+                                                <td className="px-4 py-3 text-sm whitespace-nowrap text-gray-500">{toDMY(m.due_date)}</td>
                                                 <td className="px-4 py-3">
                                                     <button
                                                         onClick={() => openEditMilestone(m)}
@@ -346,7 +357,6 @@ export default function ProjectDetail({ project }) {
                 description="งานย่อยที่ต้องทำให้เสร็จ"
             >
                 <TaskForm projectId={p.id} mode={mode} task={selectedTask} onClose={() => setIsModalOpenTask(false)} />
-
             </ModalForm>
         </AppLayout>
     );

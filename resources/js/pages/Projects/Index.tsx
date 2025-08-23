@@ -24,11 +24,11 @@ export default function Index({ projects }) {
     const [totalPages, setTotalPages] = useState(projects.last_page || 1);
 
     // --- Modal actions ---
-    function openCreate() {
-        setMode('create');
-        setSelectedProject(null);
-        setIsModalOpen(true);
-    }
+    // function openCreate() {
+    //     setMode('create');
+    //     setSelectedProject(null);
+    //     setIsModalOpen(true);
+    // }
 
     function openEdit(project) {
         setMode('edit');

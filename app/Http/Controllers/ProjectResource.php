@@ -19,8 +19,15 @@ class ProjectResource extends JsonResource
             'status'      => $this->status,
             'owner'       => $this->owner,
             'score'       => $this->score,
-            'start_date'  => $this->start_date,
-            'end_date'    => $this->end_date,
+            'start_date' => $this->start_date
+                ? \Carbon\Carbon::parse(str_replace([':AM', ':PM'], [' AM', ' PM'], $this->start_date))
+                ->format('Y-m-d')
+                : null,
+
+            'end_date' => $this->end_date
+                ? \Carbon\Carbon::parse(str_replace([':AM', ':PM'], [' AM', ' PM'], $this->end_date))
+                ->format('Y-m-d')
+                : null,
 
             // Progress ของ Project (ค่าเฉลี่ย progress จาก tasks)
             'progress'    => $this->tasks->count() > 0
@@ -35,13 +42,19 @@ class ProjectResource extends JsonResource
                 'status' => $t->status,
                 'description' => $t->description,
                 'due_date' => $t->due_date
+                    ? \Carbon\Carbon::parse(str_replace([':AM', ':PM'], [' AM', ' PM'], $t->due_date))
+                    ->format('Y-m-d')
+                    : null,
             ]),
 
             'milestones'  => $this->milestones->map(fn($m) => [
                 'id' => $m->id,
                 'name' => $m->name,
                 'description' => $m->description,
-                'due_date' => $m->due_date ,
+                'due_date' => $m->due_date
+                    ? \Carbon\Carbon::parse(str_replace([':AM', ':PM'], [' AM', ' PM'], $m->due_date))
+                    ->format('Y-m-d')
+                    : null,
             ]),
 
             'files'       => $this->files->map(fn($f) => [
