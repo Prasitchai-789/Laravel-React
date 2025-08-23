@@ -1,13 +1,8 @@
-import { router, useForm } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import Swal from 'sweetalert2';
 
-export default function TaskForm({
-    mode = 'create',
-    task = null,
-    projectId,
-    onClose = () => {}
-}) {
+export default function TaskForm({ mode = 'create', task = null, projectId, onClose = () => {} }) {
     const { data, setData, post, put, processing, errors, reset } = useForm({
         name: '',
         description: '',
@@ -17,7 +12,7 @@ export default function TaskForm({
     });
 
     useEffect(() => {
-        console.log("mode:", mode, "task:", task);
+        console.log('mode:', mode, 'task:', task);
         if (mode === 'edit' && task) {
             setData({
                 name: task.name || '',
@@ -31,21 +26,29 @@ export default function TaskForm({
         }
     }, [mode, task]);
 
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        customClass: {
+            popup: 'custom-swal',
+        },
+        didOpen: (toast) => {
+            toast.onmouseenter = Swal.stopTimer;
+            toast.onmouseleave = Swal.resumeTimer;
+        },
+    });
     const submit = (e) => {
         e.preventDefault();
 
         if (mode === 'create') {
-             post(route('tasks.store', { project: projectId }), {
+            post(route('tasks.store', { project: projectId }), {
                 onSuccess: () => {
-                    Swal.fire({
-                        position: 'center',
+                    Toast.fire({
                         icon: 'success',
-                        title: 'เพิ่ม Task สำเร็จ',
-                        showConfirmButton: false,
-                        timer: 1500,
-                        customClass: {
-                            popup: 'custom-swal',
-                        },
+                        title: 'Signed in successfully',
                     });
                     reset();
                     onClose();
@@ -54,15 +57,9 @@ export default function TaskForm({
         } else {
             put(route('tasks.update', { project: projectId, task: task.id }), {
                 onSuccess: () => {
-                    Swal.fire({
-                        position: 'center',
+                    Toast.fire({
                         icon: 'success',
                         title: 'อัพเดท Task สำเร็จ',
-                        showConfirmButton: false,
-                        timer: 1500,
-                        customClass: {
-                            popup: 'custom-swal',
-                        },
                     });
                     onClose();
                 },

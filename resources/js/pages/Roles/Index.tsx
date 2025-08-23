@@ -9,6 +9,10 @@ const breadcrumbs: BreadcrumbItem[] = [
         title: 'Roles',
         href: '/roles',
     },
+    {
+        title: 'Roles Management',
+        href: '/roles',
+    },
 ];
 
 
@@ -25,11 +29,29 @@ export default function Index({ roles }) {
             <Head title="Roles" />
 
             <div className="p-4 sm:p-6">
-                {can('roles.create') &&
-                <Link href={route('roles.create')} className='px-3 py-1.5 text-xs font-medium rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2'>
-                    Create
-                </Link>
-                }
+                <div className="mb-6 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-2xl leading-tight font-bold text-gray-900">Roles Management</h1>
+                        <p className="mt-1 text-sm text-gray-600">A list of all roles including their details and permissions</p>
+                    </div>
+                    {can('roles.create') && (
+                        <div className="mt-4 sm:mt-0">
+                            <button
+                                onClick={() => router.visit(route('roles.create'))}
+                                className="inline-flex items-center rounded-md bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                                Create Role
+                            </button>
+                        </div>
+                    )}
+                </div>
                 <div className="bg-white shadow-sm ring-1 ring-gray-900/5 rounded-lg overflow-hidden mt-2">
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-300">
