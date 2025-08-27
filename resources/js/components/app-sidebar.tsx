@@ -34,6 +34,11 @@ const mainNavItems: NavItem[] =
         href: '/chemical',
         icon: FlaskConical,
     },
+    {
+        title: 'Permissions',
+        href: '/permissions',
+        icon: FlaskConical,
+    },
 ];
 
 const footerNavItems: NavItem[] = [

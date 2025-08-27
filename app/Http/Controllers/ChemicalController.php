@@ -35,7 +35,7 @@ class ChemicalController extends Controller
                 ])->values();
 
                 $formattedDate = Carbon::parse($group[0]->date)->format('d/m/Y');
-                
+
                 return [
                     'date' => $formattedDate,
                     'shift' => $group[0]->shift,
@@ -260,8 +260,7 @@ class ChemicalController extends Controller
                 'unit' => $item->unit,
             ])->values();
 
-
-            $formattedDate = Carbon::parse($group[0]->date)->format('d/m/Y');
+               $formattedDate = Carbon::parse($group[0]->date)->format('d/m/Y');
 
 
             return [
@@ -375,4 +374,5 @@ class ChemicalController extends Controller
             ];
         })->values();
     }
+
 }

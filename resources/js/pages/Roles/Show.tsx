@@ -15,7 +15,7 @@ export default function show({ role,  permissions }) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Role Show" />
 
-            <div className="mx-auto w-full p-4 sm:p-6">
+            <div className="mx-auto w-full p-4 sm:p-6 font-anuphan">
                 <div className="mb-6 flex items-center justify-between">
                     <Link
                         href={route('roles.index')}

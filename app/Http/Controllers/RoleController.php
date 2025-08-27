@@ -14,20 +14,28 @@ class RoleController extends Controller
      */
     public function index()
     {
-        return Inertia::render('Roles/Index',[
-            'roles' => Role::with('permissions')->get()
+        return Inertia::render('Roles/Index', [
+            'roles' => Role::with('permissions')->get(),
+            'rolesPermissions' => Permission::pluck('name')->toArray(), // <-- เพิ่มบรรทัดนี้
         ]);
     }
+
 
     /**
      * Show the form for creating a new resource.
      */
     public function create()
     {
-        return Inertia::render('Roles/Create',[
-            "premissions" => Permission::pluck('name')
+        $permissions = Permission::pluck('name')->toArray(); // แปลงเป็น array
+        return Inertia::render('Roles/Create', [
+            'permissions' => $permissions
         ]);
     }
+
+
+
+
+
 
     /**
      * Store a newly created resource in storage.
@@ -51,14 +59,13 @@ class RoleController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show($id)
     {
-        $role = Role::find($id);
-        return Inertia::render('Roles/Show',[
-            "role" => $role,
-            "permissions" => $role->permissions()->pluck('name'),
-        ]);
+        $role = Role::with('permissions')->findOrFail($id); // จะ throw 404 อัตโนมัติถ้าไม่เจอ
+        return inertia('Roles/Show', compact('role'));
     }
+
+
 
     /**
      * Show the form for editing the specified resource.
@@ -66,10 +73,11 @@ class RoleController extends Controller
     public function edit(string $id)
     {
         $role = Role::find($id);
-        return Inertia::render('Roles/Edit',[
+        return Inertia::render('Roles/Edit', [
             "role" => $role,
             "rolePermissions" => $role->permissions()->pluck('name'),
             "permissions" => Permission::pluck('name')
+
         ]);
     }
 
@@ -78,7 +86,7 @@ class RoleController extends Controller
      */
     public function update(Request $request, string $id)
     {
-         $request->validate([
+        $request->validate([
             'name' => 'required',
             'permissions' => 'required'
         ]);
