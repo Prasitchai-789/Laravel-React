@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class WebappEmp extends Model
 {
     //
+    protected $connection = 'sqlsrv2';
+    
     use HasFactory;
     protected $table = 'webapp_emp';
     protected $primaryKey = 'EmpID';
@@ -16,7 +18,7 @@ class WebappEmp extends Model
     public $timestamps = false;
     // ฟิลด์ที่อนุญาตให้ mass assignment
     protected $fillable = [
-       
+
     ];
 
        public function user()
