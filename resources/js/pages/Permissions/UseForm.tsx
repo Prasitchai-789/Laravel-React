@@ -20,6 +20,20 @@ export default function UseForm({ mode, data, onClose, onSuccess }: UseFormProps
         guard_name: data?.guard_name || 'web',
     });
 
+    const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            customClass: {
+                popup: 'custom-swal',
+            },
+            didOpen: (toast) => {
+                toast.onmouseenter = Swal.stopTimer;
+                toast.onmouseleave = Swal.resumeTimer;
+            },
+        });
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -33,12 +47,9 @@ export default function UseForm({ mode, data, onClose, onSuccess }: UseFormProps
             post(route('permissions.store'), {
                 data: { permissions: permissionsPayload }, // ส่งเป็น array
                 onSuccess: () => {
-                    Swal.fire({
-                        title: 'สำเร็จ!',
-                        text: 'สร้าง Permission ทั้ง 4 ตัวเรียบร้อยแล้ว',
+                    Toast.fire({
                         icon: 'success',
-                        timer: 1500,
-                        showConfirmButton: false
+                        title: 'สร้าง Permission เรียบร้อยแล้ว',
                     });
                     reset();
                     onSuccess?.();
@@ -50,12 +61,9 @@ export default function UseForm({ mode, data, onClose, onSuccess }: UseFormProps
             put(route('permissions.update', data.id), {
                 data: { permissions: permissionsPayload },
                 onSuccess: () => {
-                    Swal.fire({
-                        title: 'สำเร็จ!',
-                        text: 'แก้ไข Permission ทั้ง 4 ตัวเรียบร้อยแล้ว',
+                    Toast.fire({
                         icon: 'success',
-                        timer: 1500,
-                        showConfirmButton: false
+                        title: 'แก้ไข Permission เรียบร้อยแล้ว',
                     });
                     onSuccess?.();
                     onClose();
@@ -65,7 +73,7 @@ export default function UseForm({ mode, data, onClose, onSuccess }: UseFormProps
     };
 
     return (
-        <div className="max-w-lg mx-auto p-6 bg-white rounded-xl shadow-lg transform transition-all font-anuphan">
+        <div className="max-w-lg mx-auto  bg-white  transform transition-all font-anuphan">
             <div className="mb-6 border-b pb-4">
                 <h2 className="text-2xl font-bold text-gray-800 flex items-center">
                     {mode === 'create' ? 'สร้าง Permission ใหม่' : 'แก้ไข Permission'}
@@ -82,7 +90,7 @@ export default function UseForm({ mode, data, onClose, onSuccess }: UseFormProps
                         value={formData.name}
                         onChange={e => setData('name', e.target.value)}
                         className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="เช่น: user, post"
+                        placeholder=""
                     />
                     {errors.name && <p className="text-red-600 mt-1">{errors.name}</p>}
                 </div>
