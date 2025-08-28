@@ -6,7 +6,7 @@ import UseForm from './UseForm';
 import Swal from 'sweetalert2';
 import {
   Plus, Pencil, Trash2, Shield, Users, Key, Search,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { can } from '@/lib/can';
 
