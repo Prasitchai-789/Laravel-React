@@ -74,11 +74,6 @@ export default function UseForm({ mode, data, onClose, onSuccess }: UseFormProps
 
     return (
         <div className="max-w-lg mx-auto  bg-white  transform transition-all font-anuphan">
-            <div className="mb-6 border-b pb-4">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-                    {mode === 'create' ? 'สร้าง Permission ใหม่' : 'แก้ไข Permission'}
-                </h2>
-            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
