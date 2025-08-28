@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Models\WIN\WebappEmp;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
+use App\Models\WIN\WebappEmp;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
 
 class UserController extends Controller
 {
@@ -52,7 +53,10 @@ class UserController extends Controller
             'password' => 'required|min:8',
             'roles' => 'array',
             'roles.*' => 'exists:roles,name',
-            'employee_id' => 'nullable|exists:Webapp_Emp,EmpID'
+            'employee_id' => [
+                'nullable',
+                Rule::exists('sqlsrv2.dbo.Webapp_Emp', 'EmpID'),
+            ],
         ]);
 
         try {
@@ -104,7 +108,7 @@ class UserController extends Controller
             'roles' => Role::select('id', 'name')->get(),
             'userRoles' => $user->roles->pluck('name')->toArray(),
             'mode' => 'edit',
-            'employees' => WebappEmp::select('EmpID','EmpName','EmpCode','Position','DeptID','Tel','Email','Address')->get(),
+            'employees' => WebappEmp::select('EmpID', 'EmpName', 'EmpCode', 'Position', 'DeptID', 'Tel', 'Email', 'Address')->get(),
             'currentEmployee' => $user->webappEmp ? [
                 'EmpID' => $user->webappEmp->EmpID,
                 'EmpName' => $user->webappEmp->EmpName,
@@ -127,7 +131,10 @@ class UserController extends Controller
             'password' => 'nullable|min:8',
             'roles' => 'array',
             'roles.*' => 'exists:roles,name',
-            'employee_id' => 'nullable|exists:Webapp_Emp,EmpID',
+            'employee_id' => [
+                'nullable',
+                Rule::exists('sqlsrv2.dbo.Webapp_Emp', 'EmpID'),
+            ],
         ]);
 
         DB::beginTransaction();
