@@ -52,7 +52,7 @@ class UserController extends Controller
             'password' => 'required|min:8',
             'roles' => 'array',
             'roles.*' => 'exists:roles,name',
-            'employee_id' => 'nullable|exists:Webapp_emp,EmpID'
+            'employee_id' => 'nullable|exists:Webapp_Emp,EmpID'
         ]);
 
         try {
@@ -127,7 +127,7 @@ class UserController extends Controller
             'password' => 'nullable|min:8',
             'roles' => 'array',
             'roles.*' => 'exists:roles,name',
-            'employee_id' => 'nullable|exists:Webapp_emp,EmpID',
+            'employee_id' => 'nullable|exists:Webapp_Emp,EmpID',
         ]);
 
         DB::beginTransaction();
