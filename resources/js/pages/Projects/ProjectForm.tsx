@@ -2,28 +2,25 @@ import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import Swal from 'sweetalert2';
 
-export default function TaskForm({ mode = 'create', task = null, projectId, onClose = () => {} }) {
+export default function ProjectForm({ mode = 'create', project = null, onClose = () => {} }) {
     const { data, setData, post, put, processing, errors, reset } = useForm({
         name: '',
         description: '',
         status: 'not_started',
-        progress: 0,
-        due_date: '',
     });
 
     useEffect(() => {
-        if (mode === 'edit' && task) {
+        console.log('mode:', mode, 'project:', project);
+        if (mode === 'edit' && project) {
             setData({
-                name: task.name || '',
-                description: task.description || '',
-                status: task.status || 'not_started',
-                progress: task.progress || 0,
-                due_date: task.due_date || '',
+                name: project.name || '',
+                description: project.description || '',
+                status: project.status || '',
             });
         } else {
             reset();
         }
-    }, [mode, task]);
+    }, [mode, project]);
 
     const Toast = Swal.mixin({
         toast: true,
@@ -39,26 +36,27 @@ export default function TaskForm({ mode = 'create', task = null, projectId, onCl
             toast.onmouseleave = Swal.resumeTimer;
         },
     });
+
     const submit = (e) => {
         e.preventDefault();
-
         if (mode === 'create') {
-            post(route('tasks.store', { project: projectId }), {
+            console.log(data);
+            post('/projects', {
                 onSuccess: () => {
                     Toast.fire({
                         icon: 'success',
-                        title: 'Signed in successfully',
+                        title: 'Project created successfully',
                     });
                     reset();
                     onClose();
                 },
             });
         } else {
-            put(route('tasks.update', { project: projectId, task: task.id }), {
+            put(`/projects/${project.id}`, {
                 onSuccess: () => {
                     Toast.fire({
                         icon: 'success',
-                        title: 'อัพเดท Task สำเร็จ',
+                        title: 'Project updated successfully',
                     });
                     onClose();
                 },
@@ -71,7 +69,7 @@ export default function TaskForm({ mode = 'create', task = null, projectId, onCl
             {/* Name */}
             <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                    ชื่อ Task <span className="text-red-500">*</span>
+                    ชื่อ Project <span className="text-red-500">*</span>
                 </label>
                 <input
                     type="text"
@@ -114,38 +112,6 @@ export default function TaskForm({ mode = 'create', task = null, projectId, onCl
                     <option value="completed">✅ เสร็จสิ้น</option>
                 </select>
                 {errors.status && <p className="text-sm text-red-600">{errors.status}</p>}
-            </div>
-
-            {/* Progress */}
-            <div>
-                <label htmlFor="progress" className="block text-sm font-medium text-gray-700">
-                    ความคืบหน้า (%)
-                </label>
-                <input
-                    type="number"
-                    id="progress"
-                    min="0"
-                    max="100"
-                    value={data.progress}
-                    onChange={(e) => setData('progress', e.target.value)}
-                    className="block w-full rounded-md border border-gray-300 px-4 py-2.5 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-                {errors.progress && <p className="text-sm text-red-600">{errors.progress}</p>}
-            </div>
-
-            {/* Due Date */}
-            <div>
-                <label htmlFor="due_date" className="block text-sm font-medium text-gray-700">
-                    วันครบกำหนด
-                </label>
-                <input
-                    type="date"
-                    id="due_date"
-                    value={data.due_date}
-                    onChange={(e) => setData('due_date', e.target.value)}
-                    className="block w-full rounded-md border border-gray-300 px-4 py-2.5 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-                {errors.due_date && <p className="text-sm text-red-600">{errors.due_date}</p>}
             </div>
 
             {/* Actions */}

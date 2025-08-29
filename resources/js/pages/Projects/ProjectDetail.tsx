@@ -132,10 +132,10 @@ export default function ProjectDetail({ project }) {
                                     <ChevronLeft />
                                     Back
                                 </Link>
-                                <button className="inline-flex items-center rounded-md bg-blue-500 px-2 py-2 pr-4 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                                {/* <button className="inline-flex items-center rounded-md bg-blue-500 px-2 py-2 pr-4 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
                                     <Pencil className="mr-2" />
                                     แก้ไข
-                                </button>
+                                </button> */}
                             </div>
                         </div>
                     </div>

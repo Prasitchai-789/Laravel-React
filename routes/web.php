@@ -57,9 +57,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // web.php
-Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
-Route::get('/projects/{id}', [ProjectController::class, 'projectDetail'])->name('projects.projectDetail');
-
+Route::middleware(['permission:users.view'])->group(function () {
+    Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
+    Route::put('/projects/{id}', [ProjectController::class, 'update'])->name('projects.update');
+    Route::get('/projects/{id}', [ProjectController::class, 'projectDetail'])->name('projects.projectDetail');
+});
 
 Route::prefix('projects/{project}')->group(function () {
     Route::post('/tasks', [TaskController::class, 'store'])->name('tasks.store');
@@ -70,71 +73,70 @@ Route::prefix('projects/{project}')->group(function () {
 
 
 // Chemical Routes
-    Route::middleware(['permission:users.view'])->group(function () {
-        Route::get('chemical', [ChemicalController::class, 'index'])->name('chemical.index');
-        Route::get('chemical/{chemical}', [ChemicalController::class, 'show'])->name('chemical.show');
-        Route::get('/monthly', [ChemicalController::class, 'monthly'])->name('chemicals.monthly');
-        Route::get('/monthly/export-excel', [ChemicalController::class, 'exportExcel'])->name('monthly.exportExcel');
-        Route::get('/monthly/export-pdf', [ChemicalController::class, 'exportPdf'])->name('monthly.exportPdf');
-    });
+Route::middleware(['permission:users.view'])->group(function () {
+    Route::get('chemical', [ChemicalController::class, 'index'])->name('chemical.index');
+    Route::get('chemical/{chemical}', [ChemicalController::class, 'show'])->name('chemical.show');
+    Route::get('/monthly', [ChemicalController::class, 'monthly'])->name('chemicals.monthly');
+    Route::get('/monthly/export-excel', [ChemicalController::class, 'exportExcel'])->name('monthly.exportExcel');
+    Route::get('/monthly/export-pdf', [ChemicalController::class, 'exportPdf'])->name('monthly.exportPdf');
+});
 
-    Route::middleware('permission:users.create')->group(function () {
-        Route::get('chemical/create', [ChemicalController::class, 'create'])->name('chemical.create');
-        Route::post('chemical', [ChemicalController::class, 'store'])->name('chemical.store');
-    });
+Route::middleware('permission:users.create')->group(function () {
+    Route::get('chemical/create', [ChemicalController::class, 'create'])->name('chemical.create');
+    Route::post('chemical', [ChemicalController::class, 'store'])->name('chemical.store');
+});
 
-    Route::middleware('permission:users.edit')->group(function () {
-        Route::get('chemical/{chemical}/edit', [ChemicalController::class, 'edit'])->name('chemical.edit');
-        Route::put('chemical/{chemical}', [ChemicalController::class, 'update'])->name('chemical.update');
-    });
+Route::middleware('permission:users.edit')->group(function () {
+    Route::get('chemical/{chemical}/edit', [ChemicalController::class, 'edit'])->name('chemical.edit');
+    Route::put('chemical/{chemical}', [ChemicalController::class, 'update'])->name('chemical.update');
+});
 
-    Route::middleware('permission:users.delete')->group(function () {
-        Route::delete('chemical/{chemical}', [ChemicalController::class, 'destroy'])->name('chemical.destroy');
-        Route::post('/chemical/delete', [ChemicalController::class, 'destroyMultiple'])->name('chemical.delete.multiple');
-        Route::delete('/chemical', [ChemicalController::class, 'destroyBulk'])->name('chemical.destroy.bulk');
-    });
-
-
-    // Permissions Routes
-    Route::middleware(['permission:users.view'])->group(function () {
-        Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
-        Route::get('permissions/{permission}', [PermissionController::class, 'show'])->name('permissions.show');
-    });
-
-    Route::middleware('permission:users.create')->group(function () {
-        Route::get('permissions/create', [PermissionController::class, 'create'])->name('permissions.create');
-        Route::post('permissions', [PermissionController::class, 'store'])->name('permissions.store');
-    });
-
-    Route::middleware('permission:users.edit')->group(function () {
-        Route::get('permissions/{permission}/edit', [PermissionController::class, 'edit'])->name('permissions.edit');
-        Route::put('permissions/{permission}', [PermissionController::class, 'update'])->name('permissions.update');
-    });
-
-    Route::middleware('permission:users.delete')->group(function () {
-        Route::delete('permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy');
-    });
+Route::middleware('permission:users.delete')->group(function () {
+    Route::delete('chemical/{chemical}', [ChemicalController::class, 'destroy'])->name('chemical.destroy');
+    Route::post('/chemical/delete', [ChemicalController::class, 'destroyMultiple'])->name('chemical.delete.multiple');
+    Route::delete('/chemical', [ChemicalController::class, 'destroyBulk'])->name('chemical.destroy.bulk');
+});
 
 
+// Permissions Routes
+Route::middleware(['permission:users.view'])->group(function () {
+    Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
+    Route::get('permissions/{permission}', [PermissionController::class, 'show'])->name('permissions.show');
+});
 
-    Route::prefix('chemicalorder')->group(function () {
+Route::middleware('permission:users.create')->group(function () {
+    Route::get('permissions/create', [PermissionController::class, 'create'])->name('permissions.create');
+    Route::post('permissions', [PermissionController::class, 'store'])->name('permissions.store');
+});
 
-        // แสดงรายการ Order / Lot
-        Route::get('/', [ChemicalOrderController::class, 'index'])->name('orders.index');
-        Route::get('/{order}', [ChemicalOrderController::class, 'show'])->name('orders.show');
+Route::middleware('permission:users.edit')->group(function () {
+    Route::get('permissions/{permission}/edit', [PermissionController::class, 'edit'])->name('permissions.edit');
+    Route::put('permissions/{permission}', [PermissionController::class, 'update'])->name('permissions.update');
+});
 
-        // สร้าง Order / Lot
-        Route::get('/create', [ChemicalOrderController::class, 'create'])->name('orders.create');
-        Route::post('/', [ChemicalOrderController::class, 'store'])->name('orders.store');
+Route::middleware('permission:users.delete')->group(function () {
+    Route::delete('permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy');
+});
 
-        // แก้ไข Order / Lot
-        Route::get('/{order}/edit', [ChemicalOrderController::class, 'edit'])->name('orders.edit');
-        Route::put('/{order}', [ChemicalOrderController::class, 'update'])->name('orders.update');
 
-        // ลบ Order / Lot
-        Route::delete('/{order}', [ChemicalOrderController::class, 'destroy'])->name('orders.destroy');
 
-    });
+Route::prefix('chemicalorder')->group(function () {
+
+    // แสดงรายการ Order / Lot
+    Route::get('/', [ChemicalOrderController::class, 'index'])->name('orders.index');
+    Route::get('/{order}', [ChemicalOrderController::class, 'show'])->name('orders.show');
+
+    // สร้าง Order / Lot
+    Route::get('/create', [ChemicalOrderController::class, 'create'])->name('orders.create');
+    Route::post('/', [ChemicalOrderController::class, 'store'])->name('orders.store');
+
+    // แก้ไข Order / Lot
+    Route::get('/{order}/edit', [ChemicalOrderController::class, 'edit'])->name('orders.edit');
+    Route::put('/{order}', [ChemicalOrderController::class, 'update'])->name('orders.update');
+
+    // ลบ Order / Lot
+    Route::delete('/{order}', [ChemicalOrderController::class, 'destroy'])->name('orders.destroy');
+});
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

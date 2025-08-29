@@ -124,10 +124,10 @@ return [
             'prefix_indexes' => true,
             'encrypt' => env('DB_ENCRYPT_2', 'no'),
             'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE_2', true),
-            'options' => [
-                PDO::SQLSRV_ATTR_QUERY_TIMEOUT => 60,
-                'TrustServerCertificate' => env('DB_TRUST_SERVER_CERTIFICATE_2', true),
-            ],
+            // 'options' => [
+            //     PDO::SQLSRV_ATTR_QUERY_TIMEOUT => 60,
+            //     'TrustServerCertificate' => env('DB_TRUST_SERVER_CERTIFICATE_2', true),
+            // ],
         ],
 
 
