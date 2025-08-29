@@ -1,28 +1,18 @@
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem ,SidebarGroupLabel} from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid,UsersRound,Notebook ,FolderOpenDot,FlaskConical} from 'lucide-react';
+import { BookOpen, ChevronDown, FlaskConical, Folder, FolderOpenDot, LayoutGrid, Notebook, Shield, UsersRound } from 'lucide-react';
 import AppLogo from './app-logo';
 
-const mainNavItems: NavItem[] =
-[
+const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: '/dashboard',
         icon: LayoutGrid,
-    },
-    {
-        title: 'Users',
-        href: '/users',
-        icon: UsersRound,
-    },
-    {
-        title: 'Roles',
-        href: '/roles',
-        icon: Notebook,
     },
     {
         title: 'Projects',
@@ -34,10 +24,23 @@ const mainNavItems: NavItem[] =
         href: '/chemical',
         icon: FlaskConical,
     },
+];
+
+const adminNavItems: NavItem[] = [
+    {
+        title: 'Users',
+        href: '/users',
+        icon: UsersRound,
+    },
+    {
+        title: 'Roles',
+        href: '/roles',
+        icon: Notebook,
+    },
     {
         title: 'Permissions',
         href: '/permissions',
-        icon: FlaskConical,
+        icon: Shield,
     },
 ];
 
@@ -70,10 +73,34 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
+                <SidebarGroupLabel>Platform</SidebarGroupLabel>
                 <NavMain items={mainNavItems} />
             </SidebarContent>
 
             <SidebarFooter>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton className="flex w-full items-center">
+                                <Shield className="h-6 w-6" />
+                                <span className="flex-1 font-medium">Admin</span>
+                                <ChevronDown className="ml-auto h-4 w-4" />
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 shadow-lg">
+                        <DropdownMenuGroup>
+                            {/* <DropdownMenuLabel className="p-0 font-normal">
+                                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                                    <UsersRound className="mr-2" />
+                                    Admin
+                                </div>
+                            </DropdownMenuLabel> */}
+                            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+                            <NavMain items={adminNavItems} />
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
                 <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>

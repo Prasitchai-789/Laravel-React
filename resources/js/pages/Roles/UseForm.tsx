@@ -57,7 +57,7 @@ export default function UseForm({ permissions = [], role, onClose, onSuccess }: 
         } else {
             setData('permissions', data.permissions.filter((name) => name !== permissionName));
         }
-        
+
         // อัพเดตสถานะ selectAll
         if (checked && data.permissions.length + 1 === permissions.length) {
             setSelectAll(true);
@@ -103,7 +103,7 @@ export default function UseForm({ permissions = [], role, onClose, onSuccess }: 
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6 w-full font-anuphan">
+        <form onSubmit={handleSubmit} className="space-y-6  w-full font-anuphan">
             {/* Name Field */}
             <div className='font-anuphan'>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -157,8 +157,8 @@ export default function UseForm({ permissions = [], role, onClose, onSuccess }: 
                     {filteredPermissions.length > 0 ? (
                         <div className="grid gap-3">
                             {filteredPermissions.map((permission) => (
-                                <label 
-                                    key={permission} 
+                                <label
+                                    key={permission}
                                     className="flex items-center p-3 rounded-lg bg-white shadow-sm hover:bg-indigo-50 transition-colors cursor-pointer border border-gray-200"
                                 >
                                     <div className="flex items-center h-5">

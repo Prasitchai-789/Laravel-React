@@ -6,7 +6,7 @@ import UseForm from './UseForm';
 import Swal from 'sweetalert2';
 import {
   Plus, Pencil, Trash2, Shield, Users, Key, Search,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+  ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { can } from '@/lib/can';
 
@@ -359,11 +359,8 @@ export default function PermissionsIndex({ permissions }: Props) {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <button onClick={() => goToPage(1)} disabled={permissions.current_page === 1} className="relative inline-flex items-center rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <ChevronsLeft className="h-4 w-4" />
-                  </button>
 
-                  <button onClick={() => goToPage(permissions.current_page - 1)} disabled={permissions.current_page === 1} className="relative inline-flex items-center rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <button onClick={() => goToPage(permissions.current_page - 1)} disabled={permissions.current_page === 1} className="relative inline-flex items-center rounded-lg border border-gray-300 bg-white px-1.5 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                     <ChevronLeft className="h-4 w-4" />
                   </button>
 
@@ -378,12 +375,8 @@ export default function PermissionsIndex({ permissions }: Props) {
                     ))}
                   </div>
 
-                  <button onClick={() => goToPage(permissions.current_page + 1)} disabled={permissions.current_page === permissions.last_page} className="relative inline-flex items-center rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <button onClick={() => goToPage(permissions.current_page + 1)} disabled={permissions.current_page === permissions.last_page} className="relative inline-flex items-center rounded-lg border border-gray-300 bg-white px-1.5 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                     <ChevronRight className="h-4 w-4" />
-                  </button>
-
-                  <button onClick={() => goToPage(permissions.last_page)} disabled={permissions.current_page === permissions.last_page} className="relative inline-flex items-center rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <ChevronsRight className="h-4 w-4" />
                   </button>
                 </div>
               </div>

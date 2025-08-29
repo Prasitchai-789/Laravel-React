@@ -2,8 +2,6 @@
 @import url('https://fonts.cdnfonts.com/css/db-eurothai-x-bold');
 @import 'tailwindcss';
 
-
-
 @import 'tailwindcss';
 
 @plugin 'tailwindcss-animate';
@@ -144,6 +142,8 @@
 .custom-swal .swal2-content {
     font-family: 'Anuphan', sans-serif !important;
 }
+
+
 
 @layer base {
     * {

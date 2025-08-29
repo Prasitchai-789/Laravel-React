@@ -213,7 +213,7 @@ export default function Index({ roles, users, employees = [], userRoles = [], al
                                                 <div>
                                                     <div className="text-sm font-medium text-gray-900">{user.webapp_emp.EmpName}</div>
                                                     <div className="text-sm text-gray-500">{user.webapp_emp.EmpCode} • {user.webapp_emp.Position}</div>
-                                                    <div className="text-xs text-gray-400">{user.webapp_emp.DeptID} • {user.employee_id}</div>
+                                                    <div className="text-xs text-gray-400">Emp ID • {user.employee_id}</div>
                                                 </div>
                                             ) : (
                                                 <div className="text-sm text-gray-400">Not linked to employee</div>
