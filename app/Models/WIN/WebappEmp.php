@@ -12,7 +12,7 @@ class WebappEmp extends Model
     protected $connection = 'sqlsrv2';
 
     use HasFactory;
-    protected $table = 'dbo.Webapp_Emp';
+    protected $table = 'Webapp_Emp';
     protected $primaryKey = 'EmpID';
 
     public $timestamps = false;
