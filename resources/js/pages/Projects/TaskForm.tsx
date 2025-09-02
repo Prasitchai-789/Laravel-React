@@ -12,7 +12,6 @@ export default function TaskForm({ mode = 'create', task = null, projectId, onCl
     });
 
     useEffect(() => {
-        console.log('mode:', mode, 'task:', task);
         if (mode === 'edit' && task) {
             setData({
                 name: task.name || '',

@@ -105,12 +105,6 @@ export function AppSidebar() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56 rounded-md bg-white p-1 shadow-lg">
                         <DropdownMenuGroup>
-                            {/* <DropdownMenuLabel className="p-0 font-normal">
-                                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                                    <UsersRound className="mr-2" />
-                                    Admin
-                                </div>
-                            </DropdownMenuLabel> */}
                             <SidebarGroupLabel>Platform</SidebarGroupLabel>
                             <NavMain items={adminNavItems} />
                         </DropdownMenuGroup>
