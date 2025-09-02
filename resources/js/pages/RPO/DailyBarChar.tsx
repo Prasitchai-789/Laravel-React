@@ -310,9 +310,6 @@ export default function DailyBarChart() {
             },
         ],
     };
-    console.log('labels:', dayLabels.length, 'data:', data.length);
-    console.log('data:', data);
-    console.log('maxValue:', maxValue);
 
     const options = {
         responsive: true,
