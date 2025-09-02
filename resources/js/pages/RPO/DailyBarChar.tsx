@@ -5,7 +5,6 @@ import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, LineE
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { useState } from 'react';
 import { Bar, Line } from 'react-chartjs-2';
-
 // Register ChartJS components
 ChartJS.register(Title, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ChartDataLabels);
 
@@ -40,7 +39,15 @@ export default function DailyBarChart() {
     // 📌 เตรียม labels และ data สำหรับกราฟแท่ง (รายวัน)
     const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
     const dayLabels = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
-    const data = dayLabels.map((day) => (filtered.find((d) => d.Day === parseInt(day))?.TotalQty ?? 0) / 1000);
+    const data = dayLabels.map((day) => {
+        const dayData = dailyData.find(
+            (d) =>
+                Number(String(d.Year).trim()) === selectedYear &&
+                Number(String(d.Month).trim()) === selectedMonth &&
+                Number(String(d.Day).trim()) === parseInt(day)
+        );
+        return dayData ? dayData.TotalQty / 1000 : 0;
+    });
 
     // 📌 เตรียมข้อมูลสำหรับกราฟเส้น (รายเดือน)
     const monthNames = [
@@ -58,38 +65,46 @@ export default function DailyBarChart() {
         'ธันวาคม',
     ];
 
+    // ✅ คำนวณข้อมูลรายเดือน
     const monthlyData = years.map((year) => {
         return months.map((month) => {
-          const monthlyTotal = dailyData
-            .filter(
-              (d) =>
-                Number(String(d.Year).trim()) === year &&
-                Number(String(d.Month).trim()) === month
-            )
-            .reduce((sum, d) => sum + d.TotalQty, 0);
-          return monthlyTotal / 1000;
-        });
-      });
-
-    // แก้ไขส่วนนี้: ใช้ d.Day โดยตรงแทนการแปลงเป็น string แล้ว trim
-    const dailyComparisonData = years.map((year) => {
-        const yearData = dailyData.filter(
-          (d) =>
-            Number(String(d.Year).trim()) === year &&
-            Number(String(d.Month).trim()) === selectedMonth
-        );
-        return dayLabels.map((day) => {
-          const dayData = yearData.find(
-            (d) => d.Day === parseInt(day)  // ใช้ d.Doy โดยตรง
-          );
-          return dayData ? dayData.TotalQty / 1000 : 0;
+            const monthlyTotal = dailyData
+                .filter((item) => Number(String(item.Year).trim()) === year &&
+                    Number(String(item.Month).trim()) === month)
+                .reduce((sum, item) => sum + Number(item.TotalQty), 0);
+            return monthlyTotal / 1000;
         });
     });
 
-    // สีสำหรับกราฟเส้นแต่ละปี
-    const lineColors = ['#10b981', '#ec4899', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316', '#ef4444'];
 
-    // ข้อมูลสำหรับกราฟเส้นรายเดือน
+    // ✅ คำนวณข้อมูลรายวันเปรียบเทียบแต่ละปี
+    const dailyComparisonData = years.map((year) => {
+        const yearData = dailyData.filter(
+            (item) => Number(String(item.Year).trim()) === year &&
+                Number(String(item.Month).trim()) === selectedMonth
+        );
+        return dayLabels.map((day) => {
+            const dayItem = yearData.find(
+                (item) => Number(String(item.Day).trim()) === Number(day)
+            );
+            return dayItem ? Number(dayItem.TotalQty) / 1000 : 0;
+        });
+    });
+
+
+    // ✅ สีสำหรับกราฟเส้นแต่ละปี
+    const lineColors = [
+        '#10b981',
+        '#ec4899',
+        '#3b82f6',
+        '#f59e0b',
+        '#8b5cf6',
+        '#06b6d4',
+        '#f97316',
+        '#ef4444',
+    ];
+
+    // ✅ ข้อมูลสำหรับกราฟเส้นรายเดือน
     const lineChartData = {
         labels: monthNames,
         datasets: years.map((year, index) => ({
@@ -107,7 +122,7 @@ export default function DailyBarChart() {
         })),
     };
 
-    // ข้อมูลสำหรับกราฟเส้นรายวัน (เปรียบเทียบแต่ละปี)
+    // ✅ ข้อมูลสำหรับกราฟเส้นรายวัน
     const dailyLineChartData = {
         labels: dayLabels,
         datasets: years.map((year, index) => ({
@@ -125,7 +140,7 @@ export default function DailyBarChart() {
         })),
     };
 
-    // ตั้งค่าสำหรับกราฟเส้นรายเดือน
+    // ✅ ตั้งค่า options สำหรับกราฟเส้นรายเดือน
     const lineChartOptions = {
         responsive: true,
         maintainAspectRatio: false,
@@ -133,11 +148,7 @@ export default function DailyBarChart() {
             legend: {
                 position: 'top' as const,
                 labels: {
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 12,
-                        weight: 'bold',
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 12, weight: 'bold' },
                     color: '#374151',
                     usePointStyle: true,
                     padding: 20,
@@ -146,16 +157,9 @@ export default function DailyBarChart() {
             title: {
                 display: true,
                 text: 'เปรียบเทียบยอดรับซื้อปาล์มรายเดือนตามปี',
-                font: {
-                    family: 'Anuphan, sans-serif',
-                    size: 16,
-                    weight: 'bold',
-                },
+                font: { family: 'Anuphan, sans-serif', size: 16, weight: 'bold' },
                 color: '#1f2937',
-                padding: {
-                    top: 10,
-                    bottom: 5,
-                },
+                padding: { top: 10, bottom: 5 },
             },
             tooltip: {
                 backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -167,66 +171,46 @@ export default function DailyBarChart() {
                 usePointStyle: true,
                 boxPadding: 6,
                 callbacks: {
-                    label: (context: any) => {
-                        return `${context.dataset.label}: ${Number(context.raw).toLocaleString('th-TH')} ตัน`;
-                    },
+                    label: (context: any) =>
+                        `${context.dataset.label}: ${Number(context.raw).toLocaleString(
+                            'th-TH'
+                        )} ตัน`,
                 },
             },
-            datalabels: {
-                display: false,
-            },
+            datalabels: { display: false },
         },
         scales: {
             x: {
-                grid: {
-                    display: false,
-                    drawBorder: false,
-                },
+                grid: { display: false, drawBorder: false },
                 ticks: {
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 12,
-                        weight: 'bold',
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 12, weight: 'bold' },
                     color: '#6b7280',
                 },
             },
             y: {
                 beginAtZero: true,
-                grid: {
-                    color: 'rgba(0, 0, 0, 0.05)',
-                    drawBorder: false,
-                },
+                grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false },
                 ticks: {
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 11,
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 11 },
                     color: '#6b7280',
                     callback: (value: unknown) => {
-                        const num = typeof value === 'number' ? value : parseFloat(String(value));
+                        const num =
+                            typeof value === 'number' ? value : parseFloat(String(value));
                         return isNaN(num) ? '' : num.toLocaleString('th-TH');
                     },
                 },
                 title: {
                     display: true,
                     text: 'ปริมาณ (ตัน)',
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 12,
-                        weight: 'bold',
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 12, weight: 'bold' },
                     color: '#374151',
                 },
             },
         },
-        interaction: {
-            intersect: false,
-            mode: 'index' as const,
-        },
+        interaction: { intersect: false, mode: 'index' as const },
     };
 
-    // ตั้งค่าสำหรับกราฟเส้นรายวัน
+    // ✅ ตั้งค่า options สำหรับกราฟเส้นรายวัน
     const dailyLineChartOptions = {
         responsive: true,
         maintainAspectRatio: false,
@@ -234,11 +218,7 @@ export default function DailyBarChart() {
             legend: {
                 position: 'top' as const,
                 labels: {
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 12,
-                        weight: 'bold',
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 12, weight: 'bold' },
                     color: '#374151',
                     usePointStyle: true,
                     padding: 20,
@@ -246,17 +226,11 @@ export default function DailyBarChart() {
             },
             title: {
                 display: true,
-                text: `เปรียบเทียบยอดรับซื้อปาล์มรายวัน เดือน${monthNames[selectedMonth - 1]}`,
-                font: {
-                    family: 'Anuphan, sans-serif',
-                    size: 16,
-                    weight: 'bold',
-                },
+                text: `เปรียบเทียบยอดรับซื้อปาล์มรายวัน เดือน${monthNames[selectedMonth - 1]
+                    }`,
+                font: { family: 'Anuphan, sans-serif', size: 16, weight: 'bold' },
                 color: '#1f2937',
-                padding: {
-                    top: 10,
-                    bottom: 5,
-                },
+                padding: { top: 10, bottom: 5 },
             },
             tooltip: {
                 backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -268,79 +242,54 @@ export default function DailyBarChart() {
                 usePointStyle: true,
                 boxPadding: 6,
                 callbacks: {
-                    title: (context: any) => {
-                        return `วันที่ ${context[0].label} ${monthNames[selectedMonth - 1]}`;
-                    },
-                    label: (context: any) => {
-                        return `${context.dataset.label}: ${Number(context.raw).toLocaleString('th-TH')} ตัน`;
-                    },
+                    title: (context: any) =>
+                        `วันที่ ${context[0].label} ${monthNames[selectedMonth - 1]}`,
+                    label: (context: any) =>
+                        `${context.dataset.label}: ${Number(context.raw).toLocaleString(
+                            'th-TH'
+                        )} ตัน`,
                 },
             },
-            datalabels: {
-                display: false,
-            },
+            datalabels: { display: false },
         },
         scales: {
             x: {
-                grid: {
-                    display: false,
-                    drawBorder: false,
-                },
+                grid: { display: false, drawBorder: false },
                 ticks: {
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 11,
-                        weight: 'bold',
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 11, weight: 'bold' },
                     color: '#6b7280',
                 },
                 title: {
                     display: true,
                     text: 'วันที่',
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 12,
-                        weight: 'bold',
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 12, weight: 'bold' },
                     color: '#374151',
                 },
             },
             y: {
                 beginAtZero: true,
-                grid: {
-                    color: 'rgba(0, 0, 0, 0.05)',
-                    drawBorder: false,
-                },
+                grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false },
                 ticks: {
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 11,
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 11 },
                     color: '#6b7280',
                     callback: (value: unknown) => {
-                        const num = typeof value === 'number' ? value : parseFloat(String(value));
+                        const num =
+                            typeof value === 'number' ? value : parseFloat(String(value));
                         return isNaN(num) ? '' : num.toLocaleString('th-TH');
                     },
                 },
                 title: {
                     display: true,
                     text: 'ปริมาณ (ตัน)',
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 12,
-                        weight: 'bold',
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 12, weight: 'bold' },
                     color: '#374151',
                 },
             },
         },
-        interaction: {
-            intersect: false,
-            mode: 'index' as const,
-        },
+        interaction: { intersect: false, mode: 'index' as const },
     };
 
-    // คำนวณค่าสูงสุดสำหรับกำหนดสีกราฟแท่ง
+    // ✅ เตรียมข้อมูลกราฟแท่ง (รายวัน)
     const maxValue = Math.max(...data);
 
     const chartData = {
@@ -361,27 +310,22 @@ export default function DailyBarChart() {
             },
         ],
     };
+    console.log('labels:', dayLabels.length, 'data:', data.length);
+    console.log('data:', data);
+    console.log('maxValue:', maxValue);
 
     const options = {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: {
-                display: false,
-            },
+            legend: { display: false },
             title: {
                 display: true,
-                text: `กราฟแสดงยอดรับซื้อปาล์มรายวัน - เดือน${monthNames[selectedMonth - 1]} ${selectedYear + 543}`,
-                font: {
-                    family: 'Anuphan, sans-serif',
-                    size: 16,
-                    weight: 'bold',
-                },
+                text: `กราฟแสดงยอดรับซื้อปาล์มรายวัน - เดือน${monthNames[selectedMonth - 1]
+                    } ${selectedYear + 543}`,
+                font: { family: 'Anuphan, sans-serif', size: 16, weight: 'bold' },
                 color: '#1f2937',
-                padding: {
-                    top: 10,
-                    bottom: 20,
-                },
+                padding: { top: 10, bottom: 20 },
             },
             tooltip: {
                 backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -393,111 +337,80 @@ export default function DailyBarChart() {
                 usePointStyle: true,
                 boxPadding: 6,
                 callbacks: {
-                    title: (context: any) => {
-                        return `วันที่ ${context[0].label} ${monthNames[selectedMonth - 1]}`;
-                    },
-                    label: (context: any) => {
-                        return `ยอดรับซื้อ: ${Number(context.raw).toLocaleString('th-TH')} ตัน`;
-                    },
+                    title: (context: any) =>
+                        `วันที่ ${context[0].label} ${monthNames[selectedMonth - 1]}`,
+                    label: (context: any) =>
+                        `ยอดรับซื้อ: ${Number(context.raw).toLocaleString('th-TH')} ตัน`,
                 },
             },
-            // datalabels: { display: false }
             datalabels: {
                 anchor: 'end',
                 align: 'end',
-                formatter: (value: number) => (value > 0 ? value.toLocaleString('th-TH', { maximumFractionDigits: 1 }) : ''),
+                formatter: (value: number) =>
+                    value > 0
+                        ? value.toLocaleString('th-TH', { maximumFractionDigits: 1 })
+                        : '',
                 color: '#111827',
-                font: {
-                    family: 'Anuphan, sans-serif',
-                    weight: 'bold' as const,
-                    size: 10,
-                },
-                padding: {
-                    top: 4,
-                },
+                font: { family: 'Anuphan, sans-serif', weight: 'bold' as const, size: 10 },
+                padding: { top: 4 },
             },
         },
         scales: {
             x: {
-                grid: {
-                    display: false,
-                    drawBorder: false,
-                },
+                grid: { display: false, drawBorder: false },
                 ticks: {
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 11,
-                        weight: 'bold',
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 11, weight: 'bold' },
                     color: '#6b7280',
                 },
                 title: {
                     display: true,
                     text: 'วันที่',
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 12,
-                        weight: 'bold',
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 12, weight: 'bold' },
                     color: '#374151',
                 },
             },
             y: {
                 beginAtZero: true,
-                grid: {
-                    color: 'rgba(0, 0, 0, 0.05)',
-                    drawBorder: false,
-                },
+                grid: { color: 'rgba(0, 0, 0, 0.05)', drawBorder: false },
                 ticks: {
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 11,
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 11 },
                     color: '#6b7280',
                     callback: (value: unknown) => {
-                        const num = typeof value === 'number' ? value : parseFloat(String(value));
+                        const num =
+                            typeof value === 'number' ? value : parseFloat(String(value));
                         return isNaN(num) ? '' : num.toLocaleString('th-TH');
-                    }
-
+                    },
                 },
                 title: {
                     display: true,
                     text: 'ปริมาณ (ตัน)',
-                    font: {
-                        family: 'Anuphan, sans-serif',
-                        size: 12,
-                        weight: 'bold',
-                    },
+                    font: { family: 'Anuphan, sans-serif', size: 12, weight: 'bold' },
                     color: '#374151',
                 },
             },
         },
-        interaction: {
-            intersect: false,
-            mode: 'index' as const,
-        },
-        animation: {
-            duration: 1000,
-            easing: 'easeOutQuart',
-        },
+        interaction: { intersect: false, mode: 'index' as const },
+        animation: { duration: 1000, easing: 'easeOutQuart' },
     };
 
+    // ✅ breadcrumbs
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'Table Palm Purchase', href: '/table.palm.index' },
     ];
 
-    // คำนวณค่าสถิติ
+    // ✅ คำนวณค่าสถิติ
     const daysWithData = data.filter((value) => value > 0).length;
     const TotalQty = data.reduce((sum, value) => sum + value, 0);
     const maxDaily = Math.max(...data);
 
-    // สร้างตารางข้อมูลสำหรับกราฟเส้นรายวัน
+    // ✅ สร้างตารางข้อมูลสำหรับกราฟเส้นรายวัน
     const dailyComparisonTableData = years.map((year, index) => ({
         year: year + 543,
         data: dailyComparisonData[index],
         color: lineColors[index % lineColors.length],
     }));
+
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
