@@ -9,10 +9,11 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ChemicalController;
 use App\Http\Controllers\AGR\SalesController;
-use App\Http\Controllers\MilestoneController;
-use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\AGR\ProductController;
 use App\Http\Controllers\AGR\CustomerController;
+use App\Http\Controllers\MilestoneController;
+use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\Api\CitizenController;
 use App\Http\Controllers\ChemicalOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
 use App\Http\Controllers\Dashboard\DailyBarCharController;
@@ -49,7 +50,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     });
 
-
     // Roles Routes
     Route::resource("roles", RoleController::class)
         ->only(["create", "store"])
@@ -80,7 +80,6 @@ Route::prefix('projects/{project}')->group(function () {
     Route::put('/milestones/{milestone}', [MilestoneController::class, 'update'])->name('milestones.update');
 });
 
-
 // Chemical Routes
 Route::middleware(['permission:users.view'])->group(function () {
     Route::get('chemical', [ChemicalController::class, 'index'])->name('chemical.index');
@@ -106,20 +105,14 @@ Route::middleware('permission:users.delete')->group(function () {
     Route::delete('/chemical', [ChemicalController::class, 'destroyBulk'])->name('chemical.destroy.bulk');
 });
 
+// Chemical Order Routes
 Route::prefix('chemicalorder')->group(function () {
-    // แสดงรายการ Order / Lot
     Route::get('/', [ChemicalOrderController::class, 'index'])->name('orders.index');
     Route::get('/{order}', [ChemicalOrderController::class, 'show'])->name('orders.show');
-
-    // สร้าง Order / Lot
     Route::get('/create', [ChemicalOrderController::class, 'create'])->name('orders.create');
     Route::post('/', [ChemicalOrderController::class, 'store'])->name('orders.store');
-
-    // แก้ไข Order / Lot
     Route::get('/{order}/edit', [ChemicalOrderController::class, 'edit'])->name('orders.edit');
     Route::put('/{order}', [ChemicalOrderController::class, 'update'])->name('orders.update');
-
-    // ลบ Order / Lot
     Route::delete('/{order}', [ChemicalOrderController::class, 'destroy'])->name('orders.destroy');
 });
 
@@ -128,21 +121,17 @@ Route::middleware(['permission:users.view'])->group(function () {
     Route::get('permissions', [PermissionController::class, 'index'])->name('permissions.index');
     Route::get('permissions/{permission}', [PermissionController::class, 'show'])->name('permissions.show');
 });
-
 Route::middleware('permission:users.create')->group(function () {
     Route::get('permissions/create', [PermissionController::class, 'create'])->name('permissions.create');
     Route::post('permissions', [PermissionController::class, 'store'])->name('permissions.store');
 });
-
 Route::middleware('permission:users.edit')->group(function () {
     Route::get('permissions/{permission}/edit', [PermissionController::class, 'edit'])->name('permissions.edit');
     Route::put('permissions/{permission}', [PermissionController::class, 'update'])->name('permissions.update');
 });
-
 Route::middleware('permission:users.delete')->group(function () {
     Route::delete('permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy');
 });
-
 
 // Purchases Routes
 Route::middleware(['permission:users.view'])->group(function () {
@@ -150,6 +139,14 @@ Route::middleware(['permission:users.view'])->group(function () {
     Route::get('purchases/summary', [PurchaseSummaryController::class, 'summary'])->name('purchases.summary');
 });
 
+// Citizens / API Routes
+Route::get('/citizens', [CitizenController::class, 'index']);
+Route::get('/citizens/communitypage', [CitizenController::class, 'community']);
+Route::prefix('api')->group(function () {
+    Route::get('/get-locations', [CitizenController::class, 'getLocations']);
+    Route::get('/get-villages', [CitizenController::class, 'getVillages']);
+    Route::post('/citizens/bulk', [CitizenController::class, 'bulkUpload']);
+});
 
 // Dashboard Routes
 Route::middleware(['permission:users.view'])->group(function () {
@@ -159,13 +156,10 @@ Route::middleware(['permission:users.view'])->group(function () {
     Route::get('palm/dashboard', [PalmDashboardController::class, 'index'])->name('palm.dashboard.index');
 });
 
-
-
-// Route::get('/', fn() => redirect()->route('sales.index'));
+// AGR Routes
 Route::resource('sales', SalesController::class);
-Route::get('/products', [ProductController::class,'index']); // สำหรับ dropdown ajax
-Route::get('/customers', [CustomerController::class,'index']); // สำหรับ dropdown
-
+Route::get('/products', [ProductController::class,'index']);
+Route::get('/customers', [CustomerController::class,'index']);
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

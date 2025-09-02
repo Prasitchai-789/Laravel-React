@@ -2,7 +2,7 @@ import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem ,SidebarGroupLabel} from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarGroupLabel } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { BookOpen, ChevronDown, FlaskConical, Folder, FolderOpenDot, LayoutGrid, Notebook, Shield, UsersRound } from 'lucide-react';
@@ -24,6 +24,16 @@ const mainNavItems: NavItem[] = [
         href: '/chemical',
         icon: FlaskConical,
     },
+ // React Menu
+    {
+        title: 'Community',
+        href: '/citizens/communitypage',
+        icon: FlaskConical,
+    }
+
+
+
+
 ];
 
 const adminNavItems: NavItem[] = [
@@ -41,6 +51,11 @@ const adminNavItems: NavItem[] = [
         title: 'Permissions',
         href: '/permissions',
         icon: Shield,
+    },
+    {
+        title: 'เพิ่มข้อมูลของชุมชน',
+        href: '/citizens',
+        icon: UsersRound,
     },
 ];
 
