@@ -1,15 +1,24 @@
 <?php
 
 use Inertia\Inertia;
+use Dflydev\DotAccessData\Data;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ChemicalController;
+use App\Http\Controllers\AGR\SalesController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\AGR\ProductController;
+use App\Http\Controllers\AGR\CustomerController;
 use App\Http\Controllers\ChemicalOrderController;
+use App\Http\Controllers\RPO\PurchaseSummaryController;
+use App\Http\Controllers\Dashboard\DailyBarCharController;
+use App\Http\Controllers\Dashboard\PalmDashboardController;
+use App\Http\Controllers\Dashboard\PalmProductionController;
+use App\Http\Controllers\Dashboard\TableTotalPalmController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -20,7 +29,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
 
-
+    // Users Routes
     Route::middleware(['permission:users.view|users.create|users.edit|users.delete'])->group(function () {
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
@@ -41,7 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
 
-
+    // Roles Routes
     Route::resource("roles", RoleController::class)
         ->only(["create", "store"])
         ->middleware(["permission:roles.create"]);
@@ -56,7 +65,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware(["permission:roles.view|roles.create|roles.edit|roles.delete"]);
 });
 
-// web.php
+// Projects Routes
 Route::middleware(['permission:users.view'])->group(function () {
     Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
     Route::post('/projects', [ProjectController::class, 'store'])->name('projects.store');
@@ -97,6 +106,22 @@ Route::middleware('permission:users.delete')->group(function () {
     Route::delete('/chemical', [ChemicalController::class, 'destroyBulk'])->name('chemical.destroy.bulk');
 });
 
+Route::prefix('chemicalorder')->group(function () {
+    // แสดงรายการ Order / Lot
+    Route::get('/', [ChemicalOrderController::class, 'index'])->name('orders.index');
+    Route::get('/{order}', [ChemicalOrderController::class, 'show'])->name('orders.show');
+
+    // สร้าง Order / Lot
+    Route::get('/create', [ChemicalOrderController::class, 'create'])->name('orders.create');
+    Route::post('/', [ChemicalOrderController::class, 'store'])->name('orders.store');
+
+    // แก้ไข Order / Lot
+    Route::get('/{order}/edit', [ChemicalOrderController::class, 'edit'])->name('orders.edit');
+    Route::put('/{order}', [ChemicalOrderController::class, 'update'])->name('orders.update');
+
+    // ลบ Order / Lot
+    Route::delete('/{order}', [ChemicalOrderController::class, 'destroy'])->name('orders.destroy');
+});
 
 // Permissions Routes
 Route::middleware(['permission:users.view'])->group(function () {
@@ -119,24 +144,28 @@ Route::middleware('permission:users.delete')->group(function () {
 });
 
 
-
-Route::prefix('chemicalorder')->group(function () {
-
-    // แสดงรายการ Order / Lot
-    Route::get('/', [ChemicalOrderController::class, 'index'])->name('orders.index');
-    Route::get('/{order}', [ChemicalOrderController::class, 'show'])->name('orders.show');
-
-    // สร้าง Order / Lot
-    Route::get('/create', [ChemicalOrderController::class, 'create'])->name('orders.create');
-    Route::post('/', [ChemicalOrderController::class, 'store'])->name('orders.store');
-
-    // แก้ไข Order / Lot
-    Route::get('/{order}/edit', [ChemicalOrderController::class, 'edit'])->name('orders.edit');
-    Route::put('/{order}', [ChemicalOrderController::class, 'update'])->name('orders.update');
-
-    // ลบ Order / Lot
-    Route::delete('/{order}', [ChemicalOrderController::class, 'destroy'])->name('orders.destroy');
+// Purchases Routes
+Route::middleware(['permission:users.view'])->group(function () {
+    Route::get('purchases', [PurchaseSummaryController::class, 'index'])->name('purchases.index');
+    Route::get('purchases/summary', [PurchaseSummaryController::class, 'summary'])->name('purchases.summary');
 });
+
+
+// Dashboard Routes
+Route::middleware(['permission:users.view'])->group(function () {
+    Route::get('palm/table', [TableTotalPalmController::class, 'index'])->name('palm.table.index');
+    Route::get('palm/daily', [DailyBarCharController::class, 'index'])->name('palm.daily.index');
+    Route::get('palm/production', [PalmProductionController::class, 'index'])->name('palm.production.index');
+    Route::get('palm/dashboard', [PalmDashboardController::class, 'index'])->name('palm.dashboard.index');
+});
+
+
+
+// Route::get('/', fn() => redirect()->route('sales.index'));
+Route::resource('sales', SalesController::class);
+Route::get('/products', [ProductController::class,'index']); // สำหรับ dropdown ajax
+Route::get('/customers', [CustomerController::class,'index']); // สำหรับ dropdown
+
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

@@ -9,7 +9,9 @@ use App\Models\WIN\WebappEmp;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Hash;
+use Maatwebsite\Excel\Concerns\ToArray;
 
 class UserController extends Controller
 {
@@ -90,12 +92,14 @@ class UserController extends Controller
         }
     }
 
+
+
     public function show(string $id)
     {
         $user = User::with(['roles', 'webappEmp'])->findOrFail($id);
-
+        // $user = User::with(['webappEmp.webDept'])->findOrFail($id);
         return Inertia::render('Users/Show', [
-            'user' => $user
+             'user' => new UserResource($user)
         ]);
     }
 
