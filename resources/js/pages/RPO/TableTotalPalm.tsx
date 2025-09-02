@@ -1,10 +1,10 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
-import { CategoryScale, Chart as ChartJS, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js';
+import { CategoryScale, Chart as ChartJS, Legend, LinearScale, LineElement, PointElement, Title, Tooltip, Filler } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 export default function TableTotalPalm() {
     const { props } = usePage<{
@@ -14,6 +14,7 @@ export default function TableTotalPalm() {
     }>();
 
     const { pivot, years, totals } = props;
+
 
     // 📌 เดือน 1–12 (แปลงเป็นชื่อเดือน)
     const monthNames = Array.from({ length: 12 }, (_, i) => new Date(2000, i).toLocaleString('default', { month: 'long' }));
@@ -138,7 +139,7 @@ export default function TableTotalPalm() {
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'Table Palm Purchase', href: '/table.palm.index' },
     ];
-
+    console.log(pivot);
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Table Palm Purchase" />
@@ -193,21 +194,27 @@ export default function TableTotalPalm() {
                                 {Object.entries(pivot).map(([month, row]) => (
                                     <tr key={month} className="transition-colors hover:bg-green-50">
                                         <td className="px-6 py-2 font-medium text-gray-700">{month}</td>
-                                        {years.map((y) => (
-                                            <td key={y} className="px-6 py-2 text-right font-medium text-gray-900">
-                                                {row[y].toLocaleString()}
-                                            </td>
-                                        ))}
+                                        {years.map((y) => {
+                                            const value = Number(row[y]); // ✅ แปลงให้เป็น number
+                                            return (
+                                                <td key={y} className="px-6 py-2 text-right font-medium text-gray-900">
+                                                    {value ? value.toLocaleString() : "-"}
+                                                </td>
+                                            );
+                                        })}
                                     </tr>
                                 ))}
-                                <tr className="bg-gradient-to-r from-gray-100 to-gray-200 font-bold">
-                                    <td className="px-6 py-2 font-medium text-gray-800">รวมทั้งหมด</td>
+
+                                {/* แสดงผลรวมแต่ละปี */}
+                                <tr className="bg-gray-100 font-semibold">
+                                    <td className="px-6 py-2 text-gray-700">รวมทั้งปี</td>
                                     {years.map((y) => (
-                                        <td key={y} className="px-6 py-4 text-right text-green-700">
-                                            {totals[y].toLocaleString()}
+                                        <td key={y} className="px-6 py-2 text-right text-gray-900">
+                                            {totals[y]?.toLocaleString() ?? "-"}
                                         </td>
                                     ))}
                                 </tr>
+
                             </tbody>
                         </table>
                     </div>
