@@ -14,8 +14,11 @@ export default function DailyBarChart() {
     const { dailyData } = props;
 
     // 📌 สร้าง list ของปีและเดือนจาก dailyData
-    const years = [...new Set(dailyData.map((d) => d.Year))].sort((a, b) => a - b); // เรียงจากน้อยไปมาก
-    const months = [...new Set(dailyData.map((d) => d.Month))].sort((a, b) => a - b);
+    const years = [...new Set(dailyData.map((d) => Number(String(d.Year).trim())))]
+        .sort((a, b) => a - b);
+
+    const months = [...new Set(dailyData.map((d) => Number(String(d.Month).trim())))]
+        .sort((a, b) => a - b);
 
     // ตั้งค่าเริ่มต้นเป็นเดือนและปีปัจจุบัน
     const currentDate = new Date();
@@ -23,16 +26,20 @@ export default function DailyBarChart() {
     const currentMonth = currentDate.getMonth() + 1;
 
     const [selectedYear, setSelectedYear] = useState(
-        years.includes(currentYear) ? currentYear : years[years.length - 1], // เลือกปีล่าสุดเป็นค่าเริ่มต้น
+        years.includes(currentYear) ? currentYear : years[years.length - 1],
     );
     const [selectedMonth, setSelectedMonth] = useState(months.includes(currentMonth) ? currentMonth : months[0]);
 
     // 📌 Filter ข้อมูลเฉพาะปี/เดือนที่เลือก
-    const filtered = dailyData.filter((d) => d.Year === selectedYear && d.Month === selectedMonth);
+    const filtered = dailyData.filter(
+        (d) =>
+            Number(String(d.Year).trim()) === selectedYear &&
+            Number(String(d.Month).trim()) === selectedMonth
+    );
 
     // 📌 เตรียม labels และ data สำหรับกราฟแท่ง (รายวัน)
-    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate(); // จำนวนวันในเดือน
-    const dayLabels = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString()); // แปลงเป็น string
+    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+    const dayLabels = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
     const data = dayLabels.map((day) => (filtered.find((d) => d.Day === parseInt(day))?.TotalQty ?? 0) / 1000);
 
     // 📌 เตรียมข้อมูลสำหรับกราฟเส้น (รายเดือน)
@@ -51,27 +58,38 @@ export default function DailyBarChart() {
         'ธันวาคม',
     ];
 
-    // คำนวณข้อมูลรายเดือนสำหรับแต่ละปี (เรียงตาม years ที่เรียงแล้ว)
     const monthlyData = years.map((year) => {
         return months.map((month) => {
-            const monthlyTotal = dailyData.filter((d) => d.Year === year && d.Month === month).reduce((sum, d) => sum + d.TotalQty, 0);
-            return monthlyTotal / 1000; // แปลงเป็นตัน
+          const monthlyTotal = dailyData
+            .filter(
+              (d) =>
+                Number(String(d.Year).trim()) === year &&
+                Number(String(d.Month).trim()) === month
+            )
+            .reduce((sum, d) => sum + d.TotalQty, 0);
+          return monthlyTotal / 1000;
         });
-    });
+      });
 
-    // 📌 เตรียมข้อมูลสำหรับกราฟเส้นรายวัน (เปรียบเทียบแต่ละปีในเดือนที่เลือก)
+    // แก้ไขส่วนนี้: ใช้ d.Day โดยตรงแทนการแปลงเป็น string แล้ว trim
     const dailyComparisonData = years.map((year) => {
-        const yearData = dailyData.filter((d) => d.Year === year && d.Month === selectedMonth);
+        const yearData = dailyData.filter(
+          (d) =>
+            Number(String(d.Year).trim()) === year &&
+            Number(String(d.Month).trim()) === selectedMonth
+        );
         return dayLabels.map((day) => {
-            const dayData = yearData.find((d) => d.Day === parseInt(day));
-            return dayData ? dayData.TotalQty / 1000 : 0; // แปลงเป็นตัน
+          const dayData = yearData.find(
+            (d) => d.Day === parseInt(day)  // ใช้ d.Doy โดยตรง
+          );
+          return dayData ? dayData.TotalQty / 1000 : 0;
         });
     });
 
-    // สีสำหรับกราฟเส้นแต่ละปี (เรียงตาม years ที่เรียงแล้ว)
+    // สีสำหรับกราฟเส้นแต่ละปี
     const lineColors = ['#10b981', '#ec4899', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316', '#ef4444'];
 
-    // ข้อมูลสำหรับกราฟเส้นรายเดือน (เรียงปีจากน้อยไปมาก)
+    // ข้อมูลสำหรับกราฟเส้นรายเดือน
     const lineChartData = {
         labels: monthNames,
         datasets: years.map((year, index) => ({
@@ -89,9 +107,9 @@ export default function DailyBarChart() {
         })),
     };
 
-    // ข้อมูลสำหรับกราฟเส้นรายวัน (เปรียบเทียบแต่ละปี) - เรียงปีจากน้อยไปมาก
+    // ข้อมูลสำหรับกราฟเส้นรายวัน (เปรียบเทียบแต่ละปี)
     const dailyLineChartData = {
-        labels: dayLabels, // ใช้แค่ตัวเลขวันที่ ไม่มีคำว่า "วันที่"
+        labels: dayLabels,
         datasets: years.map((year, index) => ({
             label: `ปี ${year + 543}`,
             data: dailyComparisonData[index],
@@ -154,7 +172,6 @@ export default function DailyBarChart() {
                     },
                 },
             },
-            // ปิด datalabels สำหรับกราฟเส้นรายวัน
             datalabels: {
                 display: false,
             },
@@ -209,7 +226,7 @@ export default function DailyBarChart() {
         },
     };
 
-    // ตั้งค่าสำหรับกราฟเส้นรายวัน (ปิด datalabels)
+    // ตั้งค่าสำหรับกราฟเส้นรายวัน
     const dailyLineChartOptions = {
         responsive: true,
         maintainAspectRatio: false,
@@ -259,7 +276,6 @@ export default function DailyBarChart() {
                     },
                 },
             },
-            // ปิด datalabels สำหรับกราฟเส้นรายวัน
             datalabels: {
                 display: false,
             },
@@ -277,7 +293,6 @@ export default function DailyBarChart() {
                         weight: 'bold',
                     },
                     color: '#6b7280',
-                    // maxTicksLimit: 15, // จำกัดจำนวน ticks เพื่อไม่ให้แน่นเกินไป
                 },
                 title: {
                     display: true,
@@ -336,7 +351,7 @@ export default function DailyBarChart() {
                 backgroundColor: (context: any) => {
                     const value = context.dataset.data[context.dataIndex];
                     const ratio = maxValue > 0 ? value / maxValue : 0;
-                    return `rgba(37, 99, 235, ${0.4 + ratio * 0.6})`; // สีเข้มขึ้นตามค่าที่มากขึ้น
+                    return `rgba(37, 99, 235, ${0.4 + ratio * 0.6})`;
                 },
                 borderColor: '#2563eb',
                 borderWidth: 1,
@@ -386,6 +401,7 @@ export default function DailyBarChart() {
                     },
                 },
             },
+            // datalabels: { display: false }
             datalabels: {
                 anchor: 'end',
                 align: 'end',
@@ -441,7 +457,8 @@ export default function DailyBarChart() {
                     callback: (value: unknown) => {
                         const num = typeof value === 'number' ? value : parseFloat(String(value));
                         return isNaN(num) ? '' : num.toLocaleString('th-TH');
-                    },
+                    }
+
                 },
                 title: {
                     display: true,
@@ -475,7 +492,7 @@ export default function DailyBarChart() {
     const TotalQty = data.reduce((sum, value) => sum + value, 0);
     const maxDaily = Math.max(...data);
 
-    // สร้างตารางข้อมูลสำหรับกราฟเส้นรายวัน (เรียงปีจากน้อยไปมาก)
+    // สร้างตารางข้อมูลสำหรับกราฟเส้นรายวัน
     const dailyComparisonTableData = years.map((year, index) => ({
         year: year + 543,
         data: dailyComparisonData[index],
@@ -519,7 +536,7 @@ export default function DailyBarChart() {
                             >
                                 {years.map((y) => (
                                     <option key={y} value={y}>
-                                        {y + 543} {/* แปลงเป็นพ.ศ. */}
+                                        {y + 543}
                                     </option>
                                 ))}
                             </select>
@@ -601,8 +618,6 @@ export default function DailyBarChart() {
                         ตารางข้อมูลยอดรับซื้อปาล์มรายวัน เดือน{monthNames[selectedMonth - 1]} (หน่วย: ตัน)
                     </h3>
                     <div className="overflow-x-auto text-[11px]">
-                        {' '}
-                        {/* ใช้ขนาดฟอนต์ที่กำหนดเอง */}
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr className="bg-gray-100">
