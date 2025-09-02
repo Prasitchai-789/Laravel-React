@@ -21,7 +21,9 @@ const getDefaultChemicals = () => [
 ];
 
 export default function UseForm({ mode, data = [], shift = 'A', onClose, onSuccess }: UseFormProps) {
+    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const { data: formData, setData, post, put, reset, processing } = useForm({
+        date: selectedDate,
         records: mode === 'edit' && data.length ? data : getDefaultChemicals()
     });
 
@@ -46,10 +48,13 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
         }
 
         if (mode === 'create') {
-            // ใช้ getDefaultChemicals() เพื่อให้ได้ค่าเริ่มต้นใหม่ทุกครั้ง
             setData('records', getDefaultChemicals());
         }
     }, [mode, data, shift, setData]);
+
+    useEffect(() => {
+        setData('date', selectedDate);
+    }, [selectedDate, setData]);
 
     const validateInput = (value: number, chemicalName: string): string => {
         if (value < 0) return 'ค่าต้องไม่น้อยกว่า 0';
@@ -99,7 +104,10 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
         const action = mode === 'create' ? post : put;
 
         action(url, {
-            data: { records: formData.records },
+            data: { 
+                date: formData.date,
+                records: formData.records 
+            },
             onSuccess: () => {
                 reset();
                 onClose();
@@ -114,6 +122,35 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 font-anuphon">
+            {/* Date Picker Section */}
+            <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                        <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <label className="block text-sm font-medium text-gray-700 mr-3">
+                            วันที่บันทึกข้อมูล
+                        </label>
+                    </div>
+                    <div className="relative">
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="block w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all duration-200"
+                            max={new Date().toISOString().split('T')[0]}
+                        />
+                       
+                    </div>
+                </div>
+                <div className="mt-2 text-xs text-gray-500 flex items-center">
+                    <svg className="w-3 h-3 text-amber-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
+                    </svg>
+                    กรุณาเลือกวันที่ที่ต้องการ              </div>
+            </div>
+
             {/* Table Container */}
             <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
                 {/* Header Row */}
@@ -271,6 +308,7 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
                     คำแนะนำในการกรอกข้อมูล
                 </h3>
                 <ul className="text-sm text-blue-700 space-y-1">
+                    <li>• เลือกวันที่ที่ต้องการบันทึกข้อมูล</li>
                     <li>• กรุณากรอกปริมาณการใช้สารเคมีเป็นตัวเลข</li>
                     <li>• สามารถกรอกทศนิยมได้ (เช่น 12.5, 25.75)</li>
                     <li>• หากไม่ได้ใช้สารเคมีชนิดใด ให้เว้นว่างหรือกรอก 0</li>

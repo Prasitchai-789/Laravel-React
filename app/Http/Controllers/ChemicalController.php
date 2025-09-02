@@ -97,47 +97,48 @@ class ChemicalController extends Controller
     }
 
     // บันทึกข้อมูลใหม่ (สำหรับ Daily Chemicals)
-    public function store(Request $request)
-    {
-        $request->validate([
-            'records' => 'required|array',
-            'records.*.chemical_name' => 'required|string',
-            'records.*.unit' => 'required|string',
-            'records.*.quantityA' => 'required|numeric|min:0',
-            'records.*.quantityB' => 'required|numeric|min:0',
-        ]);
+public function store(Request $request)
+{
+    $request->validate([
+        'date' => 'required|date', // เพิ่ม validation สำหรับวันที่
+        'records' => 'required|array',
+        'records.*.chemical_name' => 'required|string',
+        'records.*.unit' => 'required|string',
+        'records.*.quantityA' => 'required|numeric|min:0',
+        'records.*.quantityB' => 'required|numeric|min:0',
+    ]);
 
-        $today = now()->toDateString();
+    // ใช้วันที่จาก request แทนวันที่ปัจจุบัน
+    $selectedDate = $request->date;
 
-        foreach ($request->records as $r) {
-            foreach (['A' => 'quantityA', 'B' => 'quantityB'] as $shift => $field) {
-                $qty = !empty($r[$field]) ? (float) $r[$field] : 0;
-                if ($qty > 0) {
-                    $existing = DailyChemical::where('date', $today)
-                        ->where('shift', $shift)
-                        ->where('chemical_name', $r['chemical_name'])
-                        ->first();
+    foreach ($request->records as $r) {
+        foreach (['A' => 'quantityA', 'B' => 'quantityB'] as $shift => $field) {
+            $qty = !empty($r[$field]) ? (float) $r[$field] : 0;
+            if ($qty > 0) {
+                // ค้นหาข้อมูลที่มีอยู่สำหรับวันที่ที่เลือก (แทนวันที่ปัจจุบัน)
+                $existing = DailyChemical::where('date', $selectedDate)
+                    ->where('shift', $shift)
+                    ->where('chemical_name', $r['chemical_name'])
+                    ->first();
 
-                    if ($existing) {
-                        $existing->quantity += $qty;
-                        $existing->save();
-                    } else {
-                        DailyChemical::create([
-                            'date' => $today,
-                            'shift' => $shift,
-                            'chemical_name' => $r['chemical_name'],
-                            'unit' => $r['unit'],
-                            'quantity' => $qty,
-                        ]);
-                    }
+                if ($existing) {
+                    $existing->quantity += $qty;
+                    $existing->save();
+                } else {
+                    DailyChemical::create([
+                        'date' => $selectedDate, // ใช้วันที่ที่ผู้ใช้เลือก
+                        'shift' => $shift,
+                        'chemical_name' => $r['chemical_name'],
+                        'unit' => $r['unit'],
+                        'quantity' => $qty,
+                    ]);
                 }
             }
         }
-
-        // 👇 ตรงนี้สำคัญ
-        return back()->with('success', 'บันทึกข้อมูลสำเร็จ');
     }
 
+    return back()->with('success', 'บันทึกข้อมูลสำเร็จ');
+}
 
 
 
