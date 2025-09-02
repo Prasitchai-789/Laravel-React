@@ -5,7 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuTrigg
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarGroupLabel } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, ChevronDown, FlaskConical, Folder, FolderOpenDot, LayoutGrid, Notebook, Shield, UsersRound } from 'lucide-react';
+import { BookOpen, ChevronDown, FlaskConical, Folder, FolderOpenDot, Handshake, LayoutGrid, Notebook, Shield, UsersRound } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -28,7 +28,7 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Community',
         href: '/citizens/communitypage',
-        icon: FlaskConical,
+        icon: Handshake,
     }
 
 
@@ -103,10 +103,10 @@ export function AppSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 shadow-lg">
+                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 shadow-lg font-anuphan">
                         <DropdownMenuGroup>
                             <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                            <NavMain items={adminNavItems} />
+                            <NavMain  items={adminNavItems} />
                         </DropdownMenuGroup>
                     </DropdownMenuContent>
                 </DropdownMenu>
