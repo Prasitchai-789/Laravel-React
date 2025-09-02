@@ -154,7 +154,7 @@ export default function DailyBarChart() {
                     },
                 },
             },
-             // ปิด datalabels สำหรับกราฟเส้นรายวัน
+            // ปิด datalabels สำหรับกราฟเส้นรายวัน
             datalabels: {
                 display: false,
             },
@@ -186,8 +186,8 @@ export default function DailyBarChart() {
                         size: 11,
                     },
                     color: '#6b7280',
-                    callback: function (value: any) {
-                        return value.toLocaleString('th-TH');
+                    callback: (value: number | string) => {
+                        return Number(value).toLocaleString('th-TH');
                     },
                 },
                 title: {
@@ -301,8 +301,8 @@ export default function DailyBarChart() {
                         size: 11,
                     },
                     color: '#6b7280',
-                    callback: function (value: any) {
-                        return value.toLocaleString('th-TH');
+                    callback: (value: number | string) => {
+                        return Number(value).toLocaleString('th-TH');
                     },
                 },
                 title: {
@@ -436,8 +436,8 @@ export default function DailyBarChart() {
                         size: 11,
                     },
                     color: '#6b7280',
-                    callback: function (value: any) {
-                        return value.toLocaleString('th-TH');
+                    callback: (value: number | string) => {
+                        return Number(value).toLocaleString('th-TH');
                     },
                 },
                 title: {
@@ -501,7 +501,7 @@ export default function DailyBarChart() {
                 {/* Filter Section */}
                 <div className="mb-4 rounded-2xl bg-white px-6 py-2 pb-6 shadow-md">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-semibold text-gray-700 p-0">เลือกช่วงเวลาที่ต้องการดู</h2>
+                        <h2 className="p-0 text-lg font-semibold text-gray-700">เลือกช่วงเวลาที่ต้องการดู</h2>
                         <div className="text-sm text-gray-500">
                             {selectedMonth === currentMonth && selectedYear === currentYear ? '(แสดงข้อมูลเดือนปัจจุบัน)' : '(แสดงข้อมูลย้อนหลัง)'}
                         </div>
@@ -593,7 +593,7 @@ export default function DailyBarChart() {
                 </div>
 
                 {/* ตารางข้อมูลกราฟเส้นรายวัน */}
-                <div className="mb-6 rounded-2xl bg-white p-4 shadow-lg py-1">
+                <div className="mb-6 rounded-2xl bg-white p-4 py-1 shadow-lg">
                     <h3 className="mb-4 text-sm font-semibold text-gray-800">
                         ตารางข้อมูลยอดรับซื้อปาล์มรายวัน เดือน{monthNames[selectedMonth - 1]} (หน่วย: ตัน)
                     </h3>
