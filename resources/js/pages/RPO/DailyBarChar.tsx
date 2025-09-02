@@ -186,8 +186,9 @@ export default function DailyBarChart() {
                         size: 11,
                     },
                     color: '#6b7280',
-                    callback: (value: number | string) => {
-                        return Number(value).toLocaleString('th-TH');
+                    callback: (value: unknown) => {
+                        const num = typeof value === 'number' ? value : parseFloat(String(value));
+                        return isNaN(num) ? '' : num.toLocaleString('th-TH');
                     },
                 },
                 title: {
@@ -301,8 +302,9 @@ export default function DailyBarChart() {
                         size: 11,
                     },
                     color: '#6b7280',
-                    callback: (value: number | string) => {
-                        return Number(value).toLocaleString('th-TH');
+                    callback: (value: unknown) => {
+                        const num = typeof value === 'number' ? value : parseFloat(String(value));
+                        return isNaN(num) ? '' : num.toLocaleString('th-TH');
                     },
                 },
                 title: {
@@ -436,8 +438,9 @@ export default function DailyBarChart() {
                         size: 11,
                     },
                     color: '#6b7280',
-                    callback: (value: number | string) => {
-                        return Number(value).toLocaleString('th-TH');
+                    callback: (value: unknown) => {
+                        const num = typeof value === 'number' ? value : parseFloat(String(value));
+                        return isNaN(num) ? '' : num.toLocaleString('th-TH');
                     },
                 },
                 title: {
