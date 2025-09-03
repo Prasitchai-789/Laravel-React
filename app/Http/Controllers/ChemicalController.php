@@ -97,48 +97,48 @@ class ChemicalController extends Controller
     }
 
     // บันทึกข้อมูลใหม่ (สำหรับ Daily Chemicals)
-public function store(Request $request)
-{
-    $request->validate([
-        'date' => 'required|date', // เพิ่ม validation สำหรับวันที่
-        'records' => 'required|array',
-        'records.*.chemical_name' => 'required|string',
-        'records.*.unit' => 'required|string',
-        'records.*.quantityA' => 'required|numeric|min:0',
-        'records.*.quantityB' => 'required|numeric|min:0',
-    ]);
+    public function store(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date', // เพิ่ม validation สำหรับวันที่
+            'records' => 'required|array',
+            'records.*.chemical_name' => 'required|string',
+            'records.*.unit' => 'required|string',
+            'records.*.quantityA' => 'required|numeric|min:0',
+            'records.*.quantityB' => 'required|numeric|min:0',
+        ]);
 
-    // ใช้วันที่จาก request แทนวันที่ปัจจุบัน
-    $selectedDate = $request->date;
+        // ใช้วันที่จาก request แทนวันที่ปัจจุบัน
+        $selectedDate = $request->date;
 
-    foreach ($request->records as $r) {
-        foreach (['A' => 'quantityA', 'B' => 'quantityB'] as $shift => $field) {
-            $qty = !empty($r[$field]) ? (float) $r[$field] : 0;
-            if ($qty > 0) {
-                // ค้นหาข้อมูลที่มีอยู่สำหรับวันที่ที่เลือก (แทนวันที่ปัจจุบัน)
-                $existing = DailyChemical::where('date', $selectedDate)
-                    ->where('shift', $shift)
-                    ->where('chemical_name', $r['chemical_name'])
-                    ->first();
+        foreach ($request->records as $r) {
+            foreach (['A' => 'quantityA', 'B' => 'quantityB'] as $shift => $field) {
+                $qty = !empty($r[$field]) ? (float) $r[$field] : 0;
+                if ($qty > 0) {
+                    // ค้นหาข้อมูลที่มีอยู่สำหรับวันที่ที่เลือก (แทนวันที่ปัจจุบัน)
+                    $existing = DailyChemical::where('date', $selectedDate)
+                        ->where('shift', $shift)
+                        ->where('chemical_name', $r['chemical_name'])
+                        ->first();
 
-                if ($existing) {
-                    $existing->quantity += $qty;
-                    $existing->save();
-                } else {
-                    DailyChemical::create([
-                        'date' => $selectedDate, // ใช้วันที่ที่ผู้ใช้เลือก
-                        'shift' => $shift,
-                        'chemical_name' => $r['chemical_name'],
-                        'unit' => $r['unit'],
-                        'quantity' => $qty,
-                    ]);
+                    if ($existing) {
+                        $existing->quantity += $qty;
+                        $existing->save();
+                    } else {
+                        DailyChemical::create([
+                            'date' => $selectedDate, // ใช้วันที่ที่ผู้ใช้เลือก
+                            'shift' => $shift,
+                            'chemical_name' => $r['chemical_name'],
+                            'unit' => $r['unit'],
+                            'quantity' => $qty,
+                        ]);
+                    }
                 }
             }
         }
-    }
 
-    return back()->with('success', 'บันทึกข้อมูลสำเร็จ');
-}
+        return back()->with('success', 'บันทึกข้อมูลสำเร็จ');
+    }
 
 
 
@@ -245,37 +245,77 @@ public function store(Request $request)
     }
     public function monthly()
     {
-        $raw = DailyChemical::orderBy('date')
+        // กำหนดเดือนและปีปัจจุบันเป็นค่าเริ่มต้น
+        $currentMonth = now()->format('m'); // '01'-'12'
+        $currentYear = now()->format('Y');
+
+        // รับค่าจาก query parameters (ถ้ามี) ถ้าไม่มีใช้ค่าเริ่มต้น
+        $selectedMonth = request('month', $currentMonth);
+        $selectedYear = request('year', $currentYear);
+
+        // คำนวณวันที่เริ่มต้นและสิ้นสุดของเดือนที่เลือก
+        $startDate = Carbon::create($selectedYear, $selectedMonth, 1)->startOfMonth();
+        $endDate = Carbon::create($selectedYear, $selectedMonth, 1)->endOfMonth();
+
+        // ดึงข้อมูลเฉพาะเดือนที่เลือก
+        $raw = DailyChemical::whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->orderBy('date')
             ->orderBy('shift')
             ->orderBy('created_at')
             ->get();
 
         // Group by date + shift
-        $records = $raw->groupBy(function ($item) {
-            return $item->date . '_' . $item->shift;
-        })->map(function ($group) {
-            $records = $group->map(fn($item) => [
-                'id' => $item->id,
-                'chemical_name' => $item->chemical_name,
-                'quantity' => (float) $item->quantity,
-                'unit' => $item->unit,
-            ])->values();
+        $records = $raw->groupBy(fn($item) => $item->date . '_' . $item->shift)
+            ->map(function ($group) {
+                $records = $group->map(fn($item) => [
+                    'id' => $item->id,
+                    'chemical_name' => $item->chemical_name,
+                    'quantity' => (float) $item->quantity,
+                    'unit' => $item->unit,
+                ])->values();
 
-               $formattedDate = Carbon::parse($group[0]->date)->format('d/m/Y');
+                $formattedDate = Carbon::parse($group[0]->date)->format('d/m/Y');
 
+                return [
+                    'date' => $formattedDate,
+                    'shift' => $group[0]->shift,
+                    'records' => $records,
+                    'totalChemicals' => $records->filter(fn($r) => $r['quantity'] > 0)->count(),
+                ];
+            })->values();
 
-            return [
-                'date' => $formattedDate,
-                'shift' => $group[0]->shift,
-                'records' => $records,
-                'totalChemicals' => $records->filter(fn($r) => $r['quantity'] > 0)->count(),
-            ];
-        })->values();
+        // รายการเดือนเรียงปกติ ม.ค.–ธ.ค.
+        $months = [
+            '01' => 'มกราคม',
+            '02' => 'กุมภาพันธ์',
+            '03' => 'มีนาคม',
+            '04' => 'เมษายน',
+            '05' => 'พฤษภาคม',
+            '06' => 'มิถุนายน',
+            '07' => 'กรกฎาคม',
+            '08' => 'สิงหาคม',
+            '09' => 'กันยายน',
+            '10' => 'ตุลาคม',
+            '11' => 'พฤศจิกายน',
+            '12' => 'ธันวาคม'
+        ];
+
+        // รายการปี (ย้อนหลัง 3 ปี + ปีปัจจุบัน)
+        $years = range(now()->year - 3, now()->year);
 
         return Inertia::render('Chemical/Monthly', [
             'records' => $records,
+            'filters' => [
+                'month' => $selectedMonth, // เดือนปัจจุบันเป็นค่า default
+                'year' => $selectedYear,   // ปีปัจจุบันเป็นค่า default
+            ],
+            'months' => $months,
+            'years' => $years,
+            'currentMonth' => $currentMonth,
+            'currentYear' => $currentYear,
         ]);
     }
+
 
 
     // Export ข้อมูลเป็น Excel
