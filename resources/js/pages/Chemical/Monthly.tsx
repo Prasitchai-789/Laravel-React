@@ -44,11 +44,25 @@ export default function MonthlyChemicals({
         Salt: { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200', chart: 'rgba(13, 148, 136, 0.7)' },
     };
 
-    // ✅ ฟังก์ชันจัดรูปแบบตัวเลขแสดงทศนิยม 2 ตำแหน่ง
-    const formatNumber = (num: number) => {
-        if (num === 0) return '0';
-        return Number(num).toFixed(2);
+
+    // --- helper functions ---
+    const formatNumber = (value, decimals = 2) => {
+        if (value == null || isNaN(value)) return "0";
+        return Number(value).toLocaleString("th-TH", {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+        });
     };
+
+    const formatNumberWithoutDecimal = (value) => {
+        if (value == null || isNaN(value)) return "0";
+        return Number(value).toLocaleString("th-TH", {
+            maximumFractionDigits: 0,
+        });
+    };
+
+    // ✅ ฟังก์ชันจัดรูปแบบตัวเลขแสดงทศนิยม 2 ตำแหน่ง
+    
 
     // ฟังก์ชันแสดงไอคอนสำหรับแต่ละสารเคมี
     const getChemicalIcon = (chemicalName: string) => {
@@ -131,7 +145,7 @@ export default function MonthlyChemicals({
     // ฟังก์ชันดึงเดือนและปีจากวันที่
     const getMonthYearFromDate = (dateString: string) => {
         if (!dateString) return { month: '', year: '' };
-        
+
         // ตรวจสอบรูปแบบวันที่
         if (dateString.includes('/')) {
             // รูปแบบ DD/MM/YYYY
@@ -656,7 +670,9 @@ export default function MonthlyChemicals({
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                 <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                                     <div className="text-sm text-gray-500">จำนวนวันที่บันทึกข้อมูล</div>
-                                    <div className="mt-1 text-2xl font-bold text-blue-600">{dailyArray.length} วัน</div>
+                                    <div className="mt-1 text-2xl font-bold text-blue-600">
+                                        {formatNumberWithoutDecimal(dailyArray.length)} วัน
+                                    </div>
                                 </div>
                                 <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                                     <div className="text-sm text-gray-500">สารเคมีการใช้มากที่สุด</div>
@@ -690,7 +706,7 @@ export default function MonthlyChemicals({
                                     <ul className="list-inside list-disc space-y-1">
                                         <li>แสดงปริมาณการใช้สารเคมีแต่ละประเภทแยกตามวัน</li>
                                         <li>แกน X: วันที่ของเดือน</li>
-                                        <li>แกน Y: ปริมาณการใช้ (กิโลกรัม)</li>
+                                        <li>��น Y: ปริมาณการใช้ (กิโลกรัม)</li>
                                         <li>สีของแต่ละแท่งแทนสารเคมีประเภทต่าง ๆ</li>
                                     </ul>
                                 </div>
