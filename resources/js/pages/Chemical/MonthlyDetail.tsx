@@ -56,6 +56,15 @@ export default function MonthlyDetail({ month, records }: MonthlyDetailProps) {
     }));
   };
 
+  // ฟังก์ชันจัดรูปแบบตัวเลขให้มี comma
+  const formatNumber = (num: number | null): string => {
+    if (num === null || num === undefined) return "-";
+    return num.toLocaleString('th-TH', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
   const monthNames: Record<string, string> = {
     "01": "มกราคม",
     "02": "กุมภาพันธ์",
@@ -102,7 +111,7 @@ export default function MonthlyDetail({ month, records }: MonthlyDetailProps) {
                 {r.chemical_name}
               </td>
               <td className="px-4 py-2.5 text-right text-gray-700 border-b border-gray-200 font-medium whitespace-nowrap">
-                {r.quantity !== null && r.quantity !== undefined ? r.quantity.toFixed(2) : "-"}
+                {formatNumber(r.quantity)}
               </td>
             </tr>
           ))}
@@ -117,7 +126,7 @@ export default function MonthlyDetail({ month, records }: MonthlyDetailProps) {
       }>
         <div className="px-4 py-2.5 flex justify-between items-center border-t border-gray-300">
           <span className="font-semibold text-gray-800">รวม</span>
-          <span className="font-bold text-gray-800">{total.toFixed(2)}</span>
+          <span className="font-bold text-gray-800">{formatNumber(total)}</span>
         </div>
       </div>
     </div>
@@ -192,15 +201,15 @@ export default function MonthlyDetail({ month, records }: MonthlyDetailProps) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center p-3 bg-blue-100 rounded-lg">
             <div className="text-sm text-blue-700">กะ A</div>
-            <div className="text-xl font-bold text-blue-800">{totalA.toFixed(2)}</div>
+            <div className="text-xl font-bold text-blue-800">{formatNumber(totalA)}</div>
           </div>
           <div className="text-center p-3 bg-green-100 rounded-lg">
             <div className="text-sm text-green-700">กะ B</div>
-            <div className="text-xl font-bold text-green-800">{totalB.toFixed(2)}</div>
+            <div className="text-xl font-bold text-green-800">{formatNumber(totalB)}</div>
           </div>
           <div className="text-center p-3 bg-purple-100 rounded-lg">
             <div className="text-sm text-purple-700">รวมทั้งหมด</div>
-            <div className="text-xl font-bold text-purple-800">{totalAll.toFixed(2)}</div>
+            <div className="text-xl font-bold text-purple-800">{formatNumber(totalAll)}</div>
           </div>
         </div>
       </div>

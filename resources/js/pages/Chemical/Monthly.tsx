@@ -1,13 +1,23 @@
 import ChemicalUsageChart from '@/components/ChemicalUsageChart';
 import ModalForm from '@/components/ModalForm';
 import AppLayout from '@/layouts/app-layout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { BarChart2, BarChart3, Calendar, ChevronLeft, ChevronRight, Download, Eye, FileText, PieChart } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import MonthlyDetail from './MonthlyDetail';
+import { debounce } from 'lodash';
 
-export default function MonthlyChemicals({ records = [] }) {
-    const [selectedMonth, setSelectedMonth] = useState('01');
+// เปลี่ยน props เพื่อรับข้อมูลเดือนและปีปัจจุบันจาก backend
+export default function MonthlyChemicals({
+    records = [],
+    filters,
+    months,
+    years,
+    currentMonth,
+    currentYear
+}) {
+    const [selectedMonth, setSelectedMonth] = useState(filters?.month || currentMonth);
+    const [selectedYear, setSelectedYear] = useState(filters?.year || currentYear);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [isModalOpen, setIsOpen] = useState(false);
     const [selectedDateRecords, setSelectedDateRecords] = useState([]);
@@ -16,6 +26,11 @@ export default function MonthlyChemicals({ records = [] }) {
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
     const chemicalNames = ['ดินขาว', 'Fogon 3000', 'Hexon 4000', 'Sumalchlor 50', 'PROXITANE', 'Polymer', 'Soda Ash', 'Salt'];
+    const monthOrder = [
+        "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"
+    ];
+
+    const orderedMonths = monthOrder;
 
     // กำหนดสีสำหรับแต่ละสารเคมี
     const chemicalColors = {
@@ -29,11 +44,25 @@ export default function MonthlyChemicals({ records = [] }) {
         Salt: { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200', chart: 'rgba(13, 148, 136, 0.7)' },
     };
 
-    // ✅ ฟังก์ชันจัดรูปแบบตัวเลขแสดงทศนิยม 2 ตำแหน่ง
-    const formatNumber = (num: number) => {
-        if (num === 0) return '0';
-        return Number(num).toFixed(2);
+
+    // --- helper functions ---
+    const formatNumber = (value, decimals = 2) => {
+        if (value == null || isNaN(value)) return "0";
+        return Number(value).toLocaleString("th-TH", {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals,
+        });
     };
+
+    const formatNumberWithoutDecimal = (value) => {
+        if (value == null || isNaN(value)) return "0";
+        return Number(value).toLocaleString("th-TH", {
+            maximumFractionDigits: 0,
+        });
+    };
+
+    // ✅ ฟังก์ชันจัดรูปแบบตัวเลขแสดงทศนิยม 2 ตำแหน่ง
+    
 
     // ฟังก์ชันแสดงไอคอนสำหรับแต่ละสารเคมี
     const getChemicalIcon = (chemicalName: string) => {
@@ -113,23 +142,58 @@ export default function MonthlyChemicals({ records = [] }) {
         return icons[chemicalName] || <BarChart3 className="h-4 w-4" />;
     };
 
-    const toISODate = (dateString: string) => {
-        const [day, month, year] = dateString.split('/');
-        return `${year}-${month}-${day}`; // YYYY-MM-DD
+    // ฟังก์ชันดึงเดือนและปีจากวันที่
+    const getMonthYearFromDate = (dateString: string) => {
+        if (!dateString) return { month: '', year: '' };
+
+        // ตรวจสอบรูปแบบวันที่
+        if (dateString.includes('/')) {
+            // รูปแบบ DD/MM/YYYY
+            const [day, month, year] = dateString.split('/');
+            return { month, year };
+        } else if (dateString.includes('-')) {
+            // รูปแบบ YYYY-MM-DD
+            const [year, month, day] = dateString.split('-');
+            return { month, year };
+        }
+        return { month: '', year: '' };
     };
 
-    // ✅ กัน error ถ้า r.date ไม่มีค่า
-    // filter รายเดือน
-    const filteredRecords = records.filter((r) => toISODate(r.date).startsWith(`2025-${selectedMonth}`));
+    const paddedMonth = String(selectedMonth).padStart(2, "0");
+
+    // แก้ไขการกรองข้อมูลให้ถูกต้อง
+    const filteredRecords = records.filter((r) => {
+        if (!r.date) return false;
+        const { month, year } = getMonthYearFromDate(r.date);
+        return month === paddedMonth && year === selectedYear;
+    });
+
+    // ฟังก์ชันเปลี่ยนเดือน/ปี - ใช้ Inertia router
+    const updateFilters = useCallback(
+        debounce(() => {
+            router.get('/monthly', { month: selectedMonth, year: selectedYear }, {
+                preserveState: true,
+                replace: true,
+                only: ['records', 'filters']
+            });
+        }, 300),
+        [selectedMonth, selectedYear]
+    );
+
+    // อัปเดตข้อมูลเมื่อเดือนหรือปีเปลี่ยนแปลง
+    useEffect(() => {
+        updateFilters();
+        return () => updateFilters.cancel();
+    }, [selectedMonth, selectedYear, updateFilters]);
 
     const handleView = (date: string) => {
         const dayRecords = filteredRecords
-            .filter((r) => r.date === date) // ✅ ตรงนี้ยังใช้ DD/MM/YYYY ได้เลย
+            .filter((r) => r.date === date)
             .flatMap((r) =>
                 r.records.map((item) => ({
                     ...item,
                     shift: r.shift,
-                    date: r.date, // เก็บเป็น DD/MM/YYYY ไปเลย
+                    date: r.date,
                 })),
             );
 
@@ -138,19 +202,19 @@ export default function MonthlyChemicals({ records = [] }) {
         setIsOpen(true);
     };
 
-    // ฟังก์ชันสำหรับ Export Excel
+    // ฟังก์ชันสำหรับ Export Excel - เพิ่มปี
     const exportToExcel = () => {
-        window.open(`/monthly/export-excel?month=${selectedMonth}`, '_blank');
+        window.open(`/monthly/export-excel?month=${selectedMonth}&year=${selectedYear}`, '_blank');
     };
 
-    // ฟังก์ชันสำหรับ Export PDF
+    // ฟังก์ชันสำหรับ Export PDF - เพิ่มปี
     const exportToPdf = () => {
-        window.open(`/monthly/export-pdf?month=${selectedMonth}`, '_blank');
+        window.open(`/monthly/export-pdf?month=${selectedMonth}&year=${selectedYear}`, '_blank');
     };
 
     const dailyTotals = filteredRecords.reduce(
         (acc, group) => {
-            if (!group.date) return acc; // กัน error อีกชั้น
+            if (!group.date) return acc;
 
             if (!acc[group.date]) {
                 acc[group.date] = chemicalNames.reduce(
@@ -193,6 +257,7 @@ export default function MonthlyChemicals({ records = [] }) {
 
         return dateString;
     };
+
     // คำนวณข้อมูลสำหรับกราฟ
     const chartData = useMemo(() => {
         // กราฟแท่ง: สรุปการใช้สารเคมีรายวัน
@@ -207,7 +272,7 @@ export default function MonthlyChemicals({ records = [] }) {
             })),
         };
 
-        // กราฟวงกลм: สัดส่วนการใช้สารเคมีทั้งหมดในเดือน
+        // กราฟวงกลม: สัดส่วนการใช้สารเคมีทั้งหมดในเดือน
         const monthlyTotals = chemicalNames.reduce(
             (acc, name) => {
                 acc[name] = dailyArray.reduce((sum, day) => sum + (day.totals[name] || 0), 0);
@@ -260,7 +325,7 @@ export default function MonthlyChemicals({ records = [] }) {
             'พฤศจิกายน',
             'ธันวาคม',
         ];
-        return months[parseInt(month) - 1];
+        return months[parseInt(month) - 1] || month;
     };
 
     // Pagination logic
@@ -275,10 +340,10 @@ export default function MonthlyChemicals({ records = [] }) {
         }
     };
 
-    // Reset to first page when month changes
-    useState(() => {
+    // Reset to first page when month or year changes
+    useEffect(() => {
         setCurrentPage(1);
-    }, [selectedMonth]);
+    }, [selectedMonth, selectedYear]);
 
     return (
         <AppLayout
@@ -292,37 +357,37 @@ export default function MonthlyChemicals({ records = [] }) {
 
             {/* กำหนดฟอนต์ Anuphon ใน style tag */}
             <style>{`
-                @font-face {
-                    font-family: 'Anuphon';
-                    src: url('/fonts/anuphon/Anuphon-Regular.woff2') format('woff2'),
-                         url('/fonts/anuphon/Anuphon-Regular.woff') format('woff');
-                    font-weight: normal;
-                    font-style: normal;
-                    font-display: swap;
-                }
+        @font-face {
+          font-family: 'Anuphon';
+          src: url('/fonts/anuphon/Anuphon-Regular.woff2') format('woff2'),
+               url('/fonts/anuphon/Anuphon-Regular.woff') format('woff');
+          font-weight: normal;
+          font-style: normal;
+          font-display: swap;
+        }
 
-                @font-face {
-                    font-family: 'Anuphon';
-                    src: url('/fonts/anuphon/Anuphon-Bold.woff2') format('woff2'),
-                         url('/fonts/anuphon/Anuphon-Bold.woff') format('woff');
-                    font-weight: bold;
-                    font-style: normal;
-                    font-display: swap;
-                }
+        @font-face {
+          font-family: 'Anuphon';
+          src: url('/fonts/anuphon/Anuphon-Bold.woff2') format('woff2'),
+               url('/fonts/anuphon/Anuphon-Bold.woff') format('woff');
+          font-weight: bold;
+          font-style: normal;
+          font-display: swap;
+        }
 
-                @font-face {
-                    font-family: 'Anuphon';
-                    src: url('/fonts/anuphon/Anuphon-Italic.woff2') format('woff2'),
-                         url('/fonts/anuphon/Anuphon-Italic.woff') format('woff');
-                    font-weight: normal;
-                    font-style: italic;
-                    font-display: swap;
-                }
+        @font-face {
+          font-family: 'Anuphon';
+          src: url('/fonts/anuphon/Anuphon-Italic.woff2') format('woff2'),
+               url('/fonts/anuphon/Anuphon-Italic.woff') format('woff');
+          font-weight: normal;
+          font-style: italic;
+          font-display: swap;
+        }
 
-                .font-anuphon {
-                    font-family: 'Anuphon', 'Sukhumvit Set', 'Kanit', sans-serif;
-                }
-            `}</style>
+        .font-anuphon {
+          font-family: 'Anuphon', 'Sukhumvit Set', 'Kanit', sans-serif;
+        }
+      `}</style>
 
             <div className="font-anuphon rounded-xl bg-white p-6">
                 <div className="mb-6">
@@ -347,27 +412,35 @@ export default function MonthlyChemicals({ records = [] }) {
                     </div>
 
                     <div className="flex flex-col items-stretch gap-4 md:flex-row">
-                        {/* ส่วนเลือกเดือน */}
-                        <div className="flex flex-grow items-center space-x-2 rounded-lg border border-blue-200 bg-blue-50 p-1.5 px-2">
-                            <Calendar className="h-3 w-3 flex-shrink-0 text-blue-600" />
-                            <select
-                                value={selectedMonth}
-                                onChange={(e) => setSelectedMonth(e.target.value)}
-                                className="h-full w-full rounded-md border-0 px-3 text-base font-medium text-blue-700"
-                            >
-                                <option value="01">มกราคม</option>
-                                <option value="02">กุมภาพันธ์</option>
-                                <option value="03">มีนาคม</option>
-                                <option value="04">เมษายน</option>
-                                <option value="05">พฤษภาคม</option>
-                                <option value="06">มิถุนายน</option>
-                                <option value="07">กรกฎาคม</option>
-                                <option value="08">สิงหาคม</option>
-                                <option value="09">กันยายน</option>
-                                <option value="10">ตุลาคม</option>
-                                <option value="11">พฤศจิกายน</option>
-                                <option value="12">ธันวาคม</option>
-                            </select>
+                        {/* ส่วนเลือกเดือนและปี */}
+                        <div className="flex flex-grow items-center gap-3">
+                            <div className="flex flex-grow items-center space-x-2 rounded-lg border border-blue-200 bg-blue-50 p-1.5 px-2">
+                                <Calendar className="h-3 w-3 flex-shrink-0 text-blue-600" />
+                                <select
+                                    value={selectedMonth.padStart(2, "0")}
+                                    onChange={(e) => setSelectedMonth(e.target.value)}
+                                    className="h-full w-full rounded-md border-0 bg-transparent px-3 text-base font-medium text-blue-700"
+                                >
+                                    {orderedMonths.map((value) => (
+                                        <option key={value} value={value}>
+                                            {months[value]}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex flex-grow items-center space-x-2 rounded-lg border border-blue-200 bg-blue-50 p-1.5 px-2">
+                                <Calendar className="h-3 w-3 flex-shrink-0 text-blue-600" />
+                                <select
+                                    value={selectedYear}
+                                    onChange={(e) => setSelectedYear(e.target.value)}
+                                    className="h-full w-full rounded-md border-0 bg-transparent px-3 text-base font-medium text-blue-700"
+                                >
+                                    {(years || []).map((year) => (
+                                        <option key={year} value={year}>{year}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
                         {/* ปุ่ม Export */}
@@ -397,7 +470,7 @@ export default function MonthlyChemicals({ records = [] }) {
                         <div className="flex items-center gap-2">
                             <div className="h-3 w-3 rounded-full bg-blue-500"></div>
                             <span className="text-sm font-medium text-gray-700">เดือน:</span>
-                            <span className="text-sm font-semibold text-blue-700">{getMonthName(selectedMonth)} 2568</span>
+                            <span className="text-sm font-semibold text-blue-700">{getMonthName(selectedMonth)} {selectedYear}</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="h-3 w-3 rounded-full bg-green-500"></div>
@@ -434,6 +507,7 @@ export default function MonthlyChemicals({ records = [] }) {
                         ดูแบบกราฟ
                     </button>
                 </div>
+
                 {/* Conditional rendering based on active tab */}
                 {activeTab === 'table' ? (
                     /* Table View */
@@ -510,8 +584,16 @@ export default function MonthlyChemicals({ records = [] }) {
                                             <td colSpan={chemicalNames.length + 2} className="px-4 py-8 text-center">
                                                 <div className="flex flex-col items-center justify-center text-gray-400">
                                                     <Calendar className="mb-2 h-12 w-12 opacity-50" />
-                                                    <p className="text-sm">ไม่มีข้อมูลสำหรับเดือนนี้</p>
+                                                    <p className="text-sm">ไม่มีข้อมูลสำหรับเดือน {getMonthName(selectedMonth)} {selectedYear}</p>
                                                     <p className="mt-1 text-xs">กรุณาเลือกเดือนอื่นหรือเพิ่มข้อมูลใหม่</p>
+                                                    {/* แสดงข้อมูลที่มีอยู่เพื่อ debug */}
+                                                    <div className="mt-2 text-xs">
+                                                        <p>เดือนที่มีข้อมูล: {[...new Set(records.map(r => {
+                                                            if (!r.date) return '';
+                                                            const { month, year } = getMonthYearFromDate(r.date);
+                                                            return `${getMonthName(month)} ${year}`;
+                                                        }).filter(Boolean))].join(', ')}</p>
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
@@ -583,12 +665,14 @@ export default function MonthlyChemicals({ records = [] }) {
                         <div className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
                             <h3 className="mb-4 flex items-center gap-2 text-xl font-bold text-gray-800">
                                 <BarChart3 className="h-5 w-5" />
-                                สรุปข้อมูลการใช้สารเคมีเดือน {getMonthName(selectedMonth)} 2568
+                                สรุปข้อมูลการใช้สารเคมีเดือน {getMonthName(selectedMonth)} {selectedYear}
                             </h3>
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                 <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                                     <div className="text-sm text-gray-500">จำนวนวันที่บันทึกข้อมูล</div>
-                                    <div className="mt-1 text-2xl font-bold text-blue-600">{dailyArray.length} วัน</div>
+                                    <div className="mt-1 text-2xl font-bold text-blue-600">
+                                        {formatNumberWithoutDecimal(dailyArray.length)} วัน
+                                    </div>
                                 </div>
                                 <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
                                     <div className="text-sm text-gray-500">สารเคมีการใช้มากที่สุด</div>
@@ -615,14 +699,14 @@ export default function MonthlyChemicals({ records = [] }) {
                                 <ChemicalUsageChart
                                     data={chartData.barChartData}
                                     type="bar"
-                                    title={`การใช้สารเคมีรายวัน - ${getMonthName(selectedMonth)} 2568`}
+                                    title={`การใช้สารเคมีรายวัน - ${getMonthName(selectedMonth)} ${selectedYear}`}
                                 />
                                 <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
                                     <p className="mb-2 font-medium">คำอธิบายกราฟแท่ง:</p>
                                     <ul className="list-inside list-disc space-y-1">
                                         <li>แสดงปริมาณการใช้สารเคมีแต่ละประเภทแยกตามวัน</li>
                                         <li>แกน X: วันที่ของเดือน</li>
-                                        <li>แกน Y: ปริมาณการใช้ (กิโลกรัม)</li>
+                                        <li>��น Y: ปริมาณการใช้ (กิโลกรัม)</li>
                                         <li>สีของแต่ละแท่งแทนสารเคมีประเภทต่าง ๆ</li>
                                     </ul>
                                 </div>
@@ -632,7 +716,7 @@ export default function MonthlyChemicals({ records = [] }) {
                                 <ChemicalUsageChart
                                     data={chartData.doughnutChartData}
                                     type="doughnut"
-                                    title={`สัดส่วนการใช้สารเคมี - ${getMonthName(selectedMonth)} 2568`}
+                                    title={`สัดส่วนการใช้สารเคมี - ${getMonthName(selectedMonth)} ${selectedYear}`}
                                 />
                                 <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
                                     <p className="mb-2 font-medium">คำอธิบายกราฟวงกลม:</p>
@@ -650,7 +734,7 @@ export default function MonthlyChemicals({ records = [] }) {
                             <ChemicalUsageChart
                                 data={chartData.lineChartData}
                                 type="line"
-                                title={`แนวโน้มการใช้สารเคมีรายวัน - ${getMonthName(selectedMonth)} 2568`}
+                                title={`แนวโน้มการใช้สารเคมีรายวัน - ${getMonthName(selectedMonth)} ${selectedYear}`}
                             />
                             <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm text-gray-600">
                                 <p className="mb-2 font-medium">คำอธิบายกราฟเส้น:</p>
@@ -748,7 +832,7 @@ export default function MonthlyChemicals({ records = [] }) {
                                         <span className="font-medium text-green-600">
                                             {formatNumber(
                                                 Object.values(chartData.monthlyTotals).reduce((sum, val) => sum + val, 0) /
-                                                    Math.max(dailyArray.length, 1),
+                                                Math.max(dailyArray.length, 1),
                                             )}{' '}
                                             กก./วัน
                                         </span>
