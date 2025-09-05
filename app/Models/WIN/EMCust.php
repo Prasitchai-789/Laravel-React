@@ -12,7 +12,8 @@ class EMCust extends Model
     protected $table = 'EMCust';
     protected $primaryKey = 'CustID';
     public $timestamps = false;
-    protected $fillable = [];
+    protected $fillable = ['AccID', 'CustCode', 'CustTitle', 'CustName'];
+
     public function invoices()
     {
         return $this->hasMany(SOInvHD::class, 'CustID', 'CustID');

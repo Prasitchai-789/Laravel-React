@@ -129,6 +129,19 @@ return [
             //     'TrustServerCertificate' => env('DB_TRUST_SERVER_CERTIFICATE_2', true),
             // ],
         ],
+        'sqlsrv3' => [
+            'driver' => 'sqlsrv',
+            'host' => env('DB_HOST_3', 'localhost'),
+            'port' => env('DB_PORT_3', '1433'),
+            'database' => env('DB_DATABASE_3', 'laravel'),
+            'username' => env('DB_USERNAME_3', 'sa'),
+            'password' => env('DB_PASSWORD_3', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'encrypt' => env('DB_ENCRYPT_3', 'yes'),
+            'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE_3', true),
+        ],
 
 
     ],

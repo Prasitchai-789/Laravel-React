@@ -117,7 +117,7 @@ export default function UserForm({ mode = 'create', user = null, roles = [], onC
                 data: submitData,
                 onSuccess: () => {
                     Swal.fire({
-                        position: 'top-end',
+                        position: 'center',
                         icon: 'success',
                         title: 'User created successfully',
                         showConfirmButton: false,
@@ -181,7 +181,7 @@ export default function UserForm({ mode = 'create', user = null, roles = [], onC
                             value={employeeSearch}
                             onChange={(e) => setEmployeeSearch(e.target.value)}
                             onFocus={() => setShowEmployeeDropdown(true)}
-                            className="font-anuphan block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm transition duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                            className="block w-full rounded-lg border border-gray-300 px-4 py-3 font-anuphan shadow-sm transition duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                             placeholder="Search by employee code or name..."
                             disabled={mode === 'create'}
                         />
@@ -201,7 +201,7 @@ export default function UserForm({ mode = 'create', user = null, roles = [], onC
                     {showEmployeeDropdown && filteredEmployees.length > 0 && (
                         <div
                             ref={dropdownRef}
-                            className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg font-anuphan"
+                            className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white font-anuphan shadow-lg"
                             style={{
                                 top: '100%',
                                 left: 0,
@@ -212,7 +212,7 @@ export default function UserForm({ mode = 'create', user = null, roles = [], onC
                                 <div
                                     key={emp.EmpID}
                                     onClick={() => selectEmployee(emp)}
-                                    className="cursor-pointer border-b border-gray-100 p-3 transition-colors last:border-b-0 hover:bg-gray-50 font-anuphan"
+                                    className="cursor-pointer border-b border-gray-100 p-3 font-anuphan transition-colors last:border-b-0 hover:bg-gray-50"
                                 >
                                     <div className="font-medium text-gray-900">{emp.EmpName}</div>
                                     <div className="text-sm text-gray-600">
@@ -247,7 +247,7 @@ export default function UserForm({ mode = 'create', user = null, roles = [], onC
                     value={data.name}
                     onChange={(e) => setData('name', e.target.value)}
                     required
-                    className="font-anuphan block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm transition duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                    className="block w-full rounded-lg border border-gray-300 px-4 py-3 font-anuphan shadow-sm transition duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                     placeholder="Enter full name"
                 />
                 {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
@@ -264,7 +264,7 @@ export default function UserForm({ mode = 'create', user = null, roles = [], onC
                     value={data.email}
                     onChange={(e) => setData('email', e.target.value)}
                     required
-                    className="font-anuphan block w-full rounded-lg border border-gray-300 px-4 py-3 shadow-sm transition duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+                    className="block w-full rounded-lg border border-gray-300 px-4 py-3 font-anuphan shadow-sm transition duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
                     placeholder="Enter email address"
                 />
                 {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}

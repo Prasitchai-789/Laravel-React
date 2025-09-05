@@ -393,7 +393,7 @@ export default function DailyBarChart() {
     // ✅ breadcrumbs
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
-        { title: 'Table Palm Purchase', href: '/table.palm.index' },
+        { title: 'กราฟยอดรับซื้อปาล์มรายวัน', href: '/table.palm.index' },
     ];
 
     // ✅ คำนวณค่าสถิติ

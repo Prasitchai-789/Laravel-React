@@ -137,12 +137,12 @@ export default function TableTotalPalm() {
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
-        { title: 'Table Palm Purchase', href: '/table.palm.index' },
+        { title: 'การรับซื้อผลปาล์ม', href: '/table.palm.index' },
     ];
     console.log(pivot);
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Table Palm Purchase" />
+            <Head title="การรับซื้อผลปาล์ม" />
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 py-2 font-anuphan">
                 {/* Header Section */}
                 <div className="mb-2 flex items-center justify-between">
@@ -152,7 +152,7 @@ export default function TableTotalPalm() {
                         </div>
                         <div>
                             <h1 className="text-3xl font-bold text-gray-800">Table Palm Purchase</h1>
-                            <p className="text-gray-600">ข้อมูลการรับซื้อปาล์มรายเดือนแยกตามปี</p>
+                            <p className="text-gray-600">ข้อมูลการรับซื้อผลปาล์มรายเดือนแยกตามปี</p>
                         </div>
                     </div>
                 </div>

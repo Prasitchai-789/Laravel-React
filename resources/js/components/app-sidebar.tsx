@@ -2,10 +2,21 @@ import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarGroupLabel } from '@/components/ui/sidebar';
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+} from '@/components/ui/sidebar';
+import { can } from '@/lib/can';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, ChevronDown, FlaskConical, Folder, FolderOpenDot, Handshake, LayoutGrid, Notebook, Shield, UsersRound } from 'lucide-react';
+import { BookOpen, ChevronDown, FlaskConical, Folder, FolderOpenDot, Handshake, LayoutGrid, Notebook, Shield, UsersRound ,ChartNoAxesCombined ,
+    ShoppingBasket,ChartCandlestick} from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -24,16 +35,12 @@ const mainNavItems: NavItem[] = [
         href: '/chemical',
         icon: FlaskConical,
     },
- // React Menu
+    // React Menu
     {
         title: 'Community',
         href: '/citizens/communitypage',
         icon: Handshake,
-    }
-
-
-
-
+    },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -56,6 +63,24 @@ const adminNavItems: NavItem[] = [
         title: 'เพิ่มข้อมูลของชุมชน',
         href: '/citizens',
         icon: UsersRound,
+    },
+];
+
+const DevNavItems: NavItem[] = [
+    {
+        title: 'ปริมาณผลปาล์ม',
+        href: '/palm/table',
+        icon: ShoppingBasket,
+    },
+    {
+        title: 'ปริมาณผลปาล์มรายวัน',
+        href: '/palm/daily',
+        icon: ChartNoAxesCombined,
+    },
+    {
+        title: 'ต้นทุนการขาย',
+        href: '/cost-analysis/dashboard',
+        icon: ChartCandlestick,
     },
 ];
 
@@ -89,6 +114,25 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
+                {can('developer_GM.view') && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton className="flex w-full items-center">
+                                    <LayoutGrid className="h-6 w-6" />
+                                    <span className="flex-1 font-medium">Dashboard Report</span>
+                                    <ChevronDown className="ml-auto h-4 w-4" />
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                            <DropdownMenuGroup>
+                                <SidebarGroupLabel>Platform</SidebarGroupLabel>
+                                <NavMain items={DevNavItems} />
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
                 <NavMain items={mainNavItems} />
             </SidebarContent>
 
@@ -103,10 +147,10 @@ export function AppSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 shadow-lg font-anuphan">
+                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                         <DropdownMenuGroup>
                             <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                            <NavMain  items={adminNavItems} />
+                            <NavMain items={adminNavItems} />
                         </DropdownMenuGroup>
                     </DropdownMenuContent>
                 </DropdownMenu>

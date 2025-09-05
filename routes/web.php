@@ -9,17 +9,19 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ChemicalController;
 use App\Http\Controllers\AGR\SalesController;
-use App\Http\Controllers\AGR\ProductController;
-use App\Http\Controllers\AGR\CustomerController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\AGR\ProductController;
 use App\Http\Controllers\Api\CitizenController;
+use App\Http\Controllers\AGR\CustomerController;
 use App\Http\Controllers\ChemicalOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
+use App\Http\Controllers\Dashboard\CostAnalysisController;
 use App\Http\Controllers\Dashboard\DailyBarCharController;
 use App\Http\Controllers\Dashboard\PalmDashboardController;
 use App\Http\Controllers\Dashboard\PalmProductionController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
+use App\Http\Controllers\MAR\SalesController as MARSalesController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -149,17 +151,19 @@ Route::prefix('api')->group(function () {
 });
 
 // Dashboard Routes
-Route::middleware(['permission:users.view'])->group(function () {
+Route::middleware(['permission:developer_GM.view|developer_GM.create|developer_GM.edit|developer_GM.delete'])->group(function () {
     Route::get('palm/table', [TableTotalPalmController::class, 'index'])->name('palm.table.index');
     Route::get('palm/daily', [DailyBarCharController::class, 'index'])->name('palm.daily.index');
     Route::get('palm/production', [PalmProductionController::class, 'index'])->name('palm.production.index');
     Route::get('palm/dashboard', [PalmDashboardController::class, 'index'])->name('palm.dashboard.index');
+    Route::get('sales/dashboard', [MARSalesController::class, 'index'])->name('sales.dashboard.index');
+    Route::get('cost-analysis/dashboard', [CostAnalysisController::class, 'index'])->name('cost-analysis.dashboard.index');
 });
 
 // AGR Routes
 Route::resource('sales', SalesController::class);
-Route::get('/products', [ProductController::class,'index']);
-Route::get('/customers', [CustomerController::class,'index']);
+Route::get('/products', [ProductController::class, 'index']);
+Route::get('/customers', [CustomerController::class, 'index']);
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

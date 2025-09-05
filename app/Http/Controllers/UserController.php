@@ -20,7 +20,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::with(['roles', 'webappEmp'])->get();
+        $users = User::with(['roles', 'WebappEmp'])->get();
         $roles = Role::select('id', 'name')->get()->toArray();
         $allEmployees = WebappEmp::select('EmpID', 'EmpName', 'EmpCode', 'Position', 'DeptID', 'Tel', 'Email', 'Address')
             ->get()

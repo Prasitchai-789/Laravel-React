@@ -56,8 +56,6 @@ export default function Index({ roles, users, employees = [], userRoles = [], al
     const [selectedUserForView, setSelectedUserForView] = useState<User | null>(null);
 
     useEffect(() => {
-        console.log('Users data:', users);
-        console.log('All Employees data:', allEmployees);
     }, [users, allEmployees]);
 
     function openCreate() {
