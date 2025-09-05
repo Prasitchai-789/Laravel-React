@@ -106,53 +106,56 @@ const UploadCitizen: React.FC = () => {
         photo: row['รูป'] || null,
       }));
 
+      // --- ตรวจ duplicate ในไฟล์เดียวกัน ---
+      const seenIds: Set<string> = new Set();
+      const filteredData: Citizen[] = [];
+      const localFailRows: any[] = [];
 
-      const handleClearCitizens = async () => {
-        if (!confirm('ต้องการลบข้อมูลทั้งหมดจริงหรือไม่?')) return;
-
-        try {
-          const res = await fetch('/api/citizens/clear', {
-            method: 'POST', // ใช้ POST หรือ DELETE
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              // 'Authorization': `Bearer ${token}`, // ถ้าใช้ auth
-            },
-          });
-
-          if (!res.ok) {
-            const text = await res.text();
-            console.log('Response:', text);
-            throw new Error('Failed to clear citizens');
-          }
-
-          const result = await res.json();
-          alert(result.message);
-        } catch (err) {
-          console.error(err);
-          alert('เกิดข้อผิดพลาด');
+      citizensData.forEach((citizen, index) => {
+        const cid = citizen.citizen_id;
+        if (!cid) {
+          localFailRows.push({ row_index: index, error: 'Missing citizen_id' });
+        } else if (seenIds.has(cid)) {
+          localFailRows.push({ row_index: index, error: `Duplicate citizen_id in file: ${cid}` });
+        } else {
+          seenIds.add(cid);
+          filteredData.push(citizen);
         }
-      };
-
-
-      const res = await fetch('/api/citizens/bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ citizens: citizensData }),
       });
 
-      // --- อ่าน error จริงจาก backend ---
-      const resultText = await res.text();
-      let result: any = {};
-      try { result = JSON.parse(resultText); } catch (e) { result = { fail: citizensData.length, success: 0, fail_rows: [{ row_index: 0, error: resultText }] }; }
-
-      if (!res.ok || result.fail > 0) {
-        setMessage(`❌ พบข้อผิดพลาด: ล้มเหลว ${result.fail} รายการ`);
+      if (filteredData.length === 0) {
+        setMessage('❌ ไม่มีข้อมูลถูกต้องในไฟล์');
         setMessageType('error');
-        setFailRows(result.fail_rows || []);
+        setFailRows(localFailRows);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Sending citizensData:', filteredData);
+
+      // --- ส่งไป backend ---
+      const res = await fetch('/api/citizens/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ citizens: filteredData }),
+      });
+
+      let result: any = { success: 0, fail: 0, fail_rows: [] };
+      try {
+        result = await res.json();
+      } catch (err) {
+        console.error('Invalid JSON response', err);
+        result.fail = filteredData.length;
+        result.fail_rows = [{ row_index: 0, error: 'Invalid JSON response from server' }];
+      }
+
+      // รวม fail rows จาก duplicate ในไฟล์กับ backend
+      const allFailRows = [...localFailRows, ...(result.fail_rows || [])];
+
+      if (!res.ok || result.fail > 0 || allFailRows.length > 0) {
+        setMessage(`❌ พบข้อผิดพลาด: ล้มเหลว ${allFailRows.length} รายการ`);
+        setMessageType('error');
+        setFailRows(allFailRows);
       } else {
         setMessage(`✅ อัปโหลดสำเร็จ: ${result.success} รายการ`);
         setMessageType('success');
@@ -169,38 +172,44 @@ const UploadCitizen: React.FC = () => {
     }
   };
 
+  const handleClear = async () => {
+    if (!confirm('ต้องการลบข้อมูลทั้งหมดจริงหรือไม่?')) return;
+
+    try {
+      setLoading(true);
+      const res = await fetch('/api/citizens/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      });
+      const result = await res.json();
+      setMessage(result.message);
+      setMessageType('info');
+      setFailRows([]);
+    } catch (err) {
+      console.error(err);
+      setMessage('เกิดข้อผิดพลาดในการลบข้อมูล');
+      setMessageType('error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
         อัปโหลดข้อมูลประชาชนจากไฟล์ Excel
       </h2>
+
       <div className="mb-6 text-center">
         <button
-          onClick={async () => {
-            if (!confirm('ต้องการลบข้อมูลทั้งหมดจริงหรือไม่?')) return;
-            try {
-              setLoading(true);
-              const res = await fetch('/api/citizens/clear', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-              });
-              const result = await res.json();
-              setMessage(result.message);
-              setMessageType('info');
-            } catch (err) {
-              console.error(err);
-              setMessage('เกิดข้อผิดพลาดในการลบข้อมูล');
-              setMessageType('error');
-            } finally {
-              setLoading(false);
-            }
-          }}
+          onClick={handleClear}
           disabled={loading}
           className={`px-6 py-2.5 rounded-md font-semibold text-white transition-colors ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
         >
           {loading ? 'กำลังลบ...' : 'ลบข้อมูลทั้งหมด'}
         </button>
       </div>
+
       <form onSubmit={handleUpload} className="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex-grow">
@@ -212,10 +221,6 @@ const UploadCitizen: React.FC = () => {
               type="file"
               accept=".xlsx,.xls"
               onChange={handleFileChange}
-              className="block w-full text-sm text-gray-500 
-              file:mr-4 file:py-2 file:px-4 file:rounded 
-              file:border-0 file:text-sm file:font-semibold 
-              file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
             {file && <p className="mt-2 text-sm text-gray-600">ไฟล์ที่เลือก: {file.name}</p>}
           </div>
@@ -253,5 +258,3 @@ const UploadCitizen: React.FC = () => {
 };
 
 export default UploadCitizen;
-
-

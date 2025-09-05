@@ -33,40 +33,48 @@ class CitizenController extends Controller
         $successCount = 0;
         $failCount = 0;
         $failRows = [];
+        $fileCitizenIds = []; // <<< เพิ่มบันทึก citizen_id ในไฟล์
 
         foreach ($data as $index => $row) {
-            // --- Clean citizen_id ---
-            // --- Clean citizen_id ---
-// ลบช่องว่าง, ขีดกลาง, ตัวอักษรอื่น ๆ ให้เหลือแต่ตัวเลข
             $citizenId = isset($row['citizen_id']) ? preg_replace('/\D/', '', $row['citizen_id']) : null;
-            $citizenId = $citizenId ? substr($citizenId, 0, 13) : null; // จำกัด 13 ตัวเท่ากับเลขบัตรประชาชน
+            $citizenId = $citizenId ? substr($citizenId, 0, 13) : null;
 
+            // --- ตรวจสอบซ้ำในไฟล์ ---
+            if ($citizenId && in_array($citizenId, $fileCitizenIds)) {
+                $failCount++;
+                $failRows[] = [
+                    'row_index' => $index,
+                    'error' => "Duplicate citizen_id in file: $citizenId",
+                ];
+                continue;
+            }
+            if ($citizenId) {
+                $fileCitizenIds[] = $citizenId; // บันทึก citizen_id ที่เจอแล้ว
+            }
 
-            // --- Clean other text fields ---
-            $firstName = isset($row['first_name']) ? trim($row['first_name']) : null;
-            $lastName = isset($row['last_name']) ? trim($row['last_name']) : null;
-            $title = isset($row['title']) ? trim($row['title']) : null;
-            $gender = isset($row['gender']) ? trim($row['gender']) : null;
-            $phone = isset($row['phone']) ? trim($row['phone']) : null;
-            $villageName = isset($row['village_name']) ? trim($row['village_name']) : null;
-            $houseNo = isset($row['house_no']) ? trim($row['house_no']) : null;
-            $moo = isset($row['moo']) ? trim($row['moo']) : null;
-            $alley = isset($row['alley']) ? trim($row['alley']) : null;
-            $soi = isset($row['soi']) ? trim($row['soi']) : null;
-            $road = isset($row['road']) ? trim($row['road']) : null;
-            $subdistrict = isset($row['subdistrict']) ? trim($row['subdistrict']) : null;
-            $district = isset($row['district']) ? trim($row['district']) : null;
-            $province = isset($row['province']) ? trim($row['province']) : null;
-            $religion = isset($row['religion']) ? trim($row['religion']) : null;
-            $age = isset($row['age']) ? trim($row['age']) : null;
-            $photo = isset($row['photo']) ? trim($row['photo']) : null;
+            // --- clean fields, convert dates, validate ---
+            $firstName = trim($row['first_name'] ?? '');
+            $lastName = trim($row['last_name'] ?? '');
+            $title = trim($row['title'] ?? null);
+            $gender = trim($row['gender'] ?? null);
+            $phone = trim($row['phone'] ?? null);
+            $villageName = trim($row['village_name'] ?? null);
+            $houseNo = trim($row['house_no'] ?? null);
+            $moo = trim($row['moo'] ?? null);
+            $alley = trim($row['alley'] ?? null);
+            $soi = trim($row['soi'] ?? null);
+            $road = trim($row['road'] ?? null);
+            $subdistrict = trim($row['subdistrict'] ?? null);
+            $district = trim($row['district'] ?? null);
+            $province = trim($row['province'] ?? null);
+            $religion = trim($row['religion'] ?? null);
+            $photo = trim($row['photo'] ?? null);
+            $age = isset($row['age']) ? (int) trim($row['age']) : null;
 
-            // --- Convert Thai date to yyyy-mm-dd ---
             $birthDate = $this->convertThaiDate($row['birth_date'] ?? null);
             $cardIssueDate = $this->convertThaiDate($row['card_issue_date'] ?? null);
             $cardExpireDate = $this->convertThaiDate($row['card_expire_date'] ?? null);
 
-            // --- Validate first_name / last_name only ---
             $validator = Validator::make([
                 'first_name' => $firstName,
                 'last_name' => $lastName,
@@ -81,20 +89,17 @@ class CitizenController extends Controller
                     'row_index' => $index,
                     'error' => implode(', ', $validator->errors()->all()) . ($citizenId ? '' : ', citizen_id missing'),
                 ];
-                continue; // skip row
+                continue;
             }
 
-            // --- Check duplicate citizen_id in DB if citizen_id exists ---
-            if ($citizenId) {
-                $exists = \App\Models\Citizen::where('citizen_id', $citizenId)->exists();
-                if ($exists) {
-                    $failCount++;
-                    $failRows[] = [
-                        'row_index' => $index,
-                        'error' => "Duplicate citizen_id: $citizenId",
-                    ];
-                    continue;
-                }
+            // --- ตรวจสอบซ้ำใน DB ---
+            if ($citizenId && \App\Models\Citizen::where('citizen_id', $citizenId)->exists()) {
+                $failCount++;
+                $failRows[] = [
+                    'row_index' => $index,
+                    'error' => "Duplicate citizen_id in DB: $citizenId",
+                ];
+                continue;
             }
 
             // --- Insert ---
@@ -124,6 +129,7 @@ class CitizenController extends Controller
                 ]);
                 $successCount++;
             } catch (\Exception $e) {
+                \Log::error("Insert failed for citizen ID: $citizenId, Error: " . $e->getMessage());
                 $failCount++;
                 $failRows[] = [
                     'row_index' => $index,
@@ -138,6 +144,8 @@ class CitizenController extends Controller
             'fail_rows' => $failRows,
         ]);
     }
+
+
 
     private function convertThaiDate($thaiDate)
     {
