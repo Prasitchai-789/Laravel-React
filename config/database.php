@@ -131,7 +131,7 @@ return [
         ],
         'sqlsrv3' => [
             'driver' => 'sqlsrv',
-            'host' => env('DB_HOST_3', 'localhost'),
+            'host' => env('DB_HOST_3', '127.0.0.1'),
             'port' => env('DB_PORT_3', '1433'),
             'database' => env('DB_DATABASE_3', 'laravel'),
             'username' => env('DB_USERNAME_3', 'sa'),

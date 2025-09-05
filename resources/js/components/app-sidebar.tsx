@@ -114,7 +114,7 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                {can('developer_GM.view') && (
+                {can('developer.view') && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>

@@ -151,7 +151,7 @@ Route::prefix('api')->group(function () {
 });
 
 // Dashboard Routes
-Route::middleware(['permission:developer_GM.view|developer_GM.create|developer_GM.edit|developer_GM.delete'])->group(function () {
+Route::middleware(['auth', 'permission:developer.view'])->group(function () {
     Route::get('palm/table', [TableTotalPalmController::class, 'index'])->name('palm.table.index');
     Route::get('palm/daily', [DailyBarCharController::class, 'index'])->name('palm.daily.index');
     Route::get('palm/production', [PalmProductionController::class, 'index'])->name('palm.production.index');
