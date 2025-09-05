@@ -144,11 +144,7 @@ Route::middleware(['permission:users.view'])->group(function () {
 // Citizens / API Routes
 Route::get('/citizens', [CitizenController::class, 'index']);
 Route::get('/citizens/communitypage', [CitizenController::class, 'community']);
-Route::prefix('api')->group(function () {
-    Route::get('/get-locations', [CitizenController::class, 'getLocations']);
-    Route::get('/get-villages', [CitizenController::class, 'getVillages']);
-    Route::post('/citizens/bulk', [CitizenController::class, 'bulkUpload']);
-});
+
 
 // Dashboard Routes
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {

@@ -17,7 +17,7 @@ Route::prefix('projects')->group(function () {
 
 Route::post('/upload-citizens', [CitizenController::class, 'upload']);
 
-Route::post('/citizens/bulk', [CitizenController::class, 'bulkUpload']);
+// Route::post('/citizens/bulk', [CitizenController::class, 'bulkUpload']);
 
 
 
