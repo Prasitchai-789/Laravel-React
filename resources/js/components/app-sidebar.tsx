@@ -16,7 +16,7 @@ import { can } from '@/lib/can';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { BookOpen, ChevronDown, FlaskConical, Folder, FolderOpenDot, Handshake, LayoutGrid, Notebook, Shield, UsersRound ,ChartNoAxesCombined ,
-    ShoppingBasket,ChartCandlestick} from 'lucide-react';
+    ShoppingBasket,ChartCandlestick,Fence} from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -84,6 +84,19 @@ const DevNavItems: NavItem[] = [
     },
 ];
 
+const AGRNavItems: NavItem[] = [
+    {
+        title: 'รายการขายสินค้า',
+        href: '/sales',
+        icon: ShoppingBasket,
+    },
+    {
+        title: 'สต๊อกสินค้า',
+        href: '/stock-agr',
+        icon: ChartNoAxesCombined,
+    },
+];
+
 const footerNavItems: NavItem[] = [
     {
         title: 'Repository',
@@ -133,6 +146,24 @@ export function AppSidebar() {
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton className="flex w-full items-center">
+                                    <Fence className="h-6 w-6" />
+                                    <span className="flex-1 font-medium font-anuphan text-green-800">ฝ่ายสวนและต้นกล้า</span>
+                                    <ChevronDown className="ml-auto h-4 w-4" />
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                            <DropdownMenuGroup>
+                                <SidebarGroupLabel>Platform</SidebarGroupLabel>
+                                <NavMain items={AGRNavItems} />
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 <NavMain items={mainNavItems} />
             </SidebarContent>
 

@@ -152,5 +152,5 @@ class WebappEmp extends Model
     {
         // return $this->belongsToMany(Training::class, 'employee_trainings')->withPivot(['status', 'result', 'trainer', 'date', 'evidence_file'])->withTimestamps();
     }
-    
+
 }

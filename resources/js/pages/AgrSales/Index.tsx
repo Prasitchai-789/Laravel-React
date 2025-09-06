@@ -218,6 +218,7 @@ export default function Index(props) {
                     onClose={() => setIsModalOpen(false)}
                     title={mode === 'create' ? 'Create Project' : 'Edit Project'}
                     description="บันทึกข้อมูลโครงการ"
+                    size="max-w-3xl"
                 >
                     <SaleForm  onClose={() => setIsOpen(false)} />
                 </ModalForm>

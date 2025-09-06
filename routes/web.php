@@ -14,6 +14,7 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\AGR\ProductController;
 use App\Http\Controllers\Api\CitizenController;
 use App\Http\Controllers\AGR\CustomerController;
+use App\Http\Controllers\AGR\StockController;
 use App\Http\Controllers\ChemicalOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
 use App\Http\Controllers\Dashboard\CostAnalysisController;
@@ -161,9 +162,12 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 });
 
 // AGR Routes
-Route::resource('sales', SalesController::class);
-Route::get('/products', [ProductController::class, 'index']);
-Route::get('/customers', [CustomerController::class, 'index']);
+Route::middleware(['auth', 'permission:users.view'])->group(function () {
+    Route::resource('sales', SalesController::class);
+    Route::get('/products', [ProductController::class, 'index']);
+    Route::get('/customers', [CustomerController::class, 'index']);
+    Route::get('/stock-agr', [StockController::class, 'index'])->name('stock.agr.index');
+});
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

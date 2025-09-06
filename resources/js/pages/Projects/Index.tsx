@@ -1,3 +1,4 @@
+import Button from '@/components/Buttons/Button';
 import DeleteModal from '@/components/DeleteModal';
 import ModalForm from '@/components/ModalForm';
 import AppLayout from '@/layouts/app-layout';
@@ -5,6 +6,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import ProjectForm from './ProjectForm';
+import { Plus } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Projects', href: '/projects' }];
 
@@ -140,16 +142,9 @@ export default function Index({ projects }) {
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
-
-                    <button
-                        onClick={() => openCreate()}
-                        className="flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-sm font-medium text-white shadow-lg transition-all hover:scale-102 hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none sm:w-auto"
-                    >
-                        <svg className="mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                        </svg>
+                    <Button onClick={openCreate} icon={<Plus className="h-5 w-5" />} iconPosition="left" variant="primary">
                         Create
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Table View */}

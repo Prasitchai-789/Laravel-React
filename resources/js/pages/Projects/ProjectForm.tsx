@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import Swal from 'sweetalert2';
 
+
 export default function ProjectForm({ mode = 'create', project = null, onClose = () => {} }) {
     const { data, setData, post, put, processing, errors, reset } = useForm({
         name: '',
