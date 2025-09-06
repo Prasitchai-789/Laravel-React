@@ -65,7 +65,7 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
 
     const handleChange = (index: number, field: 'quantityA' | 'quantityB', value: string) => {
         const numericValue = value === '' ? 0 : parseFloat(value);
-        
+
         // Validate input
         const error = validateInput(numericValue, formData.records[index].chemical_name);
         setInputErrors(prev => ({
@@ -95,7 +95,7 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (hasErrors()) {
             return;
         }
@@ -104,9 +104,9 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
         const action = mode === 'create' ? post : put;
 
         action(url, {
-            data: { 
+            data: {
                 date: formData.date,
-                records: formData.records 
+                records: formData.records
             },
             onSuccess: () => {
                 reset();
@@ -141,7 +141,7 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
                             className="block w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all duration-200"
                             max={new Date().toISOString().split('T')[0]}
                         />
-                       
+
                     </div>
                 </div>
                 <div className="mt-2 text-xs text-gray-500 flex items-center">
@@ -199,8 +199,8 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
                                                 onChange={e => handleChange(idx, 'quantityA', e.target.value)}
                                                 onBlur={e => handleBlur(idx, 'quantityA', e.target.value)}
                                                 className={`w-full border p-2.5 rounded-lg text-right focus:ring-2 transition-all duration-200 font-medium ${
-                                                    inputErrors[`${idx}-quantityA`] 
-                                                        ? 'border-red-300 focus:ring-red-500 bg-red-50' 
+                                                    inputErrors[`${idx}-quantityA`]
+                                                        ? 'border-red-300 focus:ring-red-500 bg-red-50'
                                                         : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                                                 } ${r.quantityA > 0 ? 'bg-blue-50 border-blue-200' : ''}`}
                                                 placeholder="0.00"
@@ -227,8 +227,8 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
                                                 onChange={e => handleChange(idx, 'quantityB', e.target.value)}
                                                 onBlur={e => handleBlur(idx, 'quantityB', e.target.value)}
                                                 className={`w-full border p-2.5 rounded-lg text-right focus:ring-2 transition-all duration-200 font-medium ${
-                                                    inputErrors[`${idx}-quantityB`] 
-                                                        ? 'border-red-300 focus:ring-red-500 bg-red-50' 
+                                                    inputErrors[`${idx}-quantityB`]
+                                                        ? 'border-red-300 focus:ring-red-500 bg-red-50'
                                                         : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                                                 } ${r.quantityB > 0 ? 'bg-green-50 border-green-200' : ''}`}
                                                 placeholder="0.00"
@@ -257,12 +257,12 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
                                             onChange={e => handleChange(idx, shift === 'A' ? 'quantityA' : 'quantityB', e.target.value)}
                                             onBlur={e => handleBlur(idx, shift === 'A' ? 'quantityA' : 'quantityB', e.target.value)}
                                             className={`w-full border p-2.5 rounded-lg text-right focus:ring-2 transition-all duration-200 font-medium ${
-                                                inputErrors[`${idx}-${shift === 'A' ? 'quantityA' : 'quantityB'}`] 
-                                                    ? 'border-red-300 focus:ring-red-500 bg-red-50' 
+                                                inputErrors[`${idx}-${shift === 'A' ? 'quantityA' : 'quantityB'}`]
+                                                    ? 'border-red-300 focus:ring-red-500 bg-red-50'
                                                     : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                                             } ${
-                                                (shift === 'A' ? r.quantityA > 0 : r.quantityB > 0) 
-                                                    ? shift === 'A' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200' 
+                                                (shift === 'A' ? r.quantityA > 0 : r.quantityB > 0)
+                                                    ? shift === 'A' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'
                                                     : ''
                                             }`}
                                             placeholder="0.00"
@@ -321,14 +321,14 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
                 <button
                     type="button"
                     onClick={onClose}
-                    className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors shadow-sm font-medium"
+                    className="px-6 py-2.5 border border-gray-300 rounded-3xl text-gray-700 hover:bg-gray-50 transition-colors shadow-sm font-medium"
                     disabled={processing}
                 >
                     ยกเลิก
                 </button>
                 <button
                     type="submit"
-                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-3xl hover:from-blue-700 hover:to-blue-800 transition-all shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                     disabled={processing || hasErrors()}
                 >
                     {processing ? (

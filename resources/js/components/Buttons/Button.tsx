@@ -30,7 +30,7 @@ const Button: React.FC<ButtonProps> = ({
   hoverEffect = true,
 }) => {
   // Base classes
-  const baseClasses = "flex items-center justify-center rounded-xl font-medium text-white transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 hover:cursor-pointer";
+  const baseClasses = "flex items-center justify-center rounded-3xl font-medium text-white transition-all focus:outline-none focus:ring-1 focus:ring-offset-2 hover:cursor-pointer";
 
   // Variant classes
   const variantClasses = {
@@ -60,7 +60,7 @@ const Button: React.FC<ButtonProps> = ({
 
   // Additional effect classes
   const effectClasses = `
-    ${shadow ? "shadow-lg hover:shadow-xl" : ""}
+    ${shadow ? "shadow-md hover:shadow-xl" : ""}
     ${hoverEffect ? "hover:scale-102" : ""}
     ${disabled ? "opacity-50 cursor-not-allowed" : ""}
   `;

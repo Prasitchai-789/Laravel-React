@@ -153,14 +153,14 @@ export default function TaskForm({ mode = 'create', task = null, projectId, onCl
                 <button
                     type="button"
                     onClick={onClose}
-                    className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    className="inline-flex justify-center rounded-3xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
                     Cancel
                 </button>
                 <button
                     type="submit"
                     disabled={processing}
-                    className="inline-flex justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    className="inline-flex justify-center rounded-3xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                     {mode === 'create' ? 'Create' : 'Update'}
                 </button>

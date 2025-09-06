@@ -171,7 +171,7 @@ export default function PermissionsIndex({ permissions }: Props) {
           {canCreate && (
             <button
               onClick={openCreate}
-              className="flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-3 text-sm font-medium text-white shadow-lg transition-all hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl"
+              className="flex items-center justify-center rounded-3xl bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-3 text-sm font-medium text-white shadow-lg transition-all hover:from-indigo-700 hover:to-purple-700 hover:shadow-xl"
             >
               <Plus className="mr-2 h-5 w-5" />
               สร้างสิทธิ์ใหม่

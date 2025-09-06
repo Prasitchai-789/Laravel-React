@@ -62,7 +62,7 @@ export default function MonthlyChemicals({
     };
 
     // ✅ ฟังก์ชันจัดรูปแบบตัวเลขแสดงทศนิยม 2 ตำแหน่ง
-    
+
 
     // ฟังก์ชันแสดงไอคอนสำหรับแต่ละสารเคมี
     const getChemicalIcon = (chemicalName: string) => {
@@ -393,7 +393,7 @@ export default function MonthlyChemicals({
                 <div className="mb-6">
                     <Link
                         href={route('chemical.index')}
-                        className="inline-flex items-center justify-center rounded-lg bg-gray-400 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:scale-105 hover:from-green-600 hover:to-green-700"
+                        className="inline-flex items-center justify-center rounded-3xl bg-gray-400 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:scale-105 hover:from-green-600 hover:to-green-700"
                     >
                         กลับไปหน้าแรก
                     </Link>
@@ -447,7 +447,7 @@ export default function MonthlyChemicals({
                         <div className="flex items-stretch gap-3">
                             <button
                                 onClick={exportToExcel}
-                                className="flex flex-grow items-center justify-center gap-2 rounded-lg bg-green-600 px-5 text-base font-medium text-white shadow-sm transition-all hover:scale-105 hover:cursor-pointer hover:bg-green-700 hover:shadow-md md:flex-grow-0"
+                                className="flex flex-grow items-center justify-center gap-2 rounded-3xl bg-green-600 px-5 text-base font-medium text-white shadow-sm transition-all hover:scale-105 hover:cursor-pointer hover:bg-green-700 hover:shadow-md md:flex-grow-0"
                             >
                                 <Download className="h-3 w-3" />
                                 <span>Excel</span>
@@ -455,7 +455,7 @@ export default function MonthlyChemicals({
 
                             <button
                                 onClick={exportToPdf}
-                                className="flex flex-grow items-center justify-center gap-2 rounded-lg bg-red-600 px-5 text-base font-medium text-white shadow-sm transition-all hover:scale-105 hover:cursor-pointer hover:bg-red-700 hover:shadow-md md:flex-grow-0"
+                                className="flex flex-grow items-center justify-center gap-2 rounded-3xl bg-red-600 px-5 text-base font-medium text-white shadow-sm transition-all hover:scale-105 hover:cursor-pointer hover:bg-red-700 hover:shadow-md md:flex-grow-0"
                             >
                                 <FileText className="h-3 w-3" />
                                 <span>PDF</span>
