@@ -106,10 +106,10 @@ export default function UseForm({ mode, data, onClose, onSuccess }: UseFormProps
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4">
-                    <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-lg border border-gray-300 bg-white">
+                    <button type="button" onClick={onClose} className="px-5 py-2.5 rounded-3xl border border-gray-300 bg-white">
                         ยกเลิก
                     </button>
-                    <button type="submit" disabled={processing} className="px-5 py-2.5 rounded-lg bg-indigo-600 text-white">
+                    <button type="submit" disabled={processing} className="px-5 py-2.5 rounded-3xl bg-indigo-600 text-white">
                         {mode === 'create' ? 'สร้าง' : 'บันทึก'}
                     </button>
                 </div>

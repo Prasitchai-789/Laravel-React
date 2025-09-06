@@ -163,6 +163,8 @@ Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/customers', [CustomerController::class, 'index']);
     Route::get('/stock-agr', [StockController::class, 'index'])->name('stock.agr.index');
+    Route::post('/stock-agr-product', [ProductController::class, 'storeProduct'])->name('stock.agr.store.product');
+    Route::post('/stock-agr', [ProductController::class, 'storeLocation'])->name('stock.agr.store.location');
 });
 
 require __DIR__ . '/settings.php';

@@ -139,7 +139,6 @@ export default function ChemicalsIndex({ records, pagination }) {
         }
     };
 
-
     const breadcrumbs: BreadcrumbItem[] = [
         {
             title: 'Chemicals',
@@ -180,7 +179,7 @@ export default function ChemicalsIndex({ records, pagination }) {
                         {/* Monthly Report Button */}
                         <button
                             onClick={() => router.visit('/monthly')}
-                            className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-green-500 to-green-600 px-3 py-2.5 font-anuphan text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:cursor-pointer hover:from-green-600 hover:to-green-700"
+                            className="flex items-center gap-1.5 rounded-3xl bg-gradient-to-r from-green-500 to-green-600 px-3 py-2.5 font-anuphan text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:cursor-pointer hover:from-green-600 hover:to-green-700"
                         >
                             <BarChart3 size={16} />
                             <span>รายงานประจำเดือน</span>
@@ -190,7 +189,7 @@ export default function ChemicalsIndex({ records, pagination }) {
                         {can('users.create') && (
                             <button
                                 onClick={openCreate}
-                                className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-blue-500 to-blue-600 px-3 py-2.5 font-anuphan text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:cursor-pointer hover:from-blue-600 hover:to-blue-700"
+                                className="flex items-center gap-1.5 rounded-3xl bg-gradient-to-r from-blue-500 to-blue-600 px-3 py-2.5 font-anuphan text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:cursor-pointer hover:from-blue-600 hover:to-blue-700"
                             >
                                 <Plus size={16} />
                                 <span>เพิ่มข้อมูลใหม่</span>
@@ -264,7 +263,7 @@ export default function ChemicalsIndex({ records, pagination }) {
                                                     setDetailRecord(group);
                                                     setIsDetailOpen(true);
                                                 }}
-                                                className="hover:cursor-pointer inline-flex items-center gap-1.5 rounded-md border border-emerald-100 bg-emerald-50 px-2 py-1 font-anuphan text-xs text-emerald-700 transition-all duration-200 hover:border-emerald-200 hover:bg-emerald-100"
+                                                className="inline-flex items-center gap-1.5 rounded-md border border-emerald-100 bg-emerald-50 px-2 py-1 font-anuphan text-xs text-emerald-700 transition-all duration-200 hover:cursor-pointer hover:border-emerald-200 hover:bg-emerald-100"
                                                 title="ดูรายละเอียด"
                                             >
                                                 <span className="font-semibold">{group.totalChemicals}</span>
@@ -281,22 +280,22 @@ export default function ChemicalsIndex({ records, pagination }) {
                                                         setShift(group.shift);
                                                         setIsOpen(true);
                                                     }}
-                                                     className="group relative rounded-md border border-yellow-200 bg-yellow-100 p-1.5 font-anuphan text-yellow-600 transition-colors duration-200 hover:border-yellow-300 hover:bg-yellow-200"
-                                                    title="แก้ไข"
+                                                    className="group relative p-1.5 font-anuphan text-yellow-600 transition-colors duration-200 hover:scale-110 hover:cursor-pointer"
+                                                    title=""
                                                 >
-                                                    <Pencil size={14} />
-                                                    <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 transform rounded-md bg-yellow-500 px-2 py-1 font-anuphan text-xs whitespace-nowrap text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:scale-105 hover:cursor-pointer">
+                                                    <Pencil size={16} />
+                                                    <span className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 transform rounded-md bg-yellow-500 px-2 py-1 font-anuphan text-xs whitespace-nowrap text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:scale-105 hover:cursor-pointer">
                                                         แก้ไข
                                                     </span>
                                                 </button>
                                                 {can('users.delete') && (
                                                     <button
                                                         onClick={() => handleDelete(group)}
-                                                        className="group relative rounded-md border border-red-200 bg-red-100 p-1.5 font-anuphan text-red-700 transition-colors duration-200 hover:border-red-300 hover:bg-red-200"
-                                                        title="ลบ"
+                                                        className="group duration-200hover:cursor-pointer relative p-1.5 font-anuphan text-red-700 transition-colors hover:scale-110"
+                                                        title=""
                                                     >
-                                                        <Trash2 size={14} />
-                                                        <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 transform rounded-md bg-red-600 px-2 py-1 font-anuphan text-xs whitespace-nowrap text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:scale-105 hover:cursor-pointer">
+                                                        <Trash2 size={16} />
+                                                        <span className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 transform rounded-md bg-red-600 px-2 py-1 font-anuphan text-xs whitespace-nowrap text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 hover:scale-105 hover:cursor-pointer">
                                                             ลบข้อมูล
                                                         </span>
                                                     </button>
@@ -467,6 +466,7 @@ export default function ChemicalsIndex({ records, pagination }) {
                     isModalOpen={isModalOpen}
                     onClose={() => setIsOpen(false)}
                     title={mode === 'create' ? 'เพิ่มข้อมูลใหม่' : 'แก้ไขข้อมูล'}
+                    description={mode === 'create' ? 'กรุณากรอกข้อมูลให้ครบ' : 'กรุณาแก้ไขข้อมูลให้ครบ'}
                     size="max-w-2xl"
                 >
                     <UseForm

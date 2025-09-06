@@ -15,8 +15,22 @@ import {
 import { can } from '@/lib/can';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, ChevronDown, FlaskConical, Folder, FolderOpenDot, Handshake, LayoutGrid, Notebook, Shield, UsersRound ,ChartNoAxesCombined ,
-    ShoppingBasket,ChartCandlestick,Fence} from 'lucide-react';
+import {
+    BookOpen,
+    ChartCandlestick,
+    ChartNoAxesCombined,
+    ChevronDown,
+    Fence,
+    FlaskConical,
+    Folder,
+    FolderOpenDot,
+    Handshake,
+    LayoutGrid,
+    Notebook,
+    Shield,
+    ShoppingBasket,
+    UsersRound,
+} from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -146,25 +160,24 @@ export function AppSidebar() {
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton className="flex w-full items-center">
-                                    <Fence className="h-6 w-6" />
-                                    <span className="flex-1 font-medium font-anuphan text-green-800">ฝ่ายสวนและต้นกล้า</span>
-                                    <ChevronDown className="ml-auto h-4 w-4" />
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
-                            <DropdownMenuGroup>
-                                <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                                <NavMain items={AGRNavItems} />
-                            </DropdownMenuGroup>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
                 <NavMain items={mainNavItems} />
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton className="flex w-full items-center">
+                                <Fence className="h-6 w-6" />
+                                <span className="flex-1 font-anuphan font-medium text-green-800">ฝ่ายสวนและต้นกล้า</span>
+                                <ChevronDown className="ml-auto h-4 w-4" />
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                        <DropdownMenuGroup>
+                            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+                            <NavMain items={AGRNavItems} />
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </SidebarContent>
 
             <SidebarFooter>

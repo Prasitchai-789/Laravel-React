@@ -208,7 +208,7 @@ export default function UseForm({ permissions = [], role, onClose, onSuccess }: 
                         type="button"
                         onClick={onClose}
                         disabled={processing}
-                        className="px-5 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                        className="px-5 py-2.5 border border-gray-300 rounded-3xl text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                     >
                         Cancel
                     </button>
@@ -216,7 +216,7 @@ export default function UseForm({ permissions = [], role, onClose, onSuccess }: 
                 <button
                     type="submit"
                     disabled={processing || !data.name.trim()}
-                    className="px-5 py-2.5 border border-transparent rounded-xl text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:transform-none disabled:cursor-not-allowed flex items-center"
+                    className="px-5 py-2.5 border border-transparent rounded-3xl text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:transform-none disabled:cursor-not-allowed flex items-center"
                 >
                     {processing ? (
                         <>
