@@ -14,7 +14,7 @@ export default function Index({ locations = [] ,products = [] }) {
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'สต๊อกสินค้า', href: '/stock-agr' },
     ];
-    const [isModalOpen, setIsModalOpen] = useState(false);
+
     const [mode, setMode] = useState('create');
     // เพิ่ม state แยกสำหรับแต่ละ modal
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);

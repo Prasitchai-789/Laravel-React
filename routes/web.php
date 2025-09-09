@@ -160,12 +160,19 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 // AGR Routes
 Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::resource('sales', SalesController::class);
-    Route::get('/products', [ProductController::class, 'index']);
-    Route::get('/customers', [CustomerController::class, 'index']);
+    // Route::post('/sales', [SalesController::class, 'create'])->name('sales.create');
+    Route::get('/products', [ProductController::class, 'index'])->name('product.index');
+    Route::resource('/customers', CustomerController::class);
+    // Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    // Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
+    // Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customer.update');
+
     Route::get('/stock-agr', [StockController::class, 'index'])->name('stock.agr.index');
     Route::post('/stock-agr-product', [ProductController::class, 'storeProduct'])->name('stock.agr.store.product');
     Route::post('/stock-agr', [ProductController::class, 'storeLocation'])->name('stock.agr.store.location');
+    Route::delete('/stock-agr/{production}', [ProductController::class, 'destroy'])->name('stock.agr.destroy');
 });
+
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

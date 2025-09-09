@@ -35,7 +35,7 @@ const Textarea: React.FC<TextareaProps> = ({
     <div className={className}>
       <label
         htmlFor={name}
-        className={`block text-sm font-medium text-gray-700 ${labelClassName}`}
+        className={`block text-sm font-medium text-gray-700 pb-2 ${labelClassName}`}
       >
         {label} {required && <span className="text-red-500">*</span>}
       </label>

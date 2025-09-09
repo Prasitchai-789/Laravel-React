@@ -30,12 +30,11 @@ export default function ProductForm({ mode = 'create', locations = [], onClose =
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (mode === 'create') {
-            console.log(data);
             post('/stock-agr-product', {
                 onSuccess: () => {
                     Toast.fire({
                         icon: 'success',
-                        title: 'Project created successfully',
+                        title: 'Product created successfully',
                     });
                     reset();
                     onClose();
@@ -46,7 +45,7 @@ export default function ProductForm({ mode = 'create', locations = [], onClose =
                 onSuccess: () => {
                     Toast.fire({
                         icon: 'success',
-                        title: 'Project updated successfully',
+                        title: 'Product updated successfully',
                     });
                     onClose();
                 },

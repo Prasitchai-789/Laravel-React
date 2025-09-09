@@ -14,7 +14,7 @@ class ProductController extends Controller
     {
         $locations = LocationStore::select('id as value', 'location_name as label')->get();
 
-        return Inertia::render('AgrSales/Stocks/Index', [
+        return Inertia::render('AGR/Stocks/Index', [
             'mode' => 'create',
             'locations' => $locations,
         ]);
@@ -45,5 +45,11 @@ class ProductController extends Controller
         $location = LocationStore::create($validated);
 
         return redirect()->back()->with('success', 'created successfully');
+    }
+
+    public function destroy($id)
+    {
+        AgrProduct::destroy($id);
+        return redirect()->back()->with('success', 'deleted successfully');
     }
 }

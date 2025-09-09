@@ -26,7 +26,6 @@ export default function LocationForm({ mode = 'create', project = null, onClose 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (mode === 'create') {
-            console.log(data);
             post('/stock-agr', {
                 onSuccess: () => {
                     Toast.fire({
