@@ -20,7 +20,7 @@ class AgrProduct extends Model
         'price',
         'stock',
         'notes',
-        'store',
+        'store_id',
     ];
 
     // หากคุณใช้คีย์ primary key ที่ไม่ใช่ id
@@ -35,6 +35,7 @@ class AgrProduct extends Model
     // หากต้องการเชื่อมความสัมพันธ์กับ LocationStore
     public function location()
     {
-        return $this->belongsTo(LocationStore::class, 'store', 'id');
+        return $this->belongsTo(LocationStore::class, 'store_id', 'id');
     }
+
 }

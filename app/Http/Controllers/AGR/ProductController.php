@@ -19,7 +19,7 @@ class ProductController extends Controller
             'locations' => $locations,
         ]);
     }
-    public function storeProduct(Request $request)
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'sku'       => 'nullable|string|max:255',
@@ -28,7 +28,7 @@ class ProductController extends Controller
             'price'     => 'required|numeric|min:0',
             'stock'     => 'nullable|integer|min:0',
             'notes'     => 'nullable|string',
-            'store'     => 'nullable|string|max:255',
+            'store_id'     => 'nullable|string|max:255',
         ]);
 
         $product = AgrProduct::create($validated);
@@ -45,6 +45,13 @@ class ProductController extends Controller
         $location = LocationStore::create($validated);
 
         return redirect()->back()->with('success', 'created successfully');
+    }
+
+    public function update(Request $request, $id)
+    {
+        $product = AgrProduct::find($id);
+        $product->update($request->all());
+        return redirect()->back()->with('success', 'updated successfully');
     }
 
     public function destroy($id)

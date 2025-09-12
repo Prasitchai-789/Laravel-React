@@ -1,9 +1,6 @@
-import DeleteModal from '@/components/DeleteModal';
+
 import GenericTable, { Column } from '@/components/Tables/GenericTable';
-import { router } from '@inertiajs/react';
 import { Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
-import Swal from 'sweetalert2';
 
 interface Product {
     id: number;
@@ -11,7 +8,14 @@ interface Product {
     name: string;
     stock: number;
     price: number;
+    store: number;
     location?: { location_name: string };
+}
+
+interface ProductTableProps {
+    products: Product[]
+    onEdit?: (product: Product) => void;
+    onDelete?: (product: Product) => void;
 }
 
 const productsColumns: Column<Product>[] = [
@@ -29,48 +33,22 @@ const productsColumns: Column<Product>[] = [
     { key: 'actions', label: 'การดำเนินการ', align: 'center' },
 ];
 
-export default function ProductTable({ products }: { products: Product[] }) {
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+export default function ProductTable({ products, onEdit, onDelete,  }: ProductTableProps) {
 
-    const openDeleteModal = (id: number) => {
-        setSelectedProductId(id);
-        setIsDeleteModalOpen(true);
-    };
-
-    const closeDeleteModal = () => {
-        setIsDeleteModalOpen(false);
-        setSelectedProductId(null);
-    };
-
-    const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        customClass: { popup: 'custom-swal' },
-        didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-        },
-    });
-
-    const handleDelete = () => {
-        if (selectedProductId) {
-            router.delete(route('stock.agr.destroy', selectedProductId), {
-                onSuccess: () => {
-                    Toast.fire({
-                        icon: 'success',
-                        title: 'ลบสินค้าเรียบร้อยแล้ว',
-                    });
-                    closeDeleteModal();
-                    router.reload({ only: ['products'] }); // 👈 ปรับตามชื่อ prop จริงที่ใช้ใน Inertia
-                },
-                preserveScroll: true,
-            });
+    const handleEdit = (product: Product) => {
+        console.log(product)
+        if (onEdit) {
+            onEdit(product);
         }
     };
+
+    const handleDelete = (product: Product) => {
+        if (onDelete) {
+            onDelete(product);
+        }
+    };
+
+
 
     return (
         <>
@@ -82,6 +60,7 @@ export default function ProductTable({ products }: { products: Product[] }) {
                 actions={(row) => (
                     <div className="flex justify-center gap-2">
                         <button
+                        onClick={() => handleEdit(row)}
                             className="group relative p-1.5 font-anuphan text-yellow-600 transition-colors duration-200 hover:scale-110 hover:cursor-pointer"
                         >
                             <Pencil size={16} />
@@ -91,7 +70,7 @@ export default function ProductTable({ products }: { products: Product[] }) {
                         </button>
 
                         <button
-                            onClick={() => openDeleteModal(row.id)}
+                            onClick={() => handleDelete(row)}
                             className="group relative p-1.5 font-anuphan text-red-700 transition-colors duration-200 hover:scale-110 hover:cursor-pointer"
                         >
                             <Trash2 size={16} />
@@ -103,16 +82,7 @@ export default function ProductTable({ products }: { products: Product[] }) {
                 )}
             />
 
-            <DeleteModal
-                isModalOpen={isDeleteModalOpen}
-                onClose={closeDeleteModal}
-                title="Delete Product"
-                onConfirm={handleDelete}
-            >
-                <p className="text-sm text-gray-500 font-anuphan">
-                    คุณแน่ใจหรือไม่ว่าต้องการลบสินค้านี้? การกระทำนี้ไม่สามารถย้อนกลับได้
-                </p>
-            </DeleteModal>
+
         </>
     );
 }

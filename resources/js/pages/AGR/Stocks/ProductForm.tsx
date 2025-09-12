@@ -1,65 +1,104 @@
+import Button from '@/components/Buttons/Button';
 import InputLabel from '@/components/Inputs/InputLabel';
 import Select from '@/components/Inputs/Select';
-import { useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
+import { useEffect } from 'react';
 import Swal from 'sweetalert2';
 
-export default function ProductForm({ mode = 'create', locations = [], onClose = () => {} }) {
+interface ProductFormProps {
+    onClose: () => void;
+    onSuccess: () => void;
+    product?: {
+        id: number;
+        sku: string;
+        name: string;
+        category: string;
+        price: string;
+        stock: string;
+        notes: string;
+        store: string;
+    };
+    location?: {
+        location_name: string;
+    } | null;
+    mode?: 'create' | 'edit';
+}
+export default function ProductForm({ onClose, onSuccess, product, locations, mode = 'create' }: ProductFormProps) {
     const { data, setData, post, put, processing, errors, reset } = useForm({
-        sku: '',
-        name: '',
-        category: '',
-        price: '',
-        stock: '',
-        notes: '',
-        store: '',
+        sku: product?.sku ?? '',
+        name: product?.name ?? '',
+        category: product?.category ?? '',
+        price: product?.price ?? '',
+        stock: product?.stock ?? '',
+        notes: product?.notes ?? '',
+        store: product?.store ?? '',
+        location: location?.location_name ?? '',
     });
+
+    useEffect(() => {
+        if (product) {
+            setData({
+                sku: product.sku || '',
+                name: product.name || '',
+                category: product.category || '',
+                price: product.price || '',
+                stock: product.stock || '',
+                notes: product.notes || '',
+                store: product.store || '',
+                location: location?.location_name || '',
+            });
+        }
+    }, [product]);
+
     const Toast = Swal.mixin({
         toast: true,
         position: 'top-end',
         showConfirmButton: false,
         timer: 3000,
         timerProgressBar: true,
-        customClass: {
-            popup: 'custom-swal',
-        },
+        customClass: { popup: 'custom-swal' },
         didOpen: (toast) => {
             toast.onmouseenter = Swal.stopTimer;
             toast.onmouseleave = Swal.resumeTimer;
         },
     });
-    function handleSubmit(e: React.FormEvent) {
+
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (mode === 'create') {
-            post('/stock-agr-product', {
+            router.post(route('products.store'), data, {
                 onSuccess: () => {
-                    Toast.fire({
-                        icon: 'success',
-                        title: 'Product created successfully',
-                    });
+                    Toast.fire({ icon: 'success', title: 'บันทึกสินค้าเรียบร้อยแล้ว' });
+                    onSuccess();
                     reset();
-                    onClose();
                 },
+                onError: () => {
+                    Toast.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' });
+                },
+                preserveScroll: true,
             });
-        } else {
-            put(`/projects/${project.id}`, {
+        } else if (mode === 'edit' && product) {
+            router.put(route('products.update', product.id), data, {
                 onSuccess: () => {
-                    Toast.fire({
-                        icon: 'success',
-                        title: 'Product updated successfully',
-                    });
-                    onClose();
+                    Toast.fire({ icon: 'success', title: 'อัปเดตสินค้าเรียบร้อยแล้ว' });
+                    onSuccess();
                 },
+                onError: () => {
+                    Toast.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' });
+                },
+                preserveScroll: true,
             });
         }
-    }
+    };
 
-   const locationOptions = [
-    { value: '', label: 'เลือกสถานที่ ...', disabled: true },
-    ...(locations?.map((loc) => ({
-        value: loc.id,
-        label: loc.location_name,
-    })) ?? []),
-];
+    const locationOptions = [
+        { value: '', label: 'เลือกสถานที่ ...', disabled: true },
+        ...(locations?.map((loc) => ({
+            value: loc.id,
+            label: loc.location_name,
+        })) ?? []),
+    ];
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -99,18 +138,20 @@ export default function ProductForm({ mode = 'create', locations = [], onClose =
                     disabled={processing}
                     className="font-anuphan"
                 />
-                <InputLabel
-                    label="จำนวน"
-                    placeholder="จำนวน"
-                    name="stock"
-                    value={data.stock}
-                    onChange={(e) => setData('stock', e.target.value)}
-                    required={true}
-                    error={errors.stock}
-                    disabled={processing}
-                    type="number"
-                    className="font-anuphan"
-                />
+                {mode === 'create' && (
+                    <InputLabel
+                        label="จำนวน"
+                        placeholder="จำนวน"
+                        name="stock"
+                        value={data.stock}
+                        onChange={(e) => setData('stock', e.target.value)}
+                        required={true}
+                        error={errors.stock}
+                        disabled={processing}
+                        type="number"
+                        className="font-anuphan"
+                    />
+                )}
                 <InputLabel
                     label="ราคาต่อหน่วย"
                     placeholder="ราคาต่อหน่วย"
@@ -125,14 +166,14 @@ export default function ProductForm({ mode = 'create', locations = [], onClose =
                 />
             </div>
             <hr className="my-8" />
-            <button
-                type="submit"
-                disabled={processing}
-                className="ml-auto flex items-center justify-center gap-2 rounded-3xl bg-blue-600 px-6 py-2.5 text-white transition-colors hover:scale-102 hover:cursor-pointer hover:bg-indigo-700 hover:shadow-lg focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:outline-none"
-            >
-                <span className="font-anuphan">{mode === 'create' ? 'Create' : 'Update'}</span>
-
-            </button>
+            <div className="flex justify-end gap-2 font-anuphan">
+                <Button type="button" variant="secondary" onClick={onClose}>
+                    ยกเลิก
+                </Button>
+                <Button type="submit" variant="primary" disabled={processing}>
+                    {mode === 'create' ? 'บันทึก' : 'อัปเดต'}
+                </Button>
+            </div>
         </form>
     );
 }

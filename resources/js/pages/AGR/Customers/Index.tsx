@@ -2,13 +2,13 @@ import Button from '@/components/Buttons/Button';
 import ModalForm from '@/components/ModalForm';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
+import Swal from 'sweetalert2';
 import CustomerForm from './CustomerForm';
 import CustomerTable from './CustomerTable';
-import { router } from '@inertiajs/react';
-import Swal from 'sweetalert2';
+import DeleteModal from '@/components/DeleteModal';
 
 interface Customer {
     id: number;
@@ -47,60 +47,103 @@ export default function Index({ customers = [], cities = [] }: { customers: Cust
         setIsCustomerModalOpen(true);
     };
 
-    const handleDelete = (customer: Customer) => {
-        Swal.fire({
-    title: 'ยืนยันการลบ',
-    text: `คุณต้องการลบลูกค้า "${customer.name}" ใช่หรือไม่?`,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6',
-    confirmButtonText: 'ลบ',
-    cancelButtonText: 'ยกเลิก',
-    customClass: {
-        popup: 'font-anuphan',
-        title: 'font-anuphan',
-        htmlContainer: 'font-anuphan',
-        confirmButton: 'font-anuphan',
-        cancelButton: 'font-anuphan'
-    }
-}).then((result) => {
-    if (result.isConfirmed) {
-        router.delete(route('customers.destroy', customer.id), {
-            onSuccess: () => {
-                Swal.fire({
-                    title: 'ลบแล้ว!',
-                    text: 'ลูกค้าถูกลบเรียบร้อยแล้ว',
-                    icon: 'success',
-                    customClass: {
-                        popup: 'font-anuphan',
-                        title: 'font-anuphan',
-                        htmlContainer: 'font-anuphan',
-                        confirmButton: 'font-anuphan'
-                    },
-                    timer: 2000
-                });
-            },
-            onError: () => {
-                Swal.fire({
-                    title: 'ผิดพลาด!',
-                    text: 'เกิดข้อผิดพลาดในการลบลูกค้า',
-                    icon: 'error',
-                    customClass: {
-                        popup: 'font-anuphan',
-                        title: 'font-anuphan',
-                        htmlContainer: 'font-anuphan',
-                        confirmButton: 'font-anuphan'
-                    },
-                    timer: 2000
-                });
-            }
-        });
-    }
-});
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+
+    const openDeleteModal = (id: number) => {
+        setSelectedCustomerId(id);
+        setIsDeleteModalOpen(true);
     };
 
+    const closeDeleteModal = () => {
+        setIsDeleteModalOpen(false);
+        setSelectedCustomerId(null);
+    };
+
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        customClass: { popup: 'custom-swal' },
+        didOpen: (toast) => {
+            toast.onmouseenter = Swal.stopTimer;
+            toast.onmouseleave = Swal.resumeTimer;
+        },
+    });
+    const handleDelete = () => {
+        if (selectedCustomerId) {
+            router.delete(route('customers.destroy', selectedCustomerId), {
+                onSuccess: () => {
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'ลบสินค้าเรียบร้อยแล้ว',
+                    });
+                    closeDeleteModal();
+                    router.reload({ only: ['customers'] }); // 👈 ปรับตามชื่อ prop จริงที่ใช้ใน Inertia
+                },
+                preserveScroll: true,
+            });
+        }
+    };
+
+    // const handleDelete = (customer: Customer) => {
+    //     Swal.fire({
+    //         title: 'ยืนยันการลบ',
+    //         text: `คุณต้องการลบลูกค้า "${customer.name}" ใช่หรือไม่?`,
+    //         icon: 'warning',
+    //         showCancelButton: true,
+    //         confirmButtonColor: '#d33',
+    //         cancelButtonColor: '#3085d6',
+    //         confirmButtonText: 'ลบ',
+    //         cancelButtonText: 'ยกเลิก',
+    //         customClass: {
+    //             popup: 'font-anuphan',
+    //             title: 'font-anuphan',
+    //             htmlContainer: 'font-anuphan',
+    //             confirmButton: 'font-anuphan',
+    //             cancelButton: 'font-anuphan',
+    //         },
+    //     }).then((result) => {
+    //         if (result.isConfirmed) {
+    //             router.delete(route('customers.destroy', customer.id), {
+    //                 onSuccess: () => {
+    //                     Swal.fire({
+    //                         title: 'ลบแล้ว!',
+    //                         text: 'ลูกค้าถูกลบเรียบร้อยแล้ว',
+    //                         icon: 'success',
+    //                         customClass: {
+    //                             popup: 'font-anuphan',
+    //                             title: 'font-anuphan',
+    //                             htmlContainer: 'font-anuphan',
+    //                             confirmButton: 'font-anuphan',
+    //                         },
+    //                         timer: 2000,
+    //                     });
+    //                 },
+    //                 onError: () => {
+    //                     Swal.fire({
+    //                         title: 'ผิดพลาด!',
+    //                         text: 'เกิดข้อผิดพลาดในการลบลูกค้า',
+    //                         icon: 'error',
+    //                         customClass: {
+    //                             popup: 'font-anuphan',
+    //                             title: 'font-anuphan',
+    //                             htmlContainer: 'font-anuphan',
+    //                             confirmButton: 'font-anuphan',
+    //                         },
+    //                         timer: 2000,
+    //                     });
+    //                 },
+    //             });
+    //         }
+    //     });
+    // };
+
     // แยกจังหวัด อำเภอ ตำบล
+
+
     const provinces = [...new Map(cities.map((c) => [c.ProvinceID, { ProvinceID: c.ProvinceID, ProvinceName: c.ProvinceName }])).values()];
     const districts = cities.map((c) => ({
         DistrictID: c.DistrictID,
@@ -135,7 +178,7 @@ export default function Index({ customers = [], cities = [] }: { customers: Cust
                 </div>
             </div>
 
-            <CustomerTable customers={customers} onEdit={handleEdit} onDelete={handleDelete} cities={cities} />
+            <CustomerTable customers={customers} onEdit={handleEdit} onDelete={openDeleteModal} cities={cities} />
 
             <ModalForm
                 isModalOpen={isCustomerModalOpen}
@@ -155,6 +198,10 @@ export default function Index({ customers = [], cities = [] }: { customers: Cust
                     mode={mode}
                 />
             </ModalForm>
+
+            <DeleteModal isModalOpen={isDeleteModalOpen} onClose={closeDeleteModal} title="Delete Product" onConfirm={handleDelete}>
+                <p className="font-anuphan text-sm text-gray-500">คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+            </DeleteModal>
         </AppLayout>
     );
 }

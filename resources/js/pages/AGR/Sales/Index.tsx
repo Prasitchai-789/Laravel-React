@@ -1,14 +1,15 @@
 import Button from '@/components/Buttons/Button';
+import DeleteModal from '@/components/DeleteModal';
 import ModalForm from '@/components/ModalForm';
-import ProductSelect from '@/components/ProductSelect';
-import { Column } from '@/components/Tables/GenericTable';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
-import { Calendar, Download, Filter, Plus, Search } from 'lucide-react';
+import { Head, router } from '@inertiajs/react';
+import { Calendar, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
+import Swal from 'sweetalert2';
 import SaleForm from './SaleForm';
 import SaleTable from './SaleTable';
+import Select from '@/components/Inputs/Select';
 
 interface Sale {
     id: number;
@@ -30,22 +31,72 @@ export default function Index(props) {
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [statusFilter, setStatusFilter] = useState('all');
 
+    const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+    const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+
     function openCreate() {
         setMode('create');
-        setIsModalOpen(true);
+        setSelectedSale(null);
+        setIsSaleModalOpen(true);
     }
 
-    function handleClose() {
-        setIsModalOpen(false);
-    }
+    const handleEdit = (sale: Sale) => {
+        setMode('edit');
+        setSelectedSale(sale);
+        setIsSaleModalOpen(true);
+    };
 
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
 
+    const openDeleteModal = (id: number) => {
+        setSelectedSaleId(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const closeDeleteModal = () => {
+        setIsDeleteModalOpen(false);
+        setSelectedSaleId(null);
+    };
+
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        customClass: { popup: 'custom-swal' },
+        didOpen: (toast) => {
+            toast.onmouseenter = Swal.stopTimer;
+            toast.onmouseleave = Swal.resumeTimer;
+        },
+    });
+    const handleDelete = () => {
+        if (selectedSaleId) {
+            router.delete(route('sales.destroy', selectedSaleId), {
+                onSuccess: () => {
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'ลบสินค้าเรียบร้อยแล้ว',
+                    });
+                    closeDeleteModal();
+                    router.reload({ only: ['sales'] }); // 👈 ปรับตามชื่อ prop จริงที่ใช้ใน Inertia
+                },
+                preserveScroll: true,
+            });
+        }
+    };
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'รายการขายสินค้าเกษตร', href: '/roles' },
     ];
 
+    const optionStatus = [
+        { value: 'all', label: 'ทั้งหมด' },
+        { value: 'pending', label: 'รอการชําระเงิน' },
+        { value: 'paid', label: 'ชําระเงินแล้ว' },
+    ]
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="รายการขายสินค้าเกษตร" />
@@ -97,84 +148,60 @@ export default function Index(props) {
                 </div>
 
                 {/* Filters and Search Section */}
-                <div className="mb-6 rounded-lg bg-white p-4 shadow-sm">
+                <div className="mb-4 rounded-lg bg-white p-4 shadow-sm">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
-                            <div className="relative flex-1">
+                            <div className="relative flex-1 mt-2 w-lg ">
                                 <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
                                 <input
                                     type="text"
                                     placeholder="ค้นหาลูกค้าหรือสินค้า..."
-                                    className="w-full rounded-lg border border-gray-200 py-2 pr-4 pl-10 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                                    className="w-full rounded-lg border border-gray-200 py-3 pr-4 pl-10 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
 
-                            <div className="flex gap-2">
-                                <select
-                                    className="rounded-lg border border-gray-200 px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                            <div className="flex-1">
+                                <Select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
+                                    options={optionStatus}
+                                    className="w-48 "
                                 >
-                                    <option value="all">สถานะทั้งหมด</option>
-                                    <option value="completed">ชำระเงินแล้ว</option>
-                                    <option value="pending">รอดำเนินการ</option>
-                                    <option value="cancelled">ยกเลิก</option>
-                                </select>
-
-                                <button className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-700 transition-colors hover:bg-gray-50">
-                                    <Filter size={16} />
-                                    <span>ตัวกรองเพิ่มเติม</span>
-                                </button>
+                                </Select>
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
-                            <ProductSelect
-                                products={products}
-                                value={selectedProduct}
-                                onChange={setSelectedProduct}
-                                placeholder="เลือกสินค้าเกษตร"
-                                showSearch={true}
-                                showClear={true}
-                                className="min-w-[200px]"
-                            />
-
-                            <button className="flex items-center gap-2 rounded-3xl bg-blue-600 px-3 py-2 text-white transition-colors hover:bg-blue-700">
-                                <Download size={16} />
-                                <span>ส่งออก</span>
+                        <div className=" grid grid-cols-1 gap-3 md:grid-cols-3">
+                            <div className="flex items-center gap-2">
+                                <Calendar size={16} className="text-gray-400" />
+                                <input
+                                    type="date"
+                                    className="flex-1 rounded-lg border border-gray-200 px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                                    value={dateRange.start}
+                                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-gray-400">ถึง</span>
+                                <input
+                                    type="date"
+                                    className="flex-1 rounded-lg border border-gray-200 px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                                    value={dateRange.end}
+                                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                                />
+                            </div>
+                            <button
+                                className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200"
+                                onClick={() => setDateRange({ start: '', end: '' })}
+                            >
+                                ล้างช่วงวันที่
                             </button>
                         </div>
                     </div>
 
                     {/* Date Range Filter */}
-                    <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-                        <div className="flex items-center gap-2">
-                            <Calendar size={16} className="text-gray-400" />
-                            <input
-                                type="date"
-                                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
-                                value={dateRange.start}
-                                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-gray-400">ถึง</span>
-                            <input
-                                type="date"
-                                className="flex-1 rounded-lg border border-gray-200 px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
-                                value={dateRange.end}
-                                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                            />
-                        </div>
-                        <button
-                            className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200"
-                            onClick={() => setDateRange({ start: '', end: '' })}
-                        >
-                            ล้างช่วงวันที่
-                        </button>
-                    </div>
 
                     {selectedProduct && (
                         <div className="mt-4 flex items-center justify-between rounded-lg bg-green-50 px-4 py-2">
@@ -188,23 +215,31 @@ export default function Index(props) {
 
                 {/* Sales Table Section */}
                 <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm">
-                   <SaleTable
-                sales={sales}
-                customers={customers}
-                products={products}
-            />
+                    <SaleTable sales={sales} customers={customers} products={products} onEdit={handleEdit} onDelete={openDeleteModal} />
                 </div>
 
                 {/* Sale Form Modal */}
                 <ModalForm
-                    isModalOpen={isModalOpen}
-                    onClose={handleClose}
+                    isModalOpen={isSaleModalOpen}
+                    onClose={() => setIsSaleModalOpen(false)}
                     title={mode === 'create' ? 'บันทึกการขายสินค้า' : 'แก้ไขการขายสินค้า'}
                     description="กรอกข้อมูลการขายสินค้า"
                     size="max-w-3xl"
                 >
-                    <SaleForm customers={props.customers} products={products} locations={locations} onClose={handleClose} />
+                    <SaleForm
+                        customers={props.customers}
+                        products={products}
+                        locations={locations}
+                        onClose={() => setIsSaleModalOpen(false)}
+                        onSuccess={() => setIsSaleModalOpen(false)}
+                        mode={mode}
+                        sale={selectedSale}
+                    />
                 </ModalForm>
+
+                <DeleteModal isModalOpen={isDeleteModalOpen} onClose={closeDeleteModal} title="Delete Product" onConfirm={handleDelete}>
+                    <p className="font-anuphan text-sm text-gray-500">คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+                </DeleteModal>
             </div>
         </AppLayout>
     );

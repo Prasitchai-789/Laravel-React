@@ -161,7 +161,8 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::resource('sales', SalesController::class);
     // Route::post('/sales', [SalesController::class, 'create'])->name('sales.create');
-    Route::get('/products', [ProductController::class, 'index'])->name('product.index');
+    Route::resource('/products', ProductController::class);
+    // Route::get('/products', [ProductController::class, 'index'])->name('product.index');
     Route::resource('/customers', CustomerController::class);
     // Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     // Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');

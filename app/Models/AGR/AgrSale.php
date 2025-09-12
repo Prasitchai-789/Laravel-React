@@ -11,6 +11,8 @@ class AgrSale extends Model
         'invoice_no',
         'sale_date',
         'customer_id',
+        'quantity',
+        'price',
         'sale_date',
         'pickup_date',
         'status',
@@ -21,7 +23,8 @@ class AgrSale extends Model
         'balance_due',
         'notes',
         'product_id',
-        'store_id', // ต้องมีอันนี้
+        'store_id',
+        'shipping_cost',
     ];
 
     public function customer()
@@ -30,8 +33,9 @@ class AgrSale extends Model
     }
     public function items()
     {
-        return $this->hasMany(AgrSaleItem::class);
+        return $this->hasMany(AgrSaleItem::class, 'sale_id'); // ระบุชื่อ column foreign key จริง
     }
+
     public function payments()
     {
         return $this->hasMany(AgrPayment::class);
