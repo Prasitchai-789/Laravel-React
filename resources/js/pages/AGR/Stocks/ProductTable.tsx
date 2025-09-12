@@ -1,6 +1,6 @@
 
 import GenericTable, { Column } from '@/components/Tables/GenericTable';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2,SquarePen } from 'lucide-react';
 
 interface Product {
     id: number;
@@ -14,6 +14,7 @@ interface Product {
 
 interface ProductTableProps {
     products: Product[]
+    onStockEdit?: (product: Product) => void;
     onEdit?: (product: Product) => void;
     onDelete?: (product: Product) => void;
 }
@@ -33,10 +34,14 @@ const productsColumns: Column<Product>[] = [
     { key: 'actions', label: 'การดำเนินการ', align: 'center' },
 ];
 
-export default function ProductTable({ products, onEdit, onDelete,  }: ProductTableProps) {
+export default function ProductTable({ products, onStockEdit,onEdit, onDelete,  }: ProductTableProps) {
 
+    const handleStockEdit = (product: Product) => {
+        if (onStockEdit) {
+            onStockEdit(product);
+        }
+    };
     const handleEdit = (product: Product) => {
-        console.log(product)
         if (onEdit) {
             onEdit(product);
         }
@@ -48,8 +53,7 @@ export default function ProductTable({ products, onEdit, onDelete,  }: ProductTa
         }
     };
 
-
-
+    
     return (
         <>
             <GenericTable
@@ -59,6 +63,15 @@ export default function ProductTable({ products, onEdit, onDelete,  }: ProductTa
                 idField="id"
                 actions={(row) => (
                     <div className="flex justify-center gap-2">
+                        <button
+                        onClick={() => handleStockEdit(row)}
+                            className="group relative p-1.5 font-anuphan text-blue-600 transition-colors duration-200 hover:scale-110 hover:cursor-pointer"
+                        >
+                            <SquarePen size={16} />
+                            <span className="pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 transform rounded-md bg-blue-500 px-2 py-1 font-anuphan text-xs whitespace-nowrap text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                เพิ่ม/ลด สินค้า
+                            </span>
+                        </button>
                         <button
                         onClick={() => handleEdit(row)}
                             className="group relative p-1.5 font-anuphan text-yellow-600 transition-colors duration-200 hover:scale-110 hover:cursor-pointer"

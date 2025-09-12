@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\AGR\AgrProduct;
 use App\Models\AGR\LocationStore;
 use App\Http\Controllers\Controller;
+use App\Models\AGR\AgrStockTransaction;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
@@ -49,10 +51,46 @@ class ProductController extends Controller
 
     public function update(Request $request, $id)
     {
-        $product = AgrProduct::find($id);
-        $product->update($request->all());
-        return redirect()->back()->with('success', 'updated successfully');
+        try {
+            $validated = $request->validate([
+                'stock' => 'required|integer|min:0',
+                'transactionType' => 'required|in:in,out',
+            ]);
+
+            $product = AgrProduct::findOrFail($id);
+
+            if ($validated['transactionType'] === 'in') {
+                $product->stock += $validated['stock'];
+            } else {
+                $product->stock -= $validated['stock'];
+
+                if ($product->stock < 0) {
+                    throw ValidationException::withMessages([
+                        'stock' => 'จำนวนสินค้าคงเหลือไม่พอสำหรับการจ่ายออก',
+                    ]);
+                }
+            }
+
+            $product->notes = $request->notes ?? $product->notes;
+            $product->save();
+
+            AgrStockTransaction::create([
+                'product_id' => $product->id,
+                'transaction_type' => $validated['transactionType'],
+                'quantity' => $validated['stock'],
+                'notes' => $request->notes ?? null,
+                'balance_after' => $product->stock,
+                'user_id' => auth()->id(),
+            ]);
+
+            return redirect()->back()->with('success', 'อัปเดตสินค้าเรียบร้อยแล้ว');
+        } catch (\Exception $e) {
+            return back()->withErrors([
+                'general' => $e->getMessage(),
+            ]);
+        }
     }
+
 
     public function destroy($id)
     {

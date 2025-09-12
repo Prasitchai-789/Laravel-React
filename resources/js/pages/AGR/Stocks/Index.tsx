@@ -8,6 +8,7 @@ import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 import LocationForm from './LocationForm';
+import StockForm from './StockForm';
 import ProductForm from './ProductForm';
 import ProductTable from './ProductTable';
 
@@ -17,13 +18,14 @@ export default function Index({ locations = [], products = [] }) {
         { title: 'สต๊อกสินค้า', href: '/stock-agr' },
     ];
 
-    const [mode, setMode] = useState<'create' | 'edit'>('create');
+    const [mode, setMode] = useState<'create' | 'edit' | 'stockEdit'>('create');
+    const [isStockModalOpen, setIsStockModalOpen] = useState(false);
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
     // ฟังก์ชันเปิด modal
-     const openLocationModal = () => {
+    const openLocationModal = () => {
         setMode('create');
         setIsLocationModalOpen(true);
     };
@@ -33,6 +35,11 @@ export default function Index({ locations = [], products = [] }) {
         setIsProductModalOpen(true);
     };
 
+    const handleStockEdit = (product: Product) => {
+        setMode('stockEdit');
+        setSelectedProduct(product);
+        setIsStockModalOpen(true);
+    };
     const handleEdit = (product: Product) => {
         setMode('edit');
         setSelectedProduct(product);
@@ -80,6 +87,7 @@ export default function Index({ locations = [], products = [] }) {
             });
         }
     };
+    
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -107,7 +115,25 @@ export default function Index({ locations = [], products = [] }) {
                 </div>
             </div>
 
-            <ProductTable products={products} onEdit={handleEdit} onDelete={openDeleteModal} />
+            <ProductTable products={products} onStockEdit={handleStockEdit} onEdit={handleEdit} onDelete={openDeleteModal} />
+
+            {/* Stock Form Modal */}
+            <ModalForm
+                isModalOpen={isStockModalOpen}
+                onClose={() => setIsStockModalOpen(false)}
+                title={mode === 'create' ? 'สินค้าใหม่' : 'เพิ่ม / ลด สินค้า'}
+                description="กรอกข้อมูลสินค้าเกษตร"
+                size="max-w-lg"
+            >
+                <StockForm
+                    locations={locations}
+                    products={products}
+                    onClose={() => setIsStockModalOpen(false)}
+                    onSuccess={() => setIsStockModalOpen(false)}
+                    product={selectedProduct}
+                    mode={mode}
+                />
+            </ModalForm>
 
             {/* Product Form Modal */}
             <ModalForm

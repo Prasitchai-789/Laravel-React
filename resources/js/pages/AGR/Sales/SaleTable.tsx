@@ -1,7 +1,7 @@
 import GenericTable, { Column } from '@/components/Tables/GenericTable';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th'; // ภาษาไทย
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Wallet } from 'lucide-react';
 
 interface Customer {
     id: number;
@@ -96,7 +96,7 @@ export default function SaleTable({ sales, customers = [], products = [], onEdit
             label: 'ค้างชำระ (บาท)',
             align: 'center',
             render: (sale) => (
-                <span className="font-anuphan text-md font-bold text-red-600">
+                <span className="text-md font-anuphan font-bold text-red-600">
                     {sale.deposit
                         ? Number(sale.deposit).toLocaleString('th-TH', {
                               minimumFractionDigits: 2,
@@ -163,18 +163,56 @@ export default function SaleTable({ sales, customers = [], products = [], onEdit
             idField="id"
             actions={(row) => (
                 <div className="flex justify-center gap-2">
-                    <button className="group relative p-1.5 text-yellow-600 transition duration-200 hover:scale-110" onClick={() => handleEdit(row)}>
-                        <Pencil size={16} />
-                        <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-yellow-500 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
-                            แก้ไข
-                        </span>
+                    <button
+                        className="group relative  text-blue-600 transition-all duration-300 hover:scale-110 focus:outline-none"
+                        onClick={() => handleEdit(row)}
+                        aria-label="รับเงิน"
+                    >
+                        <div className="relative flex items-center justify-center">
+                            <div className="rounded-lg bg-blue-50 p-1 transition-colors duration-300 group-hover:bg-blue-100">
+                                <Wallet size={18} className="text-blue-600" />
+                            </div>
+                            <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100">
+                                รับเงิน
+                                <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-blue-600"></div>
+                            </span>
+                        </div>
                     </button>
 
-                    <button className="group relative p-1.5 text-red-700 transition duration-200 hover:scale-110" onClick={() => handleDelete(row)}>
-                        <Trash2 size={16} />
-                        <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded bg-red-600 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">
-                            ลบ
-                        </span>
+                    {/* ปุ่มแก้ไข */}
+                    <button
+                        className="group relative text-yellow-600 transition-all duration-300 hover:scale-110 focus:outline-none"
+                        onClick={() => handleEdit(row)}
+                        aria-label="แก้ไข"
+                    >
+                        <div className="relative flex items-center justify-center">
+                            <div className="rounded-lg bg-yellow-50 p-1 transition-colors duration-300 group-hover:bg-yellow-100">
+                                <Pencil size={18} className="text-yellow-600" />
+                            </div>
+
+                            <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-yellow-600 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100">
+                                แก้ไข
+                                <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-yellow-600"></div>
+                            </span>
+                        </div>
+                    </button>
+
+                    {/* ปุ่มลบ */}
+                    <button
+                        className="group relative  text-red-700 transition-all duration-300 hover:scale-110 focus:outline-none"
+                        onClick={() => handleDelete(row)}
+                        aria-label="ลบ"
+                    >
+                        <div className="relative flex items-center justify-center">
+                            <div className="rounded-lg bg-red-50 p-1 transition-colors duration-300 group-hover:bg-red-100">
+                                <Trash2 size={18} className="text-red-700" />
+                            </div>
+
+                            <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-red-600 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100">
+                                ลบ
+                                <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-red-600"></div>
+                            </span>
+                        </div>
                     </button>
                 </div>
             )}
