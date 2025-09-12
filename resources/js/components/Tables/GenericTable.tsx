@@ -134,17 +134,17 @@ export default function GenericTable<T extends Record<string, any>>({
               </div>
             )}
 
-            <div className="flex gap-2">
-              {/* <Button variant="outline" size="sm" className="rounded-full gap-1">
+            {/* <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="rounded-full gap-1">
                 <Filter size={16} />
                 <span>ตัวกรอง</span>
-              </Button> */}
+              </Button>
 
               <Button variant="outline"  className="rounded-full gap-1 bg-blue-600 text-white px-10 py-5">
                 <Download size={16} />
                 <span>ส่งออก</span>
               </Button>
-            </div>
+            </div> */}
           </div>
         </div>
       </CardHeader>

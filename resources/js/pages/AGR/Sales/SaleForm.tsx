@@ -66,7 +66,7 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
         paid_amount: sale?.paid_amount || '',
         total_amount: sale?.total_amount || '',
         deposit_percent: sale?.deposit_percent || '',
-        shipping_cost: sale?.shipping_cost || '',
+        shipping_cost: sale?.shipping_cost || 0,
     });
     // State สำหรับ dropdown ลูกค้า
     const [customerSearch, setCustomerSearch] = useState(sale?.customer || '');

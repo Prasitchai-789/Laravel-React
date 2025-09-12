@@ -30,21 +30,22 @@ interface SaleTableProps {
     sales: Sale[];
     customers: Customer[];
     products: Product[];
+    onPay?: (sale: Sale) => void;
     onEdit?: (sale: Sale) => void;
     onDelete?: (sale: Sale) => void;
 }
 
-export default function SaleTable({ sales, customers = [], products = [], onEdit, onDelete }: SaleTableProps) {
+export default function SaleTable({ sales, customers = [], products = [], onPay, onEdit, onDelete }: SaleTableProps) {
     // ฟังก์ชันช่วยหาชื่อลูกค้า
     const getCustomerName = (id: number) => {
         const customer = customers.find((c) => c.id === id);
         return customer ? customer.name : `#${id}`;
     };
 
-    // ฟังก์ชันช่วยหาชื่อสินค้า
-    const getProductName = (id: number) => {
-        const product = products.find((p) => p.id === id);
-        return product ? product.name : `#${id}`;
+    const handlePay = (sale: Sale) => {
+        if (onPay) {
+            onPay(sale);
+        }
     };
 
     const handleEdit = (sale: Sale) => {
@@ -57,6 +58,11 @@ export default function SaleTable({ sales, customers = [], products = [], onEdit
         if (onDelete) {
             onDelete(sale);
         }
+    };
+    // ฟังก์ชันช่วยหาชื่อสินค้า
+    const getProductName = (id: number) => {
+        const product = products.find((p) => p.id === id);
+        return product ? product.name : `#${id}`;
     };
 
     const saleColumns: Column<Sale>[] = [
@@ -164,8 +170,8 @@ export default function SaleTable({ sales, customers = [], products = [], onEdit
             actions={(row) => (
                 <div className="flex justify-center gap-2">
                     <button
-                        className="group relative  text-blue-600 transition-all duration-300 hover:scale-110 focus:outline-none"
-                        onClick={() => handleEdit(row)}
+                        className="group relative text-blue-600 transition-all duration-300 hover:scale-110 focus:outline-none"
+                        onClick={() => handlePay(row)}
                         aria-label="รับเงิน"
                     >
                         <div className="relative flex items-center justify-center">
@@ -179,7 +185,6 @@ export default function SaleTable({ sales, customers = [], products = [], onEdit
                         </div>
                     </button>
 
-                    {/* ปุ่มแก้ไข */}
                     <button
                         className="group relative text-yellow-600 transition-all duration-300 hover:scale-110 focus:outline-none"
                         onClick={() => handleEdit(row)}
@@ -197,9 +202,8 @@ export default function SaleTable({ sales, customers = [], products = [], onEdit
                         </div>
                     </button>
 
-                    {/* ปุ่มลบ */}
                     <button
-                        className="group relative  text-red-700 transition-all duration-300 hover:scale-110 focus:outline-none"
+                        className="group relative text-red-700 transition-all duration-300 hover:scale-110 focus:outline-none"
                         onClick={() => handleDelete(row)}
                         aria-label="ลบ"
                     >

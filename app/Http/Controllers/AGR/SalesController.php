@@ -5,10 +5,12 @@ namespace App\Http\Controllers\AGR;
 use Inertia\Inertia;
 use App\Models\AGR\AgrSale;
 use Illuminate\Http\Request;
+use App\Models\AGR\AgrPayment;
 use App\Models\AGR\AgrProduct;
 use App\Models\AGR\AgrCustomer;
 use App\Models\AGR\LocationStore;
 use App\Http\Controllers\Controller;
+use Illuminate\Container\Attributes\Auth;
 
 class SalesController extends Controller
 {
@@ -39,13 +41,15 @@ class SalesController extends Controller
         //   'total_balance_due' => AgrSale::sum('balance_due'),
         // ];
         $sales = AgrSale::all();
+        $payments = AgrPayment::all();
         return Inertia::render('AGR/Sales/Index', [
             'sales' => $sales,
             //   'summary' => $summary,
             'filters' => $request->only(['q', 'status', 'from', 'to']),
             'products' => $products,
             'locations' => $locations,
-            'customers' => $customers
+            'customers' => $customers,
+            'payments' => $payments
         ]);
     }
 
@@ -73,6 +77,16 @@ class SalesController extends Controller
             $validated['total_amount'] = ($validated['quantity'] * $validated['price']) + $validated['shipping_cost'];
 
             $sale = AgrSale::create($validated);
+
+            if (!empty($validated['paid_amount']) && $validated['paid_amount'] > 0) {
+                AgrPayment::create([
+                    'sale_id'   => $lastId,
+                    'paid_at'   => now(),
+                    'amount'    => $validated['paid_amount'],
+                    'method'    => $validated['paid_amount'] ?? null,
+                    'note'      => $validated['note'] ?? null,
+                ]);
+            }
 
             $product = AgrProduct::findOrFail($validated['product_id']);
             $quantity = $validated['quantity'] ?? 0;
@@ -107,12 +121,25 @@ class SalesController extends Controller
                 'deposit' => 'nullable|numeric|min:0',
                 'shipping_cost' => 'nullable|numeric|min:0',
                 'deposit_percent' => 'nullable|numeric|min:0|max:100',
+                'method' => 'nullable|string|max:255',
+                'note' => 'nullable|string',
+                'new_payment' => 'nullable|numeric|min:0',
             ]);
 
             $validated['total_amount'] = ($validated['quantity'] * $validated['price']) + $validated['shipping_cost'];
 
             $sale = AgrSale::findOrFail($id);
             $sale->update($validated);
+
+            if (!empty($validated['paid_amount']) && $validated['paid_amount'] > 0) {
+                AgrPayment::create([
+                    'sale_id'   => $id,
+                    'paid_at'   => now(),
+                    'amount'    => $validated['paid_amount'],
+                    'method'    => $validated['new_payment'] ?? null,
+                    'note'      => $validated['note'] ?? null,
+                ]);
+            }
 
             $product = AgrProduct::findOrFail($validated['product_id']);
             $quantity = $validated['quantity'] ?? 0;
@@ -122,8 +149,11 @@ class SalesController extends Controller
             }
 
             // ถ้าไม่เกิน จึงลดสต็อก
-            $product->stock = $product->stock - $quantity;
+            $product->stock -= $quantity;
             $product->save();
+
+            // ✅ เพิ่มข้อมูลการจ่ายเงิน (ถ้ามีการจ่าย)
+
 
             return redirect()->back()->with('success', 'updated successfully');
         } catch (\Illuminate\Validation\ValidationException $e) {

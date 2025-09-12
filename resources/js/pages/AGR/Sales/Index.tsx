@@ -8,8 +8,10 @@ import { Calendar, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 import SaleForm from './SaleForm';
+import PayForm from './PayForm';
 import SaleTable from './SaleTable';
 import Select from '@/components/Inputs/Select';
+
 
 interface Sale {
     id: number;
@@ -22,16 +24,17 @@ interface Sale {
 }
 
 export default function Index(props) {
-    const { sales, summary, filters, products, locations, customers } = props;
+    const { sales, summary, filters, products, locations, customers ,payments } = props;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [mode, setMode] = useState<'create' | 'edit'>('create');
+    const [mode, setMode] = useState<'create' | 'edit' | 'pay'>('create');
     const [selectedProduct, setSelectedProduct] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [statusFilter, setStatusFilter] = useState('all');
 
     const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+    const [isPayModalOpen, setIsPayModalOpen] = useState(false);
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
     function openCreate() {
@@ -39,6 +42,12 @@ export default function Index(props) {
         setSelectedSale(null);
         setIsSaleModalOpen(true);
     }
+
+    const handlePay = (sale: Sale) => {
+        setMode('pay');
+        setSelectedSale(sale);
+        setIsPayModalOpen(true);
+    };
 
     const handleEdit = (sale: Sale) => {
         setMode('edit');
@@ -215,7 +224,7 @@ export default function Index(props) {
 
                 {/* Sales Table Section */}
                 <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm">
-                    <SaleTable sales={sales} customers={customers} products={products} onEdit={handleEdit} onDelete={openDeleteModal} />
+                    <SaleTable sales={sales} customers={customers} products={products} onPay={handlePay} onEdit={handleEdit} onDelete={openDeleteModal} />
                 </div>
 
                 {/* Sale Form Modal */}
@@ -232,6 +241,25 @@ export default function Index(props) {
                         locations={locations}
                         onClose={() => setIsSaleModalOpen(false)}
                         onSuccess={() => setIsSaleModalOpen(false)}
+                        mode={mode}
+                        sale={selectedSale}
+                    />
+                </ModalForm>
+
+                <ModalForm
+                    isModalOpen={isPayModalOpen}
+                    onClose={() => setIsPayModalOpen(false)}
+                    title={mode === 'create' ? 'บันทึกการขายสินค้า' : 'บันทึกการชำระเงิน'}
+                    description="กรอกข้อมูลการชำระเงิน"
+                    size="max-w-3xl"
+                >
+                    <PayForm
+                        customers={props.customers}
+                        products={products}
+                        locations={locations}
+                        payments={payments}
+                        onClose={() => setIsPayModalOpen(false)}
+                        onSuccess={() => setIsPayModalOpen(false)}
                         mode={mode}
                         sale={selectedSale}
                     />
