@@ -12,4 +12,6 @@ class WebCity extends Model
     protected $table = 'Webapp_City';
     protected $fillable =[
     ];
+
+    public $timestamps = false;
 }

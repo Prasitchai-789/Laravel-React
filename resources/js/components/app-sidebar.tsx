@@ -30,6 +30,7 @@ import {
     Shield,
     ShoppingBasket,
     UsersRound,
+    BookUser,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -108,6 +109,11 @@ const AGRNavItems: NavItem[] = [
         title: 'สต๊อกสินค้า',
         href: '/stock-agr',
         icon: ChartNoAxesCombined,
+    },
+    {
+        title: 'ทะเบียนลูกค้า',
+        href: '/customers',
+        icon: BookUser,
     },
 ];
 
