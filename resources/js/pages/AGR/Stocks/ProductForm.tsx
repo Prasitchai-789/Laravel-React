@@ -134,7 +134,7 @@ export default function ProductForm({ onClose, onSuccess, product, locations, mo
                     disabled={processing}
                     className="font-anuphan"
                 />
-                {/* {mode === 'create' && ( */}
+                {mode === 'create' && (
                     <InputLabel
                         label="จำนวน"
                         placeholder="จำนวน"
@@ -147,7 +147,7 @@ export default function ProductForm({ onClose, onSuccess, product, locations, mo
                         type="number"
                         className="font-anuphan"
                     />
-                {/* )} */}
+                )}
                 <InputLabel
                     label="ราคาต่อหน่วย"
                     placeholder="ราคาต่อหน่วย"
