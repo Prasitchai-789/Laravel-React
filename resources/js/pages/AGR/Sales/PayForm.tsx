@@ -181,12 +181,11 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
             });
         }
     };
-
     return (
         <form onSubmit={handleSubmit} className="space-y-6 font-anuphan">
             <div className="grid grid-cols-1 gap-2">
                 {/* Product Information Section */}
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
                     <h3 className="flex items-center text-lg font-semibold text-gray-800">
                         <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
                             <path
@@ -227,7 +226,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                 </div>
 
                 {/* Payment Input Section */}
-                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                <div className="rounded-xl border border-gray-200 bg-white px-5 py-3 shadow-sm">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="mb-1 flex flex-col">
                             <h3 className="text-lg font-semibold text-gray-800">การชำระเงินเพิ่มเติม</h3>
@@ -267,7 +266,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                 </div>
 
                 {/* Summary Section */}
-                <div className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 shadow-sm">
+                <div className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 px-5 py-3 shadow-sm">
                     <h3 className="mb-1 flex items-center text-lg font-semibold text-gray-800">
                         <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
                             <path
@@ -313,7 +312,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                         </div>
 
                         <div className="col-span-2">
-                            <h4 className="text-md mb-3 flex items-center font-semibold text-gray-700">
+                            <h4 className="text-md mb-1 flex items-center font-semibold text-gray-700">
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     className="mr-2 h-4 w-4 text-green-600"
@@ -340,7 +339,6 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                 </div>
             </div>
 
-            <hr className="my-6 border-gray-200" />
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-3">

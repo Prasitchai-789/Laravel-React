@@ -41,7 +41,7 @@ const Select: React.FC<SelectProps> = ({
     <div className={className}>
       <label
         htmlFor={name}
-        className={`mb-2 block text-sm font-medium text-gray-700 ${labelClassName}`}
+        className={`block text-sm font-medium text-gray-700 p-1 ${labelClassName}`}
       >
         {label} {required && <span className="text-red-500">*</span>}
       </label>
@@ -53,7 +53,7 @@ const Select: React.FC<SelectProps> = ({
           onChange={onChange}
           required={required}
           disabled={disabled}
-          className={`block w-full appearance-none rounded-lg border border-gray-300 px-4 py-3 pr-10 font-anuphan shadow-sm transition duration-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 ${selectClassName} ${
+          className={`block w-full appearance-none rounded-lg border border-gray-300 px-4 pr-10 py-3 font-anuphan shadow-sm transition duration-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 ${selectClassName} ${
             error ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
           }`}
         >

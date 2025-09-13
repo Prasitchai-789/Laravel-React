@@ -33,10 +33,20 @@ interface SaleTableProps {
     onPay?: (sale: Sale) => void;
     onEdit?: (sale: Sale) => void;
     onDelete?: (sale: Sale) => void;
+    searchTerm?: string;
+    statusFilter?: string;
 }
 
-export default function SaleTable({ sales, customers = [], products = [], onPay, onEdit, onDelete }: SaleTableProps) {
-    // ฟังก์ชันช่วยหาชื่อลูกค้า
+export default function SaleTable({
+    sales,
+    customers = [],
+    products = [],
+    onPay,
+    onEdit,
+    onDelete,
+    searchTerm = '',
+    statusFilter = '',
+}: SaleTableProps) {
     const getCustomerName = (id: number) => {
         const customer = customers.find((c) => c.id === id);
         return customer ? customer.name : `#${id}`;
@@ -64,6 +74,25 @@ export default function SaleTable({ sales, customers = [], products = [], onPay,
         const product = products.find((p) => p.id === id);
         return product ? product.name : `#${id}`;
     };
+    const filteredSales = sales
+        .filter((sale) => {
+            if (statusFilter === 'all') return true;
+
+            if (statusFilter === 'reserved') {
+                return (sale.deposit ?? 0) > 0;
+            }
+
+            if (statusFilter === 'completed') {
+                return (sale.deposit ?? 0) <= 0;
+            }
+
+            return sale.status === statusFilter;
+        })
+        .sort((a, b) => {
+            const dateA = new Date(a.sale_date).getTime();
+            const dateB = new Date(b.sale_date).getTime();
+            return dateB - dateA; // เรียงจากใหม่ไปเก่า
+        });
 
     const saleColumns: Column<Sale>[] = [
         {
@@ -164,7 +193,7 @@ export default function SaleTable({ sales, customers = [], products = [], onPay,
     return (
         <GenericTable
             title="ประวัติการขาย"
-            data={sales}
+            data={filteredSales}
             columns={saleColumns}
             idField="id"
             actions={(row) => (

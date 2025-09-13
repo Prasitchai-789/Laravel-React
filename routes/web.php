@@ -158,7 +158,7 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 });
 
 // AGR Routes
-Route::middleware(['auth', 'permission:users.view'])->group(function () {
+Route::middleware(['auth', 'permission:developer.view|agr.view'])->group(function () {
     Route::resource('sales', SalesController::class);
     // Route::post('/sales', [SalesController::class, 'create'])->name('sales.create');
     Route::resource('/products', ProductController::class);

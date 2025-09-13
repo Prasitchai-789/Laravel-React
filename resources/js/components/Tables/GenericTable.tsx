@@ -46,7 +46,7 @@ export default function GenericTable<T extends Record<string, any>>({
   title = "ตารางข้อมูล",
   searchable = true,
   pagination = true,
-  itemsPerPage = 10,
+  itemsPerPage = 10,                  // <-- เพิ่ม
 }: GenericTableProps<T>) {
   const [sortField, setSortField] = useState<keyof T | null>(initialSort ?? null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -79,7 +79,6 @@ export default function GenericTable<T extends Record<string, any>>({
 
     return matchesSearch && matchesColumnFilters;
   });
-
   // Sort data
   const sortedData = sortField
     ? [...filteredData].sort((a, b) => {

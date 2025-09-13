@@ -368,17 +368,6 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                         className="font-anuphan"
                     />
 
-                    {/* <Select
-                        label="สินค้า"
-                        name="product_id"
-                        value={data.product_id}
-                        onChange={(e) => handleProductChange(e.target.value)}
-                        options={productOptions}
-                        required
-                        error={errors.product_id}
-                        disabled={processing || !data.store_id}
-                        className="font-anuphan"
-                    /> */}
 
                     <SaleProductSelect
                         label="สินค้า"
