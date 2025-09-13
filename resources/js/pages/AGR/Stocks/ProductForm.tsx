@@ -16,7 +16,7 @@ interface ProductFormProps {
         price: string;
         stock: string;
         notes: string;
-        store: string;
+        store_id: string;
     };
     location?: {
         location_name: string;
@@ -31,7 +31,7 @@ export default function ProductForm({ onClose, onSuccess, product, locations, mo
         price: product?.price ?? '',
         stock: product?.stock ?? '',
         notes: product?.notes ?? '',
-        store: product?.store ?? '',
+        store_id: product?.store_id ?? '',
         location: location?.location_name ?? '',
     });
 
@@ -44,7 +44,7 @@ export default function ProductForm({ onClose, onSuccess, product, locations, mo
                 price: product.price || '',
                 stock: product.stock || '',
                 notes: product.notes || '',
-                store: product.store || '',
+                store_id: product.store_id || '',
                 location: location?.location_name || '',
             });
         }
@@ -129,12 +129,12 @@ export default function ProductForm({ onClose, onSuccess, product, locations, mo
                 />
                 <Select
                     label="สถานที่สินค้า"
-                    name="store"
-                    value={data.store}
-                    onChange={(e) => setData('store', e.target.value)}
+                    name="store_id"
+                    value={data.store_id}
+                    onChange={(e) => setData('store_id', e.target.value)}
                     options={locationOptions}
                     required={true}
-                    error={errors.store}
+                    error={errors.store_id}
                     disabled={processing}
                     className="font-anuphan"
                 />

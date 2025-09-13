@@ -7,7 +7,7 @@ interface Product {
     name: string;
     stock: number;
     price: number;
-    store: number;
+    store_id: number;
     location?: { location_name: string };
 }
 
@@ -30,7 +30,7 @@ const productsColumns: Column<Product>[] = [
     },
     { key: 'price', label: 'ราคา (บาท)', sortable: true, align: 'center' },
     {
-        key: 'store',
+        key: 'store_id',
         label: 'สถานที่',
         sortable: true,
         align: 'center',

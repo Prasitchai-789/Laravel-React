@@ -17,7 +17,7 @@ interface StockFormProps {
         price: string;
         stock: string;
         notes: string;
-        store: string;
+        store_id: string;
     };
     location?: {
         location_name: string;
@@ -32,7 +32,7 @@ export default function StockForm({ onClose, onSuccess, product, locations, mode
         price: product?.price ?? '',
         stock: product?.stock ?? '',
         notes: product?.notes ?? '',
-        store: product?.store ?? '',
+        store_id: product?.store_id ?? '',
         location: locations?.location_name ?? '',
         transactionType: 'in', // ค่าเริ่มต้น = รับเข้า
     });
@@ -47,7 +47,7 @@ export default function StockForm({ onClose, onSuccess, product, locations, mode
                 price: product.price || '',
                 stock: '',
                 notes: '',
-                store: product.store || '',
+                store_id: product.store_id || '',
                 location: locations?.location_name || '',
                 transactionType: 'in',
             });
