@@ -30,7 +30,7 @@ class ProductController extends Controller
             'price'     => 'required|numeric|min:0',
             'stock'     => 'nullable|integer|min:0',
             'notes'     => 'nullable|string',
-            'store_id'     => 'nullable|string|max:255',
+            'store_id'     => 'nullable|numeric|max:255',
         ]);
 
         $product = AgrProduct::create($validated);
@@ -48,8 +48,7 @@ class ProductController extends Controller
 
         return redirect()->back()->with('success', 'created successfully');
     }
-
-    public function update(Request $request, $id)
+    public function updateStock(Request $request, $id)
     {
         try {
             $validated = $request->validate([
@@ -84,6 +83,30 @@ class ProductController extends Controller
             ]);
 
             return redirect()->back()->with('success', 'อัปเดตสินค้าเรียบร้อยแล้ว');
+        } catch (\Exception $e) {
+            return back()->withErrors([
+                'general' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    public function updateProduct(Request $request, $id)
+    {
+        try {
+            $validated = $request->validate([
+                'sku'       => 'nullable|string|max:255',
+                'name'      => 'required|string|max:255',
+                'price'     => 'required|numeric|min:0',
+                'stock'     => 'nullable|integer|min:0',
+                'notes'     => 'nullable|string',
+                'store_id'     => 'nullable|numeric|max:255',
+            ]);
+
+            $product = AgrProduct::findOrFail($id);
+            $product->update($validated);
+
+            return redirect()->back()->with('success', 'อัปเดตสินค้าเรียบร้อยแล้ว');
+
         } catch (\Exception $e) {
             return back()->withErrors([
                 'general' => $e->getMessage(),

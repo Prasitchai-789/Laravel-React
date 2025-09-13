@@ -162,6 +162,8 @@ Route::middleware(['auth', 'permission:developer.view|agr.view'])->group(functio
     Route::resource('sales', SalesController::class);
     // Route::post('/sales', [SalesController::class, 'create'])->name('sales.create');
     Route::resource('/products', ProductController::class);
+    Route::put('/products/{product}', [ProductController::class, 'updateProduct'])->name( 'products.updateProduct');
+    Route::put('/stock/{product}', [ProductController::class, 'updateStock'])->name( 'stock.updateStock');
     // Route::get('/products', [ProductController::class, 'index'])->name('product.index');
     Route::resource('/customers', CustomerController::class);
     // Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');

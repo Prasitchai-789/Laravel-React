@@ -35,6 +35,7 @@ export default function StockForm({ onClose, onSuccess, product, locations, mode
         store_id: product?.store_id ?? '',
         location: locations?.location_name ?? '',
         transactionType: 'in', // ค่าเริ่มต้น = รับเข้า
+        mode: mode,
     });
 
 
@@ -83,7 +84,7 @@ export default function StockForm({ onClose, onSuccess, product, locations, mode
                 preserveScroll: true,
             });
         } else if (mode === 'stockEdit' && product) {
-            router.put(route('products.update', product.id), data, {
+            router.put(route('stock.updateStock', product.id), data, {
                 onSuccess: () => {
                     Toast.fire({ icon: 'success', title: 'อัปเดตสินค้าเรียบร้อยแล้ว' });
                     onSuccess();

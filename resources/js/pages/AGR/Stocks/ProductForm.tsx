@@ -12,7 +12,6 @@ interface ProductFormProps {
         id: number;
         sku: string;
         name: string;
-        category: string;
         price: string;
         stock: string;
         notes: string;
@@ -27,12 +26,10 @@ export default function ProductForm({ onClose, onSuccess, product, locations, mo
     const { data, setData, post, put, processing, errors, reset } = useForm({
         sku: product?.sku ?? '',
         name: product?.name ?? '',
-        category: product?.category ?? '',
         price: product?.price ?? '',
         stock: product?.stock ?? '',
         notes: product?.notes ?? '',
         store_id: product?.store_id ?? '',
-        location: location?.location_name ?? '',
     });
 
     useEffect(() => {
@@ -45,7 +42,6 @@ export default function ProductForm({ onClose, onSuccess, product, locations, mo
                 stock: product.stock || '',
                 notes: product.notes || '',
                 store_id: product.store_id || '',
-                location: location?.location_name || '',
             });
         }
     }, [product]);
@@ -79,7 +75,7 @@ export default function ProductForm({ onClose, onSuccess, product, locations, mo
                 preserveScroll: true,
             });
         } else if (mode === 'edit' && product) {
-            router.put(route('products.update', product.id), data, {
+            router.put(route('products.updateProduct', product.id), data, {
                 onSuccess: () => {
                     Toast.fire({ icon: 'success', title: 'อัปเดตสินค้าเรียบร้อยแล้ว' });
                     onSuccess();
@@ -138,7 +134,7 @@ export default function ProductForm({ onClose, onSuccess, product, locations, mo
                     disabled={processing}
                     className="font-anuphan"
                 />
-                {mode === 'create' && (
+                {/* {mode === 'create' && ( */}
                     <InputLabel
                         label="จำนวน"
                         placeholder="จำนวน"
@@ -151,7 +147,7 @@ export default function ProductForm({ onClose, onSuccess, product, locations, mo
                         type="number"
                         className="font-anuphan"
                     />
-                )}
+                {/* )} */}
                 <InputLabel
                     label="ราคาต่อหน่วย"
                     placeholder="ราคาต่อหน่วย"
