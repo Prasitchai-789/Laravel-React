@@ -167,6 +167,7 @@ export function AppSidebar() {
                     </DropdownMenu>
                 )}
                 <NavMain items={mainNavItems} />
+                {can('agr.view') && (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuItem>
@@ -184,6 +185,7 @@ export function AppSidebar() {
                         </DropdownMenuGroup>
                     </DropdownMenuContent>
                 </DropdownMenu>
+                )}
             </SidebarContent>
 
             <SidebarFooter>

@@ -6,6 +6,7 @@ export default function SummaryCard({
   icon: Icon,
   color = "blue",
   trend,
+  description = "",
   isLoading = false
 }) {
   // Color mapping for consistent theme
@@ -40,6 +41,7 @@ export default function SummaryCard({
             <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${trend.isPositive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
               {trend.isPositive ? '↑' : '↓'} {trend.value}%
               <span className="ml-1">{trend.isPositive ? 'เพิ่มขึ้น' : 'ลดลง'}</span>
+              <span className="ml-1">{description}</span>
             </div>
           )}
         </div>

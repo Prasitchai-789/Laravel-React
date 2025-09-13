@@ -1,17 +1,18 @@
 import Button from '@/components/Buttons/Button';
 import DeleteModal from '@/components/DeleteModal';
+import Select from '@/components/Inputs/Select';
 import ModalForm from '@/components/ModalForm';
+import SummaryCard from '@/components/SummaryCard';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
-import { Calendar, Plus, Search } from 'lucide-react';
+import dayjs from 'dayjs';
+import { DollarSign, Plus, ShoppingCart, User } from 'lucide-react';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
-import SaleForm from './SaleForm';
 import PayForm from './PayForm';
+import SaleForm from './SaleForm';
 import SaleTable from './SaleTable';
-import Select from '@/components/Inputs/Select';
-
 
 interface Sale {
     id: number;
@@ -24,9 +25,8 @@ interface Sale {
 }
 
 export default function Index(props) {
-    const { sales, summary, filters, products, locations, customers ,payments } = props;
+    const { sales, summary, filters, products, locations, customers, payments } = props;
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [mode, setMode] = useState<'create' | 'edit' | 'pay'>('create');
     const [selectedProduct, setSelectedProduct] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -103,15 +103,33 @@ export default function Index(props) {
 
     const optionStatus = [
         { value: 'all', label: 'ทั้งหมด' },
-        { value: 'pending', label: 'รอการชําระเงิน' },
-        { value: 'paid', label: 'ชําระเงินแล้ว' },
-    ]
+        { value: 'reserved', label: 'ค้างชําระเงิน' },
+        { value: 'completed', label: 'ชําระเงินแล้ว' },
+    ];
+
+    // จำนวนผู้ใช้งานทั้งหมด
+    const totalUsers = customers?.length ?? 0;
+
+    // คำสั่งซื้อวันนี้
+    const today = dayjs().format('YYYY-MM-DD');
+
+    const ordersToday = sales.filter((s) => {
+        const saleDate = dayjs(s.sale_date).format('YYYY-MM-DD');
+        return saleDate === today;
+    }).length;
+
+    // รายได้รวม (บาท)
+    const totalRevenue = sales.reduce((sum, s) => sum + (s.total_amount ?? 0), 0);
+
+    // ✅ ยอดขายรวมเฉพาะวันนี้
+    const revenueToday = sales.filter((s) => dayjs(s.sale_date).format('YYYY-MM-DD') === today).reduce((sum, s) => sum + (s.total_amount ?? 0), 0);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="รายการขายสินค้าเกษตร" />
             <div className="min-h-screen bg-gray-50 p-4 font-anuphan md:p-6">
                 {/* Header Section */}
-                <div className="mb-0 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="mb-2 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800">ระบบการขายสินค้าเกษตร</h1>
                         <p className="text-sm text-gray-500">จัดการข้อมูลการขายและสินค้าเกษตรของคุณ</p>
@@ -131,58 +149,40 @@ export default function Index(props) {
                 </div>
 
                 {/* Summary Cards */}
-                <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-                    {/* <SummaryCard
-                        title="ผู้ใช้งานทั้งหมด"
-                        value={summary.totalUsers}
-                        icon={Users}
-                        color="blue"
-                        trend={{ value: 12.5, isPositive: true }}
-                    /> */}
-                    {/* <SummaryCard
+                <div className="mb-1 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <SummaryCard
                         title="คำสั่งซื้อวันนี้"
-                        value={summary.todayOrders}
+                        value={ordersToday}
                         icon={ShoppingCart}
                         color="green"
-                        trend={{ value: 8.2, isPositive: true }}
+                        // trend={{ value: 8.2, isPositive: true }}
                     />
                     <SummaryCard
-                        title="รายได้ (บาท)"
-                        value={summary.totalRevenue}
+                        title="รายได้วันนี้ (บาท)"
+                        value={
+                            revenueToday ? Number(revenueToday).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
+                        }
                         icon={DollarSign}
                         color="yellow"
-                        trend={{ value: 5.7, isPositive: true }}
-                        description="เดือนนี้เพิ่มขึ้น 5.7%"
-                    /> */}
+                        // trend={{ value: 5.7, isPositive: true }}
+                        // description="เดือนนี้เพิ่มขึ้น 5.7%"
+                    />
+                    <SummaryCard
+                        title="รายได้รวม (บาท)"
+                        value={
+                            totalRevenue ? Number(totalRevenue).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
+                        }
+                        icon={DollarSign}
+                        color="green"
+                        // trend={{ value: 5.7, isPositive: true }}
+                        // description="เดือนนี้เพิ่มขึ้น 5.7%"
+                    />
                 </div>
 
                 {/* Filters and Search Section */}
-                <div className="mb-4 rounded-lg bg-white p-4 shadow-sm">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
-                            <div className="relative flex-1 mt-2 w-lg ">
-                                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="ค้นหาลูกค้าหรือสินค้า..."
-                                    className="w-full rounded-lg border border-gray-200 py-3 pr-4 pl-10 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="flex-1">
-                                <Select
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    options={optionStatus}
-                                    className="w-48 "
-                                >
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className=" grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="mb-2">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-end">
+                        {/* <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                             <div className="flex items-center gap-2">
                                 <Calendar size={16} className="text-gray-400" />
                                 <input
@@ -207,24 +207,41 @@ export default function Index(props) {
                             >
                                 ล้างช่วงวันที่
                             </button>
+                        </div> */}
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <div className="flex-1">
+                                <Select
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    options={optionStatus}
+                                    className="w-64"
+                                ></Select>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Date Range Filter */}
-
-                    {selectedProduct && (
+                    {/* {selectedProduct && (
                         <div className="mt-4 flex items-center justify-between rounded-lg bg-green-50 px-4 py-2">
                             <p className="text-sm text-green-800">สินค้าเลือก: {products.find((p) => p.id.toString() === selectedProduct)?.name}</p>
                             <button onClick={() => setSelectedProduct('')} className="text-sm text-green-600 hover:text-green-800">
                                 ล้างการเลือก
                             </button>
                         </div>
-                    )}
+                    )} */}
                 </div>
 
                 {/* Sales Table Section */}
                 <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm">
-                    <SaleTable sales={sales} customers={customers} products={products} onPay={handlePay} onEdit={handleEdit} onDelete={openDeleteModal} />
+                    <SaleTable
+                        sales={sales}
+                        customers={customers}
+                        products={products}
+                        statusFilter={statusFilter}
+                        onPay={handlePay}
+                        onEdit={handleEdit}
+                        onDelete={openDeleteModal}
+                        searchTerm={searchTerm}
+                    />
                 </div>
 
                 {/* Sale Form Modal */}
