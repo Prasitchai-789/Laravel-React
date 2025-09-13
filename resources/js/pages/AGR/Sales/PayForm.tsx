@@ -80,9 +80,8 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
         total_amount: sale?.total_amount || '',
         deposit_percent: sale?.deposit_percent || '',
         shipping_cost: sale?.shipping_cost || '',
-        method: null,
         payment_slip: null,
-         method: payments?.length > 0 ? payments[0].method : '1',
+        method: payments?.length > 0 ? payments[0].method : '1',
     });
 
     // State สำหรับจัดการยอดคงค้าง
