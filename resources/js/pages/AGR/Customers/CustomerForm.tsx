@@ -111,14 +111,14 @@ export default function CustomerForm({ onClose, onSuccess, cities, customer, mod
         ...uniqueProvinces.map((p) => ({ value: p.ProvinceID.toString(), label: p.ProvinceName })),
     ];
 
-    const filteredDistricts = cities.filter(c => c.ProvinceID === Number(data.province));
+    const filteredDistricts = cities.filter(c => Number(c.ProvinceID) === Number(data.province));
     const uniqueDistricts = Array.from(new Map(filteredDistricts.map((d) => [d.DistrictID, d])).values());
     const DistrictOptions = [
         { value: '', label: 'เลือกอำเภอ ...', disabled: true },
         ...uniqueDistricts.map((d) => ({ value: d.DistrictID.toString(), label: d.DistrictName })),
     ];
 
-    const filteredSubdistricts = cities.filter(c => c.DistrictID === Number(data.district));
+    const filteredSubdistricts = cities.filter(c => Number(c.DistrictID) === Number(data.district));
     const uniqueSubdistricts = Array.from(new Map(filteredSubdistricts.map((s) => [s.SubDistrictID, s])).values());
     const SubdistrictOptions = [
         { value: '', label: 'เลือกตำบล ...', disabled: true },
