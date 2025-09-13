@@ -186,7 +186,7 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
     };
 
     // ฟิลเตอร์สินค้า ตาม store ที่เลือก
-    const filteredProducts = products?.filter((pro) => pro.store_id === Number(data.store_id)) ?? [];
+    const filteredProducts = products?.filter((pro) => Number(pro.store_id) === Number(data.store_id)) ?? [];
 
     // สร้าง options สำหรับสินค้า
     const productOptions = [

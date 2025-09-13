@@ -2,7 +2,7 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import * as React from 'react';
 
 type Product = {
@@ -82,7 +82,6 @@ export default function ProductSelect({
                                         <span className="ml-2 text-sm text-gray-500">฿{selectedProduct.price.toLocaleString()}</span>
                                     )} */}
                                 </div>
-
                             </>
                         ) : (
                             <span className="text-gray-500">{placeholder}</span>
@@ -93,13 +92,13 @@ export default function ProductSelect({
 
                 {/* Dropdown Content */}
                 <SelectContent
-                    className="max-h-[300px]  overflow-y-auto rounded-lg border border-gray-200 bg-white p-2 shadow-lg"
+                    className="max-h-[300px] overflow-y-auto rounded-lg border border-gray-200 bg-white p-2 shadow-lg"
                     position="popper"
                     sideOffset={4}
                 >
                     {showSearch && (
-                        <div className="relative  font-anuphan">
-                            <Search className="absolute top-4.5 left-3 -translate-y-1/2 text-gray-400 " size={16} />
+                        <div className="relative font-anuphan">
+                            <Search className="absolute top-4.5 left-3 -translate-y-1/2 text-gray-400" size={16} />
                             <input
                                 type="text"
                                 placeholder="ค้นหาสินค้า..."
@@ -117,7 +116,7 @@ export default function ProductSelect({
                                 key={product.id}
                                 value={product.id.toString()}
                                 className={cn(
-                                    'cursor-pointer rounded-md px-3 py-3 transition-colors mt-1',
+                                    'mt-1 cursor-pointer rounded-md px-3 py-3 transition-colors',
                                     'hover:bg-green-50 focus:bg-green-50',
                                     'flex items-center justify-between font-anuphan',
                                 )}
@@ -138,7 +137,7 @@ export default function ProductSelect({
                                                           : 'bg-red-100 text-red-800',
                                                 )}
                                             >
-                                                {product.stock > 0 ? `มีสต็อก ${product.stock}` : 'สินค้าหมด'}
+                                                {product.stock > 0 ? `มีสต็อก ${product.stock.toLocaleString('th-TH')}` : 'สินค้าหมด'}
                                             </span>
                                         )}
                                     </div>

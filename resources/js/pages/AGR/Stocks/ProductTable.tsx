@@ -1,6 +1,5 @@
-
 import GenericTable, { Column } from '@/components/Tables/GenericTable';
-import { Pencil, Trash2,SquarePen } from 'lucide-react';
+import { Pencil, SquarePen, Trash2 } from 'lucide-react';
 
 interface Product {
     id: number;
@@ -13,7 +12,7 @@ interface Product {
 }
 
 interface ProductTableProps {
-    products: Product[]
+    products: Product[];
     onStockEdit?: (product: Product) => void;
     onEdit?: (product: Product) => void;
     onDelete?: (product: Product) => void;
@@ -22,20 +21,25 @@ interface ProductTableProps {
 const productsColumns: Column<Product>[] = [
     { key: 'sku', label: 'รหัสสินค้า', sortable: true },
     { key: 'name', label: 'ชื่อสินค้า', sortable: true, align: 'center' },
-    { key: 'stock', label: 'จำนวน', sortable: true, align: 'center' },
+    {
+        key: 'stock',
+        label: 'จำนวน',
+        sortable: true,
+        align: 'center',
+        render: (product) => (product.stock !== undefined && product.stock !== null ? product.stock.toLocaleString('th-TH') : '-'),
+    },
     { key: 'price', label: 'ราคา (บาท)', sortable: true, align: 'center' },
     {
         key: 'store',
         label: 'สถานที่',
         sortable: true,
         align: 'center',
-        render: (product: Product) => product.location?.location_name ?? '-'
+        render: (product: Product) => product.location?.location_name ?? '-',
     },
     { key: 'actions', label: 'การดำเนินการ', align: 'center' },
 ];
 
-export default function ProductTable({ products, onStockEdit,onEdit, onDelete,  }: ProductTableProps) {
-
+export default function ProductTable({ products, onStockEdit, onEdit, onDelete }: ProductTableProps) {
     const handleStockEdit = (product: Product) => {
         if (onStockEdit) {
             onStockEdit(product);
@@ -53,7 +57,6 @@ export default function ProductTable({ products, onStockEdit,onEdit, onDelete,  
         }
     };
 
-    
     return (
         <>
             <GenericTable
@@ -64,7 +67,7 @@ export default function ProductTable({ products, onStockEdit,onEdit, onDelete,  
                 actions={(row) => (
                     <div className="flex justify-center gap-2">
                         <button
-                        onClick={() => handleStockEdit(row)}
+                            onClick={() => handleStockEdit(row)}
                             className="group relative p-1.5 font-anuphan text-blue-600 transition-colors duration-200 hover:scale-110 hover:cursor-pointer"
                         >
                             <SquarePen size={16} />
@@ -73,7 +76,7 @@ export default function ProductTable({ products, onStockEdit,onEdit, onDelete,  
                             </span>
                         </button>
                         <button
-                        onClick={() => handleEdit(row)}
+                            onClick={() => handleEdit(row)}
                             className="group relative p-1.5 font-anuphan text-yellow-600 transition-colors duration-200 hover:scale-110 hover:cursor-pointer"
                         >
                             <Pencil size={16} />
@@ -94,8 +97,6 @@ export default function ProductTable({ products, onStockEdit,onEdit, onDelete,  
                     </div>
                 )}
             />
-
-
         </>
     );
 }
