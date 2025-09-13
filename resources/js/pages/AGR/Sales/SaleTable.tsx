@@ -15,6 +15,7 @@ interface Product {
 
 interface Sale {
     id: number;
+    invoice_no: string;
     sale_date: string;
     customer_id: number;
     product_id: number;
@@ -88,11 +89,7 @@ export default function SaleTable({
 
             return sale.status === statusFilter;
         })
-        .sort((a, b) => {
-            const dateA = new Date(a.sale_date).getTime();
-            const dateB = new Date(b.sale_date).getTime();
-            return dateB - dateA; // เรียงจากใหม่ไปเก่า
-        });
+        .sort((a, b) =>  b.id - a.id);
 
     const saleColumns: Column<Sale>[] = [
         {
@@ -100,6 +97,12 @@ export default function SaleTable({
             label: 'วันที่ขาย',
             sortable: true,
             render: (sale) => (sale.sale_date ? dayjs(sale.sale_date).format('DD/MM/YYYY') : '-'),
+        },
+        {
+            key: 'invoice_no',
+            label: 'เลขที่เอกสาร',
+            sortable: true,
+            render: (sale) => (sale.invoice_no),
         },
         {
             key: 'customer_id',
@@ -214,7 +217,7 @@ export default function SaleTable({
                         </div>
                     </button>
 
-                    <button
+                    {/* <button
                         className="group relative text-yellow-600 transition-all duration-300 hover:scale-110 focus:outline-none"
                         onClick={() => handleEdit(row)}
                         aria-label="แก้ไข"
@@ -246,7 +249,7 @@ export default function SaleTable({
                                 <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-red-600"></div>
                             </span>
                         </div>
-                    </button>
+                    </button> */}
                 </div>
             )}
         />

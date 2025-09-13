@@ -5,10 +5,12 @@ interface Payment {
     id: number;
     sale_id: number;
     paid_at: string;
-    method: number;
+    method: string;
     amount: number;
     note?: string;
     status?: string;
+    new_payment?: number;
+    payment_slip?: string;
 }
 
 interface PayTableProps {
@@ -25,7 +27,17 @@ export default function PayTable({ payments = [], saleId }: PayTableProps) {
         return dayjs(dateString).locale('th').format('DD/MM/YYYY');
     };
 
-    
+    const getPaymentMethodText = (method: number) => {
+        const paymentMethods = {
+            1: 'เงินสด',
+            2: 'โอนเงิน',
+            3: 'บัตรเครดิต/เดบิต',
+            4: 'อื่นๆ',
+        };
+
+        return paymentMethods[method as keyof typeof paymentMethods] || `วิธีที่ ${method}`;
+    };
+
     return (
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
             {/* ตาราง */}
@@ -34,7 +46,9 @@ export default function PayTable({ payments = [], saleId }: PayTableProps) {
                     <thead className="bg-gray-50">
                         <tr>
                             <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-700 uppercase">วันที่ชำระ</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-700 uppercase">วิธีชำระ</th>
                             <th className="px-4 py-3 text-right text-xs font-medium tracking-wider text-gray-700 uppercase">จำนวนเงิน</th>
+                            <th className="px-4 py-3 text-center text-xs font-medium tracking-wider text-gray-700 uppercase">หลักฐานการชำระเงิน</th>
                         </tr>
                     </thead>
                     <tbody className="">
@@ -42,11 +56,29 @@ export default function PayTable({ payments = [], saleId }: PayTableProps) {
                             filteredPayments.map((payment) => (
                                 <tr key={payment.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 text-gray-600">{formatDate(payment.paid_at)}</td>
+                                    <td className="px-4 py-3 text-gray-600">{getPaymentMethodText(payment.method)}</td>
                                     <td className="px-4 py-3 text-right font-medium text-green-600">
-                                        {payment.method !== null
-                                            ?  Number(payment.method).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                        {payment.new_payment !== null
+                                            ? Number(payment.new_payment).toLocaleString('th-TH', {
+                                                  minimumFractionDigits: 2,
+                                                  maximumFractionDigits: 2,
+                                              })
                                             : ''}
-                                        {payment.method !== null && <span className="ml-1 text-sm">฿</span>}
+                                        {payment.new_payment !== null && <span className="ml-1 text-sm">฿</span>}
+                                    </td>
+                                    <td className="px-4 py-3 text-gray-600 text-center justify-center items-center">
+                                        {payment.payment_slip ? (
+                                            <a
+                                                href={`/storage/${payment.payment_slip}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 underline "
+                                            >
+                                                ดูไฟล์
+                                            </a>
+                                        ) : (
+                                            '-'
+                                        )}
                                     </td>
                                 </tr>
                             ))

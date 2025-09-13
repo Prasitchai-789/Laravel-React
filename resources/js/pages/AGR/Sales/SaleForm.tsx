@@ -2,6 +2,8 @@ import Button from '@/components/Buttons/Button';
 import InputLabel from '@/components/Inputs/InputLabel';
 import Select from '@/components/Inputs/Select';
 import { router, useForm } from '@inertiajs/react';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
 import { useEffect, useRef, useState } from 'react';
 import Swal from 'sweetalert2';
 import SaleProductSelect from './SaleProductSelect';
@@ -42,31 +44,46 @@ interface Sale {
     deposit_percent: string;
 }
 
+interface Payment {
+    id: number;
+    sale_id: number;
+    paid_at: string;
+    method: string;
+    amount: number;
+    note?: string;
+    status?: string;
+    new_payment?: number;
+    payment_slip?: string;
+}
+
 interface SaleFormProps {
     mode?: 'create' | 'edit';
     sale?: Sale;
     products?: Product[];
     customers?: Customer[];
     locations?: Location[];
+    payments?: Payment[];
     onClose: () => void;
 }
 
-export default function SaleForm({ mode = 'create', sale, products, customers = [], locations, onClose }: SaleFormProps) {
+export default function SaleForm({ mode = 'create', sale, products, customers = [], locations, onClose, payments }: SaleFormProps) {
     const { data, setData, post, put, reset, processing, errors } = useForm({
         id: sale?.id || '',
-        sale_date: sale?.sale_date || '',
+        sale_date: sale?.sale_date || dayjs().format('YYYY-MM-DD'), // ตั้งค่าวันที่ปัจจุบัน
         customer: sale?.customer || '',
         customer_id: sale?.customer_id || '',
         product_id: sale?.product_id || '',
         quantity: sale?.quantity || 0,
         price: sale?.price || '',
         deposit: sale?.deposit || '',
-        status: sale?.status || '',
+        status: sale?.status || 'completed',
         store_id: sale?.store_id || '',
         paid_amount: sale?.paid_amount || '',
         total_amount: sale?.total_amount || '',
         deposit_percent: sale?.deposit_percent || '',
         shipping_cost: sale?.shipping_cost || 0,
+        method: payments?.length > 0 ? payments[0].method : '1',
+        payment_slip: null,
     });
     // State สำหรับ dropdown ลูกค้า
     const [customerSearch, setCustomerSearch] = useState(sale?.customer || '');
@@ -177,12 +194,8 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
         }
     }, [data.customer_id, customers]);
     const formatDateForInput = (dateString: string) => {
-        if (!dateString) return '';
-
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return dateString;
-
-        return date.toISOString().split('T')[0];
+        if (!dateString) return dayjs().format('YYYY-MM-DD'); // คืนค่าปัจจุบันหากไม่มีค่า
+        return dayjs(dateString).format('YYYY-MM-DD');
     };
 
     // ฟิลเตอร์สินค้า ตาม store ที่เลือก
@@ -288,6 +301,14 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
         }
     };
 
+    const paymentOptions = [
+        { value: '', label: 'เลือกประเภทการชำระเงิน ...', disabled: true },
+        { value: '1', label: 'เงินสด' },
+        { value: '2', label: 'โอนเงิน' },
+        { value: '3', label: 'บัตรเครดิต/เดบิต' },
+        { value: '4', label: 'อื่นๆ' },
+    ];
+
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -367,7 +388,6 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                         disabled={processing}
                         className="font-anuphan"
                     />
-
 
                     <SaleProductSelect
                         label="สินค้า"
@@ -481,7 +501,35 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                 />
 
                 <Select
-                    label="สถานะ"
+                    label="ประเภทการชำระเงิน"
+                    name="method"
+                    value={data.method}
+                    onChange={(e) => setData('method', e.target.value)}
+                    options={paymentOptions}
+                    required={false}
+                    error={errors.method}
+                    disabled={processing}
+                    className="font-anuphan"
+                ></Select>
+
+                {/* อัปโหลดหลักฐานการชำระเงิน */}
+                <div>
+                    <InputLabel
+                        label="แนบไฟล์หลักฐาน"
+                        name="payment_slip"
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => setData({ ...data, payment_slip: e.target.files[0] })}
+                        required={false}
+                        error={errors.payment_slip}
+                        disabled={processing}
+                        className="font-anuphan"
+                    />
+                    <p className="mt-1.5 pl-2 text-xs text-gray-500">รองรับไฟล์รูปภาพ หรือ PDF</p>
+                </div>
+
+                <Select
+                    label="สถานะการรับสินค้า"
                     name="status"
                     value={data.status}
                     onChange={(e) => setData('status', e.target.value)}

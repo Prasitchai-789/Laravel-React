@@ -1,5 +1,6 @@
 import Button from '@/components/Buttons/Button';
 import InputLabel from '@/components/Inputs/InputLabel';
+import Select from '@/components/Inputs/Select';
 import { router, useForm } from '@inertiajs/react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
@@ -46,8 +47,10 @@ interface Sale {
 interface Payment {
     id: number;
     paid_at: string;
-    method: number;
+    method: string;
     amount: number;
+    new_payment: number;
+    payment_slip?: string;
 }
 
 interface PayFormProps {
@@ -77,6 +80,9 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
         total_amount: sale?.total_amount || '',
         deposit_percent: sale?.deposit_percent || '',
         shipping_cost: sale?.shipping_cost || '',
+        method: null,
+        payment_slip: null,
+         method: payments?.length > 0 ? payments[0].method : '1',
     });
 
     // State สำหรับจัดการยอดคงค้าง
@@ -149,15 +155,28 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // เตรียมข้อมูลสำหรับส่ง - รวมยอดชำระเดิมและใหม่
-        const submitData = {
+        // สร้าง FormData
+        const formData = new FormData();
+
+        // append ค่าทั้งหมดจาก state
+        Object.entries({
             ...data,
-            paid_amount: totalPaid.toString(), // ส่งยอดชำระรวมไป
-            deposit: remainingBalance.toString(), // ส่งยอดคงค้างใหม่ไป
-        };
+            paid_amount: totalPaid.toString(),
+            deposit: remainingBalance.toString(),
+        }).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+                formData.append(key, value as string | Blob);
+            }
+        });
+
+        // ถ้ามีไฟล์ payment_slip ให้ append แยก
+        if (data.payment_slip instanceof File) {
+            formData.append('payment_slip', data.payment_slip);
+        }
 
         if (mode === 'create') {
-            router.post(route('sales.store'), submitData, {
+            router.post(route('sales.store'), formData, {
+                forceFormData: true, // 👈 สำคัญ ให้ Inertia ส่งเป็น multipart/form-data
                 onSuccess: () => {
                     Toast.fire({ icon: 'success', title: 'สร้างการขายเรียบร้อยแล้ว' });
                     reset();
@@ -169,7 +188,10 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                 preserveScroll: true,
             });
         } else if (mode === 'pay' && data.id) {
-            router.put(route('sales.update', data.id), submitData, {
+            formData.append('_method', 'PUT'); // 👈 spoof method ให้ Laravel รู้ว่าเป็น PUT
+
+            router.post(route('sales.update', data.id), formData, {
+                forceFormData: true,
                 onSuccess: () => {
                     Toast.fire({ icon: 'success', title: 'อัปเดตการขายเรียบร้อยแล้ว' });
                     onClose();
@@ -181,6 +203,14 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
             });
         }
     };
+
+    const paymentOptions = [
+        { value: '', label: 'เลือกประเภทการชำระเงิน ...', disabled: true },
+        { value: '1', label: 'เงินสด' },
+        { value: '2', label: 'โอนเงิน' },
+        { value: '3', label: 'บัตรเครดิต/เดบิต' },
+        { value: '4', label: 'อื่นๆ' },
+    ];
     return (
         <form onSubmit={handleSubmit} className="space-y-6 font-anuphan">
             <div className="grid grid-cols-1 gap-2">
@@ -196,7 +226,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                         </svg>
                         ข้อมูลการขายสินค้า
                     </h3>
-                    <span className="text-sm font-medium text-gray-500">
+                    <span className="pl-7 text-sm font-medium text-gray-500">
                         วันที่รายการ {sale.sale_date ? dayjs(sale.sale_date).format('DD/MM/YYYY') : '-'}
                     </span>
 
@@ -236,7 +266,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                     <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                         <div>
                             <InputLabel
-                                // label="ยอดชำระเพิ่ม"
+                                label="ยอดชำระเพิ่ม"
                                 placeholder="0"
                                 name="new_payment"
                                 value={data.new_payment}
@@ -249,7 +279,37 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                                 step="1"
                                 className="font-anuphan"
                             />
-                            <p className="mt-1.5 pl-2 text-xs text-gray-500">กรุณากรอกยอดชำระเพิ่มเป็นจำนวนเต็ม</p>
+                            {/* <p className="mt-1.5 pl-2 text-xs text-gray-500">กรุณากรอกยอดชำระเพิ่มเป็นจำนวนเต็ม</p> */}
+                        </div>
+
+                        {/* วิธีการชำระเงิน */}
+                        <div>
+                            <Select
+                                label="ประเภทการชำระเงิน"
+                                name="method"
+                                value={data.method}
+                                onChange={(e) => setData('method', e.target.value)}
+                                options={paymentOptions}
+                                required={false}
+                                error={errors.method}
+                                disabled={processing}
+                                className="font-anuphan"
+                            ></Select>
+                        </div>
+                        {/* อัปโหลดหลักฐานการชำระเงิน */}
+                        <div>
+                            <InputLabel
+                                label="แนบไฟล์หลักฐาน"
+                                name="payment_slip"
+                                type="file"
+                                accept="image/*,.pdf"
+                                onChange={(e) => setData({ ...data, payment_slip: e.target.files[0] })}
+                                required={false}
+                                error={errors.payment_slip}
+                                disabled={processing}
+                                className="font-anuphan"
+                            />
+                            <p className="mt-1.5 pl-2 text-xs text-gray-500">รองรับไฟล์รูปภาพ หรือ PDF</p>
                         </div>
 
                         <div className="flex items-center justify-center">
@@ -338,7 +398,6 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                     </div>
                 </div>
             </div>
-
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-3">
