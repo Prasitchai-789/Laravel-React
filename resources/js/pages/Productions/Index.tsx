@@ -302,14 +302,14 @@ export default function Index({ summary, production, dailyData, monthlyData }) {
 
                         <div className="flex items-center justify-between mb-4">
                             <div className="mx-6 text-center">
-                                <p className="text-xl font-medium font-bold text-gray-900">
+                                <p className="text-xl font-bold text-gray-900">
                                     <span className="text-sm">586,470</span>
                                 </p>
                                 <p className="text-sm text-gray-500">ยอดยกมา</p>
                             </div>
                             <div className="w-[1px] h-8 bg-gray-400"></div>
                             <div className="mx-6 text-center">
-                                <p className="text-xl font-medium font-bold text-gray-900">
+                                <p className="text-xl font-bold text-gray-900">
                                     <span className="text-sm">748,180</span>
                                 </p>
                                 <p className="text-sm text-gray-500">ผลปาล์มรับเข้า</p>
@@ -403,7 +403,7 @@ export default function Index({ summary, production, dailyData, monthlyData }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {production.map((item, index) => (
+                                {production.map((item, index: number) => (
                                     <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
                                         <td className="p-4 font-medium text-gray-800">{item.name}</td>
                                         <td className="p-4 text-right text-gray-700">{item.volume}</td>

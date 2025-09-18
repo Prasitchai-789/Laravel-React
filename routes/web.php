@@ -9,12 +9,12 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ChemicalController;
 use App\Http\Controllers\AGR\SalesController;
+use App\Http\Controllers\AGR\StockController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\AGR\ProductController;
 use App\Http\Controllers\Api\CitizenController;
 use App\Http\Controllers\AGR\CustomerController;
-use App\Http\Controllers\AGR\StockController;
 use App\Http\Controllers\ChemicalOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
 use App\Http\Controllers\Dashboard\CostAnalysisController;
@@ -22,6 +22,7 @@ use App\Http\Controllers\Dashboard\DailyBarCharController;
 use App\Http\Controllers\Dashboard\PalmDashboardController;
 use App\Http\Controllers\Dashboard\PalmProductionController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
+use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
 
 Route::get('/', function () {
@@ -176,6 +177,11 @@ Route::middleware(['auth', 'permission:developer.view|agr.view'])->group(functio
     Route::delete('/stock-agr/{production}', [ProductController::class, 'destroy'])->name('stock.agr.destroy');
 });
 
+
+// MUN Routes
+Route::middleware(['auth', 'permission:developer.view|mun.view'])->group(function () {
+    Route::resource('fertilizer-productions', FertilizerProductionController::class);
+});
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
