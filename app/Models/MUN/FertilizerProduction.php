@@ -27,9 +27,9 @@ class FertilizerProduction extends Model
         return $this->hasOne(FertilizerEnergyUsage::class, 'production_id');
     }
 
-    public function labor()
+    public function labors()
     {
-        return $this->hasOne(FertilizerLabor::class, 'production_id');
+        return $this->hasMany(FertilizerLabor::class, 'production_id', 'id');
     }
 
     public function machineDowntimes()

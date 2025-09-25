@@ -49,7 +49,7 @@ export default function SaleTable({
     statusFilter = '',
 }: SaleTableProps) {
     const getCustomerName = (id: number) => {
-        const customer = customers.find((c) => c.id === id);
+        const customer = customers.find((c) => c.id.toString() === id.toString());
         return customer ? customer.name : `#${id}`;
     };
 
@@ -72,7 +72,7 @@ export default function SaleTable({
     };
     // ฟังก์ชันช่วยหาชื่อสินค้า
     const getProductName = (id: number) => {
-        const product = products.find((p) => p.id === id);
+        const product = products.find((p) => p.id.toString() === id.toString());
         return product ? product.name : `#${id}`;
     };
     const filteredSales = sales

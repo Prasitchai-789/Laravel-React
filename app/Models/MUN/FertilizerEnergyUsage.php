@@ -10,7 +10,7 @@ class FertilizerEnergyUsage extends Model
     use HasFactory;
 
     protected $table = 'fertilizer_energy_usages';
-    protected $fillable = ['production_id', 'electricity_kwh', 'fuel_litre', 'cost'];
+    protected $fillable = ['production_id', 'electricity_kwh', 'fuel_litre', 'cost','number_kwh'];
 
     public function production()
     {

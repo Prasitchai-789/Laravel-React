@@ -14,6 +14,6 @@ class FertilizerLabor extends Model
 
     public function production()
     {
-        return $this->belongsTo(FertilizerProduction::class, 'production_id');
+        return $this->belongsTo(FertilizerProduction::class, 'production_id', 'id');
     }
 }

@@ -4,7 +4,7 @@ interface ButtonProps {
     children: React.ReactNode;
     onClick?: () => void;
     type?: 'button' | 'submit' | 'reset';
-    variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning';
+    variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'gray';
     size?: 'sm' | 'md' | 'lg';
     icon?: React.ReactNode;
     iconPosition?: 'left' | 'right';
@@ -51,6 +51,9 @@ const Button: React.FC<ButtonProps> = ({
         warning: gradient
             ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-orange-700 hover:to-amber-700 focus:ring-orange-500'
             : 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-500',
+        gray: gradient
+            ? 'bg-gradient-to-r from-gray-300 to-gray-400 hover:from-gray-400 hover:to-gray-600 focus:ring-gray-500'
+            : 'bg-gray-600 hover:bg-gray-700 focus:ring-gray-500',
     };
 
     // Size classes

@@ -179,8 +179,12 @@ Route::middleware(['auth', 'permission:developer.view|agr.view'])->group(functio
 
 
 // MUN Routes
-Route::middleware(['auth', 'permission:developer.view|mun.view'])->group(function () {
-    Route::resource('fertilizer-productions', FertilizerProductionController::class);
+Route::prefix('fertilizer')->group(function () {
+    Route::get('/productions', [FertilizerProductionController::class, 'index'])->name('fertilizer.productions.index');
+    Route::get('/productions/api', [FertilizerProductionController::class, 'apiIndex'])->name('fertilizer.productions.api');
+    Route::post('/productions', [FertilizerProductionController::class, 'store'])->name('fertilizer.productions.store');
+    Route::put('/productions/{fertilizerProduction}', [FertilizerProductionController::class, 'update'])->name('fertilizer.productions.update');
+    Route::delete('/productions/{fertilizerProduction}', [FertilizerProductionController::class, 'destroy'])->name('fertilizer.productions.destroy');
 });
 
 require __DIR__ . '/settings.php';
