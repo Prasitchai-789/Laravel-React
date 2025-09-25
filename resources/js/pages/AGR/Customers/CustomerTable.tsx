@@ -26,83 +26,45 @@ interface CustomerTableProps {
     cities?: any[]; // รับข้อมูล cities จาก props
 }
 
-// ฟังก์ชันช่วยสำหรับดึงชื่อจังหวัดจาก cities data
-const getProvinceName = (customer: Customer, cities: any[] = []): string => {
-    if (customer.cityProvince?.ProvinceName) {
-        return customer.cityProvince.ProvinceName;
-    }
 
-    if (customer.province && cities.length > 0) {
-        const province = cities.find(c => c.ProvinceID === parseInt(customer.province as string));
-        return province?.ProvinceName || customer.province;
-    }
-
-    return customer.province || 'ไม่ระบุ';
-};
-
-// ฟังก์ชันช่วยสำหรับดึงชื่ออำเภอจาก cities data
-const getDistrictName = (customer: Customer, cities: any[] = []): string => {
-    if (customer.cityDistrict?.DistrictName) {
-        return customer.cityDistrict.DistrictName;
-    }
-
-    if (customer.district && cities.length > 0) {
-        const district = cities.find(c => c.DistrictID === parseInt(customer.district as string));
-        return district?.DistrictName || customer.district;
-    }
-
-    return customer.district || 'ไม่ระบุ';
-};
-
-// ฟังก์ชันช่วยสำหรับดึงชื่อตําบลจาก cities data
-const getSubdistrictName = (customer: Customer, cities: any[] = []): string => {
-    if (customer.citySubdistrict?.SubDistrictName) {
-        return customer.citySubdistrict.SubDistrictName;
-    }
-
-    if (customer.subdistrict && cities.length > 0) {
-        const subdistrict = cities.find(c => c.SubDistrictID === parseInt(customer.subdistrict as string));
-        return subdistrict?.SubDistrictName || customer.subdistrict;
-    }
-};
 export default function CustomerTable({ customers, onEdit, onDelete, cities = [] }: CustomerTableProps) {
-    const [provinceMap, setProvinceMap] = useState<Map<number, string>>(new Map());
-    const [districtMap, setDistrictMap] = useState<Map<number, string>>(new Map());
-    const [subdistrictMap, setSubdistrictMap] = useState<Map<number, string>>(new Map());
+    const [provinceMap, setProvinceMap] = useState<Map<string, string>>(new Map());
+    const [districtMap, setDistrictMap] = useState<Map<string, string>>(new Map());
+    const [subdistrictMap, setSubdistrictMap] = useState<Map<string, string>>(new Map());
 
     // สร้าง mapping สำหรับจังหวัดและอำเภอ
     useEffect(() => {
         if (cities && cities.length > 0) {
             // สร้าง map สำหรับจังหวัด
-            const provinceMap = new Map<number, string>();
+            const provinceMap = new Map<string, string>();
             const provinceSet = new Set();
 
             cities.forEach(city => {
                 if (!provinceSet.has(city.ProvinceID)) {
                     provinceSet.add(city.ProvinceID);
-                    provinceMap.set(city.ProvinceID, city.ProvinceName);
+                    provinceMap.set(String(city.ProvinceID), city.ProvinceName);
                 }
             });
 
             // สร้าง map สำหรับอำเภอ
-            const districtMap = new Map<number, string>();
+            const districtMap = new Map<string, string>();
             const districtSet = new Set();
 
             cities.forEach(city => {
                 if (!districtSet.has(city.DistrictID)) {
                     districtSet.add(city.DistrictID);
-                    districtMap.set(city.DistrictID, city.DistrictName);
+                    districtMap.set(String(city.DistrictID), city.DistrictName);
                 }
             });
 
             // สร้าง map สำหรับตําบล
-            const subdistrictMap = new Map<number, string>();
+            const subdistrictMap = new Map<string, string>();
             const subdistrictSet = new Set();
 
             cities.forEach(city => {
                 if (!subdistrictSet.has(city.SubDistrictID)) {
                     subdistrictSet.add(city.SubDistrictID);
-                    subdistrictMap.set(city.SubDistrictID, city.SubDistrictName);
+                    subdistrictMap.set(String(city.SubDistrictID), city.SubDistrictName);
                 }
             });
 
@@ -138,7 +100,7 @@ export default function CustomerTable({ customers, onEdit, onDelete, cities = []
 
                 if (customer.subdistrict && subdistrictMap.size > 0) {
                     const subdistrictId = parseInt(customer.subdistrict);
-                    return subdistrictMap.get(subdistrictId) || customer.subdistrict;
+                    return subdistrictMap.get(String(subdistrictId)) || customer.subdistrict;
                 }
 
                 return customer.district || 'ไม่ระบุ';
@@ -155,7 +117,7 @@ export default function CustomerTable({ customers, onEdit, onDelete, cities = []
 
                 if (customer.district && districtMap.size > 0) {
                     const districtId = parseInt(customer.district);
-                    return districtMap.get(districtId) || customer.district;
+                    return districtMap.get(String(districtId)) || customer.district;
                 }
 
                 return customer.district || 'ไม่ระบุ';
@@ -172,7 +134,7 @@ export default function CustomerTable({ customers, onEdit, onDelete, cities = []
 
                 if (customer.province && provinceMap.size > 0) {
                     const provinceId = parseInt(customer.province);
-                    return provinceMap.get(provinceId) || customer.province;
+                    return provinceMap.get(String(provinceId)) || customer.province;
                 }
 
                 return customer.province || 'ไม่ระบุ';

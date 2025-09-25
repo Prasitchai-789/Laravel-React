@@ -22,15 +22,17 @@ interface Sale {
     quantity: number;
     price: number;
     status: string;
+    total_amount: number;
+    deposit: number;
+    paid_amount: number;
+    sale_date: string;
 }
 
 export default function Index(props) {
-    const { sales, summary, filters, products, locations, customers, payments } = props;
+    const { sales,  products, locations, customers, payments } = props;
 
     const [mode, setMode] = useState<'create' | 'edit' | 'pay'>('create');
-    const [selectedProduct, setSelectedProduct] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [statusFilter, setStatusFilter] = useState('all');
 
     const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
@@ -108,21 +110,21 @@ export default function Index(props) {
     ];
 
     // จำนวนผู้ใช้งานทั้งหมด
-    const totalUsers = customers?.length ?? 0;
+    // const totalUsers = customers?.length ?? 0;
 
     // คำสั่งซื้อวันนี้
     const today = dayjs().format('YYYY-MM-DD');
 
-    const ordersToday = sales.filter((s) => {
+    const ordersToday = sales.filter((s: Sale) => {
         const saleDate = dayjs(s.sale_date).format('YYYY-MM-DD');
         return saleDate === today;
     }).length;
 
     // รายได้รวม (บาท)
-    const totalRevenue = sales.reduce((sum, s) => sum + (s.total_amount ?? 0), 0);
+    const totalRevenue = sales.reduce((sum: number, s: Sale) => sum + (s.total_amount ?? 0), 0);
 
     // ✅ ยอดขายรวมเฉพาะวันนี้
-    const revenueToday = sales.filter((s) => dayjs(s.sale_date).format('YYYY-MM-DD') === today).reduce((sum, s) => sum + (s.total_amount ?? 0), 0);
+    const revenueToday = sales.filter((s: Sale) => dayjs(s.sale_date).format('YYYY-MM-DD') === today).reduce((sum: number, s: Sale) => sum + (s.total_amount ?? 0), 0);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
