@@ -30,10 +30,16 @@ import {
     Shield,
     ShoppingBasket,
     UsersRound,
+
     Store,
     Warehouse,
     ShoppingCart,
     ClipboardMinus,
+
+    BookUser,
+    Factory,
+    Warehouse
+
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -141,6 +147,19 @@ const AGRNavItems: NavItem[] = [
         href: '/stock-agr',
         icon: ChartNoAxesCombined,
     },
+    {
+        title: 'ทะเบียนลูกค้า',
+        href: '/customers',
+        icon: BookUser,
+    },
+];
+
+const FerNavItems: NavItem[] = [
+    {
+        title: 'การผลิต',
+        href: '/fertilizer/productions',
+        icon: Warehouse,
+    }
 ];
 
 const footerNavItems: NavItem[] = [
@@ -195,6 +214,7 @@ export function AppSidebar() {
                 <NavMain items={mainNavItems} />
 
 
+
                 {/* STORE */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -225,6 +245,9 @@ export function AppSidebar() {
 
 
                 {/* PALM */}
+
+                {can('agr.view') && (
+
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuItem>
@@ -242,6 +265,28 @@ export function AppSidebar() {
                         </DropdownMenuGroup>
                     </DropdownMenuContent>
                 </DropdownMenu>
+                )}
+
+                {can('agr.view') && (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton className="flex w-full items-center">
+                                <Factory className="h-6 w-6" />
+                                <span className="flex-1 font-anuphan font-medium text-green-800">โรงปุ๋ย</span>
+                                <ChevronDown className="ml-auto h-4 w-4" />
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                        <DropdownMenuGroup>
+                            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+                            <NavMain items={FerNavItems} />
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                )}
+
             </SidebarContent>
 
 

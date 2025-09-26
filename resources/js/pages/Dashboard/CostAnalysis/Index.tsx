@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 export default function CostAnalysis({ auth }) {
     const { props } = usePage();
-    const { lotData: initialLotData, sales: initialSales } = props;
+    const { lotData: initialLotData, sales: initialSales, startDate: propStart, endDate: propEnd } = props;
 
     // แปลงข้อมูลให้เป็น array หากไม่ใช่
     const [lotData, setLotData] = useState([]);
@@ -32,14 +32,20 @@ export default function CostAnalysis({ auth }) {
     }, [initialLotData, initialSales]);
 
     const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]; // YYYY-MM-DD
-    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]; // YYYY-MM-DD
+    function formatDateLocal(date: Date): string {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    const defaultStart = formatDateLocal(new Date(today.getFullYear(), today.getMonth(), 1));
+    const defaultEnd = formatDateLocal(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
     const { data, setData, processing, errors } = useForm({
-        startDate: firstDayOfMonth,
-        endDate: lastDayOfMonth,
+        startDate: propStart ?? defaultStart,
+        endDate: propEnd ?? defaultEnd,
     });
-
     const submit = (e) => {
         e.preventDefault();
         console.log('Submitting with data:', data);
@@ -102,7 +108,7 @@ export default function CostAnalysis({ auth }) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="การวิเคราะห์ต้นทุน" />
             <div className="p-4 font-anuphan">
-                <div className="mx-auto ">
+                <div className="mx-auto">
                     <div className="overflow-hidden bg-white">
                         {/* Header */}
                         <div className="mb-4 border-b border-gray-200 pb-4">

@@ -25,6 +25,7 @@ use App\Http\Controllers\Dashboard\DailyBarCharController;
 use App\Http\Controllers\Dashboard\PalmDashboardController;
 use App\Http\Controllers\Dashboard\PalmProductionController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
+use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
 
 Route::get('/', function () {
@@ -161,13 +162,32 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 });
 
 // AGR Routes
-Route::middleware(['auth', 'permission:users.view'])->group(function () {
+Route::middleware(['auth', 'permission:developer.view|agr.view'])->group(function () {
     Route::resource('sales', SalesController::class);
-    Route::get('/products', [ProductController::class, 'index']);
-    Route::get('/customers', [CustomerController::class, 'index']);
+    // Route::post('/sales', [SalesController::class, 'create'])->name('sales.create');
+    Route::resource('/products', ProductController::class);
+    Route::put('/products/{product}', [ProductController::class, 'updateProduct'])->name( 'products.updateProduct');
+    Route::put('/stock/{product}', [ProductController::class, 'updateStock'])->name( 'stock.updateStock');
+    // Route::get('/products', [ProductController::class, 'index'])->name('product.index');
+    Route::resource('/customers', CustomerController::class);
+    // Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    // Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
+    // Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customer.update');
+
     Route::get('/stock-agr', [StockController::class, 'index'])->name('stock.agr.index');
     Route::post('/stock-agr-product', [ProductController::class, 'storeProduct'])->name('stock.agr.store.product');
     Route::post('/stock-agr', [ProductController::class, 'storeLocation'])->name('stock.agr.store.location');
+    Route::delete('/stock-agr/{production}', [ProductController::class, 'destroy'])->name('stock.agr.destroy');
+});
+
+
+// MUN Routes
+Route::prefix('fertilizer')->group(function () {
+    Route::get('/productions', [FertilizerProductionController::class, 'index'])->name('fertilizer.productions.index');
+    Route::get('/productions/api', [FertilizerProductionController::class, 'apiIndex'])->name('fertilizer.productions.api');
+    Route::post('/productions', [FertilizerProductionController::class, 'store'])->name('fertilizer.productions.store');
+    Route::put('/productions/{fertilizerProduction}', [FertilizerProductionController::class, 'update'])->name('fertilizer.productions.update');
+    Route::delete('/productions/{fertilizerProduction}', [FertilizerProductionController::class, 'destroy'])->name('fertilizer.productions.destroy');
 });
 
 Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrder')->group(function () {

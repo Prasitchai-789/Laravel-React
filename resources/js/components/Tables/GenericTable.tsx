@@ -46,7 +46,7 @@ export default function GenericTable<T extends Record<string, any>>({
   title = "ตารางข้อมูล",
   searchable = true,
   pagination = true,
-  itemsPerPage = 10,
+  itemsPerPage = 10,                  // <-- เพิ่ม
 }: GenericTableProps<T>) {
   const [sortField, setSortField] = useState<keyof T | null>(initialSort ?? null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -79,7 +79,6 @@ export default function GenericTable<T extends Record<string, any>>({
 
     return matchesSearch && matchesColumnFilters;
   });
-
   // Sort data
   const sortedData = sortField
     ? [...filteredData].sort((a, b) => {
@@ -120,11 +119,11 @@ export default function GenericTable<T extends Record<string, any>>({
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             {searchable && (
               <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                <Search className="absolute left-4 top-3 h-4 w-4 text-gray-500" />
                 <Input
                   type="search"
                   placeholder="ค้นหา..."
-                  className="pl-8 w-full sm:w-[250px] rounded-full bg-white shadow-sm"
+                  className="w-full sm:w-[250px] rounded-full bg-white shadow-sm p-5 pl-10 pr-5 border border-gray-100 "
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
@@ -134,17 +133,17 @@ export default function GenericTable<T extends Record<string, any>>({
               </div>
             )}
 
-            <div className="flex gap-2">
-              {/* <Button variant="outline" size="sm" className="rounded-full gap-1">
+            {/* <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="rounded-full gap-1">
                 <Filter size={16} />
                 <span>ตัวกรอง</span>
-              </Button> */}
+              </Button>
 
-              <Button variant="outline" size="sm" className="rounded-full gap-1">
+              <Button variant="outline"  className="rounded-full gap-1 bg-blue-600 text-white px-10 py-5">
                 <Download size={16} />
                 <span>ส่งออก</span>
               </Button>
-            </div>
+            </div> */}
           </div>
         </div>
       </CardHeader>

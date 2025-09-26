@@ -26,12 +26,11 @@ export default function LocationForm({ mode = 'create', project = null, onClose 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (mode === 'create') {
-            console.log(data);
             post('/stock-agr', {
                 onSuccess: () => {
                     Toast.fire({
                         icon: 'success',
-                        title: 'Project created successfully',
+                        title: 'Created successfully',
                     });
                     reset();
                     onClose();
@@ -42,7 +41,7 @@ export default function LocationForm({ mode = 'create', project = null, onClose 
                 onSuccess: () => {
                     Toast.fire({
                         icon: 'success',
-                        title: 'Project updated successfully',
+                        title: 'Updated successfully',
                     });
                     onClose();
                 },
@@ -71,7 +70,7 @@ export default function LocationForm({ mode = 'create', project = null, onClose 
                     name="note"
                     value={data.note}
                     onChange={(e) => setData('note', e.target.value)}
-                    required={true}
+                    required={false}
                     error={errors.note}
                     disabled={processing}
                     rows={3}
@@ -84,7 +83,7 @@ export default function LocationForm({ mode = 'create', project = null, onClose 
                 disabled={processing}
                 className="ml-auto flex items-center justify-center gap-2 rounded-3xl bg-green-600 px-6 py-2.5 text-white transition-colors hover:scale-102 hover:cursor-pointer hover:bg-green-700 hover:shadow-lg focus:ring-2 focus:ring-blue-200 focus:ring-offset-2 focus:outline-none"
             >
-                <span className="font-anuphan">{mode === 'create' ? 'Create' : 'Update'}</span>
+                <span className="font-anuphan">{mode === 'create' ? 'บันทึก' : 'อัพเดท'}</span>
             </button>
         </form>
     );
