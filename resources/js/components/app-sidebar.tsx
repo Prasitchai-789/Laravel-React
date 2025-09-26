@@ -30,15 +30,12 @@ import {
     Shield,
     ShoppingBasket,
     UsersRound,
-
     Store,
     Warehouse,
     ShoppingCart,
     ClipboardMinus,
-
     BookUser,
     Factory,
-    Warehouse
 
 } from 'lucide-react';
 import AppLogo from './app-logo';
