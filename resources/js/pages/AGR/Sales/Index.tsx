@@ -7,7 +7,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import dayjs from 'dayjs';
-import { DollarSign, Plus, ShoppingCart, User } from 'lucide-react';
+import { DollarSign, Plus, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 import PayForm from './PayForm';
@@ -29,7 +29,7 @@ interface Sale {
 }
 
 export default function Index(props) {
-    const { sales,  products, locations, customers, payments } = props;
+    const { sales, products, locations, customers, payments } = props;
 
     const [mode, setMode] = useState<'create' | 'edit' | 'pay'>('create');
     const [searchTerm, setSearchTerm] = useState('');
@@ -121,10 +121,12 @@ export default function Index(props) {
     }).length;
 
     // รายได้รวม (บาท)
-    const totalRevenue = sales.reduce((sum: number, s: Sale) => sum + (s.total_amount ?? 0), 0);
+    const totalRevenue = sales.reduce((sum: number, s: Sale) => sum + Number(s.total_amount ?? 0), 0);
 
     // ✅ ยอดขายรวมเฉพาะวันนี้
-    const revenueToday = sales.filter((s: Sale) => dayjs(s.sale_date).format('YYYY-MM-DD') === today).reduce((sum: number, s: Sale) => sum + (s.total_amount ?? 0), 0);
+    const revenueToday = sales
+        .filter((s: Sale) => dayjs(s.sale_date).format('YYYY-MM-DD') === today)
+        .reduce((sum: number, s: Sale) => sum + (s.total_amount ?? 0), 0);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
