@@ -9,14 +9,17 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ChemicalController;
 use App\Http\Controllers\AGR\SalesController;
+use App\Http\Controllers\AGR\StockController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\AGR\ProductController;
 use App\Http\Controllers\Api\CitizenController;
+use App\Http\Controllers\ExportStoreController;
 use App\Http\Controllers\AGR\CustomerController;
-use App\Http\Controllers\AGR\StockController;
 use App\Http\Controllers\ChemicalOrderController;
+use App\Http\Controllers\Store\StoreOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
+use App\Http\Controllers\Store\StoreMovementController;
 use App\Http\Controllers\Dashboard\CostAnalysisController;
 use App\Http\Controllers\Dashboard\DailyBarCharController;
 use App\Http\Controllers\Dashboard\PalmDashboardController;
@@ -166,6 +169,66 @@ Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::post('/stock-agr-product', [ProductController::class, 'storeProduct'])->name('stock.agr.store.product');
     Route::post('/stock-agr', [ProductController::class, 'storeLocation'])->name('stock.agr.store.location');
 });
+
+Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrder')->group(function () {
+
+    // หน้าเลือกสินค้า / Index
+    Route::get('/', [StoreOrderController::class, 'index'])->name('Store.index');
+    // หน้าเบิกสินค้า
+    Route::get('/StoreOrderIssue', [StoreOrderController::class, 'storeOrder'])->name('store-orders.index');
+
+    // หน้าแสดงรายการคำสั่งเบิก
+    Route::get('/StoreIssueIndex', [StoreOrderController::class, 'StoreIssueIndex'])->name('StoreIssue.index');
+
+
+    Route::get('/StoreMovement', [StoreMovementController::class, 'indexPage'])->name('storemovement.indexPage');
+    // แสดงรายละเอียดคำสั่งเบิก
+    Route::get('/{order}', [StoreOrderController::class, 'show'])->name('StoreOrder.show');
+
+    // สร้างคำสั่งเบิก (POST)
+    Route::post('/', [StoreOrderController::class, 'store'])->name('store-orders.store');
+
+
+    // ✅ แก้ไข route confirm ให้ถูกต้อง - ใช้ POST กับ path ที่สอดคล้อง
+    Route::post('/{order}/confirm', [StoreOrderController::class, 'confirm'])->name('store-orders.confirm');
+
+    // แก้ไขคำสั่งเบิก
+    Route::put('/{order}', [StoreOrderController::class, 'update'])->name('StoreOrder.update');
+
+    // ลบคำสั่งเบิก
+    Route::delete('/{order}', [StoreOrderController::class, 'destroy'])->name('StoreOrder.destroy');
+
+    Route::post('/return', [StoreOrderController::class, 'return'])->name('store.return');
+
+    Route::get('/store-orders/documents', function () {
+        return \App\Models\StoreOrder::select('id', 'document_number', 'order_date', 'status')->get();
+    });
+
+
+
+    Route::get('/document-items/{documentNumber}', [StoreOrderController::class, 'items']);
+
+
+
+});
+// web.php
+Route::middleware(['auth'])->prefix('store-movements')->group(function () {
+
+    // สร้าง movement ใหม่
+    Route::post('/', [StoreMovementController::class, 'stock'])->name('store-movements.store');
+
+
+});
+
+
+// public QR code - ไม่ต้อง login
+Route::get('StoreOrder/{order}/qrcode', [StoreOrderController::class, 'showQRCode'])->name('StoreOrder.qrcode');
+
+// web.php
+Route::get('/store/issues/export', [ExportStoreController::class, 'export'])->name('store-issues.export');
+Route::put('/store-orders/{order}/status', [StoreOrderController::class, 'updateStatus']);
+
+
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

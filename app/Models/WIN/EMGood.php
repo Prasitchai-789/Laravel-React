@@ -10,21 +10,31 @@ class EMGood extends Model
 {
     protected $connection = 'sqlsrv2';
     use HasFactory;
+
     protected $table = 'EMGood';
     protected $primaryKey = 'GoodID';
     public $timestamps = false;
-    protected $fillable = ['GoodCode', 'GoodName1'];
-    // 📌 สินค้านี้อยู่ใน Order Detail
+
+    protected $fillable = ['GoodCode', 'GoodName1', 'GoodUnitID'];
+
+    // ความสัมพันธ์กับตารางหน่วย
+    public function unit()
+    {
+        return $this->belongsTo(EMGoodUnit::class, 'GoodUnitID', 'GoodUnitID');
+    }
+
+    // สินค้านี้อยู่ใน Order Detail
     public function orderDetails()
     {
         return $this->hasMany(SODT::class, 'GoodID', 'GoodID');
     }
 
-    // 📌 สินค้านี้อยู่ใน Invoice Detail
+    // สินค้านี้อยู่ใน Invoice Detail
     public function invoiceDetails()
     {
         return $this->hasMany(SOInvDT::class, 'GoodID', 'GoodID');
     }
+
     public function soplans()
     {
         // return $this->hasMany(SalesPlan::class, 'GoodID', 'GoodID');

@@ -30,6 +30,10 @@ import {
     Shield,
     ShoppingBasket,
     UsersRound,
+    Store,
+    Warehouse,
+    ShoppingCart,
+    ClipboardMinus,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -56,6 +60,34 @@ const mainNavItems: NavItem[] = [
         icon: Handshake,
     },
 ];
+
+const StoreNavItems: NavItem[] = [
+    {
+        title: 'StoreOrder',
+        href: '/StoreOrder',
+        icon: Store,
+        permission: ['PUR.view', 'PUR.Admin'] // ใส่ permission ที่ต้องการ
+    },
+    {
+        title: 'Product Withdrawal',
+        href: '/StoreOrder/StoreOrderIssue',
+        icon: ShoppingCart,
+        permission: ['PUR.view', 'users.view', 'PUR.Admin'], // OR condition ใช้ได้ทั้งสอง
+    },
+    {
+        title: 'Stock Report',
+        href: '/StoreOrder/StoreIssueIndex',
+        icon: ClipboardMinus,
+        permission: ['PUR.view', 'PUR.Admin', 'users.view']
+    },
+    {
+        title: 'Store Movement',
+        href: '/StoreOrder/StoreMovement',
+        icon: ClipboardMinus,
+        permission: ['PUR.view', 'PUR.Admin'],
+    },
+];
+
 
 const adminNavItems: NavItem[] = [
     {
@@ -161,6 +193,38 @@ export function AppSidebar() {
                     </DropdownMenu>
                 )}
                 <NavMain items={mainNavItems} />
+
+
+                {/* STORE */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton className="flex w-full items-center">
+                                <Warehouse className="h-6 w-6" /> {/* ไอคอนหลักของกลุ่ม */}
+                                <span className="flex-1 font-anuphan font-medium text-blue-800">
+                                    Store
+                                </span>
+                                <ChevronDown className="ml-auto h-4 w-4" />
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                        <DropdownMenuGroup>
+                            <SidebarGroupLabel>Store</SidebarGroupLabel>
+                            {/* กรองเมนู Store ตาม permission */}
+                            <NavMain
+                                items={StoreNavItems.filter(
+                                    item => !item.permission || item.permission.some(p => can(p))
+                                )}
+                            />
+
+
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+
+                {/* PALM */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuItem>
@@ -180,6 +244,9 @@ export function AppSidebar() {
                 </DropdownMenu>
             </SidebarContent>
 
+
+
+            {/* ADMIN */}
             <SidebarFooter>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -201,6 +268,9 @@ export function AppSidebar() {
                 <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
+
+
+
         </Sidebar>
     );
 }
