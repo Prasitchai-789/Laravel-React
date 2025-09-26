@@ -115,7 +115,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
     };
 
     const getCustomerName = (id: number) => {
-        const customer = customers.find((c) => c.id === id);
+        const customer = customers.find((c) => Number(c.id) === Number(id));
         return customer ? customer.name : `#${id}`;
     };
 
@@ -125,7 +125,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
     };
 
     const getCustomerPhone = (id: number) => {
-        const customer = customers.find((c) => c.id === id);
+        const customer = customers.find((c) => Number(c.id) === Number(id));
         if (!customer) return `#${id}`;
 
         return formatPhone(customer.phone);
@@ -133,7 +133,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
 
     // ฟังก์ชันช่วยหาชื่อสินค้า
     const getProductName = (id: number) => {
-        const product = products.find((p) => p.id === id);
+        const product = products.find((p) => Number(p.id) === Number(id));
         return product ? product.name : `#${id}`;
     };
 
