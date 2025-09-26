@@ -1,0 +1,792 @@
+import React, { useState, useEffect } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+import StoreIssueOrderDetail from './StoreIssueOrderDetail';
+import Swal from 'sweetalert2';
+import { Eye, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Calendar, User, Building, FileText, Monitor, Globe, Filter, X, Download, BarChart3, RefreshCw, Plus } from "lucide-react";
+import ModalForm from '@/components/ModalForm';
+import { can } from '@/lib/can';
+interface OrderItem {
+    id: number;
+    product_name: string;
+    product_type?: string;
+    stock_qty?: number;
+    reserved_qty?: number;
+    remaining_qty?: number;
+    quantity?: number;
+    unit?: string;
+    issueDate?: string;
+}
+
+interface Order {
+    id: number;
+    document_number: string;
+    order_date: string;
+    status: string;
+    source: 'WEB' | 'WIN';
+    department?: string;
+    requester?: string;
+    items?: OrderItem[];
+}
+
+interface Props {
+    order: Order & { items?: (OrderItem & { history?: HistoryItem[] })[] };
+    onClose: () => void;
+    showHistory?: boolean;
+}
+
+
+export default function StoreOrderIndex({ orders, pagination, filters }: Props) {
+    const { url } = usePage() as any;
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [dailyDate, setDailyDate] = useState('');
+    const [dailyTotal, setDailyTotal] = useState(0);
+    const [searchTerm, setSearchTerm] = useState(filters?.search || '');
+    const [statusFilter, setStatusFilter] = useState(filters?.status || 'ทั้งหมด');
+    const [activeTab, setActiveTab] = useState<'WIN' | 'WEB'>(
+        (filters?.source as 'WIN' | 'WEB') || 'WEB'
+    );
+
+    const [localOrders, setLocalOrders] = useState(orders);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sourceParam = urlParams.get('source') as 'WIN' | 'WEB' | null;
+        const searchParam = urlParams.get('search') || '';
+        const statusParam = urlParams.get('status') || 'ทั้งหมด';
+
+        setActiveTab(sourceParam && (sourceParam === 'WIN' || sourceParam === 'WEB') ? sourceParam : 'WEB');
+        setSearchTerm(searchParam);
+        setStatusFilter(statusParam);
+
+        router.get(route('StoreIssue.index'), {
+            source: sourceParam || 'WEB',
+            search: searchParam,
+            status: statusParam,
+        }, {
+            preserveState: true,
+            onSuccess: (res) => setLocalOrders(res.props.orders || []),
+        });
+    }, [url]);
+
+    useEffect(() => {
+        const todayCount = localOrders.filter(order =>
+            new Date(order.order_date).toDateString() === new Date().toDateString()
+        ).length;
+        setDailyTotal(todayCount);
+    }, [localOrders]);
+
+
+
+    const formatNumber = (num: number | undefined | null): string => {
+        if (num === undefined || num === null) return '0';
+        return num.toLocaleString('th-TH');
+    };
+
+    const handleTabChange = (tab: 'WIN' | 'WEB') => {
+        setActiveTab(tab);
+        router.get(route('StoreIssue.index'), {
+            source: tab,
+            page: 1,
+            search: searchTerm,
+            status: statusFilter === 'ทั้งหมด' ? '' : statusFilter
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const handlePagination = (url?: string) => {
+        if (url) {
+            const urlObj = new URL(url, window.location.origin);
+            urlObj.searchParams.set('source', activeTab);
+            if (searchTerm) urlObj.searchParams.set('search', searchTerm);
+            if (statusFilter !== 'ทั้งหมด') urlObj.searchParams.set('status', statusFilter);
+
+            router.visit(urlObj.toString(), {
+                preserveState: true,
+                preserveScroll: true,
+            });
+        }
+    };
+
+    const handleSearch = () => {
+        router.get(route('StoreIssue.index'), {
+            source: activeTab,
+            page: 1,
+            search: searchTerm,
+            status: statusFilter === 'ทั้งหมด' ? '' : statusFilter,
+            dailyDate: dailyDate || '',
+        }, {
+            preserveState: true,
+            preserveScroll: true,
+        });
+    };
+
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        router.reload({
+            preserveState: true,
+            preserveScroll: true,
+            onFinish: () => setIsRefreshing(false),
+        });
+    };
+
+    const handleStatusChange = async (orderId: number, newStatus: string) => {
+        const result = await Swal.fire({
+            title: 'ยืนยันการเปลี่ยนสถานะ',
+            text: 'คุณต้องการเปลี่ยนสถานะรายการนี้ใช่หรือไม่?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            reverseButtons: true,
+            customClass: {
+                popup: 'rounded-2xl',
+                confirmButton: 'rounded-xl px-4 py-2',
+                cancelButton: 'rounded-xl px-4 py-2'
+            }
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            // ส่งคำขอไป server ก่อน
+            await router.put(`/store-orders/${orderId}/status`, { status: newStatus }, {
+                preserveState: true,
+                onSuccess: () => {
+                    // อัปเดต UI หลังจาก server ตอบกลับสำเร็จ
+                    setLocalOrders(prev =>
+                        prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o)
+                    );
+                    Swal.fire({
+                        title: 'อัปเดตสถานะสำเร็จ',
+                        icon: 'success',
+                        confirmButtonColor: '#3085d6',
+                        customClass: { popup: 'rounded-2xl' }
+                    });
+                },
+                onError: () => {
+                    Swal.fire({
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถอัปเดตสถานะได้',
+                        icon: 'error',
+                        confirmButtonColor: '#d33',
+                        customClass: { popup: 'rounded-2xl' }
+                    });
+                }
+            });
+        } catch (error) {
+            console.error(error);
+            Swal.fire({
+                title: 'เกิดข้อผิดพลาด',
+                text: 'ไม่สามารถอัปเดตสถานะได้',
+                icon: 'error',
+                confirmButtonColor: '#d33',
+                customClass: { popup: 'rounded-2xl' }
+            });
+        }
+    };
+
+
+    function getSourceColor(source: string): string {
+        switch (source) {
+            case "WIN": return "bg-blue-100 text-blue-800 border-blue-200";
+            case "WEB": return "bg-green-100 text-green-800 border-green-200";
+            default: return "bg-gray-100 text-gray-800 border-gray-200";
+        }
+    }
+
+    const getSourceIcon = (source: string) => {
+        if (source === 'WIN') return <Monitor className="w-3 h-3 mr-1" />;
+        return <Globe className="w-3 h-3 mr-1" />;
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'pending': return 'bg-blue-100 text-blue-800 border-blue-200';   // ฟ้า
+            case 'approved': return 'bg-green-100 text-green-800 border-green-200'; // เขียว
+            case 'rejected': return 'bg-red-100 text-red-800 border-red-200';      // แดง
+            // case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';   // เทา
+            default: return 'bg-gray-100 text-gray-800 border-gray-200';
+        }
+    };
+
+    const getStatusText = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'pending':
+                return 'รอดำเนินการ';    // pending → รอดำเนินการ
+            case 'approved':
+                return 'อนุมัติ';        // approved → อนุมัติ
+            case 'rejected':
+                return 'ปฏิเสธ';        // rejected → ปฏิเสธ
+            // case 'completed': 
+            //     return 'เสร็จสิ้น';   // ถ้าเปิด จะใช้สำหรับ completed
+            default:
+                return status;            // ถ้าไม่ตรงกับข้างต้น จะคืนค่าเดิม
+        }
+    };
+
+
+
+
+    // Filter orders locally
+    const filteredOrders = localOrders.filter(order => {
+        const matchesTab = order.source === activeTab;
+        const matchesSearch =
+            order.document_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (order.requester && order.requester.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            order.items?.some(item => item.product_name.toLowerCase().includes(searchTerm.toLowerCase()));
+        const matchesStatus = statusFilter === 'ทั้งหมด' || order.status === statusFilter;
+        return matchesTab && matchesSearch && matchesStatus;
+    });
+
+
+    return (
+        <AppLayout breadcrumbs={[
+            { title: "หน้าหลัก", href: route('dashboard') },
+            { title: "ประวัติการเบิก", href: route('StoreIssue.index') },
+        ]}>
+            <Head title="ประวัติการเบิก" />
+
+            <div className="px-4 py-6 sm:px-6 lg:px-8  font-anuphan">
+                {/* Header */}
+                <div className="mb-8">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900 mb-2">ประวัติการเบิกสินค้า</h1>
+                            <p className="text-gray-600 text-lg">จัดการและติดตามสถานะการเบิกสินค้าตามระบบที่เลือก</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {/* <button className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 shadow-md hover:shadow-lg">
+                                <Download className="w-4 h-4" />
+                                <span>ส่งออกข้อมูล</span>
+                            </button>
+                            <button 
+                                onClick={handleRefresh}
+                                className="flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                <span>รีเฟรช</span>
+                            </button> */}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+                    <div className="bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl p-5 text-white shadow-lg">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="text-sm opacity-90">ทั้งหมด</p>
+                                <p className="text-2xl font-bold mt-1">{formatNumber(pagination?.total)}</p>
+                                <p className="text-sm mt-2">รายการ</p>
+                            </div>
+                            <div className="bg-white/20 p-3 rounded-xl">
+                                <BarChart3 className="w-6 h-6" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-5 text-white shadow-lg">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="text-sm opacity-90">รายการวันนี้</p>
+                                <p className="text-2xl font-bold mt-1">{formatNumber(dailyTotal)}</p>
+                                <p className="text-sm mt-2">รายการ</p>
+                            </div>
+                            <div className="bg-white/20 p-3 rounded-xl">
+                                <Calendar className="w-6 h-6" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl p-5 text-white shadow-lg">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="text-sm opacity-90">ระบบ WIN</p>
+                                <p className="text-2xl font-bold mt-1">
+                                    {formatNumber(orders.filter(o => o.source === 'WIN').length)}
+                                </p>
+                                <p className="text-sm mt-2">รายการ</p>
+                            </div>
+                            <div className="bg-white/20 p-3 rounded-xl">
+                                <Monitor className="w-6 h-6" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-5 text-white shadow-lg">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="text-sm opacity-90">ระบบ WEB</p>
+                                <p className="text-2xl font-bold mt-1">
+                                    {formatNumber(orders.filter(o => o.source === 'WEB').length)}
+                                </p>
+                                <p className="text-sm mt-2">รายการ</p>
+                            </div>
+                            <div className="bg-white/20 p-3 rounded-xl">
+                                <Globe className="w-6 h-6" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex space-x-2 mb-6">
+                    {(['WEB', 'WIN'] as const).map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => handleTabChange(tab)}
+                            className={`px-6 py-3 rounded-xl font-medium border transition-all duration-200 ${activeTab === tab
+                                ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg transform -translate-y-0.5'
+                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                }`}
+                        >
+                            {tab === 'WIN' ? 'WIN (ระบบเดิม)' : 'WEB (ระบบใหม่)'}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Filter Section */}
+                <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-lg font-semibold text-gray-800 flex items-end ">
+                            <Filter className="w-5 h-5 mr-2 text-blue-500" />
+                            ตัวกรองข้อมูล
+                        </h2>
+                        <button
+                            onClick={() => setIsFilterOpen(!isFilterOpen)}
+                            className="md:hidden p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors"
+                        >
+                            {isFilterOpen ? <X className="w-5 h-5" /> : <Filter className="w-5 h-5" />}
+                        </button>
+                    </div>
+
+                    <div className={`grid grid-cols-1 md:grid-cols-5 gap-6 ${isFilterOpen ? 'block' : 'hidden md:grid'}`}>
+                        {/* Search */}
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">ค้นหา</label>
+                            <div className="flex">
+                                <input
+                                    type="text"
+                                    placeholder="ค้นหาเลขเอกสารหรือชื่อสินค้า..."
+                                    className="flex-1 px-4 py-3 border border-gray-300 rounded-l-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                />
+                                <button
+                                    onClick={handleSearch}
+                                    className="px-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-r-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 shadow-md flex items-center"
+                                >
+                                    <Search className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Status Filter - แสดงเฉพาะ WEB */}
+                        {activeTab === 'WEB' && (
+                            <div className="flex flex-col">
+                                <label className="mb-2 text-sm font-semibold text-gray-700">สถานะ</label>
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    className={`text-sm px-4 py-3 rounded-xl font-medium border ${getStatusColor(statusFilter)} shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
+                                >
+                                    <option value="ทั้งหมด">{getStatusText('ทั้งหมด')}</option>
+                                    <option value="pending">{getStatusText('pending')}</option>
+                                    <option value="approved">{getStatusText('approved')}</option>
+                                    <option value="rejected">{getStatusText('rejected')}</option>
+                                    {/* <option value="completed">{getStatusText('completed')}</option> */}
+                                    {/* <option value="รออนุมัติ">{getStatusText('รออนุมัติ')}</option> */}
+                                </select>
+                            </div>
+                        )}
+
+
+
+                        {/* Date Filter */}
+                        <div className="flex flex-col">
+                            {/* <label className="mb-2 text-sm font-semibold text-gray-700">วันที่</label>
+                            <div className="relative">
+                                <input
+                                    type="date"
+                                    value={dailyDate}
+                                    onChange={(e) => setDailyDate(e.target.value)}
+                                    className="w-full px-4 py-3 text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
+                                />
+                                <Calendar className="absolute right-3 top-3.5 w-4 h-4 text-gray-400" />
+                            </div> */}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-col justify-end space-y-2">
+                            <button
+                                onClick={handleSearch}
+                                className="px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 shadow-md flex items-center justify-center"
+                            >
+                                <Search className="w-4 h-4 mr-1" />
+                                ค้นหา
+                            </button>
+                            {/* <button
+                                onClick={() => { setSearchTerm(''); setStatusFilter('ทั้งหมด'); setDailyDate(''); handleSearch(); }}
+                                className="px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm flex items-center justify-center"
+                            >
+                                <X className="w-4 h-4 mr-1" />
+                                ล้างค่า
+                            </button> */}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Orders Table */}
+                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                        {activeTab === 'WIN' ? (
+                            /* WIN System Table - Simplified */
+                            <table className="w-full">
+                                <thead className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-blue-800 uppercase tracking-wider rounded-tl-xl">เลขเอกสาร</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">วันที่เบิก</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">สินค้า</th>
+                                        <th className="px-6 py-4 text-center text-xs font-medium text-blue-800 uppercase tracking-wider rounded-tr-xl">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {filteredOrders.length > 0 ? filteredOrders.map(order => (
+                                        <tr key={order.id} className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all duration-200 group">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    <div className="p-2 bg-blue-100 rounded-lg mr-3 shadow-sm">
+                                                        <FileText className="h-5 w-5 text-blue-600" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-sm font-semibold text-gray-900">{order.document_number}</div>
+                                                        <div className="text-xs text-gray-500 mt-1">ID: {(order.id)}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center text-sm text-gray-700">
+                                                    <div className="p-2 bg-gray-100 rounded-lg mr-3 shadow-sm">
+                                                        <Calendar className="h-4 w-4 text-gray-600" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-medium text-gray-900">
+                                                            {new Date(order.order_date).toLocaleDateString('th-TH', {
+                                                                year: 'numeric',
+                                                                month: 'short',
+                                                                day: 'numeric'
+                                                            })}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 mt-1">
+                                                            {new Date(order.order_date).toLocaleTimeString('th-TH', {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="space-y-2">
+                                                    {order.items?.slice(0, 1).map(item => (
+                                                        <div
+                                                            key={item.id}
+                                                            className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm hover:bg-blue-50 transition-colors duration-200 group"
+                                                        >
+                                                            <span className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-700">
+                                                                {item.product_name}
+                                                            </span>
+                                                            <span className="text-gray-500 text-xs px-2 py-1 rounded-md">
+                                                                {order.items && order.items.length > 1 && (
+                                                                    <div className="flex justify-end items-center text-xs text-blue-600 font-medium mt-1">
+                                                                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-1 shadow-sm">
+                                                                            +{formatNumber(order.items.length - 1)}
+                                                                        </div>
+                                                                        รายการเพิ่มเติม
+                                                                    </div>
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </td>
+
+                                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                <button
+                                                    onClick={() => {
+                                                        setDetailOrder(order); // ใช้ order ที่มีอยู่แล้ว
+                                                        setIsDetailOpen(true); // เปิด modal
+                                                    }}
+                                                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg text-sm font-medium"
+                                                >
+                                                    <Eye className="w-4 h-4 mr-1" />
+                                                    ดูรายละเอียด
+                                                </button>
+                                            </td>
+
+                                        </tr>
+                                    )) : (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-16 text-center">
+                                                <div className="flex flex-col items-center justify-center text-gray-400">
+                                                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                                                        <Search className="w-10 h-10 opacity-50" />
+                                                    </div>
+                                                    <p className="text-xl font-medium text-gray-500 mb-2">ไม่พบข้อมูลการเบิก</p>
+                                                    <p className="text-sm text-gray-400 mb-4">ลองเปลี่ยนคำค้นหาหรือตัวกรองดูนะ</p>
+                                                    <button
+                                                        onClick={() => { setSearchTerm(''); setStatusFilter('ทั้งหมด'); handleSearch(); }}
+                                                        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 shadow-md"
+                                                    >
+                                                        ล้างตัวกรอง
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        ) : (
+                            /* WEB System Table - Full Details */
+                            <table className="w-full">
+                                <thead className="bg-gradient-to-r from-blue-50 to-indigo-50">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-blue-800 uppercase tracking-wider rounded-tl-xl">เลขเอกสาร</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">วันที่เบิก</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">ผู้เบิก</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">ฝ่าย/แผนก</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">สินค้า</th>
+                                        <th className="px-6 py-4 text-center text-xs font-medium text-blue-800 uppercase tracking-wider">สถานะ</th>
+                                        {/* <th className="px-6 py-4 text-center text-xs font-medium text-blue-800 uppercase tracking-wider">แหล่งที่มา</th> */}
+                                        <th className="px-6 py-4 text-center text-xs font-medium text-blue-800 uppercase tracking-wider rounded-tr-xl">จัดการ</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {filteredOrders.length > 0 ? (
+                                        filteredOrders.map(order => (
+                                            <tr
+                                                key={order.id}
+                                                className="hover:bg-blue-50/30 transition-all duration-200 group"
+                                            >
+                                                {/* เลขเอกสาร */}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                        <div className="p-2 bg-blue-100 rounded-lg mr-3 shadow-sm">
+                                                            <FileText className="h-5 w-5 text-blue-600" />
+                                                        </div>
+                                                        <div className="text-sm font-medium text-gray-900">
+                                                            {order.document_number}
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                {/* วันที่ */}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center text-sm text-gray-700">
+                                                        <div className="p-2 bg-gray-100 rounded-lg mr-3 shadow-sm">
+                                                            <Calendar className="h-4 w-4 text-gray-600" />
+                                                        </div>
+                                                        {new Date(order.order_date).toLocaleDateString('th-TH', {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                        })}
+                                                    </div>
+                                                </td>
+
+                                                {/* ผู้เบิก */}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center text-sm text-gray-700">
+                                                        <div className="p-2 bg-gray-100 rounded-lg mr-3 shadow-sm">
+                                                            <User className="h-4 w-4 text-gray-600" />
+                                                        </div>
+                                                        {order.requester || 'ไม่ระบุ'}
+                                                    </div>
+                                                </td>
+
+                                                {/* แผนก */}
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center text-sm text-gray-700">
+                                                        <div className="p-2 bg-gray-100 rounded-lg mr-3 shadow-sm">
+                                                            <Building className="h-4 w-4 text-gray-600" />
+                                                        </div>
+                                                        {order.department || 'ไม่ระบุ'}
+                                                    </div>
+                                                </td>
+
+                                                {/* รายการสินค้า */}
+                                                <td className="px-6 py-4">
+                                                    <div className="text-sm text-gray-700 flex flex-col">
+                                                        {order.items?.slice(0, 1).map(item => (
+                                                            <div
+                                                                key={item.id}
+                                                                className="flex justify-between items-center p-2 bg-gray-50 rounded-lg shadow-sm"
+                                                            >
+                                                                <span className="truncate max-w-xs">{item.product_name}</span>
+                                                                {order.items && order.items.length > 1 && (
+                                                                    <div className="flex justify-end items-center text-xs text-blue-600 font-medium ml-2">
+                                                                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center shadow-sm">
+                                                                            +{formatNumber(order.items.length - 1)}
+                                                                        </div>
+                                                                        รายการเพิ่มเติม
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </td>
+
+                                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                    <div className="flex justify-center">
+                                                        <select
+                                                            value={order.status}
+                                                            onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                                                            className={`text-xs px-3 py-2 rounded-xl font-medium border ${getStatusColor(order.status)} shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
+                                                            disabled={!can('PUR.edit')} // 🔹 ปรับให้ Admin แก้ได้ทุกสถานะ
+                                                        >
+                                                            <option value="pending">{getStatusText('pending')}</option>
+                                                            <option value="approved">{getStatusText('approved')}</option>
+                                                            <option value="rejected">{getStatusText('rejected')}</option>
+                                                            <option value="completed">{getStatusText('completed')}</option>
+                                                        </select>
+
+                                                    </div>
+                                                </td>
+
+                                                {/* ปุ่มดูรายละเอียด */}
+                                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                    <button
+                                                        onClick={() => {
+                                                            setDetailOrder(order);
+                                                            setIsDetailOpen(true);
+                                                        }}
+                                                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg text-sm font-medium group-hover:scale-105"
+                                                    >
+                                                        <Eye className="w-4 h-4 mr-1" />
+                                                        ดูรายละเอียด
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={8} className="px-6 py-16 text-center">
+                                                <div className="flex flex-col items-center justify-center text-gray-400">
+                                                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                                                        <Search className="w-10 h-10 opacity-50" />
+                                                    </div>
+                                                    <p className="text-xl font-medium text-gray-500 mb-2">ไม่พบข้อมูลการเบิก</p>
+                                                    <p className="text-sm mt-1">ลองเปลี่ยนคำค้นหาหรือตัวกรองดูนะ</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+
+
+                            </table>
+                        )}
+                    </div>
+
+                    {/* Pagination */}
+                    {pagination?.last_page > 1 && (
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+                            <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+                                <div className="text-sm text-gray-700">
+                                    แสดง <span className="font-medium">{formatNumber(pagination.from)}</span> ถึง <span className="font-medium">{formatNumber(pagination.to)}</span> จาก{' '}
+                                    <span className="font-medium">{formatNumber(pagination.total)}</span> รายการ
+                                </div>
+
+                                <div className="flex items-center space-x-1">
+                                    <button
+                                        onClick={() => handlePagination(pagination.first_page_url)}
+                                        disabled={pagination.current_page === 1}
+                                        className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-md"
+                                        title="หน้าแรก"
+                                    >
+                                        <ChevronsLeft className="w-4 h-4" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => handlePagination(pagination.prev_page_url)}
+                                        disabled={!pagination.prev_page_url}
+                                        className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-md"
+                                        title="หน้าก่อนหน้า"
+                                    >
+                                        <ChevronLeft className="w-4 h-4" />
+                                    </button>
+
+                                    <div className="flex space-x-1">
+                                        {pagination.links.map((link: any, idx: number) => {
+                                            if (!link.label.match(/^\d+$/)) return null;
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => link.url && handlePagination(link.url)}
+                                                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 ${link.active
+                                                        ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-md font-medium'
+                                                        : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:shadow-md'
+                                                        }`}
+                                                >
+                                                    {link.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <button
+                                        onClick={() => handlePagination(pagination.next_page_url)}
+                                        disabled={!pagination.next_page_url}
+                                        className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-md"
+                                        title="หน้าถัดไป"
+                                    >
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => handlePagination(pagination.last_page_url)}
+                                        disabled={pagination.current_page === pagination.last_page}
+                                        className="p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-md"
+                                        title="หน้าสุดท้าย"
+                                    >
+                                        <ChevronsRight className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+
+
+
+                {isDetailOpen && (
+                    <ModalForm
+                        isModalOpen={isDetailOpen}
+                        onClose={() => setIsDetailOpen(false)}
+                        title="รายละเอียดใบเบิกสินค้า"
+                    // size="max-w-2xl" // ✅ ปรับขนาดตามเนื้อหา
+                    >
+                        <StoreIssueOrderDetail
+                            order={detailOrder}                // ✅ ส่ง order object
+                            onClose={() => setIsDetailOpen(false)} // ✅ ปิด modal จากใน component ได้
+                            showHistory={true}                 // ✅ แสดงประวัติการเบิก-คืน
+                        />
+                    </ModalForm>
+                )}
+
+
+            </div>
+        </AppLayout>
+    );
+}
