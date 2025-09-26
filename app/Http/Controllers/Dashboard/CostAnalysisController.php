@@ -13,8 +13,8 @@ class CostAnalysisController extends Controller
 {
     public function index(Request $request)
     {
-        $startDate = $request->input('startDate');
-        $endDate   = $request->input('endDate');
+        $startDate = $request->input('startDate') ?? now()->startOfMonth()->toDateString();
+        $endDate   = $request->input('endDate') ?? now()->endOfMonth()->toDateString();
         $goodIds   = [2152, 2149, 2151, 2147, 9012]; // GoodID ที่สนใจ
 
         // 1) ดึง certificates (sqlsrv3) -> filter coa_lot 6 หลัก
@@ -155,7 +155,9 @@ class CostAnalysisController extends Controller
         return Inertia::render('Dashboard/CostAnalysis/Index', [
             'lotData' => $uniqueLotData->toArray(), // แปลงเป็น array
             'sales' => $sales->toArray(),
-            'uniqueLotData' => $uniqueLotData->toArray()   // แปลงเป็น array
+            'uniqueLotData' => $uniqueLotData->toArray(),
+            'startDate' => $startDate,
+            'endDate'   => $endDate,
         ]);
     }
 }
