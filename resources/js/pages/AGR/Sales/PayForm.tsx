@@ -214,20 +214,22 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
         <form onSubmit={handleSubmit} className="space-y-6 font-anuphan">
             <div className="grid grid-cols-1 gap-2">
                 {/* Product Information Section */}
-                <div className="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
-                    <h3 className="flex items-center text-lg font-semibold text-gray-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                            <path
-                                fillRule="evenodd"
-                                d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z"
-                                clipRule="evenodd"
-                            />
-                        </svg>
-                        ข้อมูลการขายสินค้า
-                    </h3>
-                    <span className="pl-7 text-sm font-medium text-gray-500">
-                        วันที่รายการ {sale.sale_date ? dayjs(sale.sale_date).format('DD/MM/YYYY') : '-'}
-                    </span>
+                <div className="rounded-xl border border-green-200 bg-white px-5 py-4 shadow-sm">
+                    <div className='flex items-center justify-between'>
+                        <h3 className="flex items-center text-lg font-semibold text-gray-800">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                                <path
+                                    fillRule="evenodd"
+                                    d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z"
+                                    clipRule="evenodd"
+                                />
+                            </svg>
+                            ข้อมูลการขายสินค้า
+                        </h3>
+                        <span className="pl-7 text-sm font-medium text-gray-500">
+                            วันที่รายการ {sale.sale_date ? dayjs(sale.sale_date).format('DD/MM/YYYY') : '-'}
+                        </span>
+                    </div>
 
                     <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="flex flex-col">
@@ -255,7 +257,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                 </div>
 
                 {/* Payment Input Section */}
-                <div className="rounded-xl border border-gray-200 bg-white px-5 py-3 shadow-sm">
+                <div className="rounded-xl border border-yellow-200 bg-white px-5 py-3 shadow-sm">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="mb-1 flex flex-col">
                             <h3 className="text-lg font-semibold text-gray-800">การชำระเงินเพิ่มเติม</h3>
@@ -325,7 +327,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                 </div>
 
                 {/* Summary Section */}
-                <div className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 px-5 py-3 shadow-sm">
+                <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 shadow-sm">
                     <h3 className="mb-1 flex items-center text-lg font-semibold text-gray-800">
                         <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
                             <path
