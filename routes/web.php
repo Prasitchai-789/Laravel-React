@@ -25,6 +25,7 @@ use App\Http\Controllers\Dashboard\DailyBarCharController;
 use App\Http\Controllers\Dashboard\PalmDashboardController;
 use App\Http\Controllers\Dashboard\PalmProductionController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
+use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
 
@@ -248,7 +249,15 @@ Route::get('StoreOrder/{order}/qrcode', [StoreOrderController::class, 'showQRCod
 Route::get('/store/issues/export', [ExportStoreController::class, 'export'])->name('store-issues.export');
 Route::put('/store-orders/{order}/status', [StoreOrderController::class, 'updateStatus']);
 
-
+// Memo Routes
+Route::middleware(['auth', 'permission:users.view'])->prefix('memo')->group(function () {
+    Route::get('/documents', [MemoExpenseDocumentController::class, 'index'])->name('memo.documents.index');
+    Route::get('/categories', [MemoExpenseDocumentController::class, 'create'])->name('memo.categories.create');
+    Route::get('/documents/api', [MemoExpenseDocumentController::class, 'apiIndex'])->name('memo.documents.api');
+    Route::post('/documents', [MemoExpenseDocumentController::class, 'store'])->name('memo.documents.store');
+    Route::put('/documents/{document}', [MemoExpenseDocumentController::class, 'update'])->name('memo.documents.update');
+    Route::delete('/documents/{document}', [MemoExpenseDocumentController::class, 'destroy'])->name('memo.documents.destroy');
+});
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
