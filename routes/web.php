@@ -27,6 +27,8 @@ use App\Http\Controllers\Dashboard\PalmProductionController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
+use App\Http\Controllers\StockOrderController;
+
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -88,7 +90,7 @@ Route::prefix('projects/{project}')->group(function () {
 });
 
 // Chemical Routes
-Route::middleware(['permission:users.view'])->group(function () {
+Route::middleware(['permission:users.view|chemical.view'])->group(function () {
     Route::get('chemical', [ChemicalController::class, 'index'])->name('chemical.index');
     Route::get('chemical/{chemical}', [ChemicalController::class, 'show'])->name('chemical.show');
     Route::get('/monthly', [ChemicalController::class, 'monthly'])->name('chemicals.monthly');
@@ -190,6 +192,7 @@ Route::prefix('fertilizer')->group(function () {
     Route::delete('/productions/{fertilizerProduction}', [FertilizerProductionController::class, 'destroy'])->name('fertilizer.productions.destroy');
 });
 
+<<<<<<< Updated upstream
 Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrder')->group(function () {
 
     // หน้าเลือกสินค้า / Index
@@ -248,6 +251,10 @@ Route::get('StoreOrder/{order}/qrcode', [StoreOrderController::class, 'showQRCod
 Route::get('/store/issues/export', [ExportStoreController::class, 'export'])->name('store-issues.export');
 Route::put('/store-orders/{order}/status', [StoreOrderController::class, 'updateStatus']);
 
+=======
+Route::get('/stock', [StockOrderController::class, 'index'])->name('stock.index');
+Route::post('/api/storeorder', [StockOrderController::class, 'store']);
+>>>>>>> Stashed changes
 
 
 require __DIR__ . '/settings.php';
