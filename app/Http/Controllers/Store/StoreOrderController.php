@@ -28,7 +28,7 @@ class StoreOrderController extends Controller
     public function index(Request $request)
     {
 
-        $goodCode = $request->query('goodCode'); 
+        $goodCode = $request->query('goodCode');
 
         // 1️⃣ ดึง store_items ทั้งหมด หรือ filter ตาม GoodCode
         $storeItems = StoreItem::when($goodCode, fn($q) => $q->where('good_code', $goodCode))->get();
@@ -184,8 +184,7 @@ class StoreOrderController extends Controller
             $allOrders->push([
                 'id' => $docId,
                 'document_number' => $first->document_number,
-                'order_date' => \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', $first->order_date)
-                    ->format('Y-m-d H:i:s'),
+                'order_date' => \Carbon\Carbon::parse($first->order_date),
                 'status' => 'รออนุมัติ',
                 'source' => 'WIN',
                 'items' => $items->map(function ($item) {
@@ -254,7 +253,7 @@ class StoreOrderController extends Controller
                     $storeItem = StoreItem::where('good_id', $item->good_id)->first();
 
                     $history = collect(); // default empty collection
-    
+
                     if ($storeItem) {
                         $history = $orderMovements
                             ->filter(
