@@ -28,6 +28,8 @@ use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
+use App\Http\Controllers\StockOrderController;
+
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -89,7 +91,7 @@ Route::prefix('projects/{project}')->group(function () {
 });
 
 // Chemical Routes
-Route::middleware(['permission:users.view'])->group(function () {
+Route::middleware(['permission:users.view|chemical.view'])->group(function () {
     Route::get('chemical', [ChemicalController::class, 'index'])->name('chemical.index');
     Route::get('chemical/{chemical}', [ChemicalController::class, 'show'])->name('chemical.show');
     Route::get('/monthly', [ChemicalController::class, 'monthly'])->name('chemicals.monthly');
@@ -191,6 +193,7 @@ Route::prefix('fertilizer')->group(function () {
     Route::delete('/productions/{fertilizerProduction}', [FertilizerProductionController::class, 'destroy'])->name('fertilizer.productions.destroy');
 });
 
+
 Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrder')->group(function () {
 
     // หน้าเลือกสินค้า / Index
@@ -249,6 +252,7 @@ Route::get('StoreOrder/{order}/qrcode', [StoreOrderController::class, 'showQRCod
 Route::get('/store/issues/export', [ExportStoreController::class, 'export'])->name('store-issues.export');
 Route::put('/store-orders/{order}/status', [StoreOrderController::class, 'updateStatus']);
 
+
 // Memo Routes
 Route::middleware(['auth', 'permission:users.view'])->prefix('memo')->group(function () {
     Route::get('/documents', [MemoExpenseDocumentController::class, 'index'])->name('memo.documents.index');
@@ -258,6 +262,12 @@ Route::middleware(['auth', 'permission:users.view'])->prefix('memo')->group(func
     Route::put('/documents/{document}', [MemoExpenseDocumentController::class, 'update'])->name('memo.documents.update');
     Route::delete('/documents/{document}', [MemoExpenseDocumentController::class, 'destroy'])->name('memo.documents.destroy');
 });
+
+Route::get('/stock', [StockOrderController::class, 'index'])->name('stock.index');
+Route::post('/api/storeorder', [StockOrderController::class, 'store']);
+
+
+
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

@@ -186,7 +186,7 @@ export default function ChemicalsIndex({ records, pagination }) {
                         </button>
 
                         {/* Add Record Button */}
-                        {can('users.create') && (
+                        {can('chemical.view') && (
                             <button
                                 onClick={openCreate}
                                 className="flex items-center gap-1.5 rounded-3xl bg-gradient-to-r from-blue-500 to-blue-600 px-3 py-2.5 font-anuphan text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:cursor-pointer hover:from-blue-600 hover:to-blue-700"
