@@ -4,7 +4,10 @@ import Select from '@/components/Inputs/Select';
 import { useForm } from '@inertiajs/react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
-import { useEffect } from 'react';
+import Swal from 'sweetalert2';
+// import { useEffect } from 'react';
+import SaleProductSelect from './SaleProductSelect'
+import React, { useState, useEffect } from 'react';
 
 // ✅ utility ฟังก์ชัน แก้ปัญหา date format
 function formatDateSafe(date: string | null | undefined) {
@@ -50,6 +53,19 @@ export default function SaleForm({
         payment_slip: null,
     });
 
+    // กรองสินค้าตาม store_id ถ้ามี
+    const filteredProducts = React.useMemo(() => {
+        return products?.filter(
+            (pro) => !data.store_id || Number(pro.store_id) === Number(data.store_id)
+        ) ?? [];
+    }, [products, data.store_id]);
+
+    // ใช้ data.product_id ตรง ๆ เลย ไม่ต้องแยก state
+    const selectedProductId = data.product_id;
+
+
+
+
     useEffect(() => {
         if (sale) {
             reset({
@@ -69,6 +85,7 @@ export default function SaleForm({
     };
 
     return (
+
         <form onSubmit={handleSubmit} className="space-y-6 font-anuphan">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <InputLabel
@@ -97,33 +114,61 @@ export default function SaleForm({
                     className="font-anuphan"
                 />
 
-                <Select
+                <SaleProductSelect
+                    products={filteredProducts}
+                    value={selectedProductId} // ใช้ data.product_id
+                    onChange={(value: string) => {
+                        setData('product_id', value);
+
+                        // ดึงราคาสินค้าอัตโนมัติถ้ามี
+                        const selected = filteredProducts.find(p => p.id.toString() === value);
+                        if (selected?.price) {
+                            setData('price', selected.price.toString());
+                        }
+                    }}
+                    placeholder="เลือกสินค้าเกษตร"
+                    showSearch
+                    showClear
                     label="สินค้า"
-                    name="product_id"
-                    value={data.product_id}
-                    onChange={(e) => setData('product_id', e.target.value)}
-                    options={[
-                        { value: '', label: '-- เลือกสินค้า --', disabled: true },
-                        ...products.map((p) => ({ value: p.id, label: p.name })),
-                    ]}
-                    error={errors.product_id}
+                    required
                     disabled={processing}
-                    className="font-anuphan"
                 />
 
                 {/* ✅ จำนวน */}
+
                 <InputLabel
                     label="จำนวน"
                     name="quantity"
                     value={data.quantity}
-                    onChange={(e) => setData('quantity', e.target.value)}
+                    onChange={(e) => {
+                        const value = Number(e.target.value || 0);
+                        const selected = filteredProducts.find(p => p.id.toString() === data.product_id);
+                        const maxStock = selected?.stock ?? Infinity;
+
+                        if (value > maxStock) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: `จำนวนสูงสุดที่มีคือ ${maxStock}`,
+                                customClass: { popup: 'custom-swal' },
+
+                            });
+                            // ตั้งค่าเป็น maxStock ทันทีและ return
+                            setData('quantity', maxStock.toString());
+                            return;
+                        }
+
+                        setData('quantity', value.toString());
+                    }}
                     error={errors.quantity}
                     disabled={processing}
                     type="number"
                     min={0}
-                    step={0.50}
+                    step={0.5}
                     className="font-anuphan"
                 />
+
+
+
 
                 <InputLabel
                     label="ราคา"

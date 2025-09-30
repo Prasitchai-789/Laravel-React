@@ -81,7 +81,7 @@ class SalesController extends Controller
         try {
             $validated = $request->validate([
                 'sale_date' => 'required',
-                'store_id' => 'required|integer',
+                // 'store_id' => 'required|integer',
                 'product_id' => 'required|integer',
                 'customer_id' => 'nullable|integer',
                 'quantity' => 'nullable|integer|min:0',
@@ -103,6 +103,9 @@ class SalesController extends Controller
             $validated['invoice_no'] = $invoiceNo;
             $validated['customer_id'] = $validated['customer_id'] !== null ? (int) $validated['customer_id'] : null;
             $validated['total_amount'] = ($validated['quantity'] * $validated['price']) + $validated['shipping_cost'];
+
+            $product = AgrProduct::findOrFail($validated['product_id']) ;
+            $validated ['store_id']= $product->store_id;
 
             $sale = AgrSale::create($validated);
 
@@ -147,7 +150,7 @@ class SalesController extends Controller
         try {
             $validated =  $request->validate([
                 'sale_date' => 'required',
-                'store_id' => 'required|integer',
+                // 'store_id' => 'required|integer',
                 'product_id' => 'required|integer',
                 'customer_id' => 'nullable|integer',
                 'quantity' => 'nullable|integer|min:0',
@@ -165,6 +168,11 @@ class SalesController extends Controller
             ]);
 
             $validated['total_amount'] = ($validated['quantity'] * $validated['price']) + $validated['shipping_cost'];
+
+            $product = AgrProduct::findOrFail($validated['product_id']) ;
+            $validated ['store_id']= $product->store_id;
+
+
 
             $sale = AgrSale::findOrFail($id);
             $sale->update($validated);

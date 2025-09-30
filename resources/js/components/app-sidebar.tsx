@@ -110,22 +110,27 @@ const adminNavItems: NavItem[] = [
         title: 'Users',
         href: '/users',
         icon: UsersRound,
+        permission: ['Admin.view'],
     },
     {
         title: 'Roles',
         href: '/roles',
         icon: Notebook,
+        permission: ['Admin.view'],
     },
     {
         title: 'Permissions',
         href: '/permissions',
         icon: Shield,
+        permission: ['Admin.view'],
     },
     {
         title: 'เพิ่มข้อมูลของชุมชน',
         href: '/citizens',
         icon: UsersRound,
+        permission: ['Admin.view'],
     },
+
 ];
 
 const DevNavItems: NavItem[] = [
@@ -203,7 +208,7 @@ export function AppSidebar() {
 
 
             <SidebarContent>
-                <SidebarGroupLabel>Platform</SidebarGroupLabel>
+                <SidebarGroupLabel>Report Present</SidebarGroupLabel>
                 {can('developer.view') && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -225,6 +230,12 @@ export function AppSidebar() {
                 )}
                 <NavMain items={mainNavItems} />
 
+                <hr className="border-t border-gray-200 my-1" />
+                {/* <hr className="border-t-[0.5px] border-gray-200 my-0.5 w-3/4 mx-auto" /> */}
+
+
+
+                <SidebarGroupLabel>Menu</SidebarGroupLabel>
                 {/* IT */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -348,7 +359,8 @@ export function AppSidebar() {
                 )}
 
             </SidebarContent>
-
+                {/* <hr className="border-t-[0.5px] border-gray-200 my-0.5 w-3/4 mx-auto" /> */}
+                <hr className="border-t border-gray-200 my-1" />
 
             {/* ADMIN */}
             <SidebarFooter>
@@ -365,14 +377,19 @@ export function AppSidebar() {
                     <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                         <DropdownMenuGroup>
                             <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                            <NavMain items={adminNavItems} />
+                            <NavMain items={adminNavItems.filter(item =>
+                                item.permission?.some(p => can(p))
+                            )} />
                         </DropdownMenuGroup>
                     </DropdownMenuContent>
                 </DropdownMenu>
-                <NavFooter items={footerNavItems} className="mt-auto" />
+                <hr className="border-t border-gray-200 my-1" />
+
+                {/* <NavFooter items={footerNavItems} className="mt-auto" /> */}
                 <NavUser />
             </SidebarFooter>
 
+                            
 
         </Sidebar>
     );

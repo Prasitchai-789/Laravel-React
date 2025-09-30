@@ -23,6 +23,8 @@ class ProductController extends Controller
     }
     public function store(Request $request)
     {
+        // dd($request);
+
         $validated = $request->validate([
             'sku'       => 'nullable|string|max:255',
             'name'      => 'required|string|max:255',

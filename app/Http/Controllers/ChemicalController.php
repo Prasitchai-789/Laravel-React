@@ -214,7 +214,6 @@ class ChemicalController extends Controller
                 ]);
         }
 
-        return redirect()->back()->with('success', 'แก้ไขข้อมูลสำเร็จ');
     }
 
     // ลบข้อมูล

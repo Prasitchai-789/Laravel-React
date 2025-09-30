@@ -49,6 +49,7 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+
         $request->validate([
             'name' => 'required',
             'email' => 'required|email|unique:users,email',
@@ -99,7 +100,7 @@ class UserController extends Controller
         $user = User::with(['roles', 'webappEmp'])->findOrFail($id);
         // $user = User::with(['webappEmp.webDept'])->findOrFail($id);
         return Inertia::render('Users/Show', [
-             'user' => new UserResource($user)
+            'user' => new UserResource($user)
         ]);
     }
 
@@ -142,33 +143,45 @@ class UserController extends Controller
         ]);
 
         DB::beginTransaction();
-        try {
-            $user = User::findOrFail($id);
 
-            $updateData = [
-                'name' => $request->name,
-                'email' => $request->email,
-                'employee_id' => $request->employee_id,
-            ];
+        $user = User::findOrFail($id); // ถ้า id ไม่มี → 500
 
-            if ($request->filled('password')) {
-                $updateData['password'] = Hash::make($request->password);
-            }
+        $updateData = [
+            'name' => $request->name,
+            'email' => $request->email,
+        ];
 
-            $user->update($updateData);
-
-            if ($request->has('roles')) {
-                $user->syncRoles($request->roles);
-            }
-
-            DB::commit();
-
-            return redirect()->route('users.index')->with('success', 'User updated successfully.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('error', 'Error updating user: ' . $e->getMessage());
+        if ($request->filled('password')) {
+            $updateData['password'] = Hash::make($request->password);
         }
+
+        if (!is_null($request->employee_id)) {
+            $updateData['employee_id'] = $request->employee_id;
+        }
+
+        DB::enableQueryLog();
+        $user->update($updateData);
+
+        $newRoles = $request->roles ?? [];
+        $currentRoles = $user->getRoleNames()->toArray();
+
+        if (!empty(array_diff($newRoles, $currentRoles)) || !empty(array_diff($currentRoles, $newRoles))) {
+            $user->syncRoles($newRoles);
+        }
+
+        DB::commit();
+
+        // Debug SQL
+        // dd(DB::getQueryLog());
+
+        if (!$user->wasChanged() && empty(array_diff($newRoles, $currentRoles))) {
+            abort(500, 'No changes were made'); // ทำให้เกิด error 500
+        }
+
+        return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }
+
+
 
 
 
@@ -183,4 +196,7 @@ class UserController extends Controller
             return redirect()->back()->with('error', 'Error deleting user: ' . $e->getMessage());
         }
     }
+
+
+
 }

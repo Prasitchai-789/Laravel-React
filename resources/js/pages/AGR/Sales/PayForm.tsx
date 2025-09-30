@@ -119,17 +119,20 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
         return customer ? customer.name : `#${id}`;
     };
 
+
     const formatPhone = (phone: string) => {
         const digits = phone.replace(/\D/g, ''); // เอาเฉพาะตัวเลข
         return digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
     };
 
     const getCustomerPhone = (id: number) => {
-        const customer = customers.find((c) => Number(c.id) === Number(id));
-        if (!customer) return `#${id}`;
+    const customer = customers.find((c) => Number(c.id) === Number(id));
+    console.log('customer found =', customer);
+    if (!customer) return `#${id}`;
 
-        return formatPhone(customer.phone);
-    };
+    return formatPhone(customer.phone);
+};
+
 
     // ฟังก์ชันช่วยหาชื่อสินค้า
     const getProductName = (id: number) => {
@@ -235,7 +238,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                         <div className="flex flex-col">
                             <span className="text-sm font-medium text-gray-500">ชื่อลูกค้า</span>
                             <span className="text-lg font-medium text-blue-700">{getCustomerName(sale.customer_id)}</span>
-                            <span className="text-xs font-medium text-red-700">เบอร์ติดต่อ {getCustomerPhone(sale.customer_id)}</span>
+                            <span className="text-xs font-medium text-red-700">เบอร์ติดต่อ {getCustomerPhone(sale.customer_id) || '-'}</span>
                         </div>
 
                         <div className="flex flex-col">

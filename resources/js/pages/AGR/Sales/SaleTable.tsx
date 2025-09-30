@@ -217,7 +217,7 @@ export default function SaleTable({
                         </div>
                     </button>
 
-                    {/* <button
+                    <button
                         className="group relative text-yellow-600 transition-all duration-300 hover:scale-110 focus:outline-none"
                         onClick={() => handleEdit(row)}
                         aria-label="แก้ไข"
@@ -249,7 +249,7 @@ export default function SaleTable({
                                 <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-red-600"></div>
                             </span>
                         </div>
-                    </button> */}
+                    </button>
                 </div>
             )}
         />

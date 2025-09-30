@@ -13,6 +13,10 @@ import Swal from 'sweetalert2';
 import PayForm from './PayForm';
 import SaleForm from './SaleForm';
 import SaleTable from './SaleTable';
+import { can } from '@/lib/can';
+import { usePage } from '@inertiajs/react';
+
+
 
 interface Sale {
     id: number;
@@ -30,7 +34,8 @@ interface Sale {
 
 export default function Index(props) {
     const { sales, products, locations, customers, payments } = props;
-
+    const page = usePage<{ auth: { user: any } }>();
+    const userPermissions = page.props.auth.permissions;
     const [mode, setMode] = useState<'create' | 'edit' | 'pay'>('create');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -57,6 +62,30 @@ export default function Index(props) {
         setIsSaleModalOpen(true);
     };
 
+    const handleEditWithPermission = (sale: Sale) => {
+        if (userPermissions.includes('Adm1in.edit')) {
+            handleEdit(sale); // เรียกฟังก์ชันเดิม
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'ไม่สามารถแก้ไขข้อมูลได้',
+                customClass: { popup: 'custom-swal' },
+            });
+        }
+    };
+
+    const handleDeleteWithPermission = (id: number) => {
+        if (userPermissions.includes('Adm1in.delete')) {
+            openDeleteModal(id);
+        } else {
+            Swal.fire({
+                icon: 'error',
+                customClass: { popup: 'custom-swal' },
+                title: 'ไม่สามารถลบข้อมูลได้',
+
+            });
+        }
+    };
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
 
@@ -159,7 +188,7 @@ export default function Index(props) {
                         value={ordersToday}
                         icon={ShoppingCart}
                         color="green"
-                        // trend={{ value: 8.2, isPositive: true }}
+                    // trend={{ value: 8.2, isPositive: true }}
                     />
                     <SummaryCard
                         title="รายได้วันนี้ (บาท)"
@@ -168,8 +197,8 @@ export default function Index(props) {
                         }
                         icon={DollarSign}
                         color="yellow"
-                        // trend={{ value: 5.7, isPositive: true }}
-                        // description="เดือนนี้เพิ่มขึ้น 5.7%"
+                    // trend={{ value: 5.7, isPositive: true }}
+                    // description="เดือนนี้เพิ่มขึ้น 5.7%"
                     />
                     <SummaryCard
                         title="รายได้รวม (บาท)"
@@ -178,8 +207,8 @@ export default function Index(props) {
                         }
                         icon={DollarSign}
                         color="green"
-                        // trend={{ value: 5.7, isPositive: true }}
-                        // description="เดือนนี้เพิ่มขึ้น 5.7%"
+                    // trend={{ value: 5.7, isPositive: true }}
+                    // description="เดือนนี้เพิ่มขึ้น 5.7%"
                     />
                 </div>
 
@@ -242,8 +271,8 @@ export default function Index(props) {
                         products={products}
                         statusFilter={statusFilter}
                         onPay={handlePay}
-                        onEdit={handleEdit}
-                        onDelete={openDeleteModal}
+                        onEdit={handleEditWithPermission}      // ✅ ใช้ฟังก์ชัน wrapper
+                        onDelete={handleDeleteWithPermission}
                         searchTerm={searchTerm}
                     />
                 </div>
@@ -286,8 +315,15 @@ export default function Index(props) {
                     />
                 </ModalForm>
 
-                <DeleteModal isModalOpen={isDeleteModalOpen} onClose={closeDeleteModal} title="Delete Product" onConfirm={handleDelete}>
-                    <p className="font-anuphan text-sm text-gray-500">คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+                <DeleteModal
+                    isModalOpen={isDeleteModalOpen}
+                    onClose={closeDeleteModal}
+                    title="ยืนยันการลบ"
+                    onConfirm={handleDelete}
+                >
+                    <p className="font-anuphan text-sm text-gray-500">
+                        คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้
+                    </p>
                 </DeleteModal>
             </div>
         </AppLayout>
