@@ -5,6 +5,7 @@ import { BreadcrumbItem } from '@/types';
 import axios from 'axios';
 import { Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import DocumentForm from './DocumentForm';
 
 interface Category {
     id: number;
@@ -151,7 +152,10 @@ export default function Index() {
                 description=" "
                 size="max-w-2xl"
             >
-
+                <DocumentForm
+                onSubmit={handleSubmit}
+                categories={categories}
+                />
             </ModalForm>
         </AppLayout>
     );
