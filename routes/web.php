@@ -12,6 +12,7 @@ use App\Http\Controllers\AGR\SalesController;
 use App\Http\Controllers\AGR\StockController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\StockOrderController;
 use App\Http\Controllers\AGR\ProductController;
 use App\Http\Controllers\Api\CitizenController;
 use App\Http\Controllers\ExportStoreController;
@@ -28,7 +29,6 @@ use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
-use App\Http\Controllers\StockOrderController;
 
 
 Route::get('/', function () {
