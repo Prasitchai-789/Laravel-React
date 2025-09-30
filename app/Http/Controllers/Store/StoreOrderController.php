@@ -25,8 +25,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class StoreOrderController extends Controller
 {
 
-    public function index(Request $request)
-    {
+    public function index(Request $request){
 
         $goodCode = $request->query('goodCode');
 
@@ -123,8 +122,7 @@ class StoreOrderController extends Controller
 
 
 
-    public function show(StoreOrder $order)
-    {
+    public function show(StoreOrder $order){
         // โหลดความสัมพันธ์ด้วยถ้าจำเป็น
         $order->load('items');
 
@@ -133,8 +131,7 @@ class StoreOrderController extends Controller
         ]);
     }
 
-    public function StoreIssueIndex()
-    {
+    public function StoreIssueIndex(){
         $page = request()->get('page', 1);
         $perPage = 20;
 
@@ -150,8 +147,7 @@ class StoreOrderController extends Controller
         }
     }
 
-    private function getWinOrders($page, $perPage)
-    {
+    private function getWinOrders($page, $perPage){
         $winOrders = DB::connection('sqlsrv2')
             ->table('ICStockHD as hd')
             ->join('ICStockDT as dt', 'hd.DocuID', '=', 'dt.DocuID')
@@ -386,7 +382,7 @@ class StoreOrderController extends Controller
 
                 // ✅ เก็บรายละเอียดรายการใน order
                 $order->items()->create([
-                    'good_id' => $item['good_id'],
+                    'product_id' => $item['good_id'],  //แก้ไขจาก good_id เป็น product_id
                     'quantity' => $item['qty'],
                     'unit' => $goodUnit->GoodUnitCode ?? 'pcs',
                 ]);

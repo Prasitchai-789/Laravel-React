@@ -263,8 +263,17 @@ Route::middleware(['auth', 'permission:users.view'])->prefix('memo')->group(func
     Route::delete('/documents/{document}', [MemoExpenseDocumentController::class, 'destroy'])->name('memo.documents.destroy');
 });
 
-Route::get('/stock', [StockOrderController::class, 'index'])->name('stock.index');
-Route::post('/api/storeorder', [StockOrderController::class, 'store']);
+// Route::get('/stock', [StockOrderController::class, 'index'])->name('stock.index');
+// Route::post('/api/storeorder', [StockOrderController::class, 'store']);
+
+
+
+// errors pages
+Route::fallback(function () {
+    return Inertia::render('Errors/404')->toResponse(request())->setStatusCode(404);
+});
+
+
 
 
 
