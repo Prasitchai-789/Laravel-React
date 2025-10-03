@@ -52,7 +52,7 @@ export default function ModalForm({
                                     <Dialog.Title className="text-2xl leading-6 font-semibold text-gray-900 font-anuphan">{title}</Dialog.Title>
                                     <button
                                         onClick={onClose}
-                                        className="hover:cursor-pointer rounded-full bg-transparent p-1.5 text-gray-500 transition-colors duration-200 hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-300 focus:outline-none"
+                                        className="hover:cursor-pointer rounded-full bg-transparent p-1.5 text-red-500 transition-colors duration-200 hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-300 focus:outline-none"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                             <path

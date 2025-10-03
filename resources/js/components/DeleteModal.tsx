@@ -51,7 +51,7 @@ export default function DeleteModal({ isModalOpen, onClose, title, size = 'max-w
                                         </div>
                                     </Transition>
 
-                                    <Dialog.Title className="text-xl font-semibold text-gray-900">{title}</Dialog.Title>
+                                    <Dialog.Title className="text-xl font-semibold text-gray-900 font-anuphan">{title}</Dialog.Title>
                                 </div>
 
                                 {/* Content */}

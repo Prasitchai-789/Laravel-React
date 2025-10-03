@@ -1,16 +1,31 @@
 import GenericTable, { Column } from '@/components/Tables/GenericTable';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
-import { Pencil, Trash2, Users, Clock, Zap } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 
-
+interface Document {
+    id: number;
+    document_no: string;
+    date: string;
+    description: string;
+    category_id: number;
+    amount: number;
+    winspeed_ref_id: number;
+    attachment: string;
+    attachments: Attachment[];
+}
+interface Category {
+    id: number;
+    name: string;
+}
 interface DocumentTableProps {
     documents: Document[];
+    categories: Category[];
     onEdit?: (document: Document) => void;
     onDelete?: (document: Document) => void;
 }
 
-export default function DocumentTable({ documents, onEdit, onDelete }: DocumentTableProps) {
+export default function DocumentTable({ documents, categories, onEdit, onDelete }: DocumentTableProps) {
     const handleEdit = (document: Document) => {
         if (onEdit) {
             onEdit(document);
@@ -22,9 +37,10 @@ export default function DocumentTable({ documents, onEdit, onDelete }: DocumentT
             onDelete(document);
         }
     };
-
-
-
+    const getCategoryName = (categories: Category[], row: Document) => {
+        const category = categories.find((category) => Number(category.id) === Number(row.category_id));
+        return category ? category.name : '';
+};
 
 
     const documentColumns: Column<Document>[] = [
@@ -37,9 +53,7 @@ export default function DocumentTable({ documents, onEdit, onDelete }: DocumentT
                 const createdAt = dayjs(document.date);
                 return (
                     <div className="flex flex-col items-center">
-                        <div className="text-sm font-medium text-gray-900">
-                            {createdAt.isValid() ? createdAt.format('DD/MM/YYYY') : '-'}
-                        </div>
+                        <div className="text-sm font-medium text-gray-900">{createdAt.isValid() ? createdAt.format('DD/MM/YYYY') : '-'}</div>
                         {/* <div className="text-xs text-gray-500">
                             {createdAt.isValid() ? createdAt.locale('th').format('dddd') : ''}
                         </div> */}
@@ -54,9 +68,7 @@ export default function DocumentTable({ documents, onEdit, onDelete }: DocumentT
             align: 'center',
             render: (document) => (
                 <div className="flex flex-col items-center">
-                    <div className="text-sm font-medium text-gray-900">
-                        {document.document_no || '-'}
-                    </div>
+                    <div className="text-sm font-medium text-gray-900">{document.document_no || '-'}</div>
                 </div>
             ),
         },
@@ -68,9 +80,7 @@ export default function DocumentTable({ documents, onEdit, onDelete }: DocumentT
             align: 'center',
             render: (document) => (
                 <div className="flex flex-col items-center">
-                    <div className="inline-flex items-center  px-3 py-1 text-sm">
-                        {document.description || '-'}
-                    </div>
+                    <div className="inline-flex items-center px-3 py-1 text-sm">{document.description || '-'}</div>
                 </div>
             ),
         },
@@ -78,11 +88,11 @@ export default function DocumentTable({ documents, onEdit, onDelete }: DocumentT
             key: 'category_id',
             label: 'หมวดค่าใช้จ่าย',
             sortable: true,
-            align: 'right',
-            render: (document) => (
-                <div className="text-right">
-                    <div className="inline-flex items-center rounded-full bg-purple-100 px-3 py-1 text-sm font-medium text-purple-800">
-                        {document.category_id ? Number(document.category_id).toLocaleString('th-TH') : '-'}
+            align: 'center',
+            render: (row) => (
+                <div className="text-center">
+                    <div className="inline-flex w-[150px] items-center justify-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">
+                        {getCategoryName(categories, row)}
                     </div>
                 </div>
             ),
@@ -95,7 +105,7 @@ export default function DocumentTable({ documents, onEdit, onDelete }: DocumentT
             render: (document) => {
                 return (
                     <div className="text-right">
-                        <div className="text-lg font-bold text-gray-900">
+                        <div className="text-lg font-semibold text-gray-900">
                             {document.amount ? Number(document.amount).toLocaleString('th-TH', { style: 'currency', currency: 'THB' }) : '-'}
                         </div>
                     </div>
@@ -128,11 +138,31 @@ export default function DocumentTable({ documents, onEdit, onDelete }: DocumentT
                 }
 
                 return (
-                    <span className={`inline-flex items-center rounded-full bg-${statusColor}-100 px-3 py-1 text-sm font-medium text-${statusColor}-800`}>
+                    <span
+                        className={`inline-flex items-center rounded-full bg-${statusColor}-100 px-3 py-1 text-sm font-medium text-${statusColor}-800`}
+                    >
                         {statusText}
                     </span>
                 );
             },
+            align: 'center',
+        },
+        {
+            key: 'attachment_path',
+            label: 'เอกสารแนบ',
+            render: (document) => (
+                <div className="flex flex-col items-center">
+                    <div className="text-sm font-medium text-blue-900 hover:underline">
+                        {document.attachment_path ? (
+                            <a href={'/storage/' + document.attachment_path + '?download'} target="_blank" rel="noopener noreferrer">
+                                ดูเอกสาร
+                            </a>
+                        ) : (
+                            '-'
+                        )}
+                    </div>
+                </div>
+            ),
             align: 'center',
         },
         {
