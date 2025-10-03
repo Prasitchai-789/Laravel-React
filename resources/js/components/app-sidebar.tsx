@@ -38,7 +38,7 @@ import {
     ClipboardMinus,
     BookUser,
     Factory,
-
+    FileText,
     MonitorSmartphone,
 
 
@@ -92,6 +92,11 @@ const ITNavItem: NavItem[] = [
         title: 'Community',
         href: '/citizens/communitypage',
         icon: Handshake,
+    },
+    {
+        title: 'บันทึกเอกสาร',
+        href: '/memo/documents',
+        icon: FileText,
     },
 ];
 
