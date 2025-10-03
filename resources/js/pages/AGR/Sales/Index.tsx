@@ -63,7 +63,7 @@ export default function Index(props) {
     };
 
     const handleEditWithPermission = (sale: Sale) => {
-        if (userPermissions.includes('Adm1in.edit')) {
+        if (userPermissions.includes('Admin.edit')) {
             handleEdit(sale); // เรียกฟังก์ชันเดิม
         } else {
             Swal.fire({
@@ -75,7 +75,7 @@ export default function Index(props) {
     };
 
     const handleDeleteWithPermission = (id: number) => {
-        if (userPermissions.includes('Adm1in.delete')) {
+        if (userPermissions.includes('Admin.delete')) {
             openDeleteModal(id);
         } else {
             Swal.fire({

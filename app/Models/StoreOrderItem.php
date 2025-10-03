@@ -10,7 +10,8 @@ class StoreOrderItem extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['store_order_id', 'good_id', 'quantity', 'unit'];
+    protected $fillable = ['store_order_id', 'product_id', 'quantity'];
+
 
     public function order()
     {
@@ -19,8 +20,9 @@ class StoreOrderItem extends Model
 
     public function good()
     {
-        return $this->belongsTo(EMGood::class, 'good_id', 'GoodID');
+        return $this->belongsTo(EMGood::class, 'product_id', 'GoodID');
     }
+
 
     public function movements()
     {
@@ -31,6 +33,4 @@ class StoreOrderItem extends Model
     {
         return $this->hasOne(StoreItem::class, 'good_id', 'good_id');
     }
-
-
 }

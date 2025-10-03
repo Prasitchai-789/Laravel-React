@@ -103,20 +103,25 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ onClose, onSuccess }) => {
                 return;
             }
 
+            // ใน fetchDocumentItems
             const items: DocumentItem[] = response.data.items.map((item: any) => ({
                 id: item.id,
                 GoodID: item.good_id,
-                StoreOrderID: item.store_order_id,
                 GoodName: item.good_name,
-                borrowedQty: item.borrowed_quantity,   // จำนวนที่เบิกทั้งหมด
-                returnedQty: item.returned_quantity,   // จำนวนที่คืนไปแล้ว
-                remainingQty: item.remaining_quantity, // จำนวนที่ยังคืนได้
-                returnQty: 0,                          // สำหรับกรอกคืนครั้งนี้
+                borrowedQty: item.borrowed_quantity,
+                returnedQty: item.returned_quantity,
+                remainingQty: item.remaining_quantity,
+                returnQty: 0,
                 unit: item.unit || 'ชิ้น',
+                storeItemId: item.store_item_id,
             }));
-            console.log('Mapped Document Items:', items);
+
+
+            console.log("📌 Raw response:", response.data.items);
+            console.log("📌 Mapped items:", items);
 
             setDocumentItems(items);
+
 
         } catch (error: any) {
             console.error(error);
@@ -171,13 +176,14 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ onClose, onSuccess }) => {
 
         setSubmitting(true); // ✅ ป้องกันกดซ้ำ
 
+        // ใน handleSubmit
         router.post(route('store.return'), {
             document_number: documentNumber,
             items: documentItems
                 .filter(i => i.returnQty > 0)
                 .map(i => ({
-                    product_id: i.id,
-                    store_item_id: i.GoodID,
+                    product_id: i.id,             // store_order_items.id
+                    store_item_id: i.storeItemId, // ✅ ส่ง store_items.id จริง
                     good_name: i.GoodName,
                     quantity: i.returnQty,
                     movement_type: 'return',
@@ -185,21 +191,23 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ onClose, onSuccess }) => {
                     category: 'stock',
                     note: `คืนสินค้า ${i.GoodName} จากเอกสาร ${documentNumber}`,
                     unit: i.unit || 'ชิ้น'
-                })),
+                }))
+
         }, {
             onSuccess: () => {
                 Swal.fire('Success', 'คืนสินค้าสำเร็จ', 'success').then(() => {
                     onSuccess();
                     onClose();
-                    setSubmitting(false); // reset state
+                    setSubmitting(false);
                 });
             },
             onError: (errors) => {
                 console.error('Error details:', errors);
                 Swal.fire('Error', 'ไม่สามารถคืนสินค้าได้', 'error');
-                setSubmitting(false); // reset state
+                setSubmitting(false);
             },
         });
+
     };
 
     // คำนวณตำแหน่งสำหรับ dropdown popup
@@ -497,7 +505,7 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ onClose, onSuccess }) => {
                         transform: translateY(0);
                     }
                 }
-                
+
                 .absolute {
                     animation: slideDown 0.2s ease-out;
                 }
