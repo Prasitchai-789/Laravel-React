@@ -74,9 +74,9 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
         if (!data.document_no.trim()) newErrors.document_no = 'กรุณาระบุเลขที่เอกสาร';
         if (!data.date) newErrors.date = 'กรุณาระบุวันที่';
         if (!data.category_id) newErrors.category_id = 'กรุณาเลือกหมวดค่าใช้จ่าย';
-        if (!data.amount || parseFloat(data.amount as string) <= 0) {
-            newErrors.amount = 'กรุณาระบุจำนวนเงินที่ถูกต้อง';
-        }
+        // if (!data.amount || parseFloat(data.amount as string) <= 0) {
+        //     newErrors.amount = 'กรุณาระบุจำนวนเงินที่ถูกต้อง';
+        // }
 
         setFormErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -309,7 +309,6 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                                 <span className="flex items-center gap-1">
                                     <span className="text-lg">💰</span>
                                     จำนวนเงิน
-                                    <span className="text-red-500">*</span>
                                 </span>
                             }
                             name="amount"

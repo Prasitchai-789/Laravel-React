@@ -111,7 +111,7 @@ export default function GenericTable<T extends Record<string, any>>({
   };
 
   return (
-    <Card className="shadow-lg rounded-xl border-0 overflow-hidden font-anuphan h-full">
+    <Card className="shadow-lg rounded-xl border-0 overflow-hidden font-anuphan h-full py-2">
       <CardHeader className="">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <CardTitle className="text-xl text-gray-800">{title}</CardTitle>
