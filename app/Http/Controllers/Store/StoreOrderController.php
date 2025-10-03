@@ -130,8 +130,7 @@ class StoreOrderController extends Controller
         $page = request()->get('page', 1);
         $perPage = 20;
 
-        // เปลี่ยน default source จาก 'WIN' เป็น 'WEB'
-        $source = request()->get('source', 'WEB'); // เปลี่ยนเป็น WEB
+        $source = request()->get('source', 'WEB');
         $search = request()->get('search', '');
         $status = request()->get('status', '');
         $dailyDate = request()->get('dailyDate', '');
@@ -143,7 +142,7 @@ class StoreOrderController extends Controller
         }
     }
 
-    private function getWinOrders($page, $perPage)
+    private function getWinOrders($page, $perPage, $search, $status, $dailyDate)
     {
         $winOrders = DB::connection('sqlsrv2')
             ->table('ICStockHD as hd')
@@ -160,6 +159,19 @@ class StoreOrderController extends Controller
                 DB::raw('(CAST(dt.GoodStockQty AS decimal(18,2)) - CAST(dt.GoodRemaQty1 AS decimal(18,2))) as remaining_qty')
             )
             ->orderBy('hd.DocuDate', 'desc');
+
+        // เพิ่มการค้นหาใน WIN system
+        if (!empty($search)) {
+            $winOrders->where(function ($query) use ($search) {
+                $query->where('hd.DocuNo', 'like', '%' . $search . '%')
+                    ->orWhere('dt.GoodName', 'like', '%' . $search . '%');
+            });
+        }
+
+        // กรองตามวันที่
+        if (!empty($dailyDate)) {
+            $winOrders->whereDate('hd.DocuDate', $dailyDate);
+        }
 
         // นับจำนวนทั้งหมดก่อนแบ่งหน้า
         $total = $winOrders->count();
@@ -210,11 +222,32 @@ class StoreOrderController extends Controller
         ]);
     }
 
-    private function getWebOrders($page, $perPage)
+    private function getWebOrders($page, $perPage, $search, $status, $dailyDate)
     {
         // โหลด orders + items + good
         $webOrdersQuery = StoreOrder::with(['items.good'])
             ->orderBy('created_at', 'desc');
+
+        // เพิ่มการค้นหาใน WEB system
+        if (!empty($search)) {
+            $webOrdersQuery->where(function ($query) use ($search) {
+                $query->where('document_number', 'like', '%' . $search . '%')
+                    ->orWhereHas('items.good', function ($q) use ($search) {
+                        $q->where('GoodName1', 'like', '%' . $search . '%')
+                            ->orWhere('GoodCode', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        // กรองตามสถานะ
+        if (!empty($status)) {
+            $webOrdersQuery->where('status', $status);
+        }
+
+        // กรองตามวันที่
+        if (!empty($dailyDate)) {
+            $webOrdersQuery->whereDate('order_date', $dailyDate);
+        }
 
         $total = $webOrdersQuery->count();
 
@@ -240,7 +273,6 @@ class StoreOrderController extends Controller
                 ->where('store_movements.store_order_id', $order->id)
                 ->get();
 
-
             $items = $order->items->map(function ($item) use ($orderMovements) {
 
                 // filter movement ตาม product_id ของ item
@@ -253,7 +285,6 @@ class StoreOrderController extends Controller
                         'docu_date'     => $m->created_at?->format('Y-m-d H:i:s') ?? '-',
                         'user_id'       => $m->user?->name ?? 'ไม่ระบุ',
                         'product_id' => $m->movement_product_id,
-
                     ])
                     ->sortBy('docu_date')
                     ->values();
@@ -267,7 +298,7 @@ class StoreOrderController extends Controller
 
                 return [
                     'id'           => $item->id,
-                    'product_id'   => $item->product_id, // <-- ใช้ของ item เอง
+                    'product_id'   => $item->product_id,
                     'product_name' => $item->good?->GoodName1 ?? '-',
                     'product_code' => $item->good?->GoodCode ?? '-',
                     'quantity'     => $item->quantity,
@@ -292,10 +323,6 @@ class StoreOrderController extends Controller
             ];
         });
 
-
-        // dd($allOrders);
-
-
         $paginatedOrders = new \Illuminate\Pagination\LengthAwarePaginator(
             $allOrders,
             $total,
@@ -312,8 +339,6 @@ class StoreOrderController extends Controller
             'pagination' => $paginatedOrders,
         ]);
     }
-
-
 
     private function parseDate($dateString)
     {
