@@ -30,15 +30,6 @@ interface Order {
     items?: OrderItem[];
 }
 
-interface HistoryItem {
-    movement_type: string;
-    quantity: number;
-    docu_no: string;
-    docu_date: string;
-    user_id: string;
-    product_id: string;
-}
-
 interface Props {
     orders: Order[];
     pagination: {
@@ -54,28 +45,24 @@ interface Props {
         next_page_url: string | null;
         prev_page_url: string | null;
     };
-    filters?: {
-        search?: string;
-        status?: string;
-        source?: string;
-        dailyDate?: string;
-    };
+    // เนื่องจาก backend ไม่ส่ง filters มา เราจะดึงจาก URL แทน
 }
 
-export default function StoreOrderIndex({ orders, pagination, filters }: Props) {
+export default function StoreOrderIndex({ orders, pagination }: Props) {
     const { url } = usePage() as any;
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [detailOrder, setDetailOrder] = useState<Order | null>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [dailyDate, setDailyDate] = useState(filters?.dailyDate || '');
-    const [dailyTotal, setDailyTotal] = useState(0);
-    const [searchTerm, setSearchTerm] = useState(filters?.search || '');
-    const [statusFilter, setStatusFilter] = useState(filters?.status || 'ทั้งหมด');
-    const [activeTab, setActiveTab] = useState<'WIN' | 'WEB'>(
-        (filters?.source as 'WIN' | 'WEB') || 'WEB'
-    );
 
-    const [isRefreshing, setIsRefreshing] = useState(false);
+    // ดึงค่าจาก URL parameters แทนการใช้ filters prop
+    const urlParams = new URLSearchParams(window.location.search);
+    const [dailyDate, setDailyDate] = useState(urlParams.get('dailyDate') || '');
+    const [searchTerm, setSearchTerm] = useState(urlParams.get('search') || '');
+    const [statusFilter, setStatusFilter] = useState(urlParams.get('status') || 'ทั้งหมด');
+    const [activeTab, setActiveTab] = useState<'WIN' | 'WEB'>(
+        (urlParams.get('source') as 'WIN' | 'WEB') || 'WEB'
+    );
+    const [dailyTotal, setDailyTotal] = useState(0); // เพิ่ม state นี้
 
     // คำนวณรายการวันนี้จาก orders ปัจจุบัน
     useEffect(() => {
@@ -107,7 +94,6 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
     const handlePagination = (url?: string) => {
         if (!url) return;
 
-        // สร้าง URL object
         const urlObj = new URL(url, window.location.origin);
 
         // เพิ่มพารามิเตอร์ filter ทั้งหมด
@@ -149,6 +135,12 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
         });
     };
 
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    };
+
     const handleClearFilters = () => {
         setSearchTerm('');
         setStatusFilter('ทั้งหมด');
@@ -174,7 +166,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
             cancelButtonColor: '#d33',
             reverseButtons: true,
             customClass: {
-                popup: 'rounded-2xl font-anuphan', // เพิ่ม class font-anuphan
+                popup: 'rounded-2xl font-anuphan',
                 confirmButton: 'rounded-xl px-4 py-2 font-anuphan',
                 cancelButton: 'rounded-xl px-4 py-2 font-anuphan'
             }
@@ -216,7 +208,6 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
         }
     };
 
-
     const getStatusColor = (status: string) => {
         switch (status.toLowerCase()) {
             case 'pending': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -254,9 +245,6 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900 mb-2">ประวัติการเบิกสินค้า</h1>
                             <p className="text-gray-600 text-lg">จัดการและติดตามสถานะการเบิกสินค้าตามระบบที่เลือก</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            {/* ปุ่มเพิ่มเติมสามารถเพิ่มได้ที่นี่ */}
                         </div>
                     </div>
                 </div>
@@ -334,7 +322,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
 
                 {/* Filter Section */}
                 <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex justify-between items-center mb-6">
                         <h2 className="text-lg font-semibold text-gray-800 flex items-center">
                             <Filter className="w-5 h-5 mr-2 text-blue-500" />
                             ตัวกรองข้อมูล
@@ -347,36 +335,36 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                         </button>
                     </div>
 
-                    <div className={`grid grid-cols-1 md:grid-cols-5 gap-6 ${isFilterOpen ? 'block' : 'hidden md:grid'}`}>
-                        {/* Search */}
-                        <div className="md:col-span-2">
+                    <div className={`grid grid-cols-1 md:grid-cols-12 gap-4 ${isFilterOpen ? 'block' : 'hidden md:grid'}`}>
+                        {/* Search - ใช้พื้นที่ 5/12 */}
+                        <div className="md:col-span-5">
                             <label className="block text-sm font-medium text-gray-700 mb-2">ค้นหา</label>
-                            <div className="flex">
+                            <div className="flex rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
                                 <input
                                     type="text"
                                     placeholder="ค้นหาเลขเอกสารหรือชื่อสินค้า..."
-                                    className="flex-1 px-4 py-3 border border-gray-300 rounded-l-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-l-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                    onKeyPress={handleKeyPress}
                                 />
                                 <button
                                     onClick={handleSearch}
-                                    className="px-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-r-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 shadow-md flex items-center"
+                                    className="px-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-r-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 flex items-center justify-center"
                                 >
-                                    <Search className="w-5 h-5" />
+                                    <Search className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Status Filter - แสดงเฉพาะ WEB */}
+                        {/* Status Filter - ใช้พื้นที่ 3/12 */}
                         {activeTab === 'WEB' && (
-                            <div className="flex flex-col">
-                                <label className="mb-2 text-sm font-semibold text-gray-700">สถานะ</label>
+                            <div className="md:col-span-3">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">สถานะ</label>
                                 <select
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value)}
-                                    className={`text-sm px-4 py-3 rounded-xl font-medium border ${getStatusColor(statusFilter)} shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
+                                    className={`w-full text-sm px-4 py-2.5 rounded-xl font-medium border ${getStatusColor(statusFilter)} shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                                 >
                                     <option value="ทั้งหมด">ทั้งหมด</option>
                                     <option value="pending">{getStatusText('pending')}</option>
@@ -386,19 +374,22 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                             </div>
                         )}
 
-
-
-
-                        {/* Action Buttons */}
-                        <div className="flex flex-col justify-end space-y-2">
+                        {/* Action Buttons - ใช้พื้นที่ 4/12 */}
+                        <div className="flex flex-col md:flex-row justify-end space-y-2 md:space-y-0 md:space-x-3 md:col-span-4 items-end">
                             <button
                                 onClick={handleSearch}
-                                className="px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 shadow-md flex items-center justify-center"
+                                className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center text-sm font-medium w-full md:w-auto"
                             >
-                                <Search className="w-4 h-4 mr-1" />
+                                <Search className="w-4 h-4 mr-2" />
                                 ค้นหา
                             </button>
-
+                            <button
+                                onClick={handleClearFilters}
+                                className="px-4 py-2.5 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-xl hover:from-gray-600 hover:to-gray-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center text-sm font-medium w-full md:w-auto"
+                            >
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                ล้างตัวกรอง
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -732,8 +723,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                     </ModalForm>
                 )}
             </div>
+
         </AppLayout>
     );
 }
-
-
