@@ -32,7 +32,7 @@ const Button: React.FC<ButtonProps> = ({
     hoverEffect = true,
 }) => {
     // Base classes
-    const baseClasses = 'inline-flex items-center justify-center rounded-3xl font-medium text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
+    const baseClasses = 'inline-flex items-center justify-center rounded-3xl font-medium text-white transition-all duration-200';
 
     // Variant classes
     const variantClasses = {

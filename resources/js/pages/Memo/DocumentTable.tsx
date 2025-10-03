@@ -40,8 +40,9 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
     const getCategoryName = (categories: Category[], row: Document) => {
         const category = categories.find((category) => Number(category.id) === Number(row.category_id));
         return category ? category.name : '';
-};
+    };
 
+    const sortedDocuments = [...documents].sort((a, b) => b.id - a.id);
 
     const documentColumns: Column<Document>[] = [
         {
@@ -79,8 +80,10 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
             sortable: true,
             align: 'center',
             render: (document) => (
-                <div className="flex flex-col items-center">
-                    <div className="inline-flex items-center px-3 py-1 text-sm">{document.description || '-'}</div>
+                <div className="flex flex-col items-start">
+                    <div className="max-w-[250px] truncate px-3 py-1 text-right text-sm" title={document.description}>
+                        {document.description || '-'}
+                    </div>
                 </div>
             ),
         },
@@ -175,7 +178,7 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
     return (
         <GenericTable
             title="ข้อมูลเอกสารบันทึกข้อความ"
-            data={documents}
+            data={sortedDocuments}
             columns={documentColumns}
             idField="id"
             actions={(row) => (
