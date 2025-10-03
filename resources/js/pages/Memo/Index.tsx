@@ -6,7 +6,9 @@ import axios from 'axios';
 import { Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import DocumentForm from './DocumentForm';
+import DocumentTable from './DocumentTable';
 
+// ==== Interfaces ====
 interface Category {
     id: number;
     name: string;
@@ -26,21 +28,42 @@ interface Document {
     amount: number;
     winspeed_ref_id: number;
     attachment: string;
-    category: Category[];
     attachments: Attachment[];
 }
-// interface ExpenseDocumentWithCategory extends Document {
-//     category: Category[];
-//     attachments: Attachment[];
-// }
+
+// ==== Form State ====
+interface DocumentFormState {
+    document_no: string;
+    date: string;
+    description: string;
+    category_id: string | number;
+    amount: string | number;
+    winspeed_ref_id: string | number;
+    attachment: File | null;
+}
+
 export default function Index() {
+    // ==== UI State ====
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [mode, setMode] = useState('create');
+    const [mode, setMode] = useState<'create' | 'edit'>('create');
+
+    // ==== Data State ====
     const [categories, setCategories] = useState<Category[]>([]);
     const [documents, setDocuments] = useState<Document[]>([]);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+
+    // ==== Form State ====
+    const [form, setForm] = useState<DocumentFormState>({
+        document_no: '',
+        date: '',
+        description: '',
+        category_id: '',
+        amount: '',
+        winspeed_ref_id: '',
+        attachment: null,
+    });
 
     useEffect(() => {
         fetchData();
@@ -51,10 +74,10 @@ export default function Index() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('/memo/documents');
-            setCategories(res.data);
-            setDocuments(res.data);
-            setAttachments(res.data);
+            const res = await axios.get('/memo/documents/api');
+            const { categories, documents } = res.data;
+            setCategories(categories);
+            setDocuments(documents);
             setLoading(false);
         } catch (error) {
             console.error('Error fetching:', error);
@@ -153,10 +176,38 @@ export default function Index() {
                 size="max-w-2xl"
             >
                 <DocumentForm
-                onSubmit={handleSubmit}
-                categories={categories}
+                    onClose={() => setIsModalOpen(false)}
+                    onSuccess={() => {
+                        setIsModalOpen(false);
+                        fetchData();
+                    }}
+                    categories={categories} 
+                    mode={mode}
+                    document={selectedDocument}
                 />
             </ModalForm>
+
+            {/* Document Table */}
+            <DocumentTable
+                documents={documents}
+                onEdit={(document) => {
+                    setMode('edit');
+                    setSelectedDocument(document);
+                    setIsModalOpen(true);
+                }}
+                onDelete={async (document) => {
+                    if (confirm('คุณต้องการลบเอกสารนี้ใช่หรือไม่?')) {
+                        try {
+                            await axios.delete(`/memo/documents/${document.id}`);
+                            alert('ลบเอกสารเรียบร้อย');
+                            fetchData();
+                        } catch (error) {
+                            console.error('Error deleting document:', error);
+                            alert('เกิดข้อผิดพลาดในการลบเอกสาร');
+                        }
+                    }
+                }}
+            />
         </AppLayout>
     );
 }
