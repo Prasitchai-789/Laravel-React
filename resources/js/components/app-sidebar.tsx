@@ -389,7 +389,7 @@ export function AppSidebar() {
                 <NavUser />
             </SidebarFooter>
 
-                            
+
 
         </Sidebar>
     );
