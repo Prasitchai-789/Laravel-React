@@ -93,11 +93,11 @@ export default function CostAnalysis({ auth }) {
     const avgCostPerUnit = totalProduction > 0 ? totalProductionCost / totalProduction : 0;
     const avgPrice2147 = groupedSales[2147] ? groupedSales[2147].avg_price : 0;
     const total_qty2147 = groupedSales[2147] ? groupedSales[2147].total_qty : 0;
-    const CostCPO = (avgCostPerUnit / 18) * 100;
+    const CostCPO = (avgCostPerUnit / 17.18) * 100;
     const CostLostCPO = avgPrice2147 - CostCPO;
     const lostPrice = CostLostCPO * total_qty2147;
 
-    const CostFFB = (total_qty2147 / 18) * 100 * avgCostPerUnit;
+    const CostFFB = (total_qty2147 / 17.18) * 100 * avgCostPerUnit;
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },

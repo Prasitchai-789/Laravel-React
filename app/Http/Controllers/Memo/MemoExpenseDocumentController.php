@@ -14,8 +14,20 @@ class MemoExpenseDocumentController extends Controller
     public function index()
     {
         $categories = MemoExpenseCategories::all();
+        $documents = MemoExpenseDocuments::with('category', 'attachments')->get();
         return Inertia::render('Memo/Index', [
             'categories' => $categories,
+            'documents' => $documents,
+        ]);
+    }
+    public function apiIndex()
+    {
+        $categories = MemoExpenseCategories::all();
+        $documents = MemoExpenseDocuments::with('category', 'attachments')->get();
+        // $documents = 1;
+         return response()->json([
+            'categories' => $categories,
+            'documents' => $documents,
         ]);
     }
     public function create()
@@ -32,6 +44,9 @@ class MemoExpenseDocumentController extends Controller
             'date' => 'required|date',
             'category_id' => 'required|exists:memo_expense_categories,id',
             'amount' => 'required|numeric',
+            'status' => 'nullable|string',
+            'description' => 'nullable|string',
+            'winspeed_ref_id' => 'nullable|string',
             'attachment' => 'nullable|file|max:5120', // สูงสุด 5MB
         ]);
 
@@ -46,7 +61,7 @@ class MemoExpenseDocumentController extends Controller
             'description' => $request->description,
             'category_id' => $request->category_id,
             'amount' => $request->amount,
-            'status' => 'pending',
+            'status' => $request->status ?? 'pending',
             'attachment_path' => $path,
             'winspeed_ref_id' => $request->winspeed_ref_id,
         ]);
