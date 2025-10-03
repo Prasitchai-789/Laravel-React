@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import { Eye, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Calendar, User, Building, FileText, Monitor, Globe, Filter, X, Download, BarChart3, RefreshCw, Plus } from "lucide-react";
 import ModalForm from '@/components/ModalForm';
 import { can } from '@/lib/can';
+
 interface OrderItem {
     id: number;
     product_name: string;
@@ -29,19 +30,44 @@ interface Order {
     items?: OrderItem[];
 }
 
-interface Props {
-    order: Order & { items?: (OrderItem & { history?: HistoryItem[] })[] };
-    onClose: () => void;
-    showHistory?: boolean;
+interface HistoryItem {
+    movement_type: string;
+    quantity: number;
+    docu_no: string;
+    docu_date: string;
+    user_id: string;
+    product_id: string;
 }
 
+interface Props {
+    orders: Order[];
+    pagination: {
+        current_page: number;
+        last_page: number;
+        per_page: number;
+        total: number;
+        from: number;
+        to: number;
+        links: any[];
+        first_page_url: string;
+        last_page_url: string;
+        next_page_url: string | null;
+        prev_page_url: string | null;
+    };
+    filters?: {
+        search?: string;
+        status?: string;
+        source?: string;
+        dailyDate?: string;
+    };
+}
 
 export default function StoreOrderIndex({ orders, pagination, filters }: Props) {
     const { url } = usePage() as any;
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [detailOrder, setDetailOrder] = useState<Order | null>(null);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [dailyDate, setDailyDate] = useState('');
+    const [dailyDate, setDailyDate] = useState(filters?.dailyDate || '');
     const [dailyTotal, setDailyTotal] = useState(0);
     const [searchTerm, setSearchTerm] = useState(filters?.search || '');
     const [statusFilter, setStatusFilter] = useState(filters?.status || 'ทั้งหมด');
@@ -49,37 +75,15 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
         (filters?.source as 'WIN' | 'WEB') || 'WEB'
     );
 
-    const [localOrders, setLocalOrders] = useState(orders);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
+    // คำนวณรายการวันนี้จาก orders ปัจจุบัน
     useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const sourceParam = urlParams.get('source') as 'WIN' | 'WEB' | null;
-        const searchParam = urlParams.get('search') || '';
-        const statusParam = urlParams.get('status') || 'ทั้งหมด';
-
-        setActiveTab(sourceParam && (sourceParam === 'WIN' || sourceParam === 'WEB') ? sourceParam : 'WEB');
-        setSearchTerm(searchParam);
-        setStatusFilter(statusParam);
-
-        router.get(route('StoreIssue.index'), {
-            source: sourceParam || 'WEB',
-            search: searchParam,
-            status: statusParam,
-        }, {
-            preserveState: true,
-            onSuccess: (res) => setLocalOrders(res.props.orders || []),
-        });
-    }, [url]);
-
-    useEffect(() => {
-        const todayCount = localOrders.filter(order =>
+        const todayCount = orders.filter(order =>
             new Date(order.order_date).toDateString() === new Date().toDateString()
         ).length;
         setDailyTotal(todayCount);
-    }, [localOrders]);
-
-
+    }, [orders]);
 
     const formatNumber = (num: number | undefined | null): string => {
         if (num === undefined || num === null) return '0';
@@ -92,7 +96,8 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
             source: tab,
             page: 1,
             search: searchTerm,
-            status: statusFilter === 'ทั้งหมด' ? '' : statusFilter
+            status: statusFilter === 'ทั้งหมด' ? '' : statusFilter,
+            dailyDate: dailyDate || '',
         }, {
             preserveState: true,
             preserveScroll: true,
@@ -100,17 +105,35 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
     };
 
     const handlePagination = (url?: string) => {
-        if (url) {
-            const urlObj = new URL(url, window.location.origin);
-            urlObj.searchParams.set('source', activeTab);
-            if (searchTerm) urlObj.searchParams.set('search', searchTerm);
-            if (statusFilter !== 'ทั้งหมด') urlObj.searchParams.set('status', statusFilter);
+        if (!url) return;
 
-            router.visit(urlObj.toString(), {
-                preserveState: true,
-                preserveScroll: true,
-            });
-        }
+        // สร้าง URL object
+        const urlObj = new URL(url, window.location.origin);
+
+        // เพิ่มพารามิเตอร์ filter ทั้งหมด
+        const params = {
+            source: activeTab,
+            search: searchTerm,
+            status: statusFilter !== 'ทั้งหมด' ? statusFilter : undefined,
+            dailyDate: dailyDate || undefined,
+        };
+
+        // ลบพารามิเตอร์เดิมออก
+        ['source', 'search', 'status', 'dailyDate'].forEach(param => {
+            urlObj.searchParams.delete(param);
+        });
+
+        // เพิ่มพารามิเตอร์ใหม่
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== '') {
+                urlObj.searchParams.set(key, value.toString());
+            }
+        });
+
+        router.visit(urlObj.toString(), {
+            preserveState: true,
+            preserveScroll: true
+        });
     };
 
     const handleSearch = () => {
@@ -126,12 +149,16 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
         });
     };
 
-    const handleRefresh = () => {
-        setIsRefreshing(true);
-        router.reload({
+    const handleClearFilters = () => {
+        setSearchTerm('');
+        setStatusFilter('ทั้งหมด');
+        setDailyDate('');
+        router.get(route('StoreIssue.index'), {
+            source: activeTab,
+            page: 1,
+        }, {
             preserveState: true,
             preserveScroll: true,
-            onFinish: () => setIsRefreshing(false),
         });
     };
 
@@ -147,28 +174,24 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
             cancelButtonColor: '#d33',
             reverseButtons: true,
             customClass: {
-                popup: 'rounded-2xl',
-                confirmButton: 'rounded-xl px-4 py-2',
-                cancelButton: 'rounded-xl px-4 py-2'
+                popup: 'rounded-2xl font-anuphan', // เพิ่ม class font-anuphan
+                confirmButton: 'rounded-xl px-4 py-2 font-anuphan',
+                cancelButton: 'rounded-xl px-4 py-2 font-anuphan'
             }
         });
 
         if (!result.isConfirmed) return;
 
         try {
-            // ส่งคำขอไป server ก่อน
             await router.put(`/store-orders/${orderId}/status`, { status: newStatus }, {
                 preserveState: true,
                 onSuccess: () => {
-                    // อัปเดต UI หลังจาก server ตอบกลับสำเร็จ
-                    setLocalOrders(prev =>
-                        prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o)
-                    );
+                    router.reload({ only: ['orders'] });
                     Swal.fire({
                         title: 'อัปเดตสถานะสำเร็จ',
                         icon: 'success',
                         confirmButtonColor: '#3085d6',
-                        customClass: { popup: 'rounded-2xl' }
+                        customClass: { popup: 'rounded-2xl font-anuphan' }
                     });
                 },
                 onError: () => {
@@ -177,75 +200,45 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                         text: 'ไม่สามารถอัปเดตสถานะได้',
                         icon: 'error',
                         confirmButtonColor: '#d33',
-                        customClass: { popup: 'rounded-2xl' }
+                        customClass: { popup: 'rounded-2xl font-anuphan' }
                     });
                 }
             });
         } catch (error) {
             console.error(error);
             Swal.fire({
+                customClass: { popup: 'rounded-2xl font-anuphan' },
                 title: 'เกิดข้อผิดพลาด',
                 text: 'ไม่สามารถอัปเดตสถานะได้',
                 icon: 'error',
                 confirmButtonColor: '#d33',
-                customClass: { popup: 'rounded-2xl' }
             });
         }
     };
 
 
-    function getSourceColor(source: string): string {
-        switch (source) {
-            case "WIN": return "bg-blue-100 text-blue-800 border-blue-200";
-            case "WEB": return "bg-green-100 text-green-800 border-green-200";
-            default: return "bg-gray-100 text-gray-800 border-gray-200";
-        }
-    }
-
-    const getSourceIcon = (source: string) => {
-        if (source === 'WIN') return <Monitor className="w-3 h-3 mr-1" />;
-        return <Globe className="w-3 h-3 mr-1" />;
-    };
-
     const getStatusColor = (status: string) => {
         switch (status.toLowerCase()) {
-            case 'pending': return 'bg-blue-100 text-blue-800 border-blue-200';   // ฟ้า
-            case 'approved': return 'bg-green-100 text-green-800 border-green-200'; // เขียว
-            case 'rejected': return 'bg-red-100 text-red-800 border-red-200';      // แดง
-            // case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200';   // เทา
+            case 'pending': return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'approved': return 'bg-green-100 text-green-800 border-green-200';
+            case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
     };
 
     const getStatusText = (status: string) => {
         switch (status.toLowerCase()) {
-            case 'pending':
-                return 'รอดำเนินการ';    // pending → รอดำเนินการ
-            case 'approved':
-                return 'อนุมัติ';        // approved → อนุมัติ
-            case 'rejected':
-                return 'ปฏิเสธ';        // rejected → ปฏิเสธ
-            // case 'completed': 
-            //     return 'เสร็จสิ้น';   // ถ้าเปิด จะใช้สำหรับ completed
-            default:
-                return status;            // ถ้าไม่ตรงกับข้างต้น จะคืนค่าเดิม
+            case 'pending': return 'รอดำเนินการ';
+            case 'approved': return 'อนุมัติ';
+            case 'rejected': return 'ปฏิเสธ';
+            case 'completed': return 'เสร็จสิ้น';
+            default: return status;
         }
     };
 
-
-
-
-    // Filter orders locally
-    const filteredOrders = localOrders.filter(order => {
-        const matchesTab = order.source === activeTab;
-        const matchesSearch =
-            order.document_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (order.requester && order.requester.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            order.items?.some(item => item.product_name.toLowerCase().includes(searchTerm.toLowerCase()));
-        const matchesStatus = statusFilter === 'ทั้งหมด' || order.status === statusFilter;
-        return matchesTab && matchesSearch && matchesStatus;
-    });
-
+    // นับจำนวน orders ตาม source สำหรับสถิติ
+    const winOrdersCount = orders.filter(o => o.source === 'WIN').length;
+    const webOrdersCount = orders.filter(o => o.source === 'WEB').length;
 
     return (
         <AppLayout breadcrumbs={[
@@ -254,7 +247,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
         ]}>
             <Head title="ประวัติการเบิก" />
 
-            <div className="px-4 py-6 sm:px-6 lg:px-8  font-anuphan">
+            <div className="px-4 py-6 sm:px-6 lg:px-8 font-anuphan">
                 {/* Header */}
                 <div className="mb-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -263,17 +256,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                             <p className="text-gray-600 text-lg">จัดการและติดตามสถานะการเบิกสินค้าตามระบบที่เลือก</p>
                         </div>
                         <div className="flex items-center gap-3">
-                            {/* <button className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 shadow-md hover:shadow-lg">
-                                <Download className="w-4 h-4" />
-                                <span>ส่งออกข้อมูล</span>
-                            </button>
-                            <button 
-                                onClick={handleRefresh}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md"
-                            >
-                                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                                <span>รีเฟรช</span>
-                            </button> */}
+                            {/* ปุ่มเพิ่มเติมสามารถเพิ่มได้ที่นี่ */}
                         </div>
                     </div>
                 </div>
@@ -310,9 +293,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-sm opacity-90">ระบบ WIN</p>
-                                <p className="text-2xl font-bold mt-1">
-                                    {formatNumber(orders.filter(o => o.source === 'WIN').length)}
-                                </p>
+                                <p className="text-2xl font-bold mt-1">{formatNumber(winOrdersCount)}</p>
                                 <p className="text-sm mt-2">รายการ</p>
                             </div>
                             <div className="bg-white/20 p-3 rounded-xl">
@@ -325,9 +306,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-sm opacity-90">ระบบ WEB</p>
-                                <p className="text-2xl font-bold mt-1">
-                                    {formatNumber(orders.filter(o => o.source === 'WEB').length)}
-                                </p>
+                                <p className="text-2xl font-bold mt-1">{formatNumber(webOrdersCount)}</p>
                                 <p className="text-sm mt-2">รายการ</p>
                             </div>
                             <div className="bg-white/20 p-3 rounded-xl">
@@ -356,7 +335,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                 {/* Filter Section */}
                 <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-lg font-semibold text-gray-800 flex items-end ">
+                        <h2 className="text-lg font-semibold text-gray-800 flex items-center">
                             <Filter className="w-5 h-5 mr-2 text-blue-500" />
                             ตัวกรองข้อมูล
                         </h2>
@@ -399,31 +378,16 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                                     onChange={(e) => setStatusFilter(e.target.value)}
                                     className={`text-sm px-4 py-3 rounded-xl font-medium border ${getStatusColor(statusFilter)} shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
                                 >
-                                    <option value="ทั้งหมด">{getStatusText('ทั้งหมด')}</option>
+                                    <option value="ทั้งหมด">ทั้งหมด</option>
                                     <option value="pending">{getStatusText('pending')}</option>
                                     <option value="approved">{getStatusText('approved')}</option>
                                     <option value="rejected">{getStatusText('rejected')}</option>
-                                    {/* <option value="completed">{getStatusText('completed')}</option> */}
-                                    {/* <option value="รออนุมัติ">{getStatusText('รออนุมัติ')}</option> */}
                                 </select>
                             </div>
                         )}
 
 
 
-                        {/* Date Filter */}
-                        <div className="flex flex-col">
-                            {/* <label className="mb-2 text-sm font-semibold text-gray-700">วันที่</label>
-                            <div className="relative">
-                                <input
-                                    type="date"
-                                    value={dailyDate}
-                                    onChange={(e) => setDailyDate(e.target.value)}
-                                    className="w-full px-4 py-3 text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500 transition-all duration-200 hover:border-gray-400"
-                                />
-                                <Calendar className="absolute right-3 top-3.5 w-4 h-4 text-gray-400" />
-                            </div> */}
-                        </div>
 
                         {/* Action Buttons */}
                         <div className="flex flex-col justify-end space-y-2">
@@ -434,13 +398,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                                 <Search className="w-4 h-4 mr-1" />
                                 ค้นหา
                             </button>
-                            {/* <button
-                                onClick={() => { setSearchTerm(''); setStatusFilter('ทั้งหมด'); setDailyDate(''); handleSearch(); }}
-                                className="px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm flex items-center justify-center"
-                            >
-                                <X className="w-4 h-4 mr-1" />
-                                ล้างค่า
-                            </button> */}
+
                         </div>
                     </div>
                 </div>
@@ -460,7 +418,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {filteredOrders.length > 0 ? filteredOrders.map(order => (
+                                    {orders.length > 0 ? orders.map(order => (
                                         <tr key={order.id} className="hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all duration-200 group">
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="flex items-center">
@@ -469,7 +427,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                                                     </div>
                                                     <div>
                                                         <div className="text-sm font-semibold text-gray-900">{order.document_number}</div>
-                                                        <div className="text-xs text-gray-500 mt-1">ID: {(order.id)}</div>
+                                                        <div className="text-xs text-gray-500 mt-1">ID: {order.id}</div>
                                                     </div>
                                                 </div>
                                             </td>
@@ -505,26 +463,20 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                                                             <span className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-700">
                                                                 {item.product_name}
                                                             </span>
-                                                            <span className="text-gray-500 text-xs px-2 py-1 rounded-md">
-                                                                {order.items && order.items.length > 1 && (
-                                                                    <div className="flex justify-end items-center text-xs text-blue-600 font-medium mt-1">
-                                                                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center mr-1 shadow-sm">
-                                                                            +{formatNumber(order.items.length - 1)}
-                                                                        </div>
-                                                                        รายการเพิ่มเติม
-                                                                    </div>
-                                                                )}
-                                                            </span>
+                                                            {order.items && order.items.length > 1 && (
+                                                                <span className="text-blue-600 text-xs font-medium ml-2">
+                                                                    +{order.items.length - 1} รายการ
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     ))}
                                                 </div>
                                             </td>
-
                                             <td className="px-6 py-4 whitespace-nowrap text-center">
                                                 <button
                                                     onClick={() => {
-                                                        setDetailOrder(order); // ใช้ order ที่มีอยู่แล้ว
-                                                        setIsDetailOpen(true); // เปิด modal
+                                                        setDetailOrder(order);
+                                                        setIsDetailOpen(true);
                                                     }}
                                                     className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg text-sm font-medium"
                                                 >
@@ -532,7 +484,6 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                                                     ดูรายละเอียด
                                                 </button>
                                             </td>
-
                                         </tr>
                                     )) : (
                                         <tr>
@@ -544,7 +495,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                                                     <p className="text-xl font-medium text-gray-500 mb-2">ไม่พบข้อมูลการเบิก</p>
                                                     <p className="text-sm text-gray-400 mb-4">ลองเปลี่ยนคำค้นหาหรือตัวกรองดูนะ</p>
                                                     <button
-                                                        onClick={() => { setSearchTerm(''); setStatusFilter('ทั้งหมด'); handleSearch(); }}
+                                                        onClick={handleClearFilters}
                                                         className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 shadow-md"
                                                     >
                                                         ล้างตัวกรอง
@@ -566,14 +517,12 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                                         <th className="px-6 py-4 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">ฝ่าย/แผนก</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">สินค้า</th>
                                         <th className="px-6 py-4 text-center text-xs font-medium text-blue-800 uppercase tracking-wider">สถานะ</th>
-                                        {/* <th className="px-6 py-4 text-center text-xs font-medium text-blue-800 uppercase tracking-wider">แหล่งที่มา</th> */}
                                         <th className="px-6 py-4 text-center text-xs font-medium text-blue-800 uppercase tracking-wider rounded-tr-xl">จัดการ</th>
                                     </tr>
                                 </thead>
-
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {filteredOrders.length > 0 ? (
-                                        filteredOrders.map(order => (
+                                    {orders.length > 0 ? (
+                                        orders.map(order => (
                                             <tr
                                                 key={order.id}
                                                 className="hover:bg-blue-50/30 transition-all duration-200 group"
@@ -636,7 +585,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                                                                 {order.items && order.items.length > 1 && (
                                                                     <div className="flex justify-end items-center text-xs text-blue-600 font-medium ml-2">
                                                                         <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center shadow-sm">
-                                                                            +{formatNumber(order.items.length - 1)}
+                                                                            +{order.items.length - 1}
                                                                         </div>
                                                                         รายการเพิ่มเติม
                                                                     </div>
@@ -646,20 +595,23 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                                                     </div>
                                                 </td>
 
+                                                {/* สถานะ */}
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">
                                                     <div className="flex justify-center">
                                                         <select
                                                             value={order.status}
                                                             onChange={(e) => handleStatusChange(order.id, e.target.value)}
                                                             className={`text-xs px-3 py-2 rounded-xl font-medium border ${getStatusColor(order.status)} shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
-                                                            disabled={!can('PUR.edit')} // 🔹 ปรับให้ Admin แก้ได้ทุกสถานะ
+                                                            disabled={
+                                                                !can('PUR.edit') ||
+                                                                order.status === 'approved' ||
+                                                                order.status === 'rejected'
+                                                            }
                                                         >
                                                             <option value="pending">{getStatusText('pending')}</option>
                                                             <option value="approved">{getStatusText('approved')}</option>
                                                             <option value="rejected">{getStatusText('rejected')}</option>
-                                                            <option value="completed">{getStatusText('completed')}</option>
                                                         </select>
-
                                                     </div>
                                                 </td>
 
@@ -680,7 +632,7 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={8} className="px-6 py-16 text-center">
+                                            <td colSpan={7} className="px-6 py-16 text-center">
                                                 <div className="flex flex-col items-center justify-center text-gray-400">
                                                     <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4 shadow-inner">
                                                         <Search className="w-10 h-10 opacity-50" />
@@ -692,8 +644,6 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                                         </tr>
                                     )}
                                 </tbody>
-
-
                             </table>
                         )}
                     </div>
@@ -767,26 +717,23 @@ export default function StoreOrderIndex({ orders, pagination, filters }: Props) 
                     )}
                 </div>
 
-
-
-
+                {/* Detail Modal */}
                 {isDetailOpen && (
                     <ModalForm
                         isModalOpen={isDetailOpen}
                         onClose={() => setIsDetailOpen(false)}
                         title="รายละเอียดใบเบิกสินค้า"
-                    // size="max-w-2xl" // ✅ ปรับขนาดตามเนื้อหา
                     >
                         <StoreIssueOrderDetail
-                            order={detailOrder}                // ✅ ส่ง order object
-                            onClose={() => setIsDetailOpen(false)} // ✅ ปิด modal จากใน component ได้
-                            showHistory={true}                 // ✅ แสดงประวัติการเบิก-คืน
+                            order={detailOrder}
+                            onClose={() => setIsDetailOpen(false)}
+                            showHistory={true}
                         />
                     </ModalForm>
                 )}
-
-
             </div>
         </AppLayout>
     );
 }
+
+

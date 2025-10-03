@@ -169,8 +169,8 @@ Route::middleware(['auth', 'permission:developer.view|agr.view'])->group(functio
     Route::resource('sales', SalesController::class);
     // Route::post('/sales', [SalesController::class, 'create'])->name('sales.create');
     Route::resource('/products', ProductController::class);
-    Route::put('/products/{product}', [ProductController::class, 'updateProduct'])->name( 'products.updateProduct');
-    Route::put('/stock/{product}', [ProductController::class, 'updateStock'])->name( 'stock.updateStock');
+    Route::put('/products/{product}', [ProductController::class, 'updateProduct'])->name('products.updateProduct');
+    Route::put('/stock/{product}', [ProductController::class, 'updateStock'])->name('stock.updateStock');
     // Route::get('/products', [ProductController::class, 'index'])->name('product.index');
     Route::resource('/customers', CustomerController::class);
     // Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
@@ -202,7 +202,10 @@ Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrde
     Route::get('/StoreOrderIssue', [StoreOrderController::class, 'storeOrder'])->name('store-orders.index');
 
     // หน้าแสดงรายการคำสั่งเบิก
-    Route::get('/StoreIssueIndex', [StoreOrderController::class, 'StoreIssueIndex'])->name('StoreIssue.index');
+    // ใน routes/web.php
+    Route::get('/StoreIssueIndex', [StoreOrderController::class, 'StoreIssueIndex'])
+        ->name('StoreIssue.index')
+        ->defaults('source', 'WEB'); // ตั้งค่า default เป็น WEB
 
 
     Route::get('/StoreMovement', [StoreMovementController::class, 'indexPage'])->name('storemovement.indexPage');
@@ -231,17 +234,12 @@ Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrde
 
 
     Route::get('/document-items/{documentNumber}', [StoreOrderController::class, 'items']);
-
-
-
 });
 // web.php
 Route::middleware(['auth'])->prefix('store-movements')->group(function () {
 
     // สร้าง movement ใหม่
     Route::post('/', [StoreMovementController::class, 'stock'])->name('store-movements.store');
-
-
 });
 
 

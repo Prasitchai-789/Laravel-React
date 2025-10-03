@@ -84,15 +84,19 @@ const GoodsIndex = ({ goods: initialGoods }) => {
         setIsReturnModalOpen(true);
     };
 
-    const calculateStockInfo = (product: any) => {
+    const calculateStockInfo = (product: any, returnQty: number) => {
         const stockQty = product.stock_qty ?? 0;
         const reservedQty = product.reservedQty ?? 0;
+
+        const actualReturn = Math.min(returnQty, reservedQty);
+
         return {
-            stockQty,
-            reservedQty,
-            availableQty: stockQty - reservedQty,
+            stockQty: stockQty + actualReturn,
+            reservedQty: reservedQty - actualReturn,
+            availableQty: stockQty + actualReturn - (reservedQty - actualReturn)
         };
     };
+
 
 
     const startEditProduct = (product) => {
@@ -169,6 +173,7 @@ const GoodsIndex = ({ goods: initialGoods }) => {
     const showQRCode = (product) => {
         Swal.fire({
             title: product.GoodName,
+
             html: `<div style="display:flex;justify-content:center;">
                   <canvas id="qrcode"></canvas>
                </div>`,
@@ -804,7 +809,7 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                                     title: 'คืนสินค้าสำเร็จ',
                                     showConfirmButton: false,
                                     timer: 1500,
-                                    customClass: { popup: 'custom-swal' },
+                                    customClass: { popup: 'rounded-2xl font-anuphan' }
                                 });
                             }}
                         />

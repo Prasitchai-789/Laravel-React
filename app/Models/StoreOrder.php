@@ -18,9 +18,10 @@ class StoreOrder extends Model
         'note',
     ];
 
-    public function items()
+
+      public function items()
     {
-        return $this->hasMany(StoreOrderItem::class);
+        return $this->hasMany(StoreOrderItem::class, 'store_order_id', 'id');
     }
 }
 

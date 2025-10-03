@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -7,9 +8,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class StoreMovement extends Model
 {
     use HasFactory;
-protected $table = 'store_movements';
+    protected $table = 'store_movements';
 
-protected $fillable = [
+    protected $fillable = [
         'store_item_id',
         'store_order_id',
         'user_id',
@@ -33,5 +34,10 @@ protected $fillable = [
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function storeOrder()
+    {
+        return $this->belongsTo(StoreOrder::class, 'store_order_id');
     }
 }
