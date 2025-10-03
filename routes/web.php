@@ -202,6 +202,7 @@ Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrde
     Route::get('/StoreOrderIssue', [StoreOrderController::class, 'storeOrder'])->name('store-orders.index');
 
     // หน้าแสดงรายการคำสั่งเบิก
+    // ใน routes/web.php
     Route::get('/StoreIssueIndex', [StoreOrderController::class, 'StoreIssueIndex'])
         ->name('StoreIssue.index')
         ->defaults('source', 'WEB'); // ตั้งค่า default เป็น WEB

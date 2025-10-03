@@ -295,28 +295,21 @@ class StoreOrderController extends Controller
 
         // dd($allOrders);
 
-        $allOrdersCollection = collect($allOrders); // แปลงเป็น Collection ถ้ายังไม่ใช่
 
         $paginatedOrders = new \Illuminate\Pagination\LengthAwarePaginator(
             $allOrders,
-            $total, // ใช้ total count จาก query ที่ filter แล้ว
+            $total,
             $perPage,
             $page,
             [
                 'path'  => request()->url(),
-                'query' => request()->query(),
+                'query' => array_merge(request()->query(), ['source' => 'WEB']),
             ]
         );
 
         return \Inertia\Inertia::render('Store/StoreIssueIndex', [
             'orders'     => $paginatedOrders->items(),
             'pagination' => $paginatedOrders,
-            'filters'    => [
-                'source' => request('source', 'WEB'), // default เป็น 'WEB'
-                'search' => request('search', ''),
-                'status' => request('status', ''),
-                'dailyDate' => request('dailyDate', ''),
-            ]
         ]);
     }
 
@@ -513,9 +506,15 @@ class StoreOrderController extends Controller
                                 $stockQty -= $m->quantity;
                             elseif ($m->category === 'safety')
                                 $safetyStock -= $m->quantity;
+                        } elseif ($m->status === 'rejected' && $m->type === 'subtract') {
+                            // คืน stock เมื่อเอกสารถูก reject
+                            if ($m->category === 'stock')
+                                $stockQty += $m->quantity;
+                            elseif ($m->category === 'safety')
+                                $safetyStock += $m->quantity;
                         }
-                        // ไม่ต้องทำอะไรถ้า rejected
                         break;
+
                     case 'return':
                         if ($m->status === 'approved') {
                             if ($m->category === 'stock')
