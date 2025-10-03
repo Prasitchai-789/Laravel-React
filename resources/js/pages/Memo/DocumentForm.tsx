@@ -30,7 +30,7 @@ interface DocumentFormProps {
 export default function DocumentForm({ categories, onSuccess, onClose, mode = 'create', document }: DocumentFormProps) {
     const { data, setData, reset, processing, post, errors } = useForm<PDocumentFormData>({
         document_no: document?.document_no || '',
-        date: document?.date || dayjs().format('YYYY-MM-DD'),
+        date: document?.date ? dayjs(document.date).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD'),
         description: document?.description || '',
         category_id: document?.category_id || '',
         amount: document?.amount || '',
@@ -41,18 +41,21 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
 
     const [formErrors, setFormErrors] = useState<Partial<Record<keyof PDocumentFormData, string>>>({});
 
-    /** ✅ handleChange สำหรับ input และ textarea */
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setData({
-            ...data,
-            [name]: value, // เก็บเป็น string ตลอด
-        });
+        const target = e.target as HTMLInputElement;
+        const { name, value, files } = target;
 
-        if (formErrors[name as keyof PDocumentFormData]) {
+        if (files && files.length > 0) {
+            setData(name as keyof PDocumentFormData, files[0]);
+        } else {
+            setData(name as keyof PDocumentFormData, value);
+        }
+
+        if (formErrors[name]) {
             setFormErrors((prev) => ({ ...prev, [name]: '' }));
         }
     };
+
     /** ✅ handleFileChange สำหรับไฟล์ */
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
@@ -70,7 +73,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
 
         if (!data.document_no.trim()) newErrors.document_no = 'กรุณาระบุเลขที่เอกสาร';
         if (!data.date) newErrors.date = 'กรุณาระบุวันที่';
-        // if (!data.category_id) newErrors.category_id = 'กรุณาเลือกหมวดค่าใช้จ่าย';
+        if (!data.category_id) newErrors.category_id = 'กรุณาเลือกหมวดค่าใช้จ่าย';
         if (!data.amount || parseFloat(data.amount as string) <= 0) {
             newErrors.amount = 'กรุณาระบุจำนวนเงินที่ถูกต้อง';
         }
@@ -78,8 +81,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
         setFormErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
-    console.log(data);
-    /** ✅ handleSubmit */
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateForm()) {
@@ -100,14 +102,22 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
             return;
         }
 
-        const payload = {
-            ...data,
-            category_id: data.category_id || null,
-            amount: parseFloat(data.amount as string) || 0,
-        };
+        const formData = new FormData();
+        formData.append('document_no', data.document_no);
+        formData.append('date', data.date);
+        formData.append('category_id', data.category_id || '');
+        formData.append('amount', data.amount ? String(data.amount) : '0');
+        formData.append('status', data.status || '');
+        formData.append('description', data.description || '');
+        formData.append('winspeed_ref_id', data.winspeed_ref_id || '');
+
+        if (data.attachment_path) {
+            formData.append('attachment_path', data.attachment_path); // ต้องตรงกับชื่อ field ใน Laravel
+        }
 
         if (mode === 'create') {
-            router.post(route('memo.documents.store'), payload, {
+            router.post(route('memo.documents.store'), formData, {
+                forceFormData: true,
                 onSuccess: () => {
                     Swal.fire({
                         icon: 'success',
@@ -116,8 +126,6 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         position: 'top-end',
                         showConfirmButton: false,
                         timer: 3000,
-                        background: '#4ade80',
-                        color: '#ffffff',
                         customClass: {
                             popup: 'custom-swal font-anuphan',
                             title: 'font-anuphan text-red-800',
@@ -146,45 +154,50 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                 },
             });
         } else if (mode === 'edit' && document?.id) {
-            router.put(route('memo.documents.update', document?.id), payload, {
-                onSuccess: () => {
-                    Swal.fire({
-                        icon: 'success',
-                        title: mode === 'create' ? 'บันทึกเอกสารเรียบร้อยแล้ว' : 'อัปเดตเอกสารเรียบร้อยแล้ว',
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000,
-                        background: '#4ade80',
-                        color: '#ffffff',
-                        customClass: {
-                            popup: 'custom-swal font-anuphan',
-                            title: 'font-anuphan text-red-800',
-                            htmlContainer: 'font-anuphan text-red-500',
-                        },
-                    });
-                    reset();
-                    onClose?.();
-                    onSuccess?.();
+            router.post(
+                route('memo.documents.update', document.id),
+                {
+                    _method: 'put', // ใช้ method spoofing เพราะ FormData ไม่ส่ง put โดยตรงได้
+                    ...Object.fromEntries(formData),
+                },{
+                    forceFormData: true,
+                    onSuccess: () => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: mode === 'create' ? 'บันทึกเอกสารเรียบร้อยแล้ว' : 'อัปเดตเอกสารเรียบร้อยแล้ว',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            customClass: {
+                                popup: 'custom-swal font-anuphan',
+                                title: 'font-anuphan text-red-800',
+                                htmlContainer: 'font-anuphan text-red-500',
+                            },
+                        });
+                        reset();
+                        onClose?.();
+                        onSuccess?.();
+                    },
+                    onError: (errors) => {
+                        console.error('Form submission errors:', errors);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'กรุณาตรวจสอบข้อมูลอีกครั้ง',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            customClass: {
+                                popup: 'custom-swal font-anuphan',
+                                title: 'font-anuphan text-red-800',
+                                htmlContainer: 'font-anuphan text-red-500',
+                            },
+                        });
+                    },
                 },
-                onError: (errors) => {
-                    console.error('Form submission errors:', errors);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด',
-                        text: 'กรุณาตรวจสอบข้อมูลอีกครั้ง',
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000,
-                        customClass: {
-                            popup: 'custom-swal font-anuphan',
-                            title: 'font-anuphan text-red-800',
-                            htmlContainer: 'font-anuphan text-red-500',
-                        },
-                    });
-                },
-            });
+            );
         }
     };
 
@@ -194,12 +207,14 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
         { value: 'rejected', label: 'ไม่อนุมัติ', color: 'text-red-600' },
     ];
 
+    const categoriesOptions = [
+        { value: '', label: '-- เลือกหมวด --', disabled: true, hidden: true },
+        ...categories.map((cat) => ({
+            value: cat.id.toString(),
+            label: cat.name,
+        })),
+    ];
 
-    const categoriesOptions = (categories ?? []).map((cat) => ({
-        value: cat.id,
-        label: cat.name,
-    }));
-console.log(categoriesOptions);
     return (
         <div className="mx-auto max-w-2xl">
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -221,7 +236,7 @@ console.log(categoriesOptions);
                             error={formErrors.document_no || errors.document_no}
                             type="text"
                             className="font-anuphan transition-all duration-200 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                            placeholder="เช่น DOC-2024-001"
+                            placeholder="เช่น ITE680101-01"
                         />
                     </div>
 
@@ -237,7 +252,7 @@ console.log(categoriesOptions);
                             }
                             name="date"
                             value={data.date}
-                            onChange={handleChange}
+                            onChange={(e) => setData('date', e.target.value)}
                             disabled={processing}
                             error={formErrors.date || errors.date}
                             type="date"
@@ -353,7 +368,7 @@ console.log(categoriesOptions);
                 </div>
 
                 {/* Attachment */}
-                <div className="transform font-anuphan transition-all duration-200 hover:scale-[1.01]">
+                <div className="font-anuphan">
                     <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
                         <span className="text-lg">📎</span>
                         ไฟล์แนบ
@@ -382,7 +397,7 @@ console.log(categoriesOptions);
                 <div className="flex justify-end gap-3 border-t border-gray-200 pt-6 font-anuphan">
                     <Button
                         type="button"
-                        variant="secondary"
+                        variant="gray"
                         onClick={onClose}
                         disabled={processing}
                         className="px-6 py-2.5 transition-all duration-200 hover:scale-105 active:scale-95"
@@ -397,7 +412,7 @@ console.log(categoriesOptions);
                         variant="primary"
                         disabled={processing}
                         loading={processing}
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-2.5 shadow-lg transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-purple-700 hover:shadow-xl active:scale-95"
+                        className="px-6 py-2.5 shadow-lg transition-all duration-200 hover:scale-105 hover:from-blue-700 hover:to-purple-700 hover:shadow-xl active:scale-95"
                     >
                         <span className="flex items-center gap-2">
                             {mode === 'create' ? (
