@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
+import {FolderOpen,CalendarFold,NotebookPen,LibraryBig,CircleDollarSign,ChevronsDown,X,Save,RefreshCcw,FileSliders} from 'lucide-react';
 
 interface PDocumentFormData {
     document_no: string;
@@ -224,7 +225,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <InputLabel
                             label={
                                 <span className="flex items-center gap-1">
-                                    <span className="text-lg">📄</span>
+                                    <span className="text-lg"><FolderOpen className='w-4 h-4 text-blue-500'/></span>
                                     เลขที่เอกสาร
                                     <span className="text-red-500">*</span>
                                 </span>
@@ -245,7 +246,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <InputLabel
                             label={
                                 <span className="flex items-center gap-1">
-                                    <span className="text-lg">📅</span>
+                                    <span className="text-lg"><CalendarFold className='w-4 h-4 text-blue-500' /></span>
                                     วันที่
                                     <span className="text-red-500">*</span>
                                 </span>
@@ -266,7 +267,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                     <Textarea
                         label={
                             <span className="flex items-center gap-1">
-                                <span className="text-lg">📋</span>
+                                <span className="text-lg"><NotebookPen className='w-4 h-4 text-blue-500'/></span>
                                 รายละเอียด
                             </span>
                         }
@@ -287,7 +288,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <Select
                             label={
                                 <span className="flex items-center gap-1">
-                                    <span className="text-lg">📂</span>
+                                    <span className="text-lg"><LibraryBig className='w-4 h-4 text-blue-500'/></span>
                                     หมวดค่าใช้จ่าย
                                     <span className="text-red-500">*</span>
                                 </span>
@@ -307,7 +308,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <InputLabel
                             label={
                                 <span className="flex items-center gap-1">
-                                    <span className="text-lg">💰</span>
+                                    <span className="text-lg"><CircleDollarSign className='w-4 h-4 text-blue-500' /></span>
                                     จำนวนเงิน
                                 </span>
                             }
@@ -331,7 +332,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <InputLabel
                             label={
                                 <span className="flex items-center gap-1">
-                                    <span className="text-lg">🔗</span>
+                                    <span className="text-lg"><FileSliders className='w-4 h-4 text-blue-500'/></span>
                                     เลขที่อ้างอิง Win Speed
                                 </span>
                             }
@@ -351,7 +352,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <Select
                             label={
                                 <span className="flex items-center gap-1">
-                                    <span className="text-lg">🎯</span>
+                                    <span className="text-lg"><ChevronsDown className='w-4 h-4 text-blue-500'/></span>
                                     สถานะ
                                 </span>
                             }
@@ -369,7 +370,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                 {/* Attachment */}
                 <div className="font-anuphan">
                     <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-                        <span className="text-lg">📎</span>
+                        <span className="text-lg"><LibraryBig className='w-4 h-4 text-blue-500'/></span>
                         ไฟล์แนบ
                     </label>
                     <div className="relative">
@@ -402,7 +403,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         className="px-6 py-2.5 transition-all duration-200 hover:scale-105 active:scale-95"
                     >
                         <span className="flex items-center gap-2">
-                            <span>❌</span>
+                            <span><X className='w-5 h-5 text-red-500'/></span>
                             ยกเลิก
                         </span>
                     </Button>
@@ -416,12 +417,12 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <span className="flex items-center gap-2">
                             {mode === 'create' ? (
                                 <>
-                                    <span>💾</span>
+                                    <span><Save className='w-5 h-5'/></span>
                                     บันทึกข้อมูล
                                 </>
                             ) : (
                                 <>
-                                    <span>🔄</span>
+                                    <span><RefreshCcw className='w-5 h-5'/></span>
                                     อัปเดตข้อมูล
                                 </>
                             )}
