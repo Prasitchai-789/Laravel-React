@@ -2,6 +2,12 @@ import GenericTable, { Column } from '@/components/Tables/GenericTable';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import { Pencil, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+interface Attachment {
+    id: number;
+    name: string;
+}
 
 interface Document {
     id: number;
@@ -13,11 +19,15 @@ interface Document {
     winspeed_ref_id: number;
     attachment: string;
     attachments: Attachment[];
+    status?: 'pending' | 'approved' | 'rejected' | string;
+    attachment_path?: string;
 }
+
 interface Category {
     id: number;
     name: string;
 }
+
 interface DocumentTableProps {
     documents: Document[];
     categories: Category[];
@@ -26,23 +36,46 @@ interface DocumentTableProps {
 }
 
 export default function DocumentTable({ documents, categories, onEdit, onDelete }: DocumentTableProps) {
+    const [selectedMonth, setSelectedMonth] = useState('');
+
+    useEffect(() => {
+        console.log('เดือนที่เลือก:', selectedMonth);
+    }, [selectedMonth]);
+    const filterByMonth = (documents: Document[], month: string) => {
+        if (!month) return documents; // ถ้าเลือก "ทั้งหมด"
+        const [year, monthNum] = month.split('-').map(Number);
+        return documents.filter((doc) => {
+            const docDate = new Date(doc.date);
+            return docDate.getFullYear() === year && docDate.getMonth() + 1 === monthNum;
+        });
+    };
+
+
+    const filteredDocuments = filterByMonth(documents, selectedMonth);
+    console.log(selectedMonth);
     const handleEdit = (document: Document) => {
-        if (onEdit) {
-            onEdit(document);
-        }
+        if (onEdit) onEdit(document);
     };
 
     const handleDelete = (document: Document) => {
-        if (onDelete) {
-            onDelete(document);
-        }
-    };
-    const getCategoryName = (categories: Category[], row: Document) => {
-        const category = categories.find((category) => Number(category.id) === Number(row.category_id));
-        return category ? category.name : '';
+        if (onDelete) onDelete(document);
     };
 
-    const sortedDocuments = [...documents].sort((a, b) => b.id - a.id);
+    const getCategoryName = (categories: Category[], row: Document) => {
+        const category = categories.find((category) => Number(category.id) === Number(row.category_id));
+        return category ? category.name : '-';
+    };
+
+    const statusMap: Record<string, { bg: string; text: string; label: string }> = {
+        pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'รอดำเนินการ' },
+        approved: { bg: 'bg-green-100', text: 'text-green-800', label: 'อนุมัติแล้ว' },
+        rejected: { bg: 'bg-red-100', text: 'text-red-800', label: 'ถูกปฏิเสธ' },
+    };
+
+    const renderStatus = (status?: string) => {
+        const s = statusMap[status || ''] || { bg: 'bg-gray-100', text: 'text-gray-800', label: 'ไม่ระบุ' };
+        return <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${s.bg} ${s.text}`}>{s.label}</span>;
+    };
 
     const documentColumns: Column<Document>[] = [
         {
@@ -55,9 +88,6 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
                 return (
                     <div className="flex flex-col items-center">
                         <div className="text-sm font-medium text-gray-900">{createdAt.isValid() ? createdAt.format('DD/MM/YYYY') : '-'}</div>
-                        {/* <div className="text-xs text-gray-500">
-                            {createdAt.isValid() ? createdAt.locale('th').format('dddd') : ''}
-                        </div> */}
                     </div>
                 );
             },
@@ -73,7 +103,6 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
                 </div>
             ),
         },
-
         {
             key: 'description',
             label: 'รายละเอียด',
@@ -105,49 +134,18 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
             label: 'จำนวนเงิน',
             sortable: true,
             align: 'center',
-            render: (document) => {
-                return (
-                    <div className="text-right">
-                        <div className="text-lg font-semibold text-gray-900">
-                            {document.amount ? Number(document.amount).toLocaleString('th-TH', { style: 'currency', currency: 'THB' }) : '-'}
-                        </div>
+            render: (document) => (
+                <div className="text-right">
+                    <div className="text-lg font-semibold text-gray-900">
+                        {document.amount ? Number(document.amount).toLocaleString('th-TH', { style: 'currency', currency: 'THB' }) : '-'}
                     </div>
-                );
-            },
+                </div>
+            ),
         },
         {
             key: 'status',
             label: 'สถานะ',
-            render: (document) => {
-                let statusColor = 'gray';
-                let statusText = 'ไม่ระบุ';
-
-                switch (document.status) {
-                    case 'pending':
-                        statusColor = 'yellow';
-                        statusText = 'รอดำเนินการ';
-                        break;
-                    case 'approved':
-                        statusColor = 'green';
-                        statusText = 'อนุมัติแล้ว';
-                        break;
-                    case 'rejected':
-                        statusColor = 'red';
-                        statusText = 'ถูกปฏิเสธ';
-                        break;
-                    default:
-                        statusColor = 'gray';
-                        statusText = 'ไม่ระบุ';
-                }
-
-                return (
-                    <span
-                        className={`inline-flex items-center rounded-full bg-${statusColor}-100 px-3 py-1 text-sm font-medium text-${statusColor}-800`}
-                    >
-                        {statusText}
-                    </span>
-                );
-            },
+            render: (document) => renderStatus(document.status),
             align: 'center',
         },
         {
@@ -157,7 +155,7 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
                 <div className="flex flex-col items-center">
                     <div className="text-sm font-medium text-blue-900 hover:underline">
                         {document.attachment_path ? (
-                            <a href={'/storage/' + document.attachment_path + '?download'} target="_blank" rel="noopener noreferrer">
+                            <a href={`/storage/${document.attachment_path}?download`} target="_blank" rel="noopener noreferrer">
                                 ดูเอกสาร
                             </a>
                         ) : (
@@ -178,7 +176,7 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
     return (
         <GenericTable
             title="ข้อมูลเอกสารบันทึกข้อความ"
-            data={sortedDocuments}
+            data={filteredDocuments.sort((a, b) => b.id - a.id)}
             columns={documentColumns}
             idField="id"
             actions={(row) => (
@@ -192,7 +190,6 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
                             <div className="rounded-lg bg-yellow-50 p-1 transition-colors duration-300 group-hover:bg-yellow-100">
                                 <Pencil size={18} className="text-yellow-600" />
                             </div>
-
                             <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-yellow-600 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100">
                                 แก้ไข
                                 <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-yellow-600"></div>
@@ -209,7 +206,6 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
                             <div className="rounded-lg bg-red-50 p-1 transition-colors duration-300 group-hover:bg-red-100">
                                 <Trash2 size={18} className="text-red-700" />
                             </div>
-
                             <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-red-600 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100">
                                 ลบ
                                 <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-red-600"></div>
