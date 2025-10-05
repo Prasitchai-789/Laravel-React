@@ -15,6 +15,7 @@ class PermissionSeeder extends Seeder
             "users.edit",
             "users.delete",
             "users.create",
+
             "roles.view",
             "roles.edit",
             "roles.delete",
@@ -24,14 +25,11 @@ class PermissionSeeder extends Seeder
             "permission.edit",
             "permission.delete",
             "permission.create",
-            "Admin.view",
-            "Admin.edit",
-            "Admin.delete",
-            "Admin.create",
-            "premission.view",
-            "premission.edit",
-            "premission.delete",
-            "premission.create",
+
+            "admin.view",
+            "admin.edit",
+            "admin.delete",
+            "admin.create",
 
 
         ];

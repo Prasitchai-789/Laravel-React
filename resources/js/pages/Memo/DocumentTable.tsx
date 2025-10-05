@@ -39,7 +39,6 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
     const [selectedMonth, setSelectedMonth] = useState('');
 
     useEffect(() => {
-        console.log('เดือนที่เลือก:', selectedMonth);
     }, [selectedMonth]);
     const filterByMonth = (documents: Document[], month: string) => {
         if (!month) return documents; // ถ้าเลือก "ทั้งหมด"
@@ -52,7 +51,6 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
 
 
     const filteredDocuments = filterByMonth(documents, selectedMonth);
-    console.log(selectedMonth);
     const handleEdit = (document: Document) => {
         if (onEdit) onEdit(document);
     };
