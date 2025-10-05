@@ -60,8 +60,11 @@ export default function Index() {
     const page = usePage<{ auth: { user?: any; permissions?: string[] } }>();
 
     // permissions may be on page.props.auth.permissions or page.props.auth.user.permissions
-    const userPermissions: string[] = (page.props.auth as any)?.user?.permissions ?? (page.props.auth as any)?.permissions ?? [];
-
+    const userPermissions: string[] = Array.isArray(page.props.auth?.permissions)
+        ? page.props.auth.permissions
+        : Array.isArray(page.props.auth?.user?.permissions)
+          ? page.props.auth.user.permissions
+          : [];
     const getCurrentMonth = () => {
         const today = new Date();
         const year = today.getFullYear();
@@ -153,15 +156,14 @@ export default function Index() {
 
             // Debug: แสดงข้อมูลวันที่หลังจากโหลด
             if (Array.isArray(docRes)) {
-                console.log('=== LOADED DOCUMENTS DATE FORMAT ===');
                 docRes.forEach((doc: Document, index: number) => {
                     const parsedDate = parseDocumentDate(doc.date);
-                    console.log(`[${index + 1}]`, {
-                        id: doc.id,
-                        originalDate: doc.date,
-                        parsedDate: parsedDate,
-                        category: doc.category_id,
-                    });
+                    // console.log(`[${index + 1}]`, {
+                    //     id: doc.id,
+                    //     originalDate: doc.date,
+                    //     parsedDate: parsedDate,
+                    //     category: doc.category_id,
+                    // });
                 });
             }
         } catch (error) {
@@ -179,21 +181,15 @@ export default function Index() {
 
     // ==== Filter Functions ====
     const handleCategoryFilter = (categoryId: number | null) => {
-        console.log('Category filter changed to:', categoryId);
         setSelectedCategory(categoryId);
     };
 
     const handleMonthFilter = (month: string) => {
-        console.log('Month filter changed to:', month);
         setSelectedMonth(month);
     };
 
     // ==== Memoized filtered arrays and summary calculations ====
     const { summary, yearCount, yearAmount, monthCount } = useMemo(() => {
-        console.log('Recalculating summary...');
-        console.log('selectedMonth:', selectedMonth);
-        console.log('selectedCategory:', selectedCategory);
-
         const currentYear = new Date().getFullYear().toString();
 
         const safeDocs = documents.filter((d) => {
@@ -233,14 +229,14 @@ export default function Index() {
             categoryAmount,
         };
 
-        console.log('Summary calculated:', {
-            yearCount,
-            yearAmount,
-            monthCount,
-            monthAmount,
-            categoryAmount,
-            filteredDocsCount: filteredDocs.length,
-        });
+        // console.log('Summary calculated:', {
+        //     yearCount,
+        //     yearAmount,
+        //     monthCount,
+        //     monthAmount,
+        //     categoryAmount,
+        //     filteredDocsCount: filteredDocs.length,
+        // });
 
         return { summary, yearCount, yearAmount, monthCount };
     }, [documents, selectedMonth, selectedCategory]);
@@ -263,42 +259,33 @@ export default function Index() {
 
     // ==== Filtered Documents for table ====
     const filteredDocuments = useMemo(() => {
-        console.log('=== FILTERED DOCUMENTS CALCULATION ===');
-        console.log('Total documents:', documents.length);
-        console.log('Selected month:', selectedMonth);
-        console.log('Selected category:', selectedCategory);
-
         const result = documents.filter((document) => {
             if (typeof document.date !== 'string' || !document.date) {
-                console.log('❌ Invalid date format - Document ID:', document.id, 'Date:', document.date);
                 return false;
             }
 
             const documentMonth = parseDocumentDate(document.date);
             if (!documentMonth) {
-                console.log('❌ Cannot parse date - Document ID:', document.id, 'Date:', document.date);
                 return false;
             }
 
-            const categoryMatch = selectedCategory ? document.category_id === selectedCategory : true;
+            const categoryMatch = selectedCategory
+                ? Number(document.category_id) === Number(selectedCategory) || document.category_id === selectedCategory
+                : true;
             const monthMatch = selectedMonth ? documentMonth === selectedMonth : true;
 
             const isMatch = categoryMatch && monthMatch;
-
             if (isMatch) {
-                console.log('✅ Document matched:', {
-                    id: document.id,
-                    originalDate: document.date,
-                    parsedMonth: documentMonth,
-                    selectedMonth,
-                });
+                // console.log('✅ Document matched:', {
+                //     id: document.id,
+                //     originalDate: document.date,
+                //     parsedMonth: documentMonth,
+                //     selectedMonth,
+                // });
             }
 
             return isMatch;
         });
-
-        console.log('=== FILTERED DOCUMENTS RESULT ===');
-        console.log('Filtered count:', result.length);
 
         return result;
     }, [documents, selectedCategory, selectedMonth]);
@@ -565,8 +552,7 @@ export default function Index() {
                                             size="sm"
                                             className="px-4 py-2 whitespace-nowrap"
                                         >
-                                            {category.name}{' '}
-                                            <span className="bg-opacity-20 ml-1  px-1.5 py-0.5 text-xs">({count})</span>
+                                            {category.name} <span className="bg-opacity-20 ml-1 px-1.5 py-0.5 text-xs">({count})</span>
                                         </Button>
                                     );
                                 })}

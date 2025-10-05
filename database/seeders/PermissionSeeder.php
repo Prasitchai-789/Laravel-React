@@ -17,22 +17,27 @@ class PermissionSeeder extends Seeder
             "users.edit",
             "users.delete",
             "users.create",
+
             "roles.view",
             "roles.edit",
             "roles.delete",
             "roles.create",
+          
             "permission.view",
             "permission.edit",
             "permission.delete",
             "permission.create",
+
+            "admin.view",
+            "admin.edit",
+            "admin.delete",
+            "admin.create",
+
             "Admin.view",
             "Admin.edit",
             "Admin.delete",
             "Admin.create",
-            "premission.view",
-            "premission.edit",
-            "premission.delete",
-            "premission.create",
+
         ];
 
         // ✅ สร้าง permission ทั้งหมด
