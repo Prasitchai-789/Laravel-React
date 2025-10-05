@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 import DocumentForm from './DocumentForm';
 import DocumentTable from './DocumentTable';
+import {FolderOpen} from 'lucide-react';
 
 // ==== Interfaces ====
 interface Category {
@@ -450,7 +451,7 @@ export default function Index() {
                             onClick={openCreate}
                             icon={<Plus className="h-4 w-4" />}
                             iconPosition="left"
-                            variant="success"
+                            variant="primary"
                             className="flex-shrink-0 font-anuphan whitespace-nowrap"
                         >
                             Create
@@ -540,7 +541,8 @@ export default function Index() {
                                     size="sm"
                                     className="px-4 py-2 whitespace-nowrap"
                                 >
-                                    📂 ทั้งหมด
+                                    <FolderOpen className="mr-2 h-4 w-4" />
+                                    ทั้งหมด
                                 </Button>
                                 {categories.map((category) => {
                                     const count = countsByCategory[category.id] || 0;
@@ -573,7 +575,8 @@ export default function Index() {
                                     className="w-full appearance-none rounded-xl border-2 border-gray-300 bg-white px-4 py-1.5 pr-12 pl-4 font-anuphan text-gray-900 shadow-sm transition-all duration-300 group-hover:border-blue-400 hover:border-blue-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none"
                                 >
                                     <option value="" className="text-gray-500">
-                                        📅 ทุกเดือน
+
+                                        ทุกเดือน
                                     </option>
                                     {getAvailableMonths().map((month) => {
                                         const [year, monthNum] = month.split('-').map(Number);
