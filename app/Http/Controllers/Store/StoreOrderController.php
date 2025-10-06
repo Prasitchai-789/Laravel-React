@@ -278,16 +278,28 @@ class StoreOrderController extends Controller
                 // filter movement ตาม product_id ของ item
                 $history = $orderMovements
                     ->filter(fn($m) => $m->movement_product_id == $item->product_id)
-                    ->map(fn($m) => [
-                        'movement_type' => $m->movement_type == 'return' ? 'คืน' : 'เบิก',
-                        'quantity'      => $m->quantity,
-                        'docu_no'       => $m->store_order_id ? 'SO-' . $m->store_order_id : $m->id,
-                        'docu_date'     => $m->created_at?->format('Y-m-d H:i:s') ?? '-',
-                        'user_id'       => $m->user?->name ?? 'ไม่ระบุ',
-                        'product_id' => $m->movement_product_id,
-                    ])
+                    ->map(function ($m) {
+                        // ดึงชื่อพนักงานจาก Webapp_Emp ผ่าน employee_id
+                        $empName = null;
+                        if (!empty($m->user?->employee_id)) {
+                            $empName = DB::connection('sqlsrv2')
+                                ->table('dbo.Webapp_Emp')
+                                ->where('EmpID', $m->user->employee_id)
+                                ->value('EmpName');
+                        }
+
+                        return [
+                            'movement_type' => $m->movement_type == 'return' ? 'คืน' : 'เบิก',
+                            'quantity'      => $m->quantity,
+                            'docu_no'       => $m->store_order_id ? 'SO-' . $m->store_order_id : $m->id,
+                            'docu_date'     => $m->created_at?->format('Y-m-d H:i:s') ?? '-',
+                            'user_id'       => $empName ?? $m->user?->name ?? 'ไม่ระบุ',
+                            'product_id'    => $m->movement_product_id,
+                        ];
+                    })
                     ->sortBy('docu_date')
                     ->values();
+
 
                 // คำนวณจำนวนเบิก / คืน / คงเหลือสุทธิ
                 $issuedFromHistory   = $history->where('movement_type', 'เบิก')->sum('quantity');
@@ -400,22 +412,44 @@ class StoreOrderController extends Controller
         $order = null;
 
         DB::transaction(function () use ($data, &$order) {
+
             $user = Auth::user();
 
-            $departmentName = !empty($user->employee_id)
-                ? $user->employee_id
-                : 'ไม่ระบุ';
+            $employeeId = $user->employee_id;
+            $departmentName = 'ไม่ระบุ';
+            $empName = 'ไม่พบข้อมูลพนักงาน';
 
-            // สร้างคำสั่งเบิก
+            if (!empty($employeeId)) {
+                // ดึง EmpName + DeptID จาก Webapp_Emp
+                $employee = DB::connection('sqlsrv2')
+                    ->table('dbo.Webapp_Emp')
+                    ->select('EmpName', 'DeptID')
+                    ->where('EmpID', $employeeId)
+                    ->first();
+
+                if ($employee) {
+                    $empName = $employee->EmpName ?? 'ไม่ระบุชื่อ';
+
+                    // ถ้ามี DeptID → ดึงชื่อแผนก
+                    if (!empty($employee->DeptID)) {
+                        $departmentName = DB::connection('sqlsrv2')
+                            ->table('dbo.Webapp_Dept')
+                            ->where('DeptID', $employee->DeptID)
+                            ->value('DeptName') ?? 'ไม่ระบุแผนก';
+                    }
+                }
+            }
+
+            // ✅ ตัวอย่างใช้ทั้ง EmpName และ DeptName ในการสร้าง Order
             $order = StoreOrder::create([
                 'document_number' => 'SO-' . now()->format('YmdHis'),
                 'order_date' => now(),
-                'status' => 'pending', // 👈 เก็บเป็นภาษาเดียวกับที่ updateStatus ตรวจสอบ
+                'status' => 'pending',
                 'department' => $departmentName,
-                'requester' => $user->name,
+                'requester' => $empName, // 👈 ใช้ชื่อพนักงานจริงจาก Webapp_Emp
                 'note' => $data['note'] ?? null,
             ]);
-
+            // dd($order);
             foreach ($data['items'] as $item) {
 
 

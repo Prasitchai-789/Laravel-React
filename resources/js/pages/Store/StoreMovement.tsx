@@ -54,9 +54,6 @@ export default function StoreMovementPage({ title, movements }) {
     }, [search, filterType, movements]);
 
 
-
-
-
     const sortedMovements = useMemo(() => {
         if (!sortConfig.key) return filteredMovements;
 
@@ -489,7 +486,7 @@ export default function StoreMovementPage({ title, movements }) {
                                                                             </svg>
                                                                             <span className="text-blue-800 text-sm">{m.note}</span>
                                                                         </div>
-                                                                     
+
                                                                         <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-white"></div>
                                                                     </div>
                                                                 </div>

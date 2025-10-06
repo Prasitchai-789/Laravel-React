@@ -474,6 +474,8 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
                                                     <Eye className="w-4 h-4 mr-1" />
                                                     ดูรายละเอียด
                                                 </button>
+
+
                                             </td>
                                         </tr>
                                     )) : (
@@ -606,19 +608,29 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
                                                     </div>
                                                 </td>
 
-                                                {/* ปุ่มดูรายละเอียด */}
-                                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                <td className="px-6 py-4 whitespace-nowrap text-center flex justify-center gap-2">
+                                                    {/* ดูรายละเอียด */}
                                                     <button
                                                         onClick={() => {
                                                             setDetailOrder(order);
                                                             setIsDetailOpen(true);
                                                         }}
-                                                        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg text-sm font-medium group-hover:scale-105"
+                                                        className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg text-sm font-medium"
                                                     >
                                                         <Eye className="w-4 h-4 mr-1" />
                                                         ดูรายละเอียด
                                                     </button>
+
+                                                    {/* Export Excel */}
+                                                    <button
+                                                        onClick={() => window.open(route('store.export-excel', { id: order.id }), '_blank')}
+                                                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"
+                                                    >
+                                                        PDF
+                                                    </button>
+
                                                 </td>
+
                                             </tr>
                                         ))
                                     ) : (
