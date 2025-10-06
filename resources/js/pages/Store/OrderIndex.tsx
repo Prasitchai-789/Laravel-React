@@ -232,12 +232,6 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                             คืนสินค้า
                         </button>
 
-                        <button
-                            onClick={() => ""}
-                            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition-colors duration-200 flex items-center shadow-md hover:shadow-lg"
-                        >
-                            PDF
-                        </button>
                     </div>
                 </div>
 

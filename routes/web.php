@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\CitizenController;
 use App\Http\Controllers\ExportStoreController;
 use App\Http\Controllers\AGR\CustomerController;
 use App\Http\Controllers\ChemicalOrderController;
+use App\Http\Controllers\StoreExportController;
 use App\Http\Controllers\Store\StoreOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
 use App\Http\Controllers\Store\StoreMovementController;
@@ -231,9 +232,13 @@ Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrde
         return \App\Models\StoreOrder::select('id', 'document_number', 'order_date', 'status')->get();
     });
 
-
-
     Route::get('/document-items/{documentNumber}', [StoreOrderController::class, 'items']);
+
+    // Export Excel / PDF
+    Route::get('/store/export/{id}', [StoreExportController::class, 'export'])
+        ->name('store.export-excel'); // ตั้งชื่อให้ตรงกับ Ziggy
+
+
 });
 // web.php
 Route::middleware(['auth'])->prefix('store-movements')->group(function () {
@@ -270,6 +275,8 @@ Route::middleware(['auth', 'permission:users.view'])->prefix('memo')->group(func
 Route::fallback(function () {
     return Inertia::render('Errors/404')->toResponse(request())->setStatusCode(404);
 });
+
+
 
 
 
