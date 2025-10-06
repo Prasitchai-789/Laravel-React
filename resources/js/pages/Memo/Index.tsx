@@ -218,7 +218,7 @@ export default function Index() {
 
         const filteredDocs = safeDocs.filter((doc) => {
             const parsedDate = parseDocumentDate(doc.date);
-            const catMatch = selectedCategory ? doc.category_id === selectedCategory : true;
+            const catMatch = selectedCategory ? Number(doc.category_id) === selectedCategory || doc.category_id === selectedCategory : true;
             const monthMatch = selectedMonth ? parsedDate === selectedMonth : true;
             return catMatch && monthMatch;
         });

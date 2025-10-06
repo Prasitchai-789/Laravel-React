@@ -11,7 +11,7 @@ export default function Welcome() {
                 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
             </Head>
             <div className="flex min-h-screen flex-col items-center bg-gradient-to-br from-[#F0F8FF] via-[#E6F3FF] to-[#F5F9FF] p-6 font-anuphan text-[#1E3A8A] lg:justify-center lg:p-8 dark:from-[#0F172A] dark:via-[#1E293B] dark:to-[#334155]">
-                <header className="mb-6 w-full max-w-[335px] text-sm not-has-[nav]:hidden lg:max-w-4xl">
+                <header className="mb-2 w-full max-w-[335px] text-sm not-has-[nav]:hidden lg:max-w-4xl">
                     <nav className="flex items-center justify-end gap-4">
                         {auth.user ? (
                             <Link
@@ -41,16 +41,16 @@ export default function Welcome() {
                 <div className="flex w-full items-center justify-center opacity-100 transition-opacity duration-750 lg:grow starting:opacity-0">
                     <main className="flex w-full max-w-[335px] flex-col items-center lg:max-w-4xl">
                         {/* Hero Section with Icon */}
-                        <div className="mb-10 flex flex-col items-center text-center">
-                            <div className="mb-6 flex h-24 w-24 items-center justify-center overflow-hidden">
+                        <div className="mb-4 flex flex-col items-center text-center">
+                            <div className="mb-2 flex h-24 w-24 items-center justify-center overflow-hidden">
                                 <img
                                     src="/images/logo R.png" // 🔹 เปลี่ยน path ตามรูปของคุณ
-                                    alt="ตัวอย่าง"
+                                    alt="logo"
                                     className="h-20 w-15 object-cover"
                                 />
                             </div>
 
-                            <h1 className="mb-3 text-3xl font-bold">
+                            <h1 className=" text-3xl font-bold">
                                 <span className="bg-gradient-to-r from-[#1E3A8A] to-[#1368ad] bg-clip-text text-transparent">Welcome to</span>{' '}
                                 <span className="bg-gradient-to-r from-[#F59E0B] via-[#FFD700] to-[#CA8A04] bg-clip-text font-extrabold tracking-wide text-transparent">
                                     ISANPALM
@@ -59,6 +59,54 @@ export default function Welcome() {
                             <p className="max-w-md text-lg text-[#475569] dark:text-[#CBD5E1]">
                                 <span className="text-[#198a0f]">ทำงานอย่างมีความสุข</span> สนุกกับการทำงาน
                             </p>
+                        </div>
+
+                        {/* ส่วน Products Section */}
+                        <div className ="w-full text-center">
+                            <div className="">
+                                <span className="bg-gradient-to-r from-[#F59E0B] via-[#FFD700] to-[#CA8A04] bg-clip-text text-3xl font-extrabold tracking-wide text-transparent">
+                                    Our Products
+                                </span>
+                                <p className=" text-gray-600">ผลิตภัณฑ์คุณภาพจากโรงงานปาล์มน้ำมัน</p>
+
+                                {/* Grid ของสินค้า */}
+                                <div className="mt-2 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                                    {/* Card 1 */}
+                                    <div className="overflow-hidden rounded-2xl shadow-lg transition hover:scale-105 hover:shadow-xl bg-white">
+                                        <img src="/images/products/PalmOil.png" alt="Palm Oil" className="h-48 w-full object-cover" />
+                                        <div className="p-5 text-left">
+                                            <h3 className="bg-gradient-to-r from-[#F59E0B] via-[#FFD700] to-[#CA8A04] bg-clip-text text-lg font-extrabold tracking-wide text-transparent">น้ำมันปาล์มดิบ</h3>
+                                            <p className="mt-2 text-sm text-gray-600">น้ำมันปาล์มคุณภาพสูง สกัดจากผลปาล์มสดใหม่</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Card 2 */}
+                                    <div className="overflow-hidden rounded-2xl shadow-lg transition hover:scale-105 hover:shadow-xl bg-white">
+                                        <img src="/images/products/Kernel.jpg" alt="Kernel" className="h-48 w-full object-cover" />
+                                        <div className="p-5 text-left">
+                                            <h3 className="bg-gradient-to-r from-[#F59E0B] via-[#FFD700] to-[#CA8A04] bg-clip-text text-lg font-extrabold tracking-wide text-transparent">เมล็ดในปาล์มอบแห้ง</h3>
+                                            <p className="mt-2 text-sm text-gray-600">ผ่านการกลั่นให้ใส เหมาะกับการปรุงอาหาร</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Card 3 */}
+                                    <div className="overflow-hidden rounded-2xl shadow-lg transition hover:scale-105 hover:shadow-xl bg-white">
+                                        <img src="/images/products/PalmShell.jpg" alt="Biomass" className="h-48 w-full object-cover" />
+                                        <div className="p-5 text-left">
+                                            <h3 className="bg-gradient-to-r from-[#F59E0B] via-[#FFD700] to-[#CA8A04] bg-clip-text text-lg font-extrabold tracking-wide text-transparent">กะลาปาล์ม (เพียว)</h3>
+                                            <p className="mt-2 text-sm text-gray-600">ผลิตภัณฑ์พลอยได้จากโรงงาน ใช้ผลิตพลังงานสะอาด</p>
+                                        </div>
+                                    </div>
+                                    {/* Card 4 */}
+                                    <div className="overflow-hidden rounded-2xl shadow-lg transition hover:scale-105 hover:shadow-xl bg-white">
+                                        <img src="/images/products/Fiber.png" alt="Biomass" className="h-48 w-full object-cover" />
+                                        <div className="p-5 text-left">
+                                            <h3 className="bg-gradient-to-r from-[#F59E0B] via-[#FFD700] to-[#CA8A04] bg-clip-text text-lg font-extrabold tracking-wide text-transparent">ทะลายปาล์มสับ</h3>
+                                            <p className="mt-2 text-sm text-gray-600">ผลิตภัณฑ์พลอยได้จากโรงงาน ใช้ผลิตพลังงานสะอาด</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         {/* Quick Stats */}
                         <div className="mt-4 grid w-full grid-cols-2 gap-6 lg:grid-cols-4">
@@ -398,53 +446,7 @@ export default function Welcome() {
                             </div>
                         </div>
 
-                        {/* ส่วน Products Section */}
-                        <div className ="mt-16 w-full text-center">
-                            <div className="">
-                                <span className="bg-gradient-to-r from-[#F59E0B] via-[#FFD700] to-[#CA8A04] bg-clip-text text-3xl font-extrabold tracking-wide text-transparent">
-                                    Our Products
-                                </span>
-                                <p className="mt-4 text-gray-600">ผลิตภัณฑ์คุณภาพจากโรงงานปาล์มน้ำมัน</p>
 
-                                {/* Grid ของสินค้า */}
-                                <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                                    {/* Card 1 */}
-                                    <div className="overflow-hidden rounded-2xl shadow-lg transition hover:scale-105 hover:shadow-xl bg-white">
-                                        <img src="/images/products/PalmOil.png" alt="Palm Oil" className="h-48 w-full object-cover" />
-                                        <div className="p-5 text-left">
-                                            <h3 className="bg-gradient-to-r from-[#F59E0B] via-[#FFD700] to-[#CA8A04] bg-clip-text text-lg font-extrabold tracking-wide text-transparent">น้ำมันปาล์มดิบ</h3>
-                                            <p className="mt-2 text-sm text-gray-600">น้ำมันปาล์มคุณภาพสูง สกัดจากผลปาล์มสดใหม่</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Card 2 */}
-                                    <div className="overflow-hidden rounded-2xl shadow-lg transition hover:scale-105 hover:shadow-xl bg-white">
-                                        <img src="/images/products/Kernel.jpg" alt="Kernel" className="h-48 w-full object-cover" />
-                                        <div className="p-5 text-left">
-                                            <h3 className="bg-gradient-to-r from-[#F59E0B] via-[#FFD700] to-[#CA8A04] bg-clip-text text-lg font-extrabold tracking-wide text-transparent">เมล็ดในปาล์มอบแห้ง</h3>
-                                            <p className="mt-2 text-sm text-gray-600">ผ่านการกลั่นให้ใส เหมาะกับการปรุงอาหาร</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Card 3 */}
-                                    <div className="overflow-hidden rounded-2xl shadow-lg transition hover:scale-105 hover:shadow-xl bg-white">
-                                        <img src="/images/products/PalmShell.jpg" alt="Biomass" className="h-48 w-full object-cover" />
-                                        <div className="p-5 text-left">
-                                            <h3 className="bg-gradient-to-r from-[#F59E0B] via-[#FFD700] to-[#CA8A04] bg-clip-text text-lg font-extrabold tracking-wide text-transparent">กะลาปาล์ม (เพียว)</h3>
-                                            <p className="mt-2 text-sm text-gray-600">ผลิตภัณฑ์พลอยได้จากโรงงาน ใช้ผลิตพลังงานสะอาด</p>
-                                        </div>
-                                    </div>
-                                    {/* Card 4 */}
-                                    <div className="overflow-hidden rounded-2xl shadow-lg transition hover:scale-105 hover:shadow-xl bg-white">
-                                        <img src="/images/products/Fiber.png" alt="Biomass" className="h-48 w-full object-cover" />
-                                        <div className="p-5 text-left">
-                                            <h3 className="bg-gradient-to-r from-[#F59E0B] via-[#FFD700] to-[#CA8A04] bg-clip-text text-lg font-extrabold tracking-wide text-transparent">ทะลายปาล์มสับ</h3>
-                                            <p className="mt-2 text-sm text-gray-600">ผลิตภัณฑ์พลอยได้จากโรงงาน ใช้ผลิตพลังงานสะอาด</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
                     </main>
                 </div>
