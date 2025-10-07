@@ -7,6 +7,7 @@ import 'dayjs/locale/th';
 import Swal from 'sweetalert2';
 // import { useEffect } from 'react';
 import SaleProductSelect from './SaleProductSelect'
+import CustomerSelect from './CustomerSelect'
 import React, { useState, useEffect } from 'react';
 
 // ✅ utility ฟังก์ชัน แก้ปัญหา date format
@@ -100,18 +101,18 @@ export default function SaleForm({
                     className="font-anuphan"
                 />
 
-                <Select
-                    label="ลูกค้า"
-                    name="customer_id"
+               
+
+                <CustomerSelect
+                    customers={customers}
                     value={data.customer_id}
-                    onChange={(e) => setData('customer_id', e.target.value)}
-                    options={[
-                        { value: '', label: '-- เลือกลูกค้า --', disabled: true },
-                        ...customers.map((c) => ({ value: c.id, label: c.name })),
-                    ]}
-                    error={errors.customer_id}
+                    onChange={(value: string) => setData('customer_id', value)}
+                    placeholder="เลือกลูกค้า"
+                    showSearch
+                    showClear
+                    label="ลูกค้า"
+                    required
                     disabled={processing}
-                    className="font-anuphan"
                 />
 
                 <SaleProductSelect
