@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Link } from '@inertiajs/react';
@@ -8,7 +8,7 @@ import FormEdit from './useFormEdit';
 import FormReturn from './useFormReturn';
 import Swal from 'sweetalert2';
 import { can } from '@/lib/can';
-import { useEffect } from 'react';
+
 // mapping จากรหัสสินค้า (GoodCode) เป็นชื่อประเภทสินค้า
 const goodCodeCategories: Record<string, string> = {
     "ST-EL": "อุปกรณ์ไฟฟ้า",
@@ -17,7 +17,6 @@ const goodCodeCategories: Record<string, string> = {
     "ST-EQ": "วัสดุสิ้นเปลือง",
     "P-TS-AG001": "ทั่วไป",
 };
-
 
 const getCategoryByGoodCode = (goodCode?: string) => {
     if (!goodCode) return;
@@ -66,7 +65,6 @@ const GoodsIndex = ({ goods: initialGoods }) => {
     const itemsPerPage = 12;
     const [editingProductId, setEditingProductId] = useState<number | null>(null);
     const [editingProduct, setEditingProduct] = useState<any>({});
-
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
     const [selectedProduct, setSelectedProduct] = useState(null);
@@ -84,33 +82,18 @@ const GoodsIndex = ({ goods: initialGoods }) => {
         setIsReturnModalOpen(true);
     };
 
-    const calculateStockInfo = (product: any, returnQty: number) => {
-        const stockQty = product.stock_qty ?? 0;
-        const reservedQty = product.reservedQty ?? 0;
+    // ✅ แก้ไขฟังก์ชันคำนวณสต็อก
+    const calculateStockInfo = (product: any) => {
+        const stockQty = Number(product.StockQty ?? product.stock_qty ?? 0);
+        const reservedQty = Number(product.reservedQty ?? 0);
 
-        const actualReturn = Math.min(returnQty, reservedQty);
+        const availableQty = stockQty - reservedQty;
 
         return {
-            stockQty: stockQty + actualReturn,
-            reservedQty: reservedQty - actualReturn,
-            availableQty: stockQty + actualReturn - (reservedQty - actualReturn)
+            stockQty: stockQty,
+            reservedQty: reservedQty,
+            availableQty: Math.max(0, availableQty) // ไม่ให้ติดลบ
         };
-    };
-
-
-
-    const startEditProduct = (product) => {
-        setEditingProductId(product.GoodID);
-        setEditingProduct({ ...product });
-    };
-
-    const saveProductEdit = () => {
-        console.log("บันทึก", editingProduct);
-        setEditingProductId(null);
-    };
-
-    const cancelEdit = () => {
-        setEditingProductId(null);
     };
 
     // ✅ สร้างหมวดหมู่จาก GoodCode เฉพาะที่มีหมวดหมู่จริง
@@ -170,25 +153,6 @@ const GoodsIndex = ({ goods: initialGoods }) => {
         currentPage * itemsPerPage
     );
 
-    const showQRCode = (product) => {
-        Swal.fire({
-            title: product.GoodName,
-
-            html: `<div style="display:flex;justify-content:center;">
-                  <canvas id="qrcode"></canvas>
-               </div>`,
-            didOpen: () => {
-                const canvas = document.getElementById('qrcode');
-                const qr = new QRCodeCanvas({
-                    value: route('StoreOrder.qrcode', { order: product.GoodID }),
-                    size: 200,
-                    level: 'H',
-                });
-                canvas.replaceWith(qr);
-            }
-        });
-    };
-
     // ✅ นับจำนวนสินค้าในแต่ละหมวดหมู่
     const categoryCounts = useMemo(() => {
         const counts: Record<string, number> = {};
@@ -208,6 +172,7 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                 { title: 'จัดการสินค้า', href: route('orders.index') },
             ]}
         >
+
             <Head title="จัดการสินค้า" />
 
             <div className="px-4 py-6 sm:px-6  font-anuphan">
@@ -230,6 +195,15 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                             คืนสินค้า
+                        </button>
+                        <button
+                            onClick={() => openModal('create')}
+                            className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-colors duration-200 flex items-center shadow-md hover:shadow-lg"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-plus" viewBox="0 0 16 16">
+                                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4" />
+                            </svg>
+                            เพิ่มสินค้า
                         </button>
 
                     </div>
@@ -303,7 +277,7 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                                             }`}
                                     >
                                         {category}
-                                        <span className={`ml-2 px-2 py-1 rounded-full ${selectedCategory === category ? 'bg-white bg-opacity-20' : 'bg-gray-200'}`}>
+                                        <span className={`ml-2 px-2 py-1 rounded-full ${selectedCategory === category ? 'bg-white bg-opacity-20 text-gray-700' : 'bg-gray-200'}`}>
                                             {categoryCounts[category]}
                                         </span>
                                     </button>
@@ -353,7 +327,6 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                         หน้า {currentPage} จาก {totalPages}
                     </p>
                 </div>
-
 
                 <div className="mb-8">
                     {paginatedGoods.length > 0 ? (
@@ -405,14 +378,12 @@ const GoodsIndex = ({ goods: initialGoods }) => {
 
                                             <tbody className="bg-white divide-y divide-gray-100">
                                                 {paginatedGoods.map((product) => {
-                                                    const stockQty = product.StockQty ?? product.stock_qty ?? 0;
-                                                    const reservedQty = product.reservedQty ?? 0;
-                                                    const availableQty = stockQty - reservedQty;
+                                                    // ✅ ใช้ฟังก์ชันคำนวณสต็อกที่แก้ไขแล้ว
                                                     const stockInfo = calculateStockInfo(product);
                                                     const category = getCategoryByGoodCode(product.GoodCode) ?? '-';
-                                                    const safetyStock = product.safety_stock ?? 0;
+                                                    const safetyStock = Number(product.safety_stock ?? 0);
 
-                                                    // คำนวณสถานะตาม Safety Stock
+                                                    // ✅ คำนวณสถานะตาม Safety Stock โดยใช้ stockInfo.stockQty
                                                     const stockStatus = getStockStatus(stockInfo.stockQty, safetyStock);
                                                     const statusText = getStatusText(stockInfo.stockQty, safetyStock);
 
@@ -424,16 +395,16 @@ const GoodsIndex = ({ goods: initialGoods }) => {
 
                                                     const currentStatus = statusStyles[stockStatus];
 
-                                                    // สถานะเบิกได้
+                                                    // ✅ สถานะเบิกได้ ใช้ stockInfo.availableQty
                                                     let availableBg = 'bg-red-50 border-red-100';
                                                     let availableText = 'text-red-600';
                                                     let availableBorder = 'border-red-100';
 
-                                                    if (availableQty > 10) {
+                                                    if (stockInfo.availableQty > 10) {
                                                         availableBg = 'bg-green-50 border-green-100';
                                                         availableText = 'text-green-600';
                                                         availableBorder = 'border-green-100';
-                                                    } else if (availableQty > 0) {
+                                                    } else if (stockInfo.availableQty > 0) {
                                                         availableBg = 'bg-amber-50 border-amber-100';
                                                         availableText = 'text-amber-600';
                                                         availableBorder = 'border-amber-100';
@@ -466,38 +437,38 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                                                                 </div>
                                                             </td>
 
-                                                            {/* Safety Stock */}
+                                                            {/* ✅ จำนวนคงเหลือ - ใช้ stockInfo.stockQty */}
                                                             <td className="px-4 py-2">
                                                                 <div className="flex flex-col gap-2 min-w-[40px]">
                                                                     <div className="flex items-center justify-between bg-blue-50 px-2 py-1 rounded-md border border-blue-100">
                                                                         <span className="text-xs text-blue-600">มีอยู่</span>
-                                                                        <span>{stockQty.toLocaleString()}</span>
+                                                                        <span>{stockInfo.stockQty.toLocaleString()}</span>
                                                                     </div>
                                                                 </div>
                                                             </td>
 
-                                                            {/* จำนวนคงเหลือ */}
+                                                            {/* ✅ การเคลื่อนไหวของสินค้า - ใช้ stockInfo */}
                                                             <td className="px-4 py-3">
                                                                 <div className="flex flex-col gap-1.5 min-w-[110px]">
                                                                     <div className="flex items-center justify-between bg-amber-50 px-2 py-1.5 rounded-md border border-amber-100">
                                                                         <span className="text-xs text-amber-600">ถูกจอง</span>
-                                                                        <span className="text-xs font-semibold text-amber-800">{reservedQty.toLocaleString()}</span>
+                                                                        <span className="text-xs font-semibold text-amber-800">{stockInfo.reservedQty.toLocaleString()}</span>
                                                                     </div>
                                                                     <div className={`flex items-center justify-between px-2 py-1.5 rounded-md border ${availableBg} ${availableBorder}`}>
                                                                         <span className={`text-xs font-semibold ${availableText}`}>เบิกได้</span>
-                                                                        <span className={`text-xs font-semibold ${availableText}`}>{availableQty.toLocaleString()}</span>
+                                                                        <span className={`text-xs font-semibold ${availableText}`}>{stockInfo.availableQty.toLocaleString()}</span>
                                                                     </div>
                                                                 </div>
                                                             </td>
 
-                                                            {/* สถานะ */}
+                                                            {/* ✅ สถานะ - ใช้ stockInfo.stockQty */}
                                                             <td className="px-4 py-3">
                                                                 <div className="flex flex-col items-center space-y-2">
                                                                     <div className="text-xs font-medium text-gray-500 tracking-wide">Safety Stock</div>
                                                                     <div className="flex flex-col gap-2">
-                                                                        <div className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-semibold transition-all duration-200 shadow-sm ${stockQty > safetyStock
+                                                                        <div className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-semibold transition-all duration-200 shadow-sm ${stockInfo.stockQty > safetyStock
                                                                             ? 'bg-green-50 text-green-700 border border-green-200 shadow-green-100'
-                                                                            : stockQty >= safetyStock * 0.8
+                                                                            : stockInfo.stockQty >= safetyStock * 0.8
                                                                                 ? 'bg-amber-50 text-amber-700 border border-amber-200 shadow-amber-100'
                                                                                 : 'bg-red-50 text-red-700 border border-red-200 shadow-red-100'
                                                                             }`}>
@@ -514,7 +485,10 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                                                             {/* QR Code */}
                                                             <td className="px-4 py-3">
                                                                 <div className="flex flex-col items-center max-w-[60px]">
-                                                                    <div className="transition-transform duration-300 hover:scale-150">
+                                                                    <Link
+                                                                        href={route('StoreOrder.qrcode', { order: product.GoodID })}
+                                                                        className="cursor-pointer transition-transform duration-300 hover:scale-150 block"
+                                                                    >
                                                                         <QRCodeCanvas
                                                                             value={route('StoreOrder.qrcode', { order: product.GoodID })}
                                                                             size={45}
@@ -522,11 +496,11 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                                                                             includeMargin={true}
                                                                             className="rounded"
                                                                         />
-                                                                    </div>
+                                                                    </Link>
                                                                     <span className="text-xs text-gray-500 mt-1 truncate text-center leading-tight">{product.GoodCode}</span>
                                                                 </div>
                                                             </td>
-
+                                                            
                                                             {/* การจัดการ */}
                                                             <td className="px-4 py-3">
                                                                 <div className="flex justify-center">
@@ -554,20 +528,16 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                                 </div>
                             ) : (
 
-                                // Card View
+                                // ✅ Card View - แก้ไขแล้ว
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                     {paginatedGoods.map((product, index) => {
-                                        // แปลงเป็น number ก่อน
-                                        const stockQty = Number(product.StockQty ?? product.stock_qty ?? 0);
-                                        const reservedQty = Number(product.reservedQty ?? 0);
-                                        const availableQty = stockQty - reservedQty;
+                                        // ✅ ใช้ฟังก์ชันคำนวณสต็อกที่แก้ไขแล้ว
+                                        const stockInfo = calculateStockInfo(product);
+                                        const category = getCategoryByGoodCode(product.GoodCode) ?? '-';
                                         const safetyStock = Number(product.safety_stock ?? 0);
 
-                                        const stockInfo = { stockQty, reservedQty, availableQty };
-                                        const category = getCategoryByGoodCode(product.GoodCode) ?? '-';
-
-                                        const stockStatus = getStockStatus(stockQty, safetyStock);
-                                        const statusText = getStatusText(stockQty, safetyStock);
+                                        const stockStatus = getStockStatus(stockInfo.stockQty, safetyStock);
+                                        const statusText = getStatusText(stockInfo.stockQty, safetyStock);
 
                                         const statusStyles = {
                                             green: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-400', border: 'border-green-200' },
@@ -625,7 +595,7 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                                                     </Link>
                                                 </div>
 
-                                                {/* Stock Information */}
+                                                {/* ✅ Stock Information - ใช้ stockInfo */}
                                                 <div className="space-y-3 pt-4 border-t border-gray-200 mb-4">
                                                     {/* Safety Stock */}
                                                     <div className="flex items-center justify-between p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg">
@@ -810,11 +780,20 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                     </ModalForm>
                 )}
 
-
             </div>
 
         </AppLayout >
     );
+
 };
 
 export default GoodsIndex;
+
+
+
+
+
+
+
+
+

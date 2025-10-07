@@ -228,22 +228,7 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ onClose, onSuccess }) => {
 
     return (
         <div className="bg-white rounded-2xl shadow-xl p-6 max-w-4xl mx-auto modal-container  font-anuphan">
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-                    <svg className="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
-                    </svg>
-                    คืนสินค้า
-                </h2>
-                <button
-                    onClick={onClose}
-                    className="text-gray-500 hover:text-gray-700 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
+            
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* ค้นหาและเลือกเอกสาร */}

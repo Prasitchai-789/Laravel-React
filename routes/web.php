@@ -238,7 +238,8 @@ Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrde
     Route::get('/store/export/{id}', [StoreExportController::class, 'export'])
         ->name('store.export-excel'); // ตั้งชื่อให้ตรงกับ Ziggy
 
-
+    // routes/web.php
+    Route::get('/goods/search-new', [StoreOrderController::class, 'searchNew'])->name('goods.search-new');
 });
 // web.php
 Route::middleware(['auth'])->prefix('store-movements')->group(function () {
@@ -268,8 +269,6 @@ Route::middleware(['auth', 'permission:users.view'])->prefix('memo')->group(func
 
 // Route::get('/stock', [StockOrderController::class, 'index'])->name('stock.index');
 // Route::post('/api/storeorder', [StockOrderController::class, 'store']);
-
-
 
 // errors pages
 Route::fallback(function () {

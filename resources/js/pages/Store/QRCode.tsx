@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { router } from '@inertiajs/react';
 import { Link } from '@inertiajs/react';
- 
+
 const QRCodePage = ({ product }: { product: any }) => {
     const [editableProduct, setEditableProduct] = useState({ ...product });
     const [isEditing, setIsEditing] = useState(false);
 
-    // ฟังก์ชันตรวจสอบสถานะสต็อก
-    const getStockStatus = (quantity, safetyStock) => {
+    const getStockStatus = (quantity: number, safetyStock: number) => {
         const qty = quantity || 0;
         const safety = safetyStock || 0;
         if (qty > safety * 1.5) return { text: 'พร้อมใช้งาน', color: 'text-green-600', bg: 'bg-green-100' };
@@ -19,91 +17,31 @@ const QRCodePage = ({ product }: { product: any }) => {
 
     const stockStatus = getStockStatus(editableProduct.stock_qty, editableProduct.safety_stock);
 
-    // ฟังก์ชันจัดรูปแบบราคา
-    const formatPrice = (price) => {
-        if (!price) return '0.00';
-        return new Intl.NumberFormat('th-TH', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }).format(price);
+    const formatPrice = (price: number) => {
+        return price != null
+            ? new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price)
+            : '0.00';
     };
 
-    // ฟังก์ชันจัดรูปแบบจำนวน
-    const formatNumber = (number) => {
-        if (!number) return '0';
-        return new Intl.NumberFormat('th-TH').format(number);
+    const formatNumber = (number: number) => {
+        return number != null ? new Intl.NumberFormat('th-TH').format(number) : '0';
     };
 
     const handleChange = (field: string, value: any) => {
         setEditableProduct(prev => ({ ...prev, [field]: value }));
     };
 
-    const handleSave = () => {
-        setIsEditing(false);
-        router.get(route('StoreIssue.index'));
-    };
-
-    // ฟังก์ชันแปลงชื่อฟิลด์เป็นภาษาไทย
-    const getThaiFieldName = (field) => {
-        const fieldNames = {
-            'GoodCode': 'รหัสสินค้า',
-            'GoodStockUnitName': 'หน่วยนับ',
-            'stock_qty': 'จำนวนในสต็อก',
-            'safety_stock': 'สต็อกปลอดภัย',
-            'price': 'ราคา',
-            'GoodName': 'ชื่อสินค้า',
-            'GoodID': 'รหัสประจำสินค้า',
-            'category': 'หมวดหมู่'
-        };
-        return fieldNames[field] || field;
-    };
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex flex-col items-center justify-center font-anuphan">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-5 text-white text-center">
                     <h1 className="text-xl font-bold mb-1">QR Code สินค้า</h1>
+
                     <p className="text-sm opacity-90">สแกนเพื่อดูข้อมูลสินค้า</p>
                 </div>
 
-                {/* Product Name Section */}
-                <div className="p-5 border-b border-gray-100">
-                    <div className="flex flex-col items-center space-y-3">
-                                                       
-                        <Link
-                            href={`/StoreOrder?goodCode=${editableProduct.GoodCode}`}
-                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
-                        >
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
-                            แก้ไขข้อมูล
-                        </Link>
-                    </div>
-                </div>
-
-                {/* QR Code Section */}
-                <div className="p-6 flex flex-col items-center justify-center">
-                    <h2 className="text-lg font-semibold text-gray-800 text-center line-clamp-2">
-                        {editableProduct.GoodName}
-                    </h2>
-                    <QRCodeCanvas
-                        value={route('StoreOrder.qrcode', { order: product.GoodID })}
-                        size={300}
-                        level="H"
-                        includeMargin={true}
-                        className="rounded shadow-sm"
-                    />
-                    <h2 className="text-lg font-semibold text-gray-800 text-center line-clamp-2">
-                                {editableProduct.GoodCode}
-                            </h2>
-                    <div className="mt-4 flex items-center justify-center">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${stockStatus.bg} ${stockStatus.color}`}>
-                            {stockStatus.text}
-                        </span>
-                    </div>
-                </div>
 
                 {/* Product Details */}
                 <div className="p-5 bg-gray-50">
@@ -147,20 +85,35 @@ const QRCodePage = ({ product }: { product: any }) => {
                         ))}
                     </div>
                 </div>
-
-
-                {/* Download QR Code */}
                 
+                {/* Product Name + Edit */}
+                <div className="p-5 border-b border-gray-100 flex flex-col items-center space-y-3">
+                    <h2 className="text-lg font-semibold">{editableProduct.GoodName}</h2>
 
+                    {/* QR Code */}
+                    <div className="p-6 flex flex-col items-center justify-center">
+                        <QRCodeCanvas
+                            value={route('StoreOrder.qrcode', { order: editableProduct.GoodID })}
+                            size={250}
+                            level="H"
+                            includeMargin={true}
+                            className="rounded shadow-sm"
+                        />
+                        <span className={`mt-3 px-3 py-1 rounded-full text-xs font-medium ${stockStatus.bg} ${stockStatus.color}`}>
+                            {stockStatus.text}
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => setIsEditing(!isEditing)}
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
+                    >
+                        แก้ไขข้อมูล
+                    </button>
+                </div>
                 {/* Footer */}
                 <div className="p-4 bg-white text-center border-t border-gray-200">
-                    
                     <p className="text-xs text-gray-400 mt-1">
-                        ข้อมูลล่าสุด : {new Date().toLocaleDateString('th-TH', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        })}
+                        ข้อมูลล่าสุด : {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                     </p>
                 </div>
             </div>

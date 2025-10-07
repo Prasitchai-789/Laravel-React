@@ -28,10 +28,16 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
     const [isReturnOpen, setIsReturnOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // ✅ State สำหรับค้นหาสินค้า
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [showSearchResults, setShowSearchResults] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
     // ฟังก์ชันป้องกันการกดซ้ำ
     const handleSubmitWithPrevention = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (isSubmitting) {
             Swal.fire({
                 icon: 'info',
@@ -75,6 +81,67 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
             });
         }
     }, [data]);
+
+    // ✅ ฟังก์ชันค้นหาสินค้าใหม่จาก EMGood (Auto-search)
+    const searchNewGoods = async (query: string) => {
+        if (!query.trim() || query.length < 2) {
+            setSearchResults([]);
+            setShowSearchResults(false);
+            return;
+        }
+
+        setIsSearching(true);
+        try {
+            const response = await fetch(route('goods.search-new') + `?query=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            setSearchResults(data);
+            setShowSearchResults(data.length > 0);
+        } catch (error) {
+            console.error('Error searching new goods:', error);
+            setSearchResults([]);
+            setShowSearchResults(false);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    // ✅ ฟังก์ชันเมื่อพิมพ์ในช่องค้นหา
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const query = e.target.value;
+        setSearchQuery(query);
+
+        // ค้นหาโดยอัตโนมัติเมื่อพิมพ์
+        if (query.length >= 2) {
+            const debounceTimer = setTimeout(() => {
+                searchNewGoods(query);
+            }, 300);
+
+            return () => clearTimeout(debounceTimer);
+        } else {
+            setSearchResults([]);
+            setShowSearchResults(false);
+        }
+    };
+
+    // ✅ ฟังก์ชันเลือกสินค้าจากผลการค้นหา
+    const selectProduct = (good: any) => {
+        setProduct(prev => ({
+            ...prev,
+            good_code: good.GoodCode,
+            GoodName: good.GoodName
+        }));
+        setSearchQuery('');
+        setSearchResults([]);
+        setShowSearchResults(false);
+
+        Swal.fire({
+            icon: 'success',
+            title: 'เลือกสินค้าเรียบร้อย',
+            text: `เลือก ${good.GoodCode} - ${good.GoodName} แล้ว`,
+            timer: 1500,
+            showConfirmButton: false
+        });
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -198,6 +265,67 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
                             ข้อมูลสินค้า
                         </h3>
 
+                        {/* ✅ ช่องค้นหาสินค้าใหม่ */}
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <svg className="w-4 h-4 text-purple-500 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                ค้นหาสินค้าใหม่จากระบบ EMGood
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={handleSearchChange}
+                                    placeholder="พิมพ์รหัสหรือชื่อสินค้าเพื่อค้นหา (อย่างน้อย 2 ตัวอักษร)..."
+                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                />
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                                {isSearching && (
+                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ✅ ผลลัพธ์การค้นหา */}
+                            {showSearchResults && (
+                                <div className="mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
+                                    <div className="p-3 border-b border-gray-100 bg-gray-50">
+                                        <p className="text-sm text-gray-600">
+                                            พบสินค้า {searchResults.length} รายการ
+                                        </p>
+                                    </div>
+                                    <div className="divide-y divide-gray-100">
+                                        {searchResults.map((good, index) => (
+                                            <div
+                                                key={index}
+                                                className="p-3 hover:bg-purple-50 cursor-pointer transition-colors"
+                                                onClick={() => selectProduct(good)}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <span className="inline-block px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded mr-2">
+                                                            {good.GoodCode}
+                                                        </span>
+                                                        <span className="text-sm text-gray-800">{good.GoodName}</span>
+                                                    </div>
+                                                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* รหัสสินค้า */}
                             <div className="bg-gray-50 rounded-lg p-4">
@@ -235,10 +363,10 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
                                         <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                                     </svg>
                                     <span className="text-gray-800 font-medium">
-                                        ฿ {parseFloat(product.price || 0).toLocaleString('th-TH', {
+                                        {parseFloat(product.price || 0).toLocaleString('th-TH', {
                                             minimumFractionDigits: 2,
                                             maximumFractionDigits: 2
-                                        })}
+                                        })} ฿
                                     </span>
                                 </div>
                             </div>
@@ -273,7 +401,7 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
         `}
                                 >
                                     <div
-                                        className={`w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition-colors duration-200 
+                                        className={`w-12 h-12 rounded-lg flex items-center justify-center mb-3 transition-colors duration-200
           ${editCategory === 'both' ? 'bg-blue-500 text-white' : 'bg-blue-100 text-gray-500'}`}
                                     >
                                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -579,7 +707,7 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
                             </svg>
                             ยกเลิก
                         </button>
-                        
+
                         <button
                             type="submit"
                             disabled={isSubmitting}
@@ -604,6 +732,7 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
                             )}
                         </button>
                     </div>
+                    
                 </form>
             </div>
         </div>
