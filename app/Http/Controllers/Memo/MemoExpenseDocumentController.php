@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Memo;
 
 use Inertia\Inertia;
+use App\Models\WIN\PODT;
+use App\Models\WIN\POHD;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +17,9 @@ class MemoExpenseDocumentController extends Controller
     {
         $categories = MemoExpenseCategories::all();
         $documents = MemoExpenseDocuments::with('category', 'attachments')->get();
+        $winspeed = POHD::where('DocuNo', 'POR6807-00066')->get();
+        $result = $winspeed[0]->POID;
+        $podt = PODT::where('POID', $result)->get();
         return Inertia::render('Memo/Index', [
             'categories' => $categories,
             'documents' => $documents,
@@ -30,6 +35,43 @@ class MemoExpenseDocumentController extends Controller
             'documents' => $documents,
         ]);
     }
+
+    public function show($ref_id)
+    {
+        // ดึง Header (POHD)
+        $pohd = POHD::where('POVendorNo', $ref_id)->first();
+
+        if (!$pohd) {
+            return response()->json([
+                'message' => 'ไม่พบข้อมูลใบสั่งซื้อในระบบ',
+            ], 404);
+        }
+
+        // ดึง Detail (PODT)
+        $podt = PODT::where('POID', $pohd->POID)->get();
+
+        // ดึงข้อมูลเอกสาร Memo
+        $memoDocument = MemoExpenseDocuments::with('category', 'attachments')
+            ->where('winspeed_ref_id', $ref_id)
+            ->first();
+
+        if (!$memoDocument) {
+            return response()->json([
+                'message' => 'ไม่พบข้อมูลเอกสารในระบบ',
+            ], 404);
+        }
+
+        // ส่งข้อมูลกลับให้ React
+        return response()->json([
+            'winspeed_header' => $pohd,
+            'winspeed_detail' => $podt,
+            'memo_document' => $memoDocument,
+        ]);
+    }
+
+
+
+
     public function create()
     {
         $categories = MemoExpenseCategories::all();
