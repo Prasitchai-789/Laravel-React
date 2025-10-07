@@ -1,7 +1,7 @@
 import GenericTable, { Column } from '@/components/Tables/GenericTable';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2 ,Eye} from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Attachment {
@@ -33,9 +33,10 @@ interface DocumentTableProps {
     categories: Category[];
     onEdit?: (document: Document) => void;
     onDelete?: (document: Document) => void;
+    onDetail?: (document: Document) => void;
 }
 
-export default function DocumentTable({ documents, categories, onEdit, onDelete }: DocumentTableProps) {
+export default function DocumentTable({ documents, categories, onEdit, onDelete , onDetail}: DocumentTableProps) {
     const [selectedMonth, setSelectedMonth] = useState('');
 
     useEffect(() => {
@@ -51,6 +52,9 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
 
 
     const filteredDocuments = filterByMonth(documents, selectedMonth);
+    const handleDetail = (document: Document) => {
+        if (onDetail) onDetail(document);
+    };
     const handleEdit = (document: Document) => {
         if (onEdit) onEdit(document);
     };
@@ -179,6 +183,22 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
             idField="id"
             actions={(row) => (
                 <div className="flex justify-center gap-2">
+                     <button
+                        className="group relative text-blue-600 transition-all duration-300 hover:scale-110 focus:outline-none"
+                        onClick={() => handleDetail(row)}
+                        aria-label="แก้ไข"
+                    >
+                        <div className="relative flex items-center justify-center">
+                            <div className="rounded-lg bg-blue-50 p-1 transition-colors duration-300 group-hover:bg-blue-100">
+                                <Eye size={18} className="text-blue-600" />
+                            </div>
+                            <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100">
+                                รายละเอียด
+                                <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-blue-600"></div>
+                            </span>
+                        </div>
+                    </button>
+
                     <button
                         className="group relative text-yellow-600 transition-all duration-300 hover:scale-110 focus:outline-none"
                         onClick={() => handleEdit(row)}

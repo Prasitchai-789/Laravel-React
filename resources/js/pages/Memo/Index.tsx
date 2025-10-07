@@ -5,12 +5,12 @@ import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { Plus } from 'lucide-react';
+import { FolderOpen, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
+import DocumentDetailForm from './DocumentDetailForm';
 import DocumentForm from './DocumentForm';
 import DocumentTable from './DocumentTable';
-import {FolderOpen} from 'lucide-react';
 
 // ==== Interfaces ====
 interface Category {
@@ -57,6 +57,7 @@ export default function Index() {
     // ==== UI State ====
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModalOpenDetail, setIsModalOpenDetail] = useState(false);
     const [mode, setMode] = useState<'create' | 'edit'>('create');
     const page = usePage<{ auth: { user?: any; permissions?: string[] } }>();
 
@@ -342,6 +343,48 @@ export default function Index() {
         }
     };
 
+    const fetchDataShow = async (document: Document) => {
+    if (!document?.winspeed_ref_id) {
+        console.warn('Missing winspeed_ref_id');
+        return;
+    }
+
+    try {
+        const res = await axios.get(`/memo/documents/show/${document.winspeed_ref_id}`);
+        setSelectedDocument(res.data);
+        // console.log('Header:', res.data.winspeed_header);
+        // console.log('Details:', res.data.winspeed_detail);
+        // console.log('Memo Document:', res.data.memo_document);
+        return res.data;
+    } catch (error) {
+        console.error('Error fetching:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'ไม่สามารถโหลดข้อมูลได้',
+            text: 'กรุณาลองใหม่อีกครั้ง',
+            customClass: {
+                popup: 'custom-swal font-anuphan',
+                title: 'font-anuphan text-red-800',
+                htmlContainer: 'font-anuphan text-red-500',
+            },
+        });
+        throw error;
+    }
+};
+
+
+    const handleDetail = async (document: Document) => {
+        setMode('edit');
+        setLoading(true);
+        try {
+            await fetchDataShow(document); // ✅ รอให้โหลดข้อมูลเสร็จก่อน
+            setIsModalOpenDetail(true); // ✅ ค่อยเปิด modal
+        } catch (error) {
+            console.error('Error in handleDetail:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
     const handleEdit = (document: Document) => {
         setMode('edit');
         setSelectedDocument(document);
@@ -575,7 +618,6 @@ export default function Index() {
                                     className="w-full appearance-none rounded-xl border-2 border-gray-300 bg-white px-4 py-1.5 pr-12 pl-4 font-anuphan text-gray-900 shadow-sm transition-all duration-300 group-hover:border-blue-400 hover:border-blue-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 focus:outline-none"
                                 >
                                     <option value="" className="text-gray-500">
-
                                         ทุกเดือน
                                     </option>
                                     {getAvailableMonths().map((month) => {
@@ -644,12 +686,33 @@ export default function Index() {
                 />
             </ModalForm>
 
+            {/* Document Form Modal */}
+            <ModalForm
+                isModalOpen={isModalOpenDetail}
+                onClose={() => setIsModalOpenDetail(false)}
+                title={mode === 'edit' ? 'รายละเอียดเอกสาร' : 'แก้ไขข้อมูลเอกสาร'}
+                description=" "
+                size="max-w-3xl"
+            >
+                <DocumentDetailForm
+                    onClose={() => setIsModalOpenDetail(false)}
+                    onSuccess={() => {
+                        setIsModalOpenDetail(false);
+                        fetchData();
+                    }}
+                    categories={categories}
+                    mode={mode}
+                    document={selectedDocument}
+                />
+            </ModalForm>
+
             {/* Document Table */}
             <DocumentTable
                 categories={categories}
                 documents={filteredDocuments}
                 onEdit={handleEditWithPermission}
                 onDelete={handleDeleteWithPermission}
+                onDetail={handleDetail}
             />
 
             <DeleteModal isModalOpen={isDeleteModalOpen} onClose={closeDeleteModal} title="ยืนยันการลบ" onConfirm={handleDelete}>

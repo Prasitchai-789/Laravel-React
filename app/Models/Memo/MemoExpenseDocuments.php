@@ -2,6 +2,7 @@
 
 namespace App\Models\Memo;
 
+use App\Models\WIN\POHD;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -36,5 +37,10 @@ class MemoExpenseDocuments extends Model
     public function attachments()
     {
         return $this->hasMany(MemoExpenseAttachments::class, 'expense_id');
+    }
+
+    public function winspeed()
+    {
+        return $this->belongsTo(POHD::class, 'winspeed_ref_id', 'DocuNo');
     }
 }
