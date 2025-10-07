@@ -20,9 +20,10 @@ interface DocumentFormProps {
 }
 
 export default function DocumentForm({ categories, onClose, mode = 'create', document }: DocumentFormProps) {
-    const totalGoodPrice = document?.winspeed_detail?.reduce((sum: number, detail: any) => {
+    const totalAmount = document?.winspeed_detail?.reduce((sum: number, detail: any) => {
+        const qty = parseFloat(detail.GoodQty2) || 0;
         const price = parseFloat(detail.GoodPrice2) || 0;
-        return sum + price;
+        return sum + qty * price;
     }, 0);
     return (
         <div className="">
@@ -140,7 +141,7 @@ export default function DocumentForm({ categories, onClose, mode = 'create', doc
                     {/* Amount with emphasis */}
                     <div className="rounded-lg border border-green-100 bg-gradient-to-r from-green-50 to-emerald-50 p-4">
                         <p className="mb-1 text-sm text-green-600">จำนวนเงิน</p>
-                        <p className="text-2xl font-bold text-green-800">{totalGoodPrice ? `฿ ${totalGoodPrice.toLocaleString()}` : '-'}</p>
+                        <p className="text-2xl font-bold text-green-800">{totalAmount ? `฿ ${totalAmount.toLocaleString()}` : '-'}</p>
                     </div>
                 </div>
             </div>
