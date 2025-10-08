@@ -68,7 +68,7 @@ export default function Index() {
 
     // เรียงข้อมูลจากมากไปน้อยก่อนคำนวณ total
     const sortedDashboard = [...dashboard].sort((a, b) => b.TotalAmount - a.TotalAmount);
-    const totalAmount = sortedDashboard.reduce((sum, item) => sum + item.TotalAmount, 0);
+    const totalAmount = sortedDashboard.reduce((sum, item) => sum + Number(item.TotalAmount), 0);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -133,7 +133,9 @@ export default function Index() {
                                     </p>
                                     <p className="mt-1 text-3xl font-bold">
                                         {totalAmount
-                                            ? `${totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                            ? ` ${parseFloat(totalAmount.toString())
+                                                  .toFixed(2)
+                                                  .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`
                                             : '-'}{' '}
                                         บาท
                                     </p>
@@ -175,7 +177,10 @@ export default function Index() {
                                                 </td>
                                                 <td className="px-6 py-4 text-right whitespace-nowrap">
                                                     <span className="text-sm font-semibold text-gray-900">
-                                                       {d.TotalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        {Number(d.TotalAmount).toLocaleString('th-TH', {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        })}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -209,7 +214,12 @@ export default function Index() {
                                                 รวมทั้งหมด
                                             </td>
                                             <td className="px-6 py-4 text-right text-sm font-semibold whitespace-nowrap text-gray-900">
-                                                {totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
+                                                {totalAmount
+                                                    ? ` ${parseFloat(totalAmount.toString())
+                                                          .toFixed(2)
+                                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`
+                                                    : '-'}{' '}
+                                                บาท
                                             </td>
                                         </tr>
                                     </tfoot>
