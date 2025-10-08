@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Head, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import Swal from "sweetalert2";
-
+import { ShoppingCart, } from 'lucide-react';
 interface Good {
     GoodID: string;
     GoodName: string;
@@ -76,7 +76,6 @@ export default function StoreOrder({ goods = [], flash }: Props) {
 
     const itemsPerPage = 10;
     const cartItemsPerPage = 10;
-
     const totalItemsInCart = useMemo(() => cart.reduce((sum, i) => sum + i.qty, 0), [cart]);
 
     // Filtered goods with adjusted availableQty
@@ -98,7 +97,6 @@ export default function StoreOrder({ goods = [], flash }: Props) {
             return matchesSearch && available > 0;
         });
     }, [goodsWithType, searchTerm, adjustedGoods]);
-
 
     const categorizedGoods = useMemo(() => {
         if (selectedCategory === "ทั้งหมด") return filteredGoods;
@@ -240,7 +238,6 @@ export default function StoreOrder({ goods = [], flash }: Props) {
         });
     };
 
-
     const clearCart = () => {
         if (cart.length === 0) return;
 
@@ -271,7 +268,6 @@ export default function StoreOrder({ goods = [], flash }: Props) {
         );
         return ["ทั้งหมด", ...allTypes];
     }, [goodsWithType]);
-
 
     const handleSubmit = () => {
         if (cart.length === 0) {
@@ -353,30 +349,30 @@ export default function StoreOrder({ goods = [], flash }: Props) {
         });
     };
 
-
-
-
     return (
         <AppLayout
             breadcrumbs={[
                 { title: 'หน้าหลัก', href: route('dashboard') },
                 { title: 'การเบิกสินค้า', href: route('StoreIssue.index') },
             ]}
-
         >
-
-
-
             <div className="p-6 space-y-6 w-full mx-auto  font-anuphan">
                 {/* Header Section */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className=" w-full p-6 md:p-8 bg-white rounded-3xl shadow-sm">
-                        <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            🛒 เลือกสินค้าเพื่อเบิก
-                        </h1>
-                        <p className="text-gray-500 mt-2 md:mt-3 text-sm md:text-base">
-                            เลือกสินค้าที่ต้องการเบิกจากคลัง
-                        </p>
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="p-3 bg-white rounded-2xl shadow-sm border">
+                            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+                                เลือกสินค้าเพื่อเบิก
+                            </h1>
+                            <p className="text-gray-600 mt-1 text-sm md:text-base">
+                                ค้นหาและเลือกสินค้าที่ต้องการเบิกจากคลังสินค้า
+                            </p>
+                        </div>
                     </div>
 
                     {/* Cart Toggle Button for Mobile */}
@@ -476,14 +472,12 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                         {/* Products Table */}
                         <div className="overflow-x-auto bg-white shadow-lg rounded-2xl">
                             <table className="w-full border-collapse">
-
                                 <thead>
                                     <tr className="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-700 text-left rounded-t-2xl">
                                         <th className="p-4 border-b font-semibold text-sm w-[160px]">รหัสสินค้า</th>
                                         <th className="p-4 border-b font-semibold text-sm">ชื่อสินค้า</th>
                                         <th className="p-4 border-b font-semibold text-sm w-[150px]">ประเภทสินค้า</th>
                                         <th className="p-4 border-b font-semibold text-sm w-[120px] text-center">พร้อมเบิก</th> {/* <-- ใหม่ */}
-
                                         <th className="p-4 border-b font-semibold text-sm text-center">การดำเนินการ</th>
                                     </tr>
                                 </thead>
@@ -511,14 +505,12 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                                                 )}
                                             </td>
 
-
-
                                             <td className="p-4 text-center">
                                                 <button
                                                     onClick={() => addToCart(g)}
                                                     disabled={!g.availableQty || g.availableQty === 0}
                                                     className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center mx-auto transition-all transform hover:scale-105
-    ${g.availableQty && g.availableQty > 0
+                                                    ${g.availableQty && g.availableQty > 0
                                                             ? 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white'
                                                             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                                         }`}
@@ -528,17 +520,12 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                                                     </svg>
                                                     เพิ่ม
                                                 </button>
-
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
-
-
                             </table>
-
                         </div>
-
 
                         {/* Pagination สำหรับสินค้า */}
                         {totalPages > 1 && (
@@ -586,7 +573,6 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                                             );
                                         })}
                                     </div>
-
                                     <button
                                         onClick={() => goToPage(currentPage + 1)}
                                         disabled={currentPage === totalPages}
@@ -629,10 +615,23 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                         </div>
 
                         {cart.length === 0 ? (
-                            <div className="text-center py-8">
-                                <div className="text-5xl mb-4 text-gray-200">🛒</div>
-                                <p className="text-gray-500 mb-2 font-medium">ไม่มีสินค้าในตะกร้า</p>
-                                <p className="text-sm text-gray-400">เลือกสินค้าจากรายการด้านข้างเพื่อเริ่มเบิกสินค้า</p>
+                            <div className="text-center py-16 px-6">
+                                <div className="flex flex-col items-center justify-center space-y-4">
+                                    {/* Simple Elegant Icon */}
+                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200">
+                                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                    </div>
+
+                                    {/* Text Content */}
+                                    <div className="space-y-2">
+                                        <h3 className="text-lg font-medium text-gray-600">ตะกร้าว่างเปล่า</h3>
+                                        <p className="text-gray-500 text-sm">
+                                            เลือกสินค้าจากรายการเพื่อเริ่มเบิก
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <div className="space-y-4">

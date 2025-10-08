@@ -5,6 +5,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { Link } from '@inertiajs/react';
 import ModalForm from '@/components/ModalForm';
 import FormEdit from './useFormEdit';
+import FormCreate from './useFormCreate';
 import FormReturn from './useFormReturn';
 import Swal from 'sweetalert2';
 import { can } from '@/lib/can';
@@ -229,6 +230,7 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                                     value={search}
                                     onChange={e => setSearch(e.target.value)}
                                 />
+
                             </div>
                         </div>
 
@@ -500,7 +502,7 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                                                                     <span className="text-xs text-gray-500 mt-1 truncate text-center leading-tight">{product.GoodCode}</span>
                                                                 </div>
                                                             </td>
-                                                            
+
                                                             {/* การจัดการ */}
                                                             <td className="px-4 py-3">
                                                                 <div className="flex justify-center">
@@ -739,11 +741,26 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                     </div>
                 )}
 
-                {isModalOpen && (
+                {isModalOpen && modalMode === 'create' && (
                     <ModalForm
                         isModalOpen={isModalOpen}
                         onClose={() => setIsModalOpen(false)}
-                        title={modalMode === 'create' ? 'เพิ่มข้อมูลใหม่' : 'แก้ไขข้อมูล'}
+                        title="เพิ่มข้อมูลใหม่"
+                        size="max-w-3xl"
+                    >
+                        <FormCreate
+                            data={selectedProduct}
+                            onClose={() => setIsModalOpen(false)}
+                            onSuccess={() => router.reload({ only: ['records', 'pagination'] })}
+                        />
+                    </ModalForm>
+                )}
+
+                {isModalOpen && modalMode === 'edit' && (
+                    <ModalForm
+                        isModalOpen={isModalOpen}
+                        onClose={() => setIsModalOpen(false)}
+                        title="แก้ไขข้อมูล"
                         size="max-w-3xl"
                     >
                         <FormEdit
@@ -751,9 +768,11 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                             onClose={() => setIsModalOpen(false)}
                             onSuccess={() => router.reload({ only: ['records', 'pagination'] })}
                         />
-
                     </ModalForm>
                 )}
+
+
+
 
                 {isReturnModalOpen && (
                     <ModalForm

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Link } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 
 const QRCodePage = ({ product }: { product: any }) => {
     const [editableProduct, setEditableProduct] = useState({ ...product });
@@ -37,9 +38,9 @@ const QRCodePage = ({ product }: { product: any }) => {
 
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-5 text-white text-center">
-                    <h1 className="text-xl font-bold mb-1">QR Code สินค้า</h1>
+                    <h1 className="text-xl font-bold mb-1">{editableProduct.GoodName}</h1>
 
-                    <p className="text-sm opacity-90">สแกนเพื่อดูข้อมูลสินค้า</p>
+                    <p className="text-sm opacity-90">{editableProduct.GoodCode}</p>
                 </div>
 
 
@@ -47,10 +48,10 @@ const QRCodePage = ({ product }: { product: any }) => {
                 <div className="p-5 bg-gray-50">
                     <div className="grid grid-cols-1 gap-3">
                         {[
-                            { field: 'GoodCode', label: 'รหัสสินค้า' },
-                            { field: 'GoodID', label: 'รหัสประจำสินค้า' },
-                            { field: 'GoodStockUnitName', label: 'หน่วยนับ' },
+
+
                             { field: 'stock_qty', label: 'จำนวนในสต็อก', type: 'number' },
+                            { field: 'GoodStockUnitName', label: 'หน่วยนับ' },
                             { field: 'safety_stock', label: 'สต็อกปลอดภัย', type: 'number' },
                             { field: 'price', label: 'ราคา (บาท)', type: 'price' }
                         ].map(({ field, label, type }) => (
@@ -85,13 +86,13 @@ const QRCodePage = ({ product }: { product: any }) => {
                         ))}
                     </div>
                 </div>
-                
+
                 {/* Product Name + Edit */}
-                <div className="p-5 border-b border-gray-100 flex flex-col items-center space-y-3">
+                <div className="p-2 border-b border-gray-100 flex flex-col items-center pt-4">
                     <h2 className="text-lg font-semibold">{editableProduct.GoodName}</h2>
 
                     {/* QR Code */}
-                    <div className="p-6 flex flex-col items-center justify-center">
+                    <div className=" flex flex-col items-center justify-center pb-4">
                         <QRCodeCanvas
                             value={route('StoreOrder.qrcode', { order: editableProduct.GoodID })}
                             size={250}
@@ -99,16 +100,19 @@ const QRCodePage = ({ product }: { product: any }) => {
                             includeMargin={true}
                             className="rounded shadow-sm"
                         />
-                        <span className={`mt-3 px-3 py-1 rounded-full text-xs font-medium ${stockStatus.bg} ${stockStatus.color}`}>
-                            {stockStatus.text}
-                        </span>
+                        <h2 className="p-2 text-lg font-semibold">{editableProduct.GoodCode}</h2>
                     </div>
                     <button
-                        onClick={() => setIsEditing(!isEditing)}
+                        onClick={() => {
+                            if (editableProduct?.GoodCode) {
+                                router.get('/StoreOrder', { search: editableProduct.GoodCode });
+                            }
+                        }}
                         className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
                     >
                         แก้ไขข้อมูล
                     </button>
+
                 </div>
                 {/* Footer */}
                 <div className="p-4 bg-white text-center border-t border-gray-200">
