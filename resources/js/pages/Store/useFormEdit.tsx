@@ -265,66 +265,6 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
                             ข้อมูลสินค้า
                         </h3>
 
-                        {/* ✅ ช่องค้นหาสินค้าใหม่ */}
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                <svg className="w-4 h-4 text-purple-500 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                ค้นหาสินค้าใหม่จากระบบ EMGood
-                            </label>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={handleSearchChange}
-                                    placeholder="พิมพ์รหัสหรือชื่อสินค้าเพื่อค้นหา (อย่างน้อย 2 ตัวอักษร)..."
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                                />
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                    </svg>
-                                </div>
-                                {isSearching && (
-                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* ✅ ผลลัพธ์การค้นหา */}
-                            {showSearchResults && (
-                                <div className="mt-2 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
-                                    <div className="p-3 border-b border-gray-100 bg-gray-50">
-                                        <p className="text-sm text-gray-600">
-                                            พบสินค้า {searchResults.length} รายการ
-                                        </p>
-                                    </div>
-                                    <div className="divide-y divide-gray-100">
-                                        {searchResults.map((good, index) => (
-                                            <div
-                                                key={index}
-                                                className="p-3 hover:bg-purple-50 cursor-pointer transition-colors"
-                                                onClick={() => selectProduct(good)}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <span className="inline-block px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded mr-2">
-                                                            {good.GoodCode}
-                                                        </span>
-                                                        <span className="text-sm text-gray-800">{good.GoodName}</span>
-                                                    </div>
-                                                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* รหัสสินค้า */}
@@ -556,17 +496,6 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
                                             </button>
                                         </div>
 
-                                        <button
-                                            type="button"
-                                            onClick={() => applyAdjustment('stock_qty', adjustStock)}
-                                            className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-md"
-                                            disabled={adjustStock === 0}
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            นำไปใช้
-                                        </button>
                                     </div>
 
                                     {/* ผลลัพธ์ */}
@@ -640,18 +569,6 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
                                                 </svg>
                                             </button>
                                         </div>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => applyAdjustment('safety_stock', adjustSafety)}
-                                            className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-md"
-                                            disabled={adjustSafety === 0}
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                            นำไปใช้
-                                        </button>
                                     </div>
 
                                     <div className="bg-white p-5 rounded-xl border border-green-100 shadow-sm flex flex-col justify-center">
@@ -732,7 +649,7 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
                             )}
                         </button>
                     </div>
-                    
+
                 </form>
             </div>
         </div>

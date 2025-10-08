@@ -27,30 +27,19 @@ class StoreOrderController extends Controller
 
     public function index(Request $request)
     {
-        $goodCode = $request->query('goodCode');
+        $goodCode = $request->query('search');
 
+        // dd($request);
         $storeItems = StoreItem::when($goodCode, fn($q) => $q->where('good_code', $goodCode))->get();
 
-        // โหลด unit ทั้งหมด จาก SQL Server
+        // โหลด unit ทั้งหมด
         $goodUnits = DB::connection('sqlsrv2')
             ->table('EMGoodUnit')
             ->select('GoodUnitID', 'GoodUnitName')
             ->get()
-            ->keyBy(fn($u) => (string)$u->GoodUnitID); // key เป็น string เพื่อ lookup
+            ->keyBy(fn($u) => (string)$u->GoodUnitID);
 
-        // โหลดชื่อสินค้า
-        $goodNames = DB::connection('sqlsrv2')
-            ->table('EMGood')
-            ->select('GoodCode', 'GoodName1')
-            ->get()
-            ->keyBy('GoodCode');
-
-        // โหลด movement ของสินค้าทั้งหมด
-        $movementsGrouped = StoreMovement::with('storeOrder')
-            ->whereIn('store_item_id', $storeItems->pluck('id'))
-            ->get()
-            ->groupBy('store_item_id');
-
+        // โหลดชื่อและหน่วยสินค้าจาก EMGood
         $goodInfos = DB::connection('sqlsrv2')
             ->table('EMGood as g')
             ->leftJoin('EMGoodUnit as u', 'g.MainGoodUnitID', '=', 'u.GoodUnitID')
@@ -58,21 +47,30 @@ class StoreOrderController extends Controller
                 'g.GoodCode',
                 'g.GoodName1',
                 'g.MainGoodUnitID',
-                'g.SaleGoodUnitID',
-                'g.GoodUnitID1',
-                'g.GoodUnitID2',
                 'u.GoodUnitName'
             )
             ->get()
-            ->keyBy('GoodCode'); // key เป็น GoodCode
+            ->map(function ($item) {
+                // ให้ property มีค่า default เพื่อป้องกัน undefined property
+                $item->GoodName1 = $item->GoodName1 ?? null;
+                $item->MainGoodUnitID = $item->MainGoodUnitID ?? null;
+                $item->GoodUnitName = $item->GoodUnitName ?? null;
+                return $item;
+            })
+            ->keyBy(fn($g) => strtoupper(trim($g->GoodCode)));
 
+        // โหลด movement ของสินค้าทั้งหมด
+        $movementsGrouped = StoreMovement::with('storeOrder')
+            ->whereIn('store_item_id', $storeItems->pluck('id'))
+            ->get()
+            ->groupBy('store_item_id');
 
         $goods = $storeItems->map(function ($item) use ($goodInfos, $movementsGrouped, $goodUnits) {
-            $info = $goodInfos->get($item->good_code);
+            $info = $goodInfos->get(strtoupper(trim($item->good_code)));
 
             $goodName = $info?->GoodName1 ?? $item->GoodName ?? 'ไม่ระบุ';
 
-            // หาหน่วย: priority GoodUnitName → MainGoodUnitID → fallback 'ชิ้น'
+            // หาหน่วยสินค้า
             $unitName = $info?->GoodUnitName
                 ?? ($info?->MainGoodUnitID && isset($goodUnits[(string)$info->MainGoodUnitID])
                     ? $goodUnits[(string)$info->MainGoodUnitID]->GoodUnitName
@@ -118,12 +116,12 @@ class StoreOrderController extends Controller
             ];
         });
 
-
         return Inertia::render('Store/OrderIndex', [
             'goods' => $goods,
             'selectedGoodCode' => $goodCode,
         ]);
     }
+
 
 
     public function show(StoreOrder $order)
@@ -913,56 +911,115 @@ class StoreOrderController extends Controller
     // GoodController.php
     public function searchNew(Request $request)
     {
-        $query = $request->get('query', '');
+        $query = $request->input('query', '');
 
-        try {
-            // 1. ตรวจสอบโครงสร้างตาราง EMGood
-            $emGoodColumns = DB::connection('sqlsrv2')
-                ->getSchemaBuilder()
-                ->getColumnListing('EMGood');
+        // ดึงจาก EMGood (SQL Server)
+        $goods = DB::connection('sqlsrv2')
+            ->table('EMGood as g')
+            ->leftJoin(DB::raw('
+        (
+            SELECT s1.GoodID, s1.GoodUnitID2, s1.GoodPrice2, s1.DocuDate
+            FROM ICStockDetail s1
+            WHERE s1.DocuDate = (
+                SELECT MAX(s2.DocuDate)
+                FROM ICStockDetail s2
+                WHERE s2.GoodID = s1.GoodID
+            )
+        ) as s
+    '), 'g.GoodID', '=', 's.GoodID')
 
-            \Log::info("EMGood columns: ", $emGoodColumns);
+            ->where(function ($q) {
+                $q->whereNull('g.Inactive')->orWhere('g.Inactive', '!=', '1');
+            })
+            ->when($query, function ($q) use ($query) {
+                $q->where(function ($w) use ($query) {
+                    $w->where('g.GoodCode', 'like', "%{$query}%")
+                        ->orWhere('g.GoodName1', 'like', "%{$query}%");
+                });
+            })
+            ->select([
+                'g.GoodCode',
+                'g.GoodID',
+                'g.GoodName1',
+                's.GoodUnitID2',
+                's.GoodPrice2',
+                's.DocuDate'
+            ])
+            ->orderBy('g.GoodCode')
+            ->limit(50)
+            ->get();
 
-            // 2. ตรวจสอบโครงสร้างตาราง store_items
-            $storeItemsColumns = DB::connection('sqlsrv2')
-                ->getSchemaBuilder()
-                ->getColumnListing('store_items');
-
-            \Log::info("store_items columns: ", $storeItemsColumns);
-
-        } catch (\Exception $e) {
-
-            \Log::error("Error getting table structure: " . $e->getMessage());
-
+        // ตรวจสอบซ้ำใน EMGood เอง
+        $codesCount = [];
+        foreach ($goods as $good) {
+            $codesCount[$good->GoodCode] = ($codesCount[$good->GoodCode] ?? 0) + 1;
         }
 
-        try {
-            // ใช้ชื่อคอลัมน์ที่ถูกต้อง (อาจไม่ใช่ GoodCode, GoodName)
-            $existingCodes = DB::connection('sqlsrv2')
-                ->table('store_items')
-                ->pluck('good_code') // หรืออาจเป็น 'GoodCode', 'code', etc.
-                ->toArray();
+        // ตรวจสอบว่ามีอยู่ใน store_items หรือยัง
+        foreach ($goods as $good) {
+            $existsInStore = DB::table('store_items')
+                ->where('good_id', $good->GoodID)
+                ->where('good_code', $good->GoodCode)
+                ->exists();
 
-            // ค้นหาจาก EMGood ด้วยคอลัมน์ที่ถูกต้อง
-            $newGoods = DB::connection('sqlsrv2')
-                ->table('EMGood')
-                ->whereNotIn('GoodCode', $existingCodes) // หรือคอลัมน์อื่น
-                ->when($query, function ($q) use ($query) {
-                    return $q->where(function ($q2) use ($query) {
-                        $q2->where('GoodCode', 'like', "%{$query}%")
-                            ->orWhere('GoodName', 'like', "%{$query}%");
-                    });
-                })
-                ->select('GoodCode', 'GoodName') // หรือคอลัมน์อื่น
-                ->limit(50)
-                ->get();
+            $status = [];
+            $status[] = $existsInStore ? '✅ มีอยู่แล้วใน store_items' : '➕ ยังไม่มีใน store_items';
+            if ($codesCount[$good->GoodCode] > 1) {
+                $status[] = '⚠️ ซ้ำใน EMGood';
+            }
 
-            return response()->json($newGoods);
-        } catch (\Exception $e) {
-            \Log::error("Search error: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            $good->status = implode(' | ', $status);
         }
+
+        return response()->json($goods);
     }
 
-    
+    public function importNew(Request $request)
+    {
+        \Log::info('Import request received', $request->all());
+
+        $goods = $request->input('goods', []);
+
+        $saved = [];
+        $exists = [];
+
+        foreach ($goods as $good) {
+            // ใช้ key ตรงกับที่ React ส่ง
+            $goodId = $good['GoodID'] ?? null;
+            $goodCode = $good['GoodCode'] ?? null;
+
+            if (!$goodId || !$goodCode) {
+                continue; // ข้าม item ที่ไม่มี GoodID หรือ GoodCode
+            }
+
+            $found = DB::table('store_items')
+                ->where('good_id', $goodId)
+                ->where('good_code', $goodCode)
+                ->first();
+
+            if ($found) {
+                $exists[] = $good;
+                continue;
+            }
+
+            $id = DB::table('store_items')->insertGetId([
+                'good_id' => $goodId,
+                'good_code' => $goodCode,
+                'GoodUnitID' => $good['GoodUnitID2'] ?? null,
+                'stock_qty' => $good['inputStockQty'] ?? 0,
+                'safety_stock' => $good['inputSafetyStock'] ?? 0,
+                'price' => $good['GoodPrice2'] ?? 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $saved[] = $good;
+        }
+
+        return response()->json([
+            'saved' => $saved,
+            'exists' => $exists,
+            'message' => 'Import finished'
+        ]);
+    }
 }
