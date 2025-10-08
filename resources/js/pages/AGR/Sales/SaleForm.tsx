@@ -1,14 +1,13 @@
 import Button from '@/components/Buttons/Button';
 import InputLabel from '@/components/Inputs/InputLabel';
-import Select from '@/components/Inputs/Select';
 import { useForm } from '@inertiajs/react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import Swal from 'sweetalert2';
 // import { useEffect } from 'react';
-import SaleProductSelect from './SaleProductSelect'
-import CustomerSelect from './CustomerSelect'
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
+import CustomerSelect from './CustomerSelect';
+import SaleProductSelect from './SaleProductSelect';
 
 // ✅ utility ฟังก์ชัน แก้ปัญหา date format
 function formatDateSafe(date: string | null | undefined) {
@@ -24,17 +23,10 @@ type SaleFormProps = {
     locations?: any[];
     payments?: any[];
     onClose: () => void;
+    onSuccess?: () => void;
 };
 
-export default function SaleForm({
-    mode = 'create',
-    sale,
-    products,
-    customers = [],
-    locations,
-    payments,
-    onClose,
-}: SaleFormProps) {
+export default function SaleForm({ mode = 'create', sale, products, customers = [], locations, payments, onClose, onSuccess }: SaleFormProps) {
     const { data, setData, post, put, reset, processing, errors } = useForm({
         id: sale?.id || '',
         sale_date: formatDateSafe(sale?.sale_date), // ✅ ใช้ formatDateSafe
@@ -56,16 +48,11 @@ export default function SaleForm({
 
     // กรองสินค้าตาม store_id ถ้ามี
     const filteredProducts = React.useMemo(() => {
-        return products?.filter(
-            (pro) => !data.store_id || Number(pro.store_id) === Number(data.store_id)
-        ) ?? [];
+        return products?.filter((pro) => !data.store_id || Number(pro.store_id) === Number(data.store_id)) ?? [];
     }, [products, data.store_id]);
 
     // ใช้ data.product_id ตรง ๆ เลย ไม่ต้องแยก state
     const selectedProductId = data.product_id;
-
-
-
 
     useEffect(() => {
         if (sale) {
@@ -78,15 +65,85 @@ export default function SaleForm({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (mode === 'create') {
-            post('/sales');
+            post('/sales', {
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'บันทึกเรียบร้อยแล้ว',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        customClass: {
+                            popup: 'custom-swal font-anuphan',
+                            title: 'font-anuphan text-red-800',
+                            htmlContainer: 'font-anuphan text-red-500',
+                        },
+                    });
+                    reset();
+                    onClose?.();
+                    onSuccess?.();
+                },
+                onError: () => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'กรุณาตรวจสอบข้อมูลอีกครั้ง',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        customClass: {
+                            popup: 'custom-swal font-anuphan',
+                            title: 'font-anuphan text-red-800',
+                            htmlContainer: 'font-anuphan text-red-500',
+                        },
+                    });
+                },
+            });
         } else {
-            put(`/sales/${sale?.id}`);
+            put(`/sales/${sale?.id}`, {
+                onSuccess: () => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'อัปเดตเรียบร้อยแล้ว',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        customClass: {
+                            popup: 'custom-swal font-anuphan',
+                            title: 'font-anuphan text-red-800',
+                            htmlContainer: 'font-anuphan text-red-500',
+                        },
+                    });
+                    reset();
+                    onClose?.();
+                    onSuccess?.();
+                },
+                onError: () => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'กรุณาตรวจสอบข้อมูลอีกครั้ง',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        customClass: {
+                            popup: 'custom-swal font-anuphan',
+                            title: 'font-anuphan text-red-800',
+                            htmlContainer: 'font-anuphan text-red-500',
+                        },
+                    });
+                },
+            });
         }
     };
 
     return (
-
         <form onSubmit={handleSubmit} className="space-y-6 font-anuphan">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <InputLabel
@@ -100,8 +157,6 @@ export default function SaleForm({
                     type="date"
                     className="font-anuphan"
                 />
-
-               
 
                 <CustomerSelect
                     customers={customers}
@@ -122,7 +177,7 @@ export default function SaleForm({
                         setData('product_id', value);
 
                         // ดึงราคาสินค้าอัตโนมัติถ้ามี
-                        const selected = filteredProducts.find(p => p.id.toString() === value);
+                        const selected = filteredProducts.find((p) => p.id.toString() === value);
                         if (selected?.price) {
                             setData('price', selected.price.toString());
                         }
@@ -143,7 +198,7 @@ export default function SaleForm({
                     value={data.quantity}
                     onChange={(e) => {
                         const value = Number(e.target.value || 0);
-                        const selected = filteredProducts.find(p => p.id.toString() === data.product_id);
+                        const selected = filteredProducts.find((p) => p.id.toString() === data.product_id);
                         const maxStock = selected?.stock ?? Infinity;
 
                         if (value > maxStock) {
@@ -151,7 +206,6 @@ export default function SaleForm({
                                 icon: 'warning',
                                 title: `จำนวนสูงสุดที่มีคือ ${maxStock}`,
                                 customClass: { popup: 'custom-swal' },
-
                             });
                             // ตั้งค่าเป็น maxStock ทันทีและ return
                             setData('quantity', maxStock.toString());
@@ -168,9 +222,6 @@ export default function SaleForm({
                     className="font-anuphan"
                 />
 
-
-
-
                 <InputLabel
                     label="ราคา"
                     name="price"
@@ -180,7 +231,7 @@ export default function SaleForm({
                     disabled={processing}
                     type="number"
                     min={0}
-                    step={0.50}
+                    step={0.5}
                     className="font-anuphan"
                 />
             </div>
