@@ -128,8 +128,15 @@ export default function Index() {
                         <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white shadow-lg lg:col-span-4">
                             <div className="flex flex-col items-start justify-between sm:flex-row sm:items-center">
                                 <div>
-                                    <p className="text-sm font-medium text-blue-100">ยอดรวมทั้งหมด ประจำ{month === 0 ? `ปี ${year}` : `${getThaiMonthName(month)} ${year}`}</p>
-                                    <p className="mt-1 text-3xl font-bold">{totalAmount.toLocaleString('th-TH')} บาท</p>
+                                    <p className="text-sm font-medium text-blue-100">
+                                        ยอดรวมทั้งหมด ประจำ{month === 0 ? `ปี ${year}` : `${getThaiMonthName(month)} ${year}`}
+                                    </p>
+                                    <p className="mt-1 text-3xl font-bold">
+                                        {totalAmount
+                                            ? `${totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                            : '-'}{' '}
+                                        บาท
+                                    </p>
                                 </div>
                                 {/* <div className="mt-4 sm:mt-0">
                                     <span className="inline-flex items-center rounded-full bg-blue-500 px-3 py-1 text-sm font-medium text-blue-100">
@@ -141,18 +148,14 @@ export default function Index() {
                     </div>
 
                     {/* Table */}
-                    <div className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm font-anuphan">
+                    <div className="overflow-hidden rounded-xl border border-gray-100 bg-white font-anuphan shadow-sm">
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b border-gray-200 bg-gray-50">
-                                        <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                            ลำดับ
-                                        </th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
-                                            หน่วยงาน
-                                        </th>
-                                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-600">
+                                        <th className="px-6 py-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase">ลำดับ</th>
+                                        <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase">หน่วยงาน</th>
+                                        <th className="px-6 py-4 text-right text-xs font-semibold tracking-wider text-gray-600 uppercase">
                                             ยอดรวม (บาท)
                                         </th>
                                     </tr>
@@ -161,18 +164,18 @@ export default function Index() {
                                     {sortedDashboard.length > 0 ? (
                                         sortedDashboard.map((d, index) => (
                                             <tr key={d.DeptID} className="transition-colors duration-150 hover:bg-gray-50">
-                                                <td className="whitespace-nowrap px-6 py-4 text-center">
+                                                <td className="px-6 py-4 text-center whitespace-nowrap">
                                                     <span className="text-sm font-medium text-gray-500">{index + 1}</span>
                                                 </td>
-                                                <td className="whitespace-nowrap px-6 py-4">
+                                                <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center">
                                                         <div className="mr-3 h-2 w-2 rounded-full bg-blue-500"></div>
                                                         <span className="text-sm font-medium text-gray-900">{d.DeptName}</span>
                                                     </div>
                                                 </td>
-                                                <td className="whitespace-nowrap px-6 py-4 text-right">
+                                                <td className="px-6 py-4 text-right whitespace-nowrap">
                                                     <span className="text-sm font-semibold text-gray-900">
-                                                        {d.TotalAmount.toLocaleString('th-TH')}
+                                                       {d.TotalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </span>
                                                 </td>
                                             </tr>
@@ -202,11 +205,11 @@ export default function Index() {
                                 {sortedDashboard.length > 0 && (
                                     <tfoot className="border-t border-gray-200 bg-gray-50">
                                         <tr>
-                                            <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-gray-900" colSpan={2}>
+                                            <td className="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900" colSpan={2}>
                                                 รวมทั้งหมด
                                             </td>
-                                            <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900">
-                                                {totalAmount.toLocaleString('th-TH')} บาท
+                                            <td className="px-6 py-4 text-right text-sm font-semibold whitespace-nowrap text-gray-900">
+                                                {totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท
                                             </td>
                                         </tr>
                                     </tfoot>
