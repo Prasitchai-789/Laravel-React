@@ -16,12 +16,13 @@ use App\Http\Controllers\StockOrderController;
 use App\Http\Controllers\AGR\ProductController;
 use App\Http\Controllers\Api\CitizenController;
 use App\Http\Controllers\ExportStoreController;
+use App\Http\Controllers\StoreExportController;
 use App\Http\Controllers\AGR\CustomerController;
 use App\Http\Controllers\ChemicalOrderController;
-use App\Http\Controllers\StoreExportController;
 use App\Http\Controllers\Store\StoreOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
 use App\Http\Controllers\Store\StoreMovementController;
+use App\Http\Controllers\Api\PurchaseDashboardController;
 use App\Http\Controllers\Dashboard\CostAnalysisController;
 use App\Http\Controllers\Dashboard\DailyBarCharController;
 use App\Http\Controllers\Dashboard\PalmDashboardController;
@@ -283,7 +284,10 @@ Route::fallback(function () {
 
 
 
-
+// Route::middleware('auth:sanctum')->group(function () {
+Route::get('purchase/dashboard', [PurchaseDashboardController::class, 'index']);
+Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'apiIndex']);
+// });
 
 
 

@@ -4,7 +4,8 @@ use App\Models\Citizen;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CitizenController;
-use App\Http\Controllers\API\ProjectController;
+use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\PurchaseDashboardController;
 use App\Http\Controllers\Store\StoreMovementController;
 
 
@@ -25,7 +26,9 @@ Route::get('/get-villages', [CitizenController::class, 'getVillages']);
 Route::post('/citizens/bulk', [CitizenController::class, 'bulkUpload']);
 
 
-
+// Route::middleware(['auth', ''])->group(function () {
+    // Route::apiResource('purchase/dashboard', PurchaseDashboardController::class)->only(['index']);
+// });
 
 
 
