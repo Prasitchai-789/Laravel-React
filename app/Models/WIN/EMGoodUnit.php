@@ -11,9 +11,7 @@ class EMGoodUnit extends Model
     use HasFactory;
     protected $table = 'EMGoodUnit';
     public $timestamps = false;
-    protected $fillable =[
-
-    ];
+    protected $fillable = ['GoodUnitName'];
     public function details()
     {
         return $this->hasMany(SOInvDT::class, 'GoodUnitID2', 'GoodUnitID');

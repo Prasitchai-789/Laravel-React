@@ -14,7 +14,6 @@ class EMGood extends Model
     protected $table = 'EMGood';
     protected $primaryKey = 'GoodID';
     public $timestamps = false;
-
     protected $fillable = ['GoodCode', 'GoodName1', 'GoodUnitID'];
 
     // ความสัมพันธ์กับตารางหน่วย

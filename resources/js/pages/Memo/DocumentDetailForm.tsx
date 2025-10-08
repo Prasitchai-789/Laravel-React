@@ -28,7 +28,7 @@ export default function DocumentForm({ categories, onClose, mode = 'create', doc
     return (
         <div className="">
             {/* Document Card */}
-            <div className="overflow-hidden rounded-xl border border-green-200 bg-white font-anuphan shadow-lg transition-all duration-300 hover:shadow-xl">
+            <div className="overflow-hidden rounded-xl border border-green-200 bg-white font-anuphan shadow-md transition-all duration-300 hover:shadow-xl">
                 {/* Header with gradient */}
                 <div className="rounded-t-xl border-b border-green-100 bg-gradient-to-r from-green-50 to-emerald-50 p-6">
                     <div className="flex items-center gap-4">
@@ -88,25 +88,25 @@ export default function DocumentForm({ categories, onClose, mode = 'create', doc
                             </p>
                         </div>
                     </div>
-                    <div className="overflow-hidden rounded-lg border border-gray-50 bg-white">
+                    <div className="overflow-hidden rounded-lg border border-blue-100 bg-blue-50">
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-50">
+                                <thead className="bg-blue-100">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-700 uppercase">ลำดับ</th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-700 uppercase">รายการ</th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium tracking-wider text-gray-700 uppercase">จำนวน</th>
-                                        <th className="px-4 py-3 text-right text-xs font-medium tracking-wider text-gray-700 uppercase">ราคา</th>
+                                        <th className="px-4 py-3 text-center text-xs font-bold tracking-wider text-blue-800 uppercase">ลำดับ</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold  tracking-wider text-blue-800 uppercase">รายการ</th>
+                                        <th className="px-4 py-3 text-right text-xs font-bold  tracking-wider text-blue-800 uppercase">จำนวน</th>
+                                        <th className="px-4 py-3 text-right text-xs font-bold  tracking-wider text-blue-800 uppercase">ราคา</th>
                                     </tr>
                                 </thead>
                                 <tbody className="">
                                     {document?.winspeed_detail?.length > 0 ? (
                                         document?.winspeed_detail?.map((detail: any, index: number) => (
                                             <tr key={`${detail.id}-${index}`} className="hover:bg-gray-50">
-                                                <td className="px-4 py-3 text-gray-600">{detail.ListNo}</td>
-                                                <td className="px-4 py-3 text-gray-600">{detail.GoodName}</td>
-                                                <td className="px-4 py-3 text-right text-gray-600"> {detail.GoodQty2}</td>
-                                                <td className="px-4 py-3 text-right text-gray-600">
+                                                <td className="px-4 py-3 text-center text-blue-500">{detail.ListNo}</td>
+                                                <td className="px-4 py-3 text-blue-500">{detail.GoodName}</td>
+                                                <td className="px-4 py-3 text-right text-blue-500"> {detail.GoodQty2 ? `${parseFloat(detail.GoodQty2).toLocaleString()}` : '-'}</td>
+                                                <td className="px-4 py-3 text-right text-blue-500">
                                                     {detail.GoodPrice2 ? `฿ ${parseFloat(detail.GoodPrice2).toLocaleString()}` : '-'}
                                                 </td>
                                             </tr>

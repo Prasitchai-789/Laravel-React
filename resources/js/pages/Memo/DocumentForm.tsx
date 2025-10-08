@@ -5,9 +5,9 @@ import Textarea from '@/components/Inputs/Textarea';
 import { router, useForm } from '@inertiajs/react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
+import { CalendarFold, ChevronsDown, CircleDollarSign, FileSliders, FolderOpen, LibraryBig, NotebookPen, RefreshCcw, Save, X } from 'lucide-react';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
-import {FolderOpen,CalendarFold,NotebookPen,LibraryBig,CircleDollarSign,ChevronsDown,X,Save,RefreshCcw,FileSliders} from 'lucide-react';
 
 interface PDocumentFormData {
     document_no: string;
@@ -55,9 +55,13 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
         if (formErrors[name]) {
             setFormErrors((prev) => ({ ...prev, [name]: '' }));
         }
+
+        if (name === 'document_no') {
+            const extractedValue = value.replace(/^(ISP-|MUN-)/, '');
+            setData('winspeed_ref_id', extractedValue);
+        }
     };
 
-    /** ✅ handleFileChange สำหรับไฟล์ */
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         setData('attachment_path', file);
@@ -160,7 +164,8 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                 {
                     _method: 'put', // ใช้ method spoofing เพราะ FormData ไม่ส่ง put โดยตรงได้
                     ...Object.fromEntries(formData),
-                },{
+                },
+                {
                     forceFormData: true,
                     onSuccess: () => {
                         Swal.fire({
@@ -225,7 +230,9 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <InputLabel
                             label={
                                 <span className="flex items-center gap-1">
-                                    <span className="text-lg"><FolderOpen className='w-4 h-4 text-blue-500'/></span>
+                                    <span className="text-lg">
+                                        <FolderOpen className="h-4 w-4 text-blue-500" />
+                                    </span>
                                     เลขที่เอกสาร
                                     <span className="text-red-500">*</span>
                                 </span>
@@ -237,7 +244,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                             error={formErrors.document_no || errors.document_no}
                             type="text"
                             className="font-anuphan transition-all duration-200 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                            placeholder="เช่น ITE680101-01"
+                            placeholder="เช่น ISP-ITE680101-01"
                         />
                     </div>
 
@@ -246,7 +253,9 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <InputLabel
                             label={
                                 <span className="flex items-center gap-1">
-                                    <span className="text-lg"><CalendarFold className='w-4 h-4 text-blue-500' /></span>
+                                    <span className="text-lg">
+                                        <CalendarFold className="h-4 w-4 text-blue-500" />
+                                    </span>
                                     วันที่
                                     <span className="text-red-500">*</span>
                                 </span>
@@ -267,7 +276,9 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                     <Textarea
                         label={
                             <span className="flex items-center gap-1">
-                                <span className="text-lg"><NotebookPen className='w-4 h-4 text-blue-500'/></span>
+                                <span className="text-lg">
+                                    <NotebookPen className="h-4 w-4 text-blue-500" />
+                                </span>
                                 รายละเอียด
                             </span>
                         }
@@ -288,7 +299,9 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <Select
                             label={
                                 <span className="flex items-center gap-1">
-                                    <span className="text-lg"><LibraryBig className='w-4 h-4 text-blue-500'/></span>
+                                    <span className="text-lg">
+                                        <LibraryBig className="h-4 w-4 text-blue-500" />
+                                    </span>
                                     หมวดค่าใช้จ่าย
                                     <span className="text-red-500">*</span>
                                 </span>
@@ -308,7 +321,9 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <InputLabel
                             label={
                                 <span className="flex items-center gap-1">
-                                    <span className="text-lg"><CircleDollarSign className='w-4 h-4 text-blue-500' /></span>
+                                    <span className="text-lg">
+                                        <CircleDollarSign className="h-4 w-4 text-blue-500" />
+                                    </span>
                                     จำนวนเงิน
                                 </span>
                             }
@@ -332,7 +347,9 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <InputLabel
                             label={
                                 <span className="flex items-center gap-1">
-                                    <span className="text-lg"><FileSliders className='w-4 h-4 text-blue-500'/></span>
+                                    <span className="text-lg">
+                                        <FileSliders className="h-4 w-4 text-blue-500" />
+                                    </span>
                                     เลขที่อ้างอิง Win Speed
                                 </span>
                             }
@@ -343,7 +360,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                             error={errors.winspeed_ref_id}
                             type="text"
                             className="font-anuphan transition-all duration-200 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                            placeholder="เช่น WS-2024-001"
+                            placeholder="เช่น ITE680101-01"
                         />
                     </div>
 
@@ -352,7 +369,9 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <Select
                             label={
                                 <span className="flex items-center gap-1">
-                                    <span className="text-lg"><ChevronsDown className='w-4 h-4 text-blue-500'/></span>
+                                    <span className="text-lg">
+                                        <ChevronsDown className="h-4 w-4 text-blue-500" />
+                                    </span>
                                     สถานะ
                                 </span>
                             }
@@ -370,7 +389,9 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                 {/* Attachment */}
                 <div className="font-anuphan">
                     <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-                        <span className="text-lg"><LibraryBig className='w-4 h-4 text-blue-500'/></span>
+                        <span className="text-lg">
+                            <LibraryBig className="h-4 w-4 text-blue-500" />
+                        </span>
                         ไฟล์แนบ
                     </label>
                     <div className="relative">
@@ -403,7 +424,9 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         className="px-6 py-2.5 transition-all duration-200 hover:scale-105 active:scale-95"
                     >
                         <span className="flex items-center gap-2">
-                            <span><X className='w-5 h-5 text-red-500'/></span>
+                            <span>
+                                <X className="h-5 w-5 text-red-500" />
+                            </span>
                             ยกเลิก
                         </span>
                     </Button>
@@ -417,12 +440,16 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                         <span className="flex items-center gap-2">
                             {mode === 'create' ? (
                                 <>
-                                    <span><Save className='w-5 h-5'/></span>
+                                    <span>
+                                        <Save className="h-5 w-5" />
+                                    </span>
                                     บันทึกข้อมูล
                                 </>
                             ) : (
                                 <>
-                                    <span><RefreshCcw className='w-5 h-5'/></span>
+                                    <span>
+                                        <RefreshCcw className="h-5 w-5" />
+                                    </span>
                                     อัปเดตข้อมูล
                                 </>
                             )}
