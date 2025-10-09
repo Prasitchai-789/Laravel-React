@@ -1,7 +1,7 @@
 import GenericTable, { Column } from '@/components/Tables/GenericTable';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
-import { Pencil, Trash2 ,Eye} from 'lucide-react';
+import { Eye, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Attachment {
@@ -36,11 +36,10 @@ interface DocumentTableProps {
     onDetail?: (document: Document) => void;
 }
 
-export default function DocumentTable({ documents, categories, onEdit, onDelete , onDetail}: DocumentTableProps) {
+export default function DocumentTable({ documents, categories, onEdit, onDelete, onDetail }: DocumentTableProps) {
     const [selectedMonth, setSelectedMonth] = useState('');
 
-    useEffect(() => {
-    }, [selectedMonth]);
+    useEffect(() => {}, [selectedMonth]);
     const filterByMonth = (documents: Document[], month: string) => {
         if (!month) return documents; // ถ้าเลือก "ทั้งหมด"
         const [year, monthNum] = month.split('-').map(Number);
@@ -49,7 +48,6 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
             return docDate.getFullYear() === year && docDate.getMonth() + 1 === monthNum;
         });
     };
-
 
     const filteredDocuments = filterByMonth(documents, selectedMonth);
     const handleDetail = (document: Document) => {
@@ -147,7 +145,10 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
         {
             key: 'status',
             label: 'สถานะ',
-            render: (document) => renderStatus(document.status),
+            render: (document) => {
+        const status = document.status;
+        return renderStatus(status, document.AppvDocuNo);
+    },
             align: 'center',
         },
         {
@@ -183,7 +184,7 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete 
             idField="id"
             actions={(row) => (
                 <div className="flex justify-center gap-2">
-                     <button
+                    <button
                         className="group relative text-blue-600 transition-all duration-300 hover:scale-110 focus:outline-none"
                         onClick={() => handleDetail(row)}
                         aria-label="แก้ไข"

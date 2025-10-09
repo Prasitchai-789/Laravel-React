@@ -352,9 +352,9 @@ export default function Index() {
     try {
         const res = await axios.get(`/memo/documents/show/${document.winspeed_ref_id}`);
         setSelectedDocument(res.data);
-        // console.log('Header:', res.data.winspeed_header);
-        // console.log('Details:', res.data.winspeed_detail);
-        // console.log('Memo Document:', res.data.memo_document);
+        console.log('Header:', res.data.winspeed_header);
+        console.log('Details:', res.data.winspeed_detail);
+        console.log('Memo Document:', res.data.memo_document);
         return res.data;
     } catch (error) {
         console.error('Error fetching:', error);

@@ -15,26 +15,45 @@ class MemoExpenseDocumentController extends Controller
 {
     public function index()
     {
-        $categories = MemoExpenseCategories::all();
-        $documents = MemoExpenseDocuments::with('category', 'attachments')->get();
-        $winspeed = POHD::where('DocuNo', 'POR6807-00066')->get();
-        $result = $winspeed[0]->POID;
-        $podt = PODT::where('POID', $result)->get();
-        return Inertia::render('Memo/Index', [
-            'categories' => $categories,
-            'documents' => $documents,
-        ]);
+        return Inertia::render('Memo/Index', []);
     }
     public function apiIndex()
     {
         $categories = MemoExpenseCategories::all();
-        $documents = MemoExpenseDocuments::with('category', 'attachments')->get();
-        // $documents = 1;
+
+        // ดึงเอกสารทั้งหมด
+        $documents = MemoExpenseDocuments::with('category', 'attachments')
+            ->get()
+            ->map(function ($doc) {
+                // ดึงข้อมูล Winspeed Header ที่อ้างถึง (ถ้ามี)
+                $pohd = POHD::where('POVendorNo', $doc->winspeed_ref_id)->first();
+
+                // ตรวจสอบสถานะจาก AppvDocuNo
+                if ($pohd && !empty($pohd->AppvDocuNo)) {
+                    $doc->status = 'approved';
+                    $doc->status_label = 'อนุมัติ';
+                    $doc->AppvDocuNo = $pohd->AppvDocuNo;
+                } elseif ($doc->status === 'pending') {
+                    $doc->status_label = 'รอดำเนินการ';
+                } elseif ($doc->status === 'rejected') {
+                    $doc->status_label = 'ปฏิเสธ';
+                } elseif ($doc->status === 'draft') {
+                    $doc->status_label = 'ร่าง';
+                } elseif ($doc->status === 'in_progress') {
+                    $doc->status_label = 'กำลังดำเนินการ';
+                } else {
+                    $doc->status_label = 'ไม่ระบุ';
+                }
+
+                return $doc;
+            });
+
         return response()->json([
             'categories' => $categories,
             'documents' => $documents,
         ]);
     }
+
 
     public function show($ref_id)
     {
@@ -46,7 +65,6 @@ class MemoExpenseDocumentController extends Controller
                 'message' => 'ไม่พบข้อมูลใบสั่งซื้อในระบบ',
             ], 404);
         }
-
         // ดึง Detail (PODT)
         $podt = PODT::where('POID', $pohd->POID)->get();
 
@@ -59,6 +77,17 @@ class MemoExpenseDocumentController extends Controller
             return response()->json([
                 'message' => 'ไม่พบข้อมูลเอกสารในระบบ',
             ], 404);
+        }
+
+        if (!empty($pohd->AppvDocuNo)) {
+            $memoDocument->status = 'approved';
+            $memoDocument->status_label = 'อนุมัติ';
+        } elseif ($memoDocument->status === 'pending') {
+            $memoDocument->status_label = 'รอดำเนินการ';
+        } elseif ($memoDocument->status === 'rejected') {
+            $memoDocument->status_label = 'ปฏิเสธ';
+        } else {
+            $memoDocument->status_label = 'ไม่ระบุ';
         }
 
         // ส่งข้อมูลกลับให้ React
@@ -86,7 +115,7 @@ class MemoExpenseDocumentController extends Controller
             'date' => 'required|date',
             'category_id' => 'required|exists:memo_expense_categories,id',
             'amount' => 'nullable|numeric',
-            'status' => 'nullable|string',
+            // 'status' => 'nullable|string',
             'description' => 'nullable|string',
             'winspeed_ref_id' => 'nullable|string',
             'attachment_path' => 'nullable|file|max:5120', // สูงสุด 5MB
@@ -103,7 +132,7 @@ class MemoExpenseDocumentController extends Controller
             'description' => $request->description,
             'category_id' => $request->category_id,
             'amount' => $request->amount,
-            'status' => $request->status ?? 'pending',
+            // 'status' => $request->status ?? 'pending',
             'attachment_path' => $path,
             'winspeed_ref_id' => $request->winspeed_ref_id,
         ]);
@@ -119,7 +148,7 @@ class MemoExpenseDocumentController extends Controller
             'date' => 'required|date',
             'category_id' => 'required|exists:memo_expense_categories,id',
             'amount' => 'nullable|numeric',
-            'status' => 'nullable|string',
+            // 'status' => 'nullable|string',
             'description' => 'nullable|string',
             'winspeed_ref_id' => 'nullable|string',
             'attachment_path' => 'nullable|file|max:5120', // สูงสุด 5MB
@@ -140,7 +169,7 @@ class MemoExpenseDocumentController extends Controller
             'description' => $request->description,
             'category_id' => $request->category_id,
             'amount' => $request->amount,
-            'status' => $request->status ?? $document->status,
+            // 'status' => $request->status ?? $document->status,
             'winspeed_ref_id' => $request->winspeed_ref_id,
         ]);
 
