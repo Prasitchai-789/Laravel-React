@@ -13,35 +13,37 @@ class PurchaseDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        return Inertia::render('Dashboard/Purchase/Index', [
-
-        ]);
+        return Inertia::render('Dashboard/Purchase/Index', []);
     }
 
     public function apiIndex(Request $request)
-    {
-        $year = $request->input('year', date('Y'));
-        $month = $request->input('month', date('m'));
+{
+    $year = $request->input('year', date('Y'));
+    $month = $request->input('month', date('m'));
 
-        $query = POHD::on('sqlsrv2')
-            ->join('PODT', 'POHD.POID', '=', 'PODT.POID')
-            ->join('dbo.EMDept', 'POHD.DeptID', '=', 'EMDept.DeptID')
-            ->whereYear('POHD.DocuDate', $year);
-
-        if ($month != 0) { // 0 = ทั้งหมด
-            $query->whereMonth('POHD.DocuDate', $month);
-        }
-
-        $data = $query->select(
+    $query = POHD::on('sqlsrv2')
+        ->join('PODT', 'POHD.POID', '=', 'PODT.POID')
+        ->join('dbo.EMDept', 'POHD.DeptID', '=', 'EMDept.DeptID')
+        ->select(
             'POHD.DeptID',
             'EMDept.DeptName',
-            DB::raw('SUM(PODT.GoodAmnt) as TotalAmount')
+            DB::raw('SUM(POHD.TotabaseAmnt) as TotalBase'),
+            DB::raw('SUM(POHD.VATAmnt) as TotalVAT'),
+            DB::raw('SUM(POHD.NetAmnt) as TotalNet')
         )
-            ->groupBy('POHD.DeptID', 'EMDept.DeptName')
-            ->get();
+        ->whereYear('POHD.DocuDate', $year);
 
-        return response()->json(['dashboard' => $data]);
+    if ($month != 0) { // 0 = ทั้งหมด
+        $query->whereMonth('POHD.DocuDate', $month);
     }
+
+    $data = $query
+        ->groupBy('POHD.DeptID', 'EMDept.DeptName')
+        ->get();
+
+    return response()->json(['dashboard' => $data]);
+}
+
 
     /**
      * Store a newly created resource in storage.
