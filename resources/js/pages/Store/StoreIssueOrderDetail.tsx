@@ -83,10 +83,18 @@ export default function StoreOrderDetail({ order, onClose, showHistory = true }:
         return { issuedFromHistory, returnedFromHistory, totalIssued, pendingQty };
     };
 
-    const formatInteger = (num: number): string => {
-        return Math.floor(Number(num)).toLocaleString();
+    const formatDecimal = (num: number): string => {
+        const numberValue = Number(num);
+        // ตรวจสอบว่ามีทศนิยมหรือไม่
+        if (numberValue % 1 === 0) {
+            return numberValue.toLocaleString('en-US'); // แสดงเป็นจำนวนเต็ม
+        } else {
+            return numberValue.toLocaleString('en-US', {
+                minimumFractionDigits: 1,
+                maximumFractionDigits: 2
+            }); // แสดงทศนิยม
+        }
     };
-
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 font-anuphan">
@@ -165,7 +173,6 @@ export default function StoreOrderDetail({ order, onClose, showHistory = true }:
                                                 const { issuedFromHistory, returnedFromHistory, totalIssued, pendingQty } =
                                                     calculateHistoryTotals(item.history, item.quantity, order.order_date, item.product_id);
 
-
                                                 const isExpanded = expandedItems.has(item.id);
                                                 const hasHistory = item.history && item.history.length > 0;
 
@@ -186,7 +193,7 @@ export default function StoreOrderDetail({ order, onClose, showHistory = true }:
                                                             </td>
                                                             <td className="px-4 py-3 text-center">
                                                                 <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded-md">
-                                                                    {formatInteger(item.quantity)}
+                                                                    {formatDecimal(item.quantity)}
                                                                 </span>
                                                             </td>
                                                             <td className="px-4 py-3 text-center text-gray-600">
@@ -199,7 +206,7 @@ export default function StoreOrderDetail({ order, onClose, showHistory = true }:
                                                                         <div className="flex items-center justify-center">
                                                                             <TrendingDown className="h-4 w-4 text-green-500 mr-1" />
                                                                             <span className="text-green-600 font-medium bg-green-50 px-2 py-1 rounded-md">
-                                                                                {returnedFromHistory > 0 ? formatInteger(returnedFromHistory) : '-'}
+                                                                                {returnedFromHistory > 0 ? formatDecimal(returnedFromHistory) : '-'}
                                                                             </span>
                                                                         </div>
                                                                     </td>
@@ -214,7 +221,7 @@ export default function StoreOrderDetail({ order, onClose, showHistory = true }:
                                                                                         : 'text-gray-600 bg-gray-50'
                                                                                     }`}
                                                                             >
-                                                                                {formatInteger(pendingQty)}
+                                                                                {formatDecimal(pendingQty)}
                                                                                 {pendingQty === 0 && ' ✓'}
                                                                             </span>
                                                                         </div>
@@ -287,7 +294,7 @@ export default function StoreOrderDetail({ order, onClose, showHistory = true }:
                                                                                     }`}
                                                                             >
                                                                                 {h.movement_type === 'เบิก' ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                                                                                {h.movement_type} {formatInteger(h.quantity)}
+                                                                                {h.movement_type} {formatDecimal(h.quantity)}
                                                                             </span>
                                                                         </td>
                                                                         <td className="px-4 py-2 text-center text-gray-600 text-sm">{item.unit}</td>
@@ -322,17 +329,17 @@ export default function StoreOrderDetail({ order, onClose, showHistory = true }:
                                                                     </td>
                                                                     <td className="px-4 py-3 text-center text-sm">
                                                                         <span className="text-orange-700 bg-orange-50 px-2 py-1 rounded-md">
-                                                                            ยอดคงค้าง: {formatInteger(pendingQty)}
+                                                                            ยอดคงค้าง: {formatDecimal(pendingQty)}
                                                                         </span>
                                                                     </td>
                                                                     <td className="px-4 py-3 text-center text-sm text-gray-600">{item.unit}</td>
                                                                     <td colSpan={showHistory ? 3 : 0} className="px-4 py-3 text-center text-sm rounded-br-xl">
                                                                         <div className="flex justify-center space-x-4">
                                                                             <span className="text-green-700 bg-green-50 px-2 py-1 rounded-md">
-                                                                                คืนทั้งหมด: {formatInteger(returnedFromHistory)}
+                                                                                คืนทั้งหมด: {formatDecimal(returnedFromHistory)}
                                                                             </span>
                                                                             <span className="text-blue-700 bg-blue-50 px-2 py-1 rounded-md">
-                                                                                เบิกทั้งหมด: {formatInteger(totalIssued)}
+                                                                                เบิกทั้งหมด: {formatDecimal(totalIssued)}
                                                                             </span>
                                                                         </div>
                                                                     </td>
@@ -343,7 +350,6 @@ export default function StoreOrderDetail({ order, onClose, showHistory = true }:
                                                 );
                                             })}
                                         </tbody>
-
                                     </table>
                                 </div>
                             </div>
@@ -367,9 +373,7 @@ export default function StoreOrderDetail({ order, onClose, showHistory = true }:
                         ปิดหน้าต่าง
                     </button>
                 </div>
-
             </div>
-
         </div>
     );
 }

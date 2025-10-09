@@ -17,6 +17,7 @@ interface Good {
     GoodUnitID2?: string;
     GoodPrice2?: number;
     DocuDate?: string;
+    SafetyStock?: number;
 }
 
 interface SelectedGood extends Good {
@@ -245,20 +246,17 @@ const FormCreate: React.FC = () => {
                                         return (
                                             <div
                                                 key={`${good.GoodCode}-${index}`}
-                                                className={`p-6 hover:bg-blue-50 transition-all duration-300 cursor-pointer group border-l-4 ${
-                                                    isExisting ? 'border-l-orange-400 bg-orange-50' : 'border-l-green-400'
-                                                } ${index === 0 ? 'rounded-t-2xl' : ''} ${
-                                                    index === results.length - 1 ? 'rounded-b-2xl' : ''
-                                                }`}
+                                                className={`p-6 hover:bg-blue-50 transition-all duration-300 cursor-pointer group border-l-4 ${isExisting ? 'border-l-orange-400 bg-orange-50' : 'border-l-green-400'
+                                                    } ${index === 0 ? 'rounded-t-2xl' : ''} ${index === results.length - 1 ? 'rounded-b-2xl' : ''
+                                                    }`}
                                                 onClick={() => addProduct(good)}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-start gap-4 flex-1">
-                                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm ${
-                                                            isExisting
+                                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm ${isExisting
                                                                 ? 'bg-gradient-to-br from-orange-500 to-orange-600'
                                                                 : 'bg-gradient-to-br from-green-500 to-green-600'
-                                                        }`}>
+                                                            }`}>
                                                             {isExisting ? '✓' : '+'}
                                                         </div>
                                                         <div className="flex-1">
@@ -328,11 +326,10 @@ const FormCreate: React.FC = () => {
                                                             e.stopPropagation();
                                                             addProduct(good);
                                                         }}
-                                                        className={`opacity-0 group-hover:opacity-100 px-5 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 font-semibold ${
-                                                            isExisting
+                                                        className={`opacity-0 group-hover:opacity-100 px-5 py-2 rounded-xl transition-all duration-300 flex items-center gap-2 font-semibold ${isExisting
                                                                 ? 'bg-orange-500 hover:bg-orange-600 text-white'
                                                                 : 'bg-green-500 hover:bg-green-600 text-white'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -403,11 +400,10 @@ const FormCreate: React.FC = () => {
                                     >
                                         <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 mb-6">
                                             <div className="flex items-start gap-4 flex-1">
-                                                <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-lg ${
-                                                    isExisting
+                                                <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-lg ${isExisting
                                                         ? 'bg-gradient-to-br from-orange-500 to-orange-600'
                                                         : 'bg-gradient-to-br from-blue-500 to-purple-600'
-                                                }`}>
+                                                    }`}>
                                                     {index + 1}
                                                 </div>
                                                 <div className="flex-1">
@@ -461,7 +457,18 @@ const FormCreate: React.FC = () => {
                                                                 📅 อัพเดท: {new Date(good.DocuDate).toLocaleDateString('th-TH')}
                                                             </span>
                                                         )}
+                                                        {good.stock_qty !== undefined && (
+                                                            <span className="text-purple-600 bg-purple-50 px-3 py-2 rounded-xl border border-purple-200">
+                                                                💠 สต็อก: {good.stock_qty}
+                                                            </span>
+                                                        )}
+                                                        {good.safety_stock !== undefined && (
+                                                            <span className="text-orange-600 bg-orange-50 px-3 py-2 rounded-xl border border-orange-200">
+                                                                ⚠️ Safety Stock: {good.safety_stock}
+                                                            </span>
+                                                        )}
                                                     </div>
+
                                                 </div>
                                             </div>
 

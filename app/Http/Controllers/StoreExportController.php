@@ -62,9 +62,25 @@ class StoreExportController extends Controller
             $pdf->SetXY(58, $y);
             $pdf->Write(0, $item['product_name']);
 
-            // คอลัมน์ 2: จำนวน
-            $pdf->SetXY(148, $y);
-            $pdf->Write(0, $item['quantity']);
+            // คอลัมน์ 2: จำนวน - แก้ไขตรงนี้
+            $pdf->SetXY(142, $y);
+
+            // จัดรูปแบบตัวเลขให้แสดงทศนิยม
+            $quantity = $item['quantity'];
+            if (is_numeric($quantity)) {
+                // ตรวจสอบว่ามีทศนิยมหรือไม่
+                if (floor($quantity) == $quantity) {
+                    // เป็นจำนวนเต็ม
+                    $formattedQuantity = number_format($quantity, 0);
+                } else {
+                    // มีทศนิยม
+                    $formattedQuantity = number_format($quantity, 2);
+                }
+            } else {
+                $formattedQuantity = $quantity;
+            }
+
+            $pdf->Write(0, $formattedQuantity);
 
             // คอลัมน์ 3: หน่วย
             $pdf->SetXY(166, $y);
