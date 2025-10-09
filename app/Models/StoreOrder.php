@@ -16,6 +16,7 @@ class StoreOrder extends Model
         'department',
         'requester',
         'note',
+        'user_approved',
     ];
 
 

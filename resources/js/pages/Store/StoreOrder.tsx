@@ -2,7 +2,9 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Head, router } from "@inertiajs/react";
 import AppLayout from "@/layouts/app-layout";
 import Swal from "sweetalert2";
-import { ShoppingCart, } from 'lucide-react';
+import { ShoppingCart, Calendar } from 'lucide-react';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
 interface Good {
     GoodID: string;
     GoodName: string;
@@ -24,6 +26,7 @@ interface Props {
         success?: boolean;
         message?: string;
         order_id?: string;
+        document_number?: string;
     };
 }
 
@@ -54,6 +57,8 @@ export default function StoreOrder({ goods = [], flash }: Props) {
     const [cartPage, setCartPage] = useState<number>(1);
     const [showCart, setShowCart] = useState<boolean>(false);
     const [note, setNote] = useState("");
+    const [withdrawDate, setWithdrawDate] = useState(new Date().toISOString().split('T')[0]);
+
 
     useEffect(() => {
         if (flash?.success && flash?.message) {
@@ -157,35 +162,24 @@ export default function StoreOrder({ goods = [], flash }: Props) {
         }));
     };
 
-    const decreaseQty = (goodId: string) => {
-        setCart((prev) =>
-            prev
-                .map((i) => (i.GoodID === goodId ? { ...i, qty: i.qty - 1 } : i))
-                .filter((i) => i.qty > 0)
-        );
+    const updateCartQty = (goodId: string, newQty: number) => {
+        if (newQty < 1) {
+            removeFromCart(goodId);
+            return;
+        }
 
-        setAdjustedGoods((prev) => {
-            const newQty = (prev[goodId] ?? 0) - 1;
-            if (newQty <= 0) {
-                const { [goodId]: _, ...rest } = prev;
-                return rest;
-            }
-            return { ...prev, [goodId]: newQty };
-        });
-    };
-
-    const increaseQty = (goodId: string) => {
         const cartItem = cart.find(i => i.GoodID === goodId);
         if (!cartItem) return;
 
         const usedQty = adjustedGoods[goodId] ?? 0;
-        const available = (cartItem.availableQty ?? 0) - usedQty;
+        const available = (cartItem.availableQty ?? 0) - usedQty + cartItem.qty;
 
-        if (available <= 0) {
+        if (newQty > available) {
             Swal.fire({
                 icon: "warning",
-                title: "⚠ จำนวนสินค้าถึงสูงสุดแล้ว",
-                timer: 1500,
+                title: "⚠ จำนวนสินค้าไม่เพียงพอ",
+                text: `มีสินค้าพร้อมเบิกเพียง ${available} ${cartItem.GoodStockUnitName || 'หน่วย'}`,
+                timer: 2000,
                 showConfirmButton: false,
                 customClass: { popup: 'rounded-2xl font-anuphan' },
             });
@@ -194,15 +188,48 @@ export default function StoreOrder({ goods = [], flash }: Props) {
 
         setCart((prev) =>
             prev.map((i) =>
-                i.GoodID === goodId ? { ...i, qty: i.qty + 1 } : i
+                i.GoodID === goodId ? { ...i, qty: newQty } : i
             )
         );
 
+        const qtyDifference = newQty - cartItem.qty;
         setAdjustedGoods((prev) => ({
             ...prev,
-            [goodId]: (prev[goodId] ?? 0) + 1,
+            [goodId]: (prev[goodId] ?? 0) + qtyDifference,
         }));
     };
+    const handleQtyChange = (goodId: string, value: string) => {
+        let qty = parseFloat(value);
+        if (isNaN(qty) || qty < 0) return;
+
+        // ดึง stock ของสินค้านี้
+        const item = cart.find(i => i.GoodID === goodId);
+        if (!item) return;
+
+        // ถ้าเกิน stock ให้บังคับเป็น stock
+        if (qty > item.availableQty) {
+            qty = item.availableQty;
+            Swal.fire({
+                icon: 'warning',
+                title: `จำนวนสินค้าสูงสุดคือ ${item.availableQty}`,
+                timer: 1200,
+                showConfirmButton: false,
+                customClass: { popup: 'rounded-2xl font-anuphan' },
+            });
+        }
+
+        if (qty === 0) {
+            removeFromCart(goodId); // ลบสินค้า
+        } else {
+            setCart(prev =>
+                prev.map(i =>
+                    i.GoodID === goodId ? { ...i, qty } : i
+                )
+            );
+        }
+    };
+
+
 
     const removeFromCart = (goodId: string) => {
         const item = cart.find(i => i.GoodID === goodId);
@@ -282,8 +309,21 @@ export default function StoreOrder({ goods = [], flash }: Props) {
             return;
         }
 
+        if (!withdrawDate) {
+            Swal.fire({
+                icon: "warning",
+                title: "⚠ กรุณาเลือกวันที่เบิก",
+                customClass: {
+                    popup: 'rounded-2xl font-anuphan',
+                    confirmButton: 'rounded-xl px-4 py-2 font-anuphan'
+                }
+            });
+            return;
+        }
+
         Swal.fire({
             title: `ยืนยันการเบิกสินค้า ${totalItemsInCart} ชิ้น ?`,
+            html: `วันที่เบิก: <strong>${formatThaiDate(withdrawDate)}</strong>`,
             icon: "question",
             showCancelButton: true,
             confirmButtonText: "ยืนยัน",
@@ -296,7 +336,10 @@ export default function StoreOrder({ goods = [], flash }: Props) {
         }).then((confirmResult) => {
             if (!confirmResult.isConfirmed) return;
 
-            const items = cart.map((i) => ({ good_id: i.GoodID, qty: i.qty }));
+            const items = cart.map((i) => ({
+                good_id: i.GoodID,
+                qty: i.qty
+            }));
 
             Swal.fire({
                 title: "กำลังสร้างคำสั่งเบิก...",
@@ -305,33 +348,43 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                 didOpen: () => Swal.showLoading(),
             });
 
-            router.post("/StoreOrder", {
-                user_id: 1,
-                department_id: 1,
+            // ✅ ใช้ชื่อ route ที่ Laravel ตั้งไว้ (store-orders.store)
+            router.post(route('store-orders.store'), {
                 items,
-                note, // <-- ส่ง note ไปด้วย
+                note,
+                withdraw_date: withdrawDate,
             }, {
                 preserveScroll: true,
                 preserveState: true,
                 onSuccess: (page) => {
                     Swal.close();
+
+                    const flashData = page.props.flash;
+
                     Swal.fire({
                         icon: "success",
-                        title: "✅ ทำการเบิกสำเร็จ",
+                        title: flashData?.message || "✅ ทำการเบิกสำเร็จ",
+                        html: flashData?.document_number
+                            ? `เลขที่เอกสาร: <strong>${flashData.document_number}</strong>`
+                            : `เลขที่คำสั่งเบิก: <strong>${flashData?.order_id || 'N/A'}</strong>`,
                         customClass: {
                             popup: 'rounded-2xl font-anuphan',
                             confirmButton: 'rounded-xl px-4 py-2 font-anuphan'
                         }
                     });
 
-                    // เคลียร์ตะกร้า
+                    // ✅ เคลียร์ตะกร้า
                     setCart([]);
+                    setAdjustedGoods({});
                     setShowCart(false);
                     setCartPage(1);
+                    setNote("");
 
-                    // ถ้า backend ส่ง order_id กลับ
-                    const orderId = page.props.order_id;
-                    console.log("Order ID:", orderId);
+                    // ✅ รีโหลดข้อมูลสินค้าใหม่ (ถ้ามี route index)
+                    router.visit(route('store-orders.index'), {
+                        only: ['goods'],
+                        preserveState: true
+                    });
                 },
                 onError: (errors) => {
                     Swal.close();
@@ -348,6 +401,19 @@ export default function StoreOrder({ goods = [], flash }: Props) {
             });
         });
     };
+
+
+    // ฟังก์ชันจัดรูปแบบวันที่เป็นภาษาไทย
+    const formatThaiDate = (dateString: string) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('th-TH', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+        });
+    };
+
 
     return (
         <AppLayout
@@ -477,7 +543,7 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                                         <th className="p-4 border-b font-semibold text-sm w-[160px]">รหัสสินค้า</th>
                                         <th className="p-4 border-b font-semibold text-sm">ชื่อสินค้า</th>
                                         <th className="p-4 border-b font-semibold text-sm w-[150px]">ประเภทสินค้า</th>
-                                        <th className="p-4 border-b font-semibold text-sm w-[120px] text-center">พร้อมเบิก</th> {/* <-- ใหม่ */}
+                                        <th className="p-4 border-b font-semibold text-sm w-[120px] text-center">พร้อมเบิก</th>
                                         <th className="p-4 border-b font-semibold text-sm text-center">การดำเนินการ</th>
                                     </tr>
                                 </thead>
@@ -610,21 +676,17 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
                                 </button>
-
                             )}
                         </div>
 
                         {cart.length === 0 ? (
                             <div className="text-center py-16 px-6">
                                 <div className="flex flex-col items-center justify-center space-y-4">
-                                    {/* Simple Elegant Icon */}
                                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200">
                                         <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                                         </svg>
                                     </div>
-
-                                    {/* Text Content */}
                                     <div className="space-y-2">
                                         <h3 className="text-lg font-medium text-gray-600">ตะกร้าว่างเปล่า</h3>
                                         <p className="text-gray-500 text-sm">
@@ -635,6 +697,26 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                             </div>
                         ) : (
                             <div className="space-y-4">
+                                {/* วันที่เบิก */}
+                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                                    <label className="block text-sm font-medium text-blue-700 mb-2 flex items-center">
+                                        <Calendar className="w-4 h-4 mr-2" />
+                                        วันที่เบิกสินค้า
+                                    </label>
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="date"
+                                            value={withdrawDate}
+                                            onChange={(e) => setWithdrawDate(e.target.value)}
+                                            className="flex-1 border border-blue-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                                        />
+                                        <span className="text-sm text-blue-600 font-medium whitespace-nowrap">
+                                            {formatThaiDate(withdrawDate)}
+                                        </span>
+                                    </div>
+                                </div>
+
+
                                 <div className="overflow-x-auto max-h-96 pr-2">
                                     <table className="w-full border-collapse">
                                         <thead className="sticky top-0 bg-white">
@@ -655,22 +737,25 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                                                                 {item.ProductType}
                                                             </div>
                                                         )}
+                                                        <div className="text-xs text-gray-400 mt-1">
+                                                            พร้อมเบิก: {item.availableQty} {item.GoodStockUnitName || 'หน่วย'}
+                                                        </div>
                                                     </td>
                                                     <td className="p-3 text-center">
-                                                        <div className="flex items-center justify-center space-x-2">
-                                                            <button
-                                                                onClick={() => decreaseQty(item.GoodID)}
-                                                                className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded-lg text-xs hover:bg-gray-200 transition-colors"
-                                                            >
-                                                                -
-                                                            </button>
-                                                            <span className="w-8 text-center font-medium text-sm bg-gray-50 py-1 rounded-md">{item.qty}</span>
-                                                            <button
-                                                                onClick={() => increaseQty(item.GoodID)}
-                                                                className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded-lg text-xs hover:bg-gray-200 transition-colors"
-                                                            >
-                                                                +
-                                                            </button>
+                                                        <div className="flex flex-col items-center space-y-2">
+                                                           
+                                                            <input
+                                                                type="number"
+                                                                step="0.1"
+                                                                min="0"
+                                                                value={item.qty}
+                                                                onChange={(e) => handleQtyChange(item.GoodID, e.target.value)}
+                                                                onFocus={(e) => e.target.select()} // ← เพิ่มบรรทัดนี้
+                                                                className="w-24 px-3 py-2 text-center border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                                                            />
+
+
+
                                                         </div>
                                                     </td>
                                                     <td className="p-3 text-center">
@@ -688,21 +773,20 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                                             ))}
                                         </tbody>
                                     </table>
-                                    <div className="mt-6 pt-4 border-t border-gray-200 space-y-4">
-                                        {/* หมายเหตุ */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                หมายเหตุ
-                                            </label>
-                                            <textarea
-                                                value={note}
-                                                onChange={(e) => setNote(e.target.value)}
-                                                placeholder="กรอกหมายเหตุเพิ่มเติม (ถ้ามี)"
-                                                className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-shadow"
-                                                rows={3}
-                                            />
-                                        </div>
-                                    </div>
+                                </div>
+
+                                {/* หมายเหตุ */}
+                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        หมายเหตุ
+                                    </label>
+                                    <textarea
+                                        value={note}
+                                        onChange={(e) => setNote(e.target.value)}
+                                        placeholder="กรอกหมายเหตุเพิ่มเติม (ถ้ามี)"
+                                        className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-shadow"
+                                        rows={3}
+                                    />
                                 </div>
 
                                 {/* Cart Pagination */}
@@ -755,7 +839,6 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                             </div>
                         )}
                     </div>
-
                 </div>
             </div>
         </AppLayout>

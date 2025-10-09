@@ -37,7 +37,8 @@ class StoreMovementController extends Controller
         )
             ->leftJoin('store_items', 'store_movements.store_item_id', '=', 'store_items.id')
             ->leftJoin('users', 'store_movements.user_id', '=', 'users.id')
-            ->orderByDesc('store_movements.created_at')
+            ->orderByDesc('store_movements.created_at') // เรียงวันที่ล่าสุดก่อน
+            ->orderByDesc('store_movements.id')         // ถ้าวันที่เหมือนกัน เรียง id ใหม่สุดก่อน
             ->get();
 
         // ✅ ดึง employee_id ทั้งหมด (ที่ไม่ว่าง)
@@ -49,7 +50,7 @@ class StoreMovementController extends Controller
             ->whereIn('EmpID', $employeeIds)
             ->pluck('EmpName', 'EmpID'); // key = EmpID, value = EmpName
 
-        // ✅ ดึงชื่อสินค้าจาก SQL Server (เหมือนเดิม)
+        // ✅ ดึงชื่อสินค้าจาก SQL Server
         $goodCodes = $movements->pluck('goodCodeStore')->unique()->toArray();
 
         $emGoods = \App\Models\WIN\EMGood::on('sqlsrv2')
@@ -72,7 +73,7 @@ class StoreMovementController extends Controller
                 'movement_type' => $m->movement_type,
                 'category' => $m->category,
                 'date' => $m->created_at->format('Y-m-d'),
-                'user' => $empName, // 👈 ใช้ชื่อพนักงานจริงจาก Webapp_Emp ถ้ามี
+                'user' => $empName,
                 'note' => $m->note,
                 'status' => $m->status,
             ];
@@ -83,8 +84,6 @@ class StoreMovementController extends Controller
             'movements' => $movementsData,
         ]);
     }
-
-
 
     // สร้าง movement ใหม่
     public function stock(Request $request)
@@ -139,4 +138,5 @@ class StoreMovementController extends Controller
         // dd($movements);
         return redirect()->back()->with('success', 'บันทึก movement เรียบร้อยแล้ว');
     }
+
 }

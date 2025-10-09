@@ -233,9 +233,10 @@ class StoreOrderController extends Controller
 
     private function getWebOrders($page, $perPage, $search, $status, $dailyDate)
     {
-        // 1️⃣ โหลด orders + items + good
+        // 1️⃣ โหลด orders + items + good - แก้ไขการเรียงลำดับตามวันที่
         $webOrdersQuery = StoreOrder::with(['items.good'])
-            ->orderBy('created_at', 'desc');
+            ->orderBy('order_date', 'desc')  // ← เรียงตามวันที่สั่ง (ใหม่ก่อน)
+            ->orderBy('id', 'desc');         // ← ถ้าวันที่ซ้ำกันให้เรียงตาม ID
 
         // การค้นหา
         if (!empty($search)) {
@@ -428,99 +429,141 @@ class StoreOrderController extends Controller
 
     public function store(Request $request)
     {
-        // dd($request);
-        $data = $request->validate([
-            'user_id' => 'required',
-            'department_id' => 'required',
-            'items' => 'required|array|min:1',
-            'items.*.good_id' => 'required',
-            'items.*.qty' => 'required|integer|min:1',
-            'note' => 'nullable|string',
-        ]);
-        // dd($request);
-        $order = null;
+        try {
+            \Log::info('StoreOrder request received', $request->all());
 
-        DB::transaction(function () use ($data, &$order) {
+            $data = $request->validate([
+                'items' => 'required|array|min:1',
+                'items.*.good_id' => 'required',
+                'items.*.qty' => 'required|numeric|min:0',
+                'note' => 'nullable|string',
+                'withdraw_date' => 'required|date',
+            ]);
 
-            $user = Auth::user();
+            \Log::info('Validation passed', $data);
 
-            $employeeId = $user->employee_id;
-            $departmentName = 'ไม่ระบุ';
-            $empName = 'ไม่พบข้อมูลพนักงาน';
+            $order = null;
 
-            if (!empty($employeeId)) {
-                // ดึง EmpName + DeptID จาก Webapp_Emp
-                $employee = DB::connection('sqlsrv2')
-                    ->table('dbo.Webapp_Emp')
-                    ->select('EmpName', 'DeptID')
-                    ->where('EmpID', $employeeId)
-                    ->first();
+            DB::transaction(function () use ($data, &$order) {
+                $user = Auth::user();
+                \Log::info('User info', ['user_id' => $user->id, 'employee_id' => $user->employee_id]);
 
-                if ($employee) {
-                    $empName = $employee->EmpName ?? 'ไม่ระบุชื่อ';
+                $employeeId = $user->employee_id;
+                $departmentName = 'ไม่ระบุ';
+                $empName = 'ไม่พบข้อมูลพนักงาน';
 
-                    // ถ้ามี DeptID → ดึงชื่อแผนก
-                    if (!empty($employee->DeptID)) {
-                        $departmentName = DB::connection('sqlsrv2')
-                            ->table('dbo.Webapp_Dept')
-                            ->where('DeptID', $employee->DeptID)
-                            ->value('DeptName') ?? 'ไม่ระบุแผนก';
+                // ดึงข้อมูลพนักงาน
+                if (!empty($employeeId)) {
+                    try {
+                        $employee = DB::connection('sqlsrv2')
+                            ->table('dbo.Webapp_Emp')
+                            ->select('EmpName', 'DeptID')
+                            ->where('EmpID', $employeeId)
+                            ->first();
+
+                        if ($employee) {
+                            $empName = $employee->EmpName ?? 'ไม่ระบุชื่อ';
+                            if (!empty($employee->DeptID)) {
+                                $departmentName = DB::connection('sqlsrv2')
+                                    ->table('dbo.Webapp_Dept')
+                                    ->where('DeptID', $employee->DeptID)
+                                    ->value('DeptName') ?? 'ไม่ระบุแผนก';
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('Error fetching employee data', ['error' => $e->getMessage()]);
                     }
                 }
-            }
 
-            // ✅ ตัวอย่างใช้ทั้ง EmpName และ DeptName ในการสร้าง Order
-            $order = StoreOrder::create([
-                'document_number' => 'SO-' . now()->format('YmdHis'),
-                'order_date' => now(),
-                'status' => 'pending',
-                'department' => $departmentName,
-                'requester' => $empName, // 👈 ใช้ชื่อพนักงานจริงจาก Webapp_Emp
-                'note' => $data['note'] ?? null,
-            ]);
-            // dd($order);
-            foreach ($data['items'] as $item) {
+                // วันที่เบิก
+                $orderDate = $data['withdraw_date']
+                    ? \Carbon\Carbon::parse($data['withdraw_date'])
+                    : now();
 
-
-                $goodUnit = DB::connection('sqlsrv2')
-                    ->table('EMGoodUnit')
-                    ->where('GoodUnitID', $item['good_id'])
-                    ->first();
-
-                $storeItem = \App\Models\StoreItem::where('good_id', $item['good_id'])->first();
-
-
-                // ✅ เก็บรายละเอียดรายการใน order
-                $order->items()->create([
-                    'product_id' => $item['good_id'],
-                    'quantity' => $item['qty'],
-                ]);
-
-                // dd($order);
-                // บันทึก movement ด้วย Eloquent
-                StoreMovement::create([
-                    'store_item_id' => $storeItem->id,
-                    'user_id' => $user->id,
-                    'movement_type' => 'issue',
-                    'category' => 'stock',
-                    'type' => 'subtract',
-                    'quantity' => $item['qty'],
-                    // ✅ เก็บทั้งเลขที่เอกสาร และ note ของผู้ใช้
-                    'note' => "Order {$order->document_number}"
-                        . (!empty($data['note']) ? " - {$data['note']}" : ""),
-                    'store_order_id' => $order->id,
+                // ✅ สร้าง order ครั้งเดียว
+                $order = new \App\Models\StoreOrder([
+                    'document_number' => 'SO-' . now()->format('YmdHis'),
+                    'order_date' => $orderDate,
                     'status' => 'pending',
+                    'department' => $departmentName,
+                    'requester' => $empName,
+                    'note' => $data['note'] ?? null,
                 ]);
-            }
-        });
-        // dd($item['good_id'], $goodUnit);
 
-        return back()->with([
-            'success' => true,
-            'message' => '✅ ทำการบันทึกคำสั่งเบิกเรียบร้อย รออนุมัติ',
-            'order_id' => $order->id
-        ]);
+                $order->created_at = $orderDate;
+                $order->updated_at = $orderDate;
+                $order->save();
+
+                \Log::info('Order created', ['order_id' => $order->id, 'document_number' => $order->document_number]);
+
+                // ✅ ประมวลผล items
+                foreach ($data['items'] as $index => $item) {
+                    \Log::info('Processing item', ['index' => $index, 'item' => $item]);
+
+                    $storeItem = \App\Models\StoreItem::where('good_id', $item['good_id'])->first();
+
+                    if (!$storeItem) {
+                        throw new \Exception("ไม่พบสินค้า ID: {$item['good_id']}");
+                    }
+
+                    // ✅ เพิ่มรายการสินค้าภายใต้ order เดิม
+                    // เพิ่มรายการสินค้าภายใต้ order เดิม
+                    $orderItem = $order->items()->make([
+                        'product_id' => $item['good_id'],
+                        'quantity' => $item['qty'],
+                    ]);
+
+                    $orderItem->timestamps = false; // ปิด auto timestamps
+                    $orderItem->created_at = $orderDate;
+                    $orderItem->updated_at = $orderDate;
+                    $orderItem->save();
+
+
+                    // ✅ สร้าง movement
+                    $movement = new \App\Models\StoreMovement([
+                        'store_item_id' => $storeItem->id,
+                        'user_id' => $user->id,
+                        'movement_type' => 'issue',
+                        'category' => 'stock',
+                        'type' => 'subtract',
+                        'quantity' => $item['qty'],
+                        'note' => "Order {$order->document_number}" . (!empty($data['note']) ? " - {$data['note']}" : ""),
+                        'store_order_id' => $order->id,
+                        'status' => 'pending',
+                    ]);
+
+                    $movement->created_at = $orderDate;
+                    $movement->updated_at = $orderDate;
+                    $movement->save();
+
+                    \Log::info('Movement created', [
+                        'store_item_id' => $storeItem->id,
+                        'created_at' => $movement->created_at
+                    ]);
+                }
+            });
+
+            \Log::info('Transaction completed successfully');
+
+            return redirect()->route('Store.index')->with([
+                'success' => true,
+                'message' => '✅ ทำการบันทึกคำสั่งเบิกเรียบร้อย รออนุมัติ',
+                'order_id' => $order->id,
+                'document_number' => $order->document_number
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('StoreOrder error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return back()->withErrors([
+                'error' => 'เกิดข้อผิดพลาดในการบันทึก: ' . $e->getMessage()
+            ]);
+        }
     }
+
 
 
     public function confirm($orderId)
@@ -684,39 +727,42 @@ class StoreOrderController extends Controller
 
     public function updateStatus(Request $request, StoreOrder $order)
     {
-        $status = strtolower($request->json('status', $request->status));
+        $status = strtolower($request->input('status', $request->status));
         $request->merge(['status' => $status]);
 
         $request->validate([
             'status' => 'required|string|in:pending,approved,rejected',
         ]);
 
-        $order = StoreOrder::with('items')->find($order->id);
-        $order->status = $status;
-        $order->save();
+        $order = StoreOrder::findOrFail($order->id);
 
-        // ปรับ status ของ movement เดิมเท่านั้น
-        foreach ($order->items as $item) {
-            $storeItem = \App\Models\StoreItem::where('good_id', $item->product_id)->first();
-            if (!$storeItem) continue;
+        // ดึงชื่อจากฝ่าย ถ้า auth มี employee_id
+        $user = auth()->user();
+        $employeeName = $user->name ?? $user->id; // fallback
 
-            $movement = \App\Models\StoreMovement::where('store_item_id', $storeItem->id)
-                ->where('store_order_id', $order->id)
-                ->where('movement_type', 'issue')
-                ->where('type', 'subtract')
-                ->latest('id')
-                ->first();
+        if (!empty($user->employee_id)) {
+            try {
+                $employee = DB::connection('sqlsrv2')
+                    ->table('dbo.Webapp_Emp')
+                    ->select('EmpName')
+                    ->where('EmpID', $user->employee_id)
+                    ->first();
 
-            if ($movement) {
-                $movement->update(['status' => $status]);
+                if ($employee) {
+                    $employeeName = $employee->EmpName ?? $employeeName;
+                }
+            } catch (\Exception $e) {
+                \Log::error('Error fetching employee data', ['error' => $e->getMessage()]);
             }
-
-            // **ไม่สร้าง return movement** เพราะ stock จะถูกคำนวณจาก movement เอง
         }
+
+        // บันทึก status และ user_approved ถ้า approved หรือ rejected
+        $order->status = $status;
+        $order->user_approved = in_array($status, ['approved', 'rejected']) ? $employeeName : null;
+        $order->save();
 
         return redirect()->back()->with('success', 'อัปเดตสถานะเรียบร้อยแล้ว');
     }
-
     public function showQRCode($order)
     {
         // ดึง store_item จาก MySQL
@@ -913,21 +959,24 @@ class StoreOrderController extends Controller
     {
         $query = $request->input('query', '');
 
-        // ดึงจาก EMGood (SQL Server)
+        // Subquery ดึงราคาล่าสุดจาก ICStockDetail (1 แถวต่อ GoodID)
+        $latestPriceSub = DB::connection('sqlsrv2')
+            ->table('ICStockDetail as s1')
+            ->select('s1.GoodID', 's1.GoodUnitID2', 's1.GoodPrice2', 's1.DocuDate')
+            ->whereRaw('s1.DocuDate = (
+            SELECT MAX(s2.DocuDate)
+            FROM ICStockDetail s2
+            WHERE s2.GoodID = s1.GoodID
+        )');
+
+        // Query หลักจาก EMGood + join sub + join store_items
         $goods = DB::connection('sqlsrv2')
             ->table('EMGood as g')
-            ->leftJoin(DB::raw('
-        (
-            SELECT s1.GoodID, s1.GoodUnitID2, s1.GoodPrice2, s1.DocuDate
-            FROM ICStockDetail s1
-            WHERE s1.DocuDate = (
-                SELECT MAX(s2.DocuDate)
-                FROM ICStockDetail s2
-                WHERE s2.GoodID = s1.GoodID
-            )
-        ) as s
-    '), 'g.GoodID', '=', 's.GoodID')
-
+            ->leftJoinSub($latestPriceSub, 's', 'g.GoodID', '=', 's.GoodID')
+            ->leftJoin(DB::connection('sqlsrv')->getDatabaseName() . '.dbo.store_items as si', function ($join) {
+                $join->on('g.GoodID', '=', 'si.good_id')
+                    ->on('g.GoodCode', '=', 'si.good_code');
+            })
             ->where(function ($q) {
                 $q->whereNull('g.Inactive')->orWhere('g.Inactive', '!=', '1');
             })
@@ -943,29 +992,22 @@ class StoreOrderController extends Controller
                 'g.GoodName1',
                 's.GoodUnitID2',
                 's.GoodPrice2',
-                's.DocuDate'
+                's.DocuDate',
+                DB::raw('ISNULL(SUM(si.stock_qty), 0) as stock_qty'),
+                DB::raw('ISNULL(SUM(si.safety_stock), 0) as safety_stock')
             ])
+            ->groupBy('g.GoodCode', 'g.GoodID', 'g.GoodName1', 's.GoodUnitID2', 's.GoodPrice2', 's.DocuDate')
             ->orderBy('g.GoodCode')
             ->limit(50)
             ->get();
 
-        // ตรวจสอบซ้ำใน EMGood เอง
-        $codesCount = [];
+        // อัปเดต status ให้ชัดเจน
         foreach ($goods as $good) {
-            $codesCount[$good->GoodCode] = ($codesCount[$good->GoodCode] ?? 0) + 1;
-        }
-
-        // ตรวจสอบว่ามีอยู่ใน store_items หรือยัง
-        foreach ($goods as $good) {
-            $existsInStore = DB::table('store_items')
-                ->where('good_id', $good->GoodID)
-                ->where('good_code', $good->GoodCode)
-                ->exists();
-
             $status = [];
-            $status[] = $existsInStore ? '✅ มีอยู่แล้วใน store_items' : '➕ ยังไม่มีใน store_items';
-            if ($codesCount[$good->GoodCode] > 1) {
-                $status[] = '⚠️ ซ้ำใน EMGood';
+            if ($good->stock_qty > 0 || $good->safety_stock > 0) {
+                $status[] = '✅ มีอยู่แล้วใน store_items';
+            } else {
+                $status[] = '➕ ยังไม่มีใน store_items';
             }
 
             $good->status = implode(' | ', $status);
@@ -973,6 +1015,8 @@ class StoreOrderController extends Controller
 
         return response()->json($goods);
     }
+
+
 
     public function importNew(Request $request)
     {

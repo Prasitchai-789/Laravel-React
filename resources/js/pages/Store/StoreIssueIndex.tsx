@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import StoreIssueOrderDetail from './StoreIssueOrderDetail';
+import FormEditOrder from './FormEditOrder'; // ต้องสร้าง component นี้
 import Swal from 'sweetalert2';
-import { Eye, Search, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Calendar, User, Building, FileText, Monitor, Globe, Filter, X, Download, BarChart3, RefreshCw, Plus } from "lucide-react";
+import { Eye, Search, Pencil, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Calendar, User, Building, FileText, Monitor, Globe, Filter, X, Download, BarChart3, RefreshCw, Plus } from "lucide-react";
 import ModalForm from '@/components/ModalForm';
 import { can } from '@/lib/can';
+
 
 interface OrderItem {
     id: number;
@@ -45,13 +47,14 @@ interface Props {
         next_page_url: string | null;
         prev_page_url: string | null;
     };
-    // เนื่องจาก backend ไม่ส่ง filters มา เราจะดึงจาก URL แทน
 }
 
 export default function StoreOrderIndex({ orders, pagination }: Props) {
     const { url } = usePage() as any;
     const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false); // เพิ่ม state สำหรับ modal แก้ไข
     const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+    const [editOrder, setEditOrder] = useState<Order | null>(null); // เพิ่ม state สำหรับข้อมูลที่ต้องการแก้ไข
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     // ดึงค่าจาก URL parameters แทนการใช้ filters prop
@@ -62,7 +65,7 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
     const [activeTab, setActiveTab] = useState<'WIN' | 'WEB'>(
         (urlParams.get('source') as 'WIN' | 'WEB') || 'WEB'
     );
-    const [dailyTotal, setDailyTotal] = useState(0); // เพิ่ม state นี้
+    const [dailyTotal, setDailyTotal] = useState(0);
 
     // คำนวณรายการวันนี้จาก orders ปัจจุบัน
     useEffect(() => {
@@ -75,6 +78,32 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
     const formatNumber = (num: number | undefined | null): string => {
         if (num === undefined || num === null) return '0';
         return num.toLocaleString('th-TH');
+    };
+
+    // ฟังก์ชันเปิด modal แก้ไข
+    const handleEdit = (order: Order) => {
+        setEditOrder(order);
+        setIsEditOpen(true);
+    };
+
+    // ฟังก์ชันปิด modal แก้ไข
+    const handleEditClose = () => {
+        setIsEditOpen(false);
+        setEditOrder(null);
+    };
+
+    // ฟังก์ชันเมื่อบันทึกการแก้ไขสำเร็จ
+    const handleEditSuccess = () => {
+        handleEditClose();
+        // รีโหลดข้อมูลหรืออัพเดต state ตามต้องการ
+        router.reload({ only: ['orders'] });
+        Swal.fire({
+            title: 'บันทึกสำเร็จ',
+            text: 'แก้ไขข้อมูลการเบิกสินค้าสำเร็จ',
+            icon: 'success',
+            confirmButtonColor: '#3085d6',
+            customClass: { popup: 'rounded-2xl font-anuphan' }
+        });
     };
 
     const handleTabChange = (tab: 'WIN' | 'WEB') => {
@@ -464,18 +493,18 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                <button
-                                                    onClick={() => {
-                                                        setDetailOrder(order);
-                                                        setIsDetailOpen(true);
-                                                    }}
-                                                    className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg text-sm font-medium"
-                                                >
-                                                    <Eye className="w-4 h-4 mr-1" />
-                                                    ดูรายละเอียด
-                                                </button>
-
-
+                                                <div className="flex justify-center gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setDetailOrder(order);
+                                                            setIsDetailOpen(true);
+                                                        }}
+                                                        className="inline-flex items-center justify-center p-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg"
+                                                        title="ดูรายละเอียด"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     )) : (
@@ -608,29 +637,40 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
                                                     </div>
                                                 </td>
 
-                                                <td className="px-6 py-4 whitespace-nowrap text-center flex justify-center gap-2">
-                                                    {/* ดูรายละเอียด */}
-                                                    <button
-                                                        onClick={() => {
-                                                            setDetailOrder(order);
-                                                            setIsDetailOpen(true);
-                                                        }}
-                                                        className="inline-flex items-center px-3 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg text-sm font-medium"
-                                                    >
-                                                        <Eye className="w-4 h-4 mr-1" />
-                                                        ดูรายละเอียด
-                                                    </button>
+                                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                    <div className="flex justify-center gap-2">
+                                                        {/* ดูรายละเอียด */}
+                                                        <button
+                                                            onClick={() => {
+                                                                setDetailOrder(order);
+                                                                setIsDetailOpen(true);
+                                                            }}
+                                                            className="inline-flex items-center justify-center p-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all duration-200 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg"
+                                                            title="ดูรายละเอียด"
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                        </button>
 
-                                                    {/* Export Excel */}
-                                                    <button
-                                                        onClick={() => window.open(route('store.export-excel', { id: order.id }), '_blank')}
-                                                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"
-                                                    >
-                                                        PDF
-                                                    </button>
+                                                        {/* แก้ไขข้อมูล */}
+                                                        <button
+                                                            onClick={() => handleEdit(order)}
+                                                            className="inline-flex items-center justify-center p-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all duration-200 transform hover:-translate-y-0.5 shadow-md hover:shadow-lg"
+                                                            title="แก้ไขข้อมูล"
+                                                            disabled={!can('PUR.edit') || order.status === 'approved' || order.status === 'rejected'}
+                                                        >
+                                                            <Pencil className="w-4 h-4" />
+                                                        </button>
 
+                                                        {/* Export PDF */}
+                                                        <button
+                                                            onClick={() => window.open(route('store.export-excel', { id: order.id }), '_blank')}
+                                                            className="inline-flex items-center justify-center p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-md transition-all duration-200 transform hover:-translate-y-0.5"
+                                                            title="Export PDF"
+                                                        >
+                                                            <FileText className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 </td>
-
                                             </tr>
                                         ))
                                     ) : (
@@ -734,8 +774,25 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
                         />
                     </ModalForm>
                 )}
-            </div>
 
+                {/* Edit Modal */}
+                {isEditOpen && (
+                    <ModalForm
+                        isModalOpen={isEditOpen}
+                        onClose={handleEditClose}
+                        title="แก้ไขข้อมูลการเบิกสินค้า"
+                        size="xl"
+                    >
+                        <FormEditOrder
+                            orderId={editOrder?.id}   // ใช้ id ของ order
+                            onClose={handleEditClose}
+                            onSuccess={handleEditSuccess}
+                        />
+
+
+                    </ModalForm>
+                )}
+            </div>
         </AppLayout>
     );
 }
