@@ -62,41 +62,53 @@ export default function DocumentForm({ categories, onClose, mode = 'create', doc
                     <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
                         <p className="mb-1 text-sm text-gray-500">สถานะ</p>
                         <div className="flex items-center gap-2">
-                            <div
-                                className={`h-3 w-3 rounded-full ${
-                                    document?.memo_document?.status === 'approved'
-                                        ? 'bg-green-500'
-                                        : document?.memo_document?.status === 'pending'
-                                          ? 'bg-yellow-500'
-                                          : document?.memo_document?.status === 'rejected'
-                                            ? 'bg-red-500'
-                                            : 'bg-gray-500'
-                                }`}
-                            ></div>
-                            <p className="font-medium text-gray-800">
-                                {document?.memo_document?.status === 'approved'
-                                    ? 'อนุมัติ'
-                                    : document?.memo_document?.status === 'pending'
-                                      ? 'รอดำเนินการ'
-                                      : document?.memo_document?.status === 'rejected'
-                                        ? 'ปฏิเสธ'
-                                        : document?.memo_document?.status === 'draft'
-                                          ? 'ร่าง'
-                                          : document?.memo_document?.status === 'in_progress'
-                                            ? 'กำลังดำเนินการ'
-                                            : document?.memo_document?.status || 'ไม่ระบุ'}
-                            </p>
+                            {(() => {
+                                const appvDocuNo = document?.winspeed_header?.AppvDocuNo?.trim();
+                                const isApproved = !!appvDocuNo;
+                                const status = isApproved ? 'approved' : (document?.memo_document?.status ?? 'ไม่ระบุ');
+
+                                // กำหนดสีตามสถานะ
+                                const statusColor =
+                                    {
+                                        approved: 'bg-green-500',
+                                        pending: 'bg-yellow-500',
+                                        rejected: 'bg-red-500',
+                                        draft: 'bg-gray-400',
+                                        in_progress: 'bg-blue-500',
+                                        default: 'bg-gray-500',
+                                    }[status] || 'bg-gray-500';
+
+                                // แปลสถานะเป็นภาษาไทย
+                                const statusLabel =
+                                    {
+                                        approved: 'อนุมัติ',
+                                        pending: 'รอดำเนินการ',
+                                        rejected: 'ปฏิเสธ',
+                                        draft: 'ร่าง',
+                                        in_progress: 'กำลังดำเนินการ',
+                                    }[status] || 'ไม่ระบุ';
+
+                                return (
+                                    <>
+                                        <div className={`h-3 w-3 rounded-full ${statusColor}`}></div>
+                                        <p className="font-medium text-gray-800">{statusLabel}</p>
+                                        {/* แสดงเลขที่อนุมัติถ้ามี */}
+                                        {isApproved && <p className="text-sm text-gray-500">({appvDocuNo})</p>}
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
+
                     <div className="overflow-hidden rounded-lg border border-blue-100 bg-blue-50">
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead className="bg-blue-100">
                                     <tr>
                                         <th className="px-4 py-3 text-center text-xs font-bold tracking-wider text-blue-800 uppercase">ลำดับ</th>
-                                        <th className="px-4 py-3 text-left text-xs font-bold  tracking-wider text-blue-800 uppercase">รายการ</th>
-                                        <th className="px-4 py-3 text-right text-xs font-bold  tracking-wider text-blue-800 uppercase">จำนวน</th>
-                                        <th className="px-4 py-3 text-right text-xs font-bold  tracking-wider text-blue-800 uppercase">ราคา</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold tracking-wider text-blue-800 uppercase">รายการ</th>
+                                        <th className="px-4 py-3 text-right text-xs font-bold tracking-wider text-blue-800 uppercase">จำนวน</th>
+                                        <th className="px-4 py-3 text-right text-xs font-bold tracking-wider text-blue-800 uppercase">ราคา</th>
                                     </tr>
                                 </thead>
                                 <tbody className="">
@@ -105,7 +117,10 @@ export default function DocumentForm({ categories, onClose, mode = 'create', doc
                                             <tr key={`${detail.id}-${index}`} className="hover:bg-gray-50">
                                                 <td className="px-4 py-3 text-center text-blue-500">{detail.ListNo}</td>
                                                 <td className="px-4 py-3 text-blue-500">{detail.GoodName}</td>
-                                                <td className="px-4 py-3 text-right text-blue-500"> {detail.GoodQty2 ? `${parseFloat(detail.GoodQty2).toLocaleString()}` : '-'}</td>
+                                                <td className="px-4 py-3 text-right text-blue-500">
+                                                    {' '}
+                                                    {detail.GoodQty2 ? `${parseFloat(detail.GoodQty2).toLocaleString()}` : '-'}
+                                                </td>
                                                 <td className="px-4 py-3 text-right text-blue-500">
                                                     {detail.GoodPrice2 ? `฿ ${parseFloat(detail.GoodPrice2).toLocaleString()}` : '-'}
                                                 </td>

@@ -365,7 +365,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                     </div>
 
                     {/* Status */}
-                    <div className="transform transition-all duration-200 hover:scale-[1.01]">
+                    {/* <div className="transform transition-all duration-200 hover:scale-[1.01]">
                         <Select
                             label={
                                 <span className="flex items-center gap-1">
@@ -383,7 +383,7 @@ export default function DocumentForm({ categories, onSuccess, onClose, mode = 'c
                             error={errors.status}
                             className="font-anuphan transition-all duration-200 focus:border-transparent focus:ring-2 focus:ring-blue-500"
                         />
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Attachment */}
