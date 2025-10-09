@@ -7,7 +7,9 @@ import { useEffect, useState } from 'react';
 interface PurchaseData {
     DeptID: number;
     DeptName: string;
-    TotalAmount: number;
+    TotalBase: number;
+    TotalVAT: number;
+    TotalNet: number;
 }
 
 export default function Index() {
@@ -33,7 +35,7 @@ export default function Index() {
     useEffect(() => {
         fetchDashboard();
     }, [year, month]);
-
+    console.log(dashboard);
     const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
     const months = [
         { value: 0, label: 'ทั้งหมด' },
@@ -67,8 +69,8 @@ export default function Index() {
     ];
 
     // เรียงข้อมูลจากมากไปน้อยก่อนคำนวณ total
-    const sortedDashboard = [...dashboard].sort((a, b) => b.TotalAmount - a.TotalAmount);
-    const totalAmount = sortedDashboard.reduce((sum, item) => sum + Number(item.TotalAmount), 0);
+    const sortedDashboard = [...dashboard].sort((a, b) => b.TotalBase - a.TotalBase);
+    const totalNet = sortedDashboard.reduce((sum, item) => sum + Number(item.TotalNet), 0);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -132,8 +134,8 @@ export default function Index() {
                                         ยอดรวมทั้งหมด ประจำ{month === 0 ? `ปี ${year}` : `${getThaiMonthName(month)} ${year}`}
                                     </p>
                                     <p className="mt-1 text-3xl font-bold">
-                                        {totalAmount
-                                            ? ` ${parseFloat(totalAmount.toString())
+                                        {totalNet
+                                            ? ` ${parseFloat(totalNet.toString())
                                                   .toFixed(2)
                                                   .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`
                                             : '-'}{' '}
@@ -157,9 +159,9 @@ export default function Index() {
                                     <tr className="border-b border-gray-200 bg-gray-50">
                                         <th className="px-6 py-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase">ลำดับ</th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase">หน่วยงาน</th>
-                                        <th className="px-6 py-4 text-right text-xs font-semibold tracking-wider text-gray-600 uppercase">
-                                            ยอดรวม (บาท)
-                                        </th>
+                                        <th className="px-6 py-4 text-right text-xs font-semibold tracking-wider text-gray-600 uppercase">ยอดก่อน VAT</th>
+                                        <th className="px-6 py-4 text-right text-xs font-semibold tracking-wider text-gray-600 uppercase">VAT</th>
+                                        <th className="px-6 py-4 text-right text-xs font-semibold tracking-wider text-gray-600 uppercase">ยอดสุทธิ</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
@@ -176,50 +178,45 @@ export default function Index() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right whitespace-nowrap">
-                                                    <span className="text-sm font-semibold text-gray-900">
-                                                        {Number(d.TotalAmount).toLocaleString('th-TH', {
-                                                            minimumFractionDigits: 2,
-                                                            maximumFractionDigits: 2,
-                                                        })}
-                                                    </span>
+                                                    {Number(d.TotalBase).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                                </td>
+                                                <td className="px-6 py-4 text-right whitespace-nowrap">
+                                                    {Number(d.TotalVAT).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                                </td>
+                                                <td className="px-6 py-4 text-right whitespace-nowrap">
+                                                    {Number(d.TotalNet).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                                                 </td>
                                             </tr>
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={3} className="px-6 py-12 text-center">
-                                                <div className="flex flex-col items-center justify-center">
-                                                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
-                                                        <svg className="h-8 w-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                                            />
-                                                        </svg>
-                                                    </div>
-                                                    <p className="text-sm text-gray-500">
-                                                        {loading ? 'กำลังโหลดข้อมูล...' : 'ไม่พบข้อมูลสำหรับช่วงเวลาที่เลือก'}
-                                                    </p>
-                                                </div>
+                                            <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                                {loading ? 'กำลังโหลดข้อมูล...' : 'ไม่พบข้อมูลสำหรับช่วงเวลาที่เลือก'}
                                             </td>
                                         </tr>
                                     )}
                                 </tbody>
+
                                 {sortedDashboard.length > 0 && (
                                     <tfoot className="border-t border-gray-200 bg-gray-50">
                                         <tr>
-                                            <td className="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900" colSpan={2}>
+                                            <td className="px-6 py-4 font-semibold text-gray-900" colSpan={2}>
                                                 รวมทั้งหมด
                                             </td>
-                                            <td className="px-6 py-4 text-right text-sm font-semibold whitespace-nowrap text-gray-900">
-                                                {totalAmount
-                                                    ? ` ${parseFloat(totalAmount.toString())
-                                                          .toFixed(2)
-                                                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`
-                                                    : '-'}{' '}
-                                                บาท
+                                            <td className="px-6 py-4 text-right font-semibold text-gray-900">
+                                                {sortedDashboard
+                                                    .reduce((s, i) => s + Number(i.TotalBase), 0)
+                                                    .toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-semibold text-gray-900">
+                                                {sortedDashboard
+                                                    .reduce((s, i) => s + Number(i.TotalVAT), 0)
+                                                    .toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="px-6 py-4 text-right font-semibold text-gray-900">
+                                                {sortedDashboard
+                                                    .reduce((s, i) => s + Number(i.TotalNet), 0)
+                                                    .toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                                             </td>
                                         </tr>
                                     </tfoot>
