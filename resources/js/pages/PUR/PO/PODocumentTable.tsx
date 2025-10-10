@@ -73,7 +73,7 @@ export default function PODocumentTable({ documents, onDetail }: PODocumentTable
         key: 'total_amount',
         label: 'ยอดชำระเงิน (บาท)',
         align: 'right',
-        render: (document) => document.total_amount.toLocaleString('th-TH', { style: 'currency', currency: 'THB' })
+        render: (document) =>  Number(document.total_amount).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })
     },
     {
         key: 'status',
