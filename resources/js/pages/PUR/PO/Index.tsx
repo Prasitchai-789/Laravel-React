@@ -1,9 +1,11 @@
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import axios from 'axios';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import PODocumentTable from './PODocumentTable';
+import PODocumentShow from './PODocumentShow';
+import ModalForm from '@/components/ModalForm';
 
 interface poDocs {
     POID: number;
@@ -25,6 +27,7 @@ interface Summary {
 export default function Index() {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<poDocs[]>([]);
+    const [isModalOpenDetail, setIsModalOpenDetail] = useState(false);
     const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
     const [depts, setDepts] = useState<{ DeptID: string; DeptName: string }[]>([]);
     const [selectedDept, setSelectedDept] = useState<string>('1006');
@@ -89,12 +92,60 @@ export default function Index() {
         }).format(amount);
     };
 
+    const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+     const fetchDataShow = async (document: Document) => {
+            if (!document?.POID) {
+                console.warn('Missing POID');
+                return;
+            }
+
+            try {
+                const res = await axios.get(`/purchase/po/show/${document.POID}`);
+                setSelectedDocument(res.data);
+                return res.data;
+            } catch (error) {
+                console.error('Error fetching:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่สามารถโหลดข้อมูลได้',
+                    text: 'กรุณาลองใหม่อีกครั้ง',
+                    customClass: {
+                        popup: 'custom-swal font-anuphan',
+                        title: 'font-anuphan text-red-800',
+                        htmlContainer: 'font-anuphan text-red-500',
+                    },
+                });
+                throw error;
+            }
+        };
+    const handleDetail = async (document: Document) => {
+        setLoading(true);
+        try {
+            await fetchDataShow(document);
+            setIsModalOpenDetail(true);
+        } catch (error) {
+            console.error('Error in handleDetail:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const monthLabel = (() => {
         if (!selectedMonth) return 'ทั้งหมด';
         const [y, m] = selectedMonth.split('-').map(Number);
         const monthNames = [
-            'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-            'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+            'มกราคม',
+            'กุมภาพันธ์',
+            'มีนาคม',
+            'เมษายน',
+            'พฤษภาคม',
+            'มิถุนายน',
+            'กรกฎาคม',
+            'สิงหาคม',
+            'กันยายน',
+            'ตุลาคม',
+            'พฤศจิกายน',
+            'ธันวาคม',
         ];
         return `${monthNames[m - 1]} ${y + 543}`;
     })();
@@ -105,7 +156,7 @@ export default function Index() {
                 <div className="flex h-64 items-center justify-center">
                     <div className="flex flex-col items-center">
                         <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
-                        <p className="mt-4 text-lg font-medium text-gray-600 font-anuphan">กำลังโหลดข้อมูล...</p>
+                        <p className="mt-4 font-anuphan text-lg font-medium text-gray-600">กำลังโหลดข้อมูล...</p>
                     </div>
                 </div>
             </AppLayout>
@@ -200,13 +251,13 @@ export default function Index() {
                             {/* Department Filter */}
                             <div className="flex-1">
                                 <label htmlFor="dept-filter" className="mb-2 block text-sm font-medium text-gray-700">
-                                    แผนก
+                                    หน่วยงาน
                                 </label>
                                 <select
                                     id="dept-filter"
                                     value={selectedDept}
                                     onChange={(e) => setSelectedDept(e.target.value)}
-                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm"
+                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:text-sm"
                                 >
                                     {depts.map((d) => (
                                         <option key={d.DeptID} value={d.DeptID}>
@@ -226,7 +277,7 @@ export default function Index() {
                                         id="month-filter"
                                         value={selectedMonth}
                                         onChange={(e) => setSelectedMonth(e.target.value)}
-                                        className="block w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm"
+                                        className="block w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-10 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:text-sm"
                                     >
                                         <option value="" className="text-gray-500">
                                             ทุกเดือน
@@ -234,8 +285,18 @@ export default function Index() {
                                         {getAvailableMonths().map((month) => {
                                             const [year, monthNum] = month.split('-').map(Number);
                                             const monthNames = [
-                                                'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
-                                                'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม',
+                                                'มกราคม',
+                                                'กุมภาพันธ์',
+                                                'มีนาคม',
+                                                'เมษายน',
+                                                'พฤษภาคม',
+                                                'มิถุนายน',
+                                                'กรกฎาคม',
+                                                'สิงหาคม',
+                                                'กันยายน',
+                                                'ตุลาคม',
+                                                'พฤศจิกายน',
+                                                'ธันวาคม',
                                             ];
                                             const monthName = monthNames[monthNum - 1] || monthNum;
 
@@ -270,9 +331,27 @@ export default function Index() {
                 {/* Table Section */}
                 <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                     <div className="border-t border-gray-200">
-                        <PODocumentTable documents={data} />
+                        <PODocumentTable documents={data} onDetail={handleDetail} />
                     </div>
                 </div>
+
+                {/* Document Form Modal */}
+                <ModalForm
+                    isModalOpen={isModalOpenDetail}
+                    onClose={() => setIsModalOpenDetail(false)}
+                    title="รายละเอียดเอกสาร"
+                    description=" "
+                    size="max-w-3xl"
+                >
+                    <PODocumentShow
+                        onClose={() => setIsModalOpenDetail(false)}
+                        onSuccess={() => {
+                            setIsModalOpenDetail(false);
+                            fetchData();
+                        }}
+                        document={selectedDocument}
+                    />
+                </ModalForm>
             </div>
         </AppLayout>
     );

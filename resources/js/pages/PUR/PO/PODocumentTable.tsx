@@ -104,11 +104,11 @@ export default function PODocumentTable({ documents, onDetail }: PODocumentTable
                     <button
                         className="group relative text-blue-600 transition-all duration-300 hover:scale-110 focus:outline-none"
                         onClick={() => handleDetail(row)}
-                        aria-label="แก้ไข"
+                        aria-label="รายละเอียด"
                     >
                         <div className="relative flex items-center justify-center">
                             <div className="rounded-lg bg-blue-50 p-1 transition-colors duration-300 group-hover:bg-blue-100">
-                                <Eye size={18} className="text-blue-600" />
+                                <span className="text-blue-600 hover:underline p-1.5">รายละเอียด</span>
                             </div>
                             <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100">
                                 รายละเอียด

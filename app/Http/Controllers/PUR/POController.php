@@ -96,10 +96,30 @@ class POController extends Controller
         //
     }
 
-    public function show(string $id)
+    public function show($id)
     {
-        //
+        $po = POHD::on('sqlsrv2')
+            ->with(['poInv.glHeader', 'department'])
+            ->where('POID', $id)
+            ->firstOrFail();
+        // แปลงข้อมูลที่ต้องการ
+        $result = [
+            'POID' => $po->POID,
+            'DocuDate' => $po->DocuDate,
+            'DeptName' => $po->department?->DeptName,
+            'POVendorNo' => $po->POVendorNo,
+            'AppvDocuNo' => $po->AppvDocuNo,
+            'status' => !empty($po->AppvDocuNo) ? 'approved' : 'pending',
+            'status_label' => !empty($po->AppvDocuNo) ? 'อนุมัติ' : 'รอดำเนินการ',
+            'total_amount' => $po->poInv?->glHeader?->TotaAmnt ?? 0,
+            'details' => $po->details
+        ];
+
+        return response()->json([
+            'po' => $result
+        ]);
     }
+
 
     public function update(Request $request, string $id)
     {
