@@ -1,11 +1,12 @@
+import ModalForm from '@/components/ModalForm';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
-import PODocumentTable from './PODocumentTable';
 import PODocumentShow from './PODocumentShow';
-import ModalForm from '@/components/ModalForm';
+import PODocumentTable from './PODocumentTable';
+import PODocumentChart from "./PODocumentChart";
 
 interface poDocs {
     POID: number;
@@ -93,31 +94,31 @@ export default function Index() {
     };
 
     const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-     const fetchDataShow = async (document: Document) => {
-            if (!document?.POID) {
-                console.warn('Missing POID');
-                return;
-            }
+    const fetchDataShow = async (document: Document) => {
+        if (!document?.POID) {
+            console.warn('Missing POID');
+            return;
+        }
 
-            try {
-                const res = await axios.get(`/purchase/po/show/${document.POID}`);
-                setSelectedDocument(res.data);
-                return res.data;
-            } catch (error) {
-                console.error('Error fetching:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'ไม่สามารถโหลดข้อมูลได้',
-                    text: 'กรุณาลองใหม่อีกครั้ง',
-                    customClass: {
-                        popup: 'custom-swal font-anuphan',
-                        title: 'font-anuphan text-red-800',
-                        htmlContainer: 'font-anuphan text-red-500',
-                    },
-                });
-                throw error;
-            }
-        };
+        try {
+            const res = await axios.get(`/purchase/po/show/${document.POID}`);
+            setSelectedDocument(res.data);
+            return res.data;
+        } catch (error) {
+            console.error('Error fetching:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'ไม่สามารถโหลดข้อมูลได้',
+                text: 'กรุณาลองใหม่อีกครั้ง',
+                customClass: {
+                    popup: 'custom-swal font-anuphan',
+                    title: 'font-anuphan text-red-800',
+                    htmlContainer: 'font-anuphan text-red-500',
+                },
+            });
+            throw error;
+        }
+    };
     const handleDetail = async (document: Document) => {
         setLoading(true);
         try {
@@ -149,6 +150,15 @@ export default function Index() {
         ];
         return `${monthNames[m - 1]} ${y + 543}`;
     })();
+
+    const salesByMonth = [
+        { month: 'ม.ค.', total_sales: 95000, total_qty: 3200, total_cost: 65000 },
+        { month: 'ก.พ.', total_sales: 120000, total_qty: 3500, total_cost: 78000 },
+        { month: 'มี.ค.', total_sales: 180000, total_qty: 5000, total_cost: 120000 },
+        { month: 'เม.ย.', total_sales: 150000, total_qty: 4200, total_cost: 105000 },
+        { month: 'พ.ค.', total_sales: 200000, total_qty: 6000, total_cost: 140000 },
+        { month: 'มิ.ย.', total_sales: 250000, total_qty: 7200, total_cost: 180000 },
+    ];
 
     if (loading) {
         return (
@@ -353,6 +363,7 @@ export default function Index() {
                     />
                 </ModalForm>
             </div>
+            {/* <PODocumentChart data={salesByMonth} /> */}
         </AppLayout>
     );
 }

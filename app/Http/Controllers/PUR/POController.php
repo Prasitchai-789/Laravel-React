@@ -78,6 +78,7 @@ class POController extends Controller
         $monthCount = $monthDocs->count();
         $monthTotal = $monthDocs->sum(fn($po) => $po->poInv?->glHeader?->TotaAmnt ?? 0);
 
+
         // ===== ส่ง response =====
         return response()->json([
             'poDocs'  => $data,
