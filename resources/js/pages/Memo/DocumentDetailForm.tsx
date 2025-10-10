@@ -156,7 +156,11 @@ export default function DocumentForm({ categories, onClose, mode = 'create', doc
                     {/* Amount with emphasis */}
                     <div className="rounded-lg border border-green-100 bg-gradient-to-r from-green-50 to-emerald-50 p-4">
                         <p className="mb-1 text-sm text-green-600">จำนวนเงิน</p>
-                        <p className="text-2xl font-bold text-green-800">{totalAmount ? `฿ ${totalAmount.toLocaleString()}` : '-'}</p>
+                        <p className="text-2xl font-bold text-green-800">
+                            {totalAmount
+                                ? `฿ ${Number(totalAmount).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                : '-'}
+                        </p>
                     </div>
                 </div>
             </div>

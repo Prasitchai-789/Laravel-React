@@ -130,10 +130,7 @@ export default function PODocumentShow({ document, onClose }: PODocumentShowProp
                         <p className="mb-1 text-sm text-green-600">จำนวนเงินรวม</p>
                         <p className="text-2xl font-bold text-green-800">
                             {totalAmount
-                                ? `฿ ${totalAmount.toLocaleString('th-TH', {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                  })}`
+                                ? `฿ ${Number(totalAmount).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                                 : '-'}
                         </p>
                     </div>
