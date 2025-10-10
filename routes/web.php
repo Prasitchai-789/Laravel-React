@@ -248,7 +248,7 @@ Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrde
     Route::put('/{order}', [StoreOrderController::class, 'update'])
     ->name('store-order.update');
 
-    
+
 });
 // web.php
 Route::middleware(['auth'])->prefix('store-movements')->group(function () {
@@ -297,6 +297,7 @@ Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'api
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 Route::get('purchase/po', [POController::class, 'index']);
 Route::get('/purchase/po/api', [POController::class, 'apiIndex']);
+Route::get('/purchase/po/show/{id}', [POController::class, 'show'])->name('po.show');
 });
 
 
