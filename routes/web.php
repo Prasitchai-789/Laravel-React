@@ -31,7 +31,7 @@ use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
-
+use App\Http\Controllers\PUR\POController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -284,11 +284,16 @@ Route::fallback(function () {
 
 
 
-// Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 Route::get('purchase/dashboard', [PurchaseDashboardController::class, 'index']);
 Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'apiIndex']);
-// });
+});
 
+
+Route::middleware(['auth', 'permission:developer.view'])->group(function () {
+Route::get('purchase/po', [POController::class, 'index']);
+Route::get('/purchase/po/api', [POController::class, 'apiIndex']);
+});
 
 
 require __DIR__ . '/settings.php';

@@ -35,7 +35,6 @@ export default function Index() {
     useEffect(() => {
         fetchDashboard();
     }, [year, month]);
-    console.log(dashboard);
     const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
     const months = [
         { value: 0, label: 'ทั้งหมด' },

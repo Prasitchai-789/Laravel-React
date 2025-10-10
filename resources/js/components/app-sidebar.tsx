@@ -40,8 +40,8 @@ import {
     Factory,
     FileText,
     MonitorSmartphone,
-
-
+    ScrollText,
+    CreditCard,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -154,6 +154,17 @@ const DevNavItems: NavItem[] = [
         href: '/cost-analysis/dashboard',
         icon: ChartCandlestick,
     },
+    {
+        title: 'รายการใบสั่งซื้อ',
+        href: '/purchase/po',
+        icon: ScrollText,
+    },
+    {
+        title: 'สรุปค่าใช้จ่าย',
+        href: '/purchase/dashboard',
+        icon: CreditCard,
+    },
+
 ];
 
 const AGRNavItems: NavItem[] = [
