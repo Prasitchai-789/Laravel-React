@@ -360,10 +360,7 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                                                     <th className="px-4 py-3 text-start text-xs font-semibold text-gray-600 uppercase tracking-wide">
                                                         QR Code
                                                     </th>
-                                                    {/* Debug Column - ชั่วคราว */}
-                                                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                                                        Debug
-                                                    </th>
+
                                                     {can('PUR.edit') && (
                                                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide">
                                                             การจัดการ
@@ -493,15 +490,7 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                                                                 </div>
                                                             </td>
 
-                                                            {/* Debug Info */}
-                                                            <td className="px-4 py-3 text-xs">
-                                                                <div className="text-center space-y-1">
-                                                                    <div className="text-gray-500">Backend Data:</div>
-                                                                    <div>S: {product.stock_qty}</div>
-                                                                    <div>R: {product.reservedQty}</div>
-                                                                    <div>A: {product.availableQty}</div>
-                                                                </div>
-                                                            </td>
+
 
                                                             {/* การจัดการ */}
                                                             <td className="px-4 py-3">
