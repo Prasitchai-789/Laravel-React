@@ -244,7 +244,11 @@ Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrde
     Route::get('/goods/search-new', [StoreOrderController::class, 'searchNew']);
     Route::post('/goods/import-new', [StoreOrderController::class, 'importNew']);
 
+    Route::get('/store-items/stock-info', [StoreOrderController::class, 'getStockInfo']);
+    Route::put('/{order}', [StoreOrderController::class, 'update'])
+    ->name('store-order.update');
 
+    
 });
 // web.php
 Route::middleware(['auth'])->prefix('store-movements')->group(function () {

@@ -781,15 +781,13 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
                         isModalOpen={isEditOpen}
                         onClose={handleEditClose}
                         title="แก้ไขข้อมูลการเบิกสินค้า"
-                        size="xl"
+                        size="w-xl"
                     >
                         <FormEditOrder
-                            orderId={editOrder?.id}   // ใช้ id ของ order
+                            order={editOrder}  // ส่ง order object ทั้งก้อนแทน orderId
                             onClose={handleEditClose}
                             onSuccess={handleEditSuccess}
                         />
-
-
                     </ModalForm>
                 )}
             </div>
