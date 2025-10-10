@@ -175,7 +175,11 @@ export default function Index() {
                 icon: 'error',
                 title: 'ไม่สามารถโหลดข้อมูลได้',
                 text: 'กรุณาลองใหม่อีกครั้ง',
-                customClass: { popup: 'custom-swal' },
+                customClass: {
+                    popup: 'custom-swal font-anuphan',
+                    title: 'font-anuphan text-red-800',
+                    htmlContainer: 'font-anuphan text-red-500',
+                },
             });
         } finally {
             setLoading(false);
@@ -230,15 +234,6 @@ export default function Index() {
             monthlyAmount: monthAmount,
             categoryAmount,
         };
-
-        // console.log('Summary calculated:', {
-        //     yearCount,
-        //     yearAmount,
-        //     monthCount,
-        //     monthAmount,
-        //     categoryAmount,
-        //     filteredDocsCount: filteredDocs.length,
-        // });
 
         return { summary, yearCount, yearAmount, monthCount };
     }, [documents, selectedMonth, selectedCategory]);
@@ -344,34 +339,33 @@ export default function Index() {
     };
 
     const fetchDataShow = async (document: Document) => {
-    if (!document?.winspeed_ref_id) {
-        console.warn('Missing winspeed_ref_id');
-        return;
-    }
+        if (!document?.winspeed_ref_id) {
+            console.warn('Missing winspeed_ref_id');
+            return;
+        }
 
-    try {
-        const res = await axios.get(`/memo/documents/show/${document.winspeed_ref_id}`);
-        setSelectedDocument(res.data);
-        // console.log('Header:', res.data.winspeed_header);
-        // console.log('Details:', res.data.winspeed_detail);
-        // console.log('Memo Document:', res.data.memo_document);
-        return res.data;
-    } catch (error) {
-        console.error('Error fetching:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'ไม่สามารถโหลดข้อมูลได้',
-            text: 'กรุณาลองใหม่อีกครั้ง',
-            customClass: {
-                popup: 'custom-swal font-anuphan',
-                title: 'font-anuphan text-red-800',
-                htmlContainer: 'font-anuphan text-red-500',
-            },
-        });
-        throw error;
-    }
-};
-
+        try {
+            const res = await axios.get(`/memo/documents/show/${document.winspeed_ref_id}`);
+            setSelectedDocument(res.data);
+            // console.log('Header:', res.data.winspeed_header);
+            // console.log('Details:', res.data.winspeed_detail);
+            // console.log('Memo Document:', res.data.memo_document);
+            return res.data;
+        } catch (error) {
+            console.error('Error fetching:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'ไม่สามารถโหลดข้อมูลได้',
+                text: 'กรุณาลองใหม่อีกครั้ง',
+                customClass: {
+                    popup: 'custom-swal font-anuphan',
+                    title: 'font-anuphan text-red-800',
+                    htmlContainer: 'font-anuphan text-red-500',
+                },
+            });
+            throw error;
+        }
+    };
 
     const handleDetail = async (document: Document) => {
         setMode('edit');
