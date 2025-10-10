@@ -21,4 +21,5 @@ class POInvDT extends Model
     {
         return $this->belongsTo(EMGood::class, 'GoodID', 'GoodID');
     }
+
 }

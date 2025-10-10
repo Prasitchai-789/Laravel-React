@@ -25,15 +25,27 @@ class MemoExpenseDocumentController extends Controller
         $documents = MemoExpenseDocuments::with('category', 'attachments')
             ->get()
             ->map(function ($doc) {
-                // ดึงข้อมูล Winspeed Header ที่อ้างถึง (ถ้ามี)
-                $pohd = POHD::where('POVendorNo', $doc->winspeed_ref_id)->first();
+                $pohd = POHD::with(['poInv.glHeader'])
+                    ->where('POVendorNo', $doc->winspeed_ref_id)
+                    ->first();
 
-                // ตรวจสอบสถานะจาก AppvDocuNo
-                if ($pohd && !empty($pohd->AppvDocuNo)) {
-                    $doc->status = 'approved';
-                    $doc->status_label = 'อนุมัติ';
-                    $doc->AppvDocuNo = $pohd->AppvDocuNo;
-                } elseif ($doc->status === 'pending') {
+                // เริ่มจากค่าเริ่มต้น
+                $doc->status_label = 'ไม่ระบุ';
+                $doc->total_amount = 0;
+
+                if ($pohd) {
+                    // ดึงยอดรวมจาก GLHD ถ้ามี
+                    $doc->total_amount = $pohd->poInv?->glHeader?->TotaAmnt ?? 0;
+
+                    // ตรวจสอบสถานะ
+                    if (!empty($pohd->AppvDocuNo)) {
+                        $doc->status = 'approved';
+                        $doc->status_label = 'อนุมัติ';
+                        $doc->AppvDocuNo = $pohd->AppvDocuNo;
+                    }
+                }
+                // ถ้าไม่มี AppvDocuNo ให้ดูจากสถานะของ Memo
+                if ($doc->status === 'pending') {
                     $doc->status_label = 'รอดำเนินการ';
                 } elseif ($doc->status === 'rejected') {
                     $doc->status_label = 'ปฏิเสธ';
@@ -41,13 +53,12 @@ class MemoExpenseDocumentController extends Controller
                     $doc->status_label = 'ร่าง';
                 } elseif ($doc->status === 'in_progress') {
                     $doc->status_label = 'กำลังดำเนินการ';
-                } else {
-                    $doc->status_label = 'ไม่ระบุ';
                 }
 
                 return $doc;
             });
 
+            // dd($documents);
         return response()->json([
             'categories' => $categories,
             'documents' => $documents,
@@ -55,48 +66,33 @@ class MemoExpenseDocumentController extends Controller
     }
 
 
+
+
     public function show($ref_id)
     {
-        // ดึง Header (POHD)
-        $pohd = POHD::where('POVendorNo', $ref_id)->first();
+        $pohd = POHD::with(['poInv.glHeader'])->where('POVendorNo', $ref_id)->first();
 
         if (!$pohd) {
-            return response()->json([
-                'message' => 'ไม่พบข้อมูลใบสั่งซื้อในระบบ',
-            ], 404);
+            return response()->json(['message' => 'ไม่พบข้อมูลใบสั่งซื้อในระบบ'], 404);
         }
-        // ดึง Detail (PODT)
+
         $podt = PODT::where('POID', $pohd->POID)->get();
 
-        // ดึงข้อมูลเอกสาร Memo
         $memoDocument = MemoExpenseDocuments::with('category', 'attachments')
             ->where('winspeed_ref_id', $ref_id)
             ->first();
 
-        if (!$memoDocument) {
-            return response()->json([
-                'message' => 'ไม่พบข้อมูลเอกสารในระบบ',
-            ], 404);
-        }
+        // ✅ ดึงยอดรวมจาก GLHD ถ้ามี
+        $totalAmount = $pohd->poInv?->glHeader?->TotalAmnt ?? 0;
 
-        if (!empty($pohd->AppvDocuNo)) {
-            $memoDocument->status = 'approved';
-            $memoDocument->status_label = 'อนุมัติ';
-        } elseif ($memoDocument->status === 'pending') {
-            $memoDocument->status_label = 'รอดำเนินการ';
-        } elseif ($memoDocument->status === 'rejected') {
-            $memoDocument->status_label = 'ปฏิเสธ';
-        } else {
-            $memoDocument->status_label = 'ไม่ระบุ';
-        }
-
-        // ส่งข้อมูลกลับให้ React
         return response()->json([
             'winspeed_header' => $pohd,
             'winspeed_detail' => $podt,
             'memo_document' => $memoDocument,
+            'total_amount' => $totalAmount, // ✅ เพิ่มตรงนี้
         ]);
     }
+
 
 
 

@@ -21,6 +21,7 @@ interface Document {
     attachments: Attachment[];
     status?: 'pending' | 'approved' | 'rejected' | string;
     attachment_path?: string;
+    total_amount?: number;
 }
 
 interface Category {
@@ -136,8 +137,20 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete,
             align: 'center',
             render: (document) => (
                 <div className="text-right">
-                    <div className="text-lg font-semibold text-gray-900">
+                    <div className="text-lg font-semibold text-gray-600">
                         {document.amount ? Number(document.amount).toLocaleString('th-TH', { style: 'currency', currency: 'THB' }) : '-'}
+                    </div>
+                </div>
+            ),
+        },
+        {
+            key: 'total_amount',
+            label: 'ยอดชำระเงิน (บาท)',
+            align: 'right',
+            render: (document) => (
+                <div className="text-right">
+                    <div className="text-lg font-semibold text-green-800">
+                        {document.total_amount ? Number(document.total_amount).toLocaleString('th-TH', { style: 'currency', currency: 'THB' }) : '-'}
                     </div>
                 </div>
             ),
@@ -146,9 +159,9 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete,
             key: 'status',
             label: 'สถานะ',
             render: (document) => {
-        const status = document.status;
-        return renderStatus(status, document.AppvDocuNo);
-    },
+                const status = document.status;
+                return renderStatus(status, document.AppvDocuNo);
+            },
             align: 'center',
         },
         {
