@@ -14,6 +14,8 @@ class POInvHD extends Model
     protected $fillable =[
 
     ];
+    public $incrementing = false;
+    public $timestamps = false;
     public function details()
     {
         return $this->hasMany(POInvDT::class, 'POInvID', 'POInvID');
@@ -22,6 +24,12 @@ class POInvHD extends Model
     public function vendor()
     {
         return $this->belongsTo(EMVendor::class, 'VendorID', 'VendorID');
+    }
+
+    public function glHeader()
+    {
+        // DocuNo ของ POInvHD → DocuNo ของ GLHD
+        return $this->hasOne(GLHD::class, 'DocuNo', 'DocuNo');
     }
 
 }

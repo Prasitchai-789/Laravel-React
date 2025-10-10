@@ -28,4 +28,9 @@ class POHD extends Model
     {
         // return $this->belongsTo(EMEmp::class, 'ReqByID', 'EmpID');
     }
+    public function poInv()
+    {
+        // AppvDocuNo ของ POHD → PONo ของ POInvHD
+        return $this->hasOne(POInvHD::class, 'PONo', 'AppvDocuNo');
+    }
 }
