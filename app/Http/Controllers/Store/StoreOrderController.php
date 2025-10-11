@@ -637,110 +637,81 @@ class StoreOrderController extends Controller
             'message' => '✅ ทำการเบิกและยืนยันสำเร็จ',
         ]);
     }
-
+    // ST-SM-AS011
     public function storeOrder()
     {
         // 1️⃣ ดึง store_items ทั้งหมด
         $storeItems = StoreItem::all();
 
-        // 2️⃣ ดึง EMGoodUnit จาก SQL Server
+        // 2️⃣ โหลด EMGoodUnit จาก SQL Server
         $goodUnits = DB::connection('sqlsrv2')
             ->table('EMGoodUnit')
             ->select('GoodUnitID', 'GoodUnitName')
             ->get()
-            ->keyBy(fn($u) => (string) $u->GoodUnitID);
+            ->keyBy(fn($u) => (string)$u->GoodUnitID);
 
-        // 3️⃣ ดึงชื่อสินค้า จาก EMGood (SQL Server)
-        $goodNames = DB::connection('sqlsrv2')
-            ->table('EMGood')
-            ->select('GoodCode', 'GoodName1')
+        // 3️⃣ โหลดชื่อสินค้าและหน่วยจาก EMGood
+        $goodInfos = DB::connection('sqlsrv2')
+            ->table('EMGood as g')
+            ->leftJoin('EMGoodUnit as u', 'g.MainGoodUnitID', '=', 'u.GoodUnitID')
+            ->select('g.GoodCode', 'g.GoodName1', 'g.MainGoodUnitID', 'u.GoodUnitName')
             ->get()
-            ->keyBy('GoodCode');
+            ->map(fn($item) => (object)[
+                'GoodCode' => strtoupper(trim($item->GoodCode)),
+                'GoodName1' => $item->GoodName1 ?? null,
+                'MainGoodUnitID' => $item->MainGoodUnitID ?? null,
+                'GoodUnitName' => $item->GoodUnitName ?? null,
+            ])
+            ->keyBy(fn($g) => $g->GoodCode);
 
-        // 4️⃣ ดึง movement ของทุก store_item_id
+        // 4️⃣ โหลด movement ของสินค้าทั้งหมด
         $movementsGrouped = StoreMovement::whereIn('store_item_id', $storeItems->pluck('id'))
             ->get()
             ->groupBy('store_item_id');
 
-        // 5️⃣ รวมข้อมูลและคำนวณ stock / reserved / available - แก้ไขให้ถูกต้องแล้ว!
-        $goods = $storeItems->map(function ($item) use ($goodUnits, $goodNames, $movementsGrouped) {
-            $unitId = (string) $item->GoodUnitID;
-            $unitName = $goodUnits->get($unitId)->GoodUnitName ?? 'ชิ้น';
-            $goodName = $goodNames->get($item->good_code)->GoodName1 ?? 'ไม่ระบุ';
+        // 5️⃣ รวมข้อมูลและคำนวณ stock / reserved / available
+        $goods = $storeItems->map(function ($item) use ($goodInfos, $movementsGrouped, $goodUnits) {
+            $info = $goodInfos->get(strtoupper(trim($item->good_code)));
+
+            $goodName = $info?->GoodName1 ?? $item->GoodName ?? 'ไม่ระบุ';
+
+            $unitName = $info?->GoodUnitName
+                ?? ($info?->MainGoodUnitID && isset($goodUnits[(string)$info->MainGoodUnitID])
+                    ? $goodUnits[(string)$info->MainGoodUnitID]->GoodUnitName
+                    : 'ชิ้น');
 
             $movements = $movementsGrouped->get($item->id, collect());
 
-            // เริ่มต้นด้วย stock จริงจาก database
             $stockQty = floatval($item->stock_qty);
             $safetyStock = floatval($item->safety_stock);
             $reservedQty = 0;
 
-            // 🔹 คำนวณ stock / reserved ตาม approved/pending - แก้ไขให้ถูกต้องแล้ว!
             foreach ($movements as $m) {
                 $quantity = floatval($m->quantity);
 
-                // ข้าม movement ที่มี status = rejected
-                if ($m->status === 'rejected') {
-                    continue;
-                }
+                if ($m->status === 'rejected') continue;
 
                 if ($m->movement_type === 'issue') {
                     if ($m->type === 'subtract') {
-                        if ($m->status === 'pending') {
-                            // 📌 pending issue subtract → เพิ่ม reserved (จองสินค้า)
-                            $reservedQty += $quantity;
-                        } elseif ($m->status === 'approved') {
-                            // 📌 approved issue subtract → ลด stock (เบิกสินค้าจริง)
-                            if ($m->category === 'stock') {
-                                $stockQty -= $quantity;
-                            } elseif ($m->category === 'safety') {
-                                $safetyStock -= $quantity;
-                            }
-                        }
+                        if ($m->status === 'pending') $reservedQty += $quantity;
+                        elseif ($m->status === 'approved') $stockQty -= $quantity;
                     } elseif ($m->type === 'add') {
-                        if ($m->status === 'pending') {
-                            // 📌 pending issue add → ลด reserved (ยกเลิกการจอง)
-                            $reservedQty = max(0, $reservedQty - $quantity);
-                        } elseif ($m->status === 'approved') {
-                            // 📌 approved issue add → เพิ่ม stock (คืนสินค้า)
-                            if ($m->category === 'stock') {
-                                $stockQty += $quantity;
-                            } elseif ($m->category === 'safety') {
-                                $safetyStock += $quantity;
-                            }
-                        }
+                        if ($m->status === 'pending') $reservedQty = max(0, $reservedQty - $quantity);
+                        elseif ($m->status === 'approved') $stockQty += $quantity;
                     }
                 } elseif ($m->movement_type === 'return' && $m->status === 'approved') {
-                    // 📌 return approved → เพิ่ม stock (คืนสินค้า)
-                    if ($m->category === 'stock') {
-                        $stockQty += $quantity;
-                    } elseif ($m->category === 'safety') {
-                        $safetyStock += $quantity;
-                    }
+                    $stockQty += $quantity;
                 } elseif ($m->movement_type === 'adjustment' && $m->status === 'approved') {
-                    // 📌 adjustment → เพิ่ม/ลด stock ตาม type
-                    $delta = $m->type === 'add' ? $quantity : -$quantity;
-                    if ($m->category === 'stock') {
-                        $stockQty += $delta;
-                    } elseif ($m->category === 'safety') {
-                        $safetyStock += $delta;
-                    }
+                    $stockQty += $m->type === 'add' ? $quantity : -$quantity;
                 } elseif ($m->movement_type === 'receipt' && $m->status === 'approved') {
-                    // 📌 receipt → เพิ่ม stock (รับสินค้าเข้า)
-                    if ($m->type === 'add') {
-                        if ($m->category === 'stock') {
-                            $stockQty += $quantity;
-                        } elseif ($m->category === 'safety') {
-                            $safetyStock += $quantity;
-                        }
-                    }
+                    if ($m->type === 'add') $stockQty += $quantity;
                 }
             }
 
-            // คำนวณ availableQty
+            $reservedQty = max(0, $reservedQty);
             $availableQty = max($stockQty - $reservedQty, 0);
 
-            return (object) [
+            return [
                 'GoodID' => $item->good_id,
                 'GoodCode' => $item->good_code,
                 'GoodName' => $goodName,
@@ -750,7 +721,7 @@ class StoreOrderController extends Controller
                 'reservedQty' => $reservedQty,
                 'availableQty' => $availableQty,
                 'price' => $item->price,
-                'movements_count' => $movements->count(), // สำหรับ debug
+                'movements_count' => $movements->count(),
             ];
         });
 
@@ -758,6 +729,7 @@ class StoreOrderController extends Controller
             'goods' => $goods,
         ]);
     }
+
     public function confirmOrder(StoreOrder $order)
     {
         try {
