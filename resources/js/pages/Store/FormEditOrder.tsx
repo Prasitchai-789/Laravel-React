@@ -57,6 +57,7 @@ export default function FormEditOrder({ order, onClose, onSuccess }: FormEditOrd
     const [saving, setSaving] = useState(false);
     const [loadingStock, setLoadingStock] = useState(false);
     const [stockData, setStockData] = useState<Record<string, StockInfo>>({});
+    const [inputValues, setInputValues] = useState<Record<number, string>>({});
     const [formData, setFormData] = useState({
         status: '',
         note: '',
@@ -80,6 +81,14 @@ export default function FormEditOrder({ order, onClose, onSuccess }: FormEditOrd
     const formatNumber = (value: any, decimals = 0) => {
         const num = safeNumber(value);
         return num.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    };
+    // ฟังก์ชันจัดรูปแบบการแสดงผล
+    // ฟังก์ชันจัดรูปแบบการแสดงผล (จำกัด 4 ตำแหน่ง)
+    const formatQuantityDisplay = (value: number): string => {
+        if (isNaN(value)) return '0.0000';
+
+        // ✅ จำกัดทศนิยม 4 ตำแหน่งเสมอ
+        return value.toFixed(4);
     };
 
     // 🔥 ดึงข้อมูลสต็อกจาก API ที่มีอยู่
@@ -588,6 +597,7 @@ export default function FormEditOrder({ order, onClose, onSuccess }: FormEditOrd
 
                                 <div className="flex items-center space-x-3">
                                     <div className="flex items-center space-x-2 bg-white border border-gray-300 rounded-lg p-1">
+                                        {/* ปุ่มลด */}
                                         <button
                                             type="button"
                                             onClick={() => handleDecrementQuantity(item.id)}
@@ -596,19 +606,40 @@ export default function FormEditOrder({ order, onClose, onSuccess }: FormEditOrd
                                         >
                                             <Minus className="w-3 h-3 text-gray-600" />
                                         </button>
+
                                         {/* input จำนวน */}
                                         <input
-                                            type="number"
-                                            min="0"
-                                            max={stockStatus.available}
-                                            value={safeNumber(item.quantity)}
-                                            onChange={(e) => handleItemQuantityChange(item.id, safeNumber(e.target.value))}
-                                            className={`w-12 px-1 py-1 text-center border-0 focus:ring-0 focus:outline-none bg-transparent font-semibold ${stockStatus.status === 'OVER_STOCK' || stockStatus.status === 'OUT_OF_STOCK'
-                                                ? 'text-red-600'
-                                                : 'text-gray-900'
-                                                }`}
-                                            disabled={stockStatus.available === 0}
+                                            type="text"
+                                            value={inputValues[item.id] ?? item.quantity.toFixed(2)} // ใช้ string จาก state หรือ default เป็น 2 ตำแหน่ง
+                                            onChange={(e) => {
+                                                let val = e.target.value;
+
+                                                // อนุญาตตัวเลขและจุดทศนิยมเท่านั้น
+                                                if (!/^\d*\.?\d*$/.test(val)) return;
+
+                                                // จำกัดทศนิยม 2 หลัก
+                                                if (val.includes('.')) {
+                                                    const [intPart, decPart] = val.split('.');
+                                                    val = intPart + '.' + decPart.slice(0, 2);
+                                                }
+
+                                                // อัพเดต state เฉพาะ input
+                                                setInputValues((prev) => ({ ...prev, [item.id]: val }));
+
+                                                // อัพเดตค่าจริงเมื่อใช้
+                                                handleItemQuantityChange(item.id, Number(val) || 0);
+                                            }}
+                                            placeholder="0.00"
+                                            className={`px-2 py-1 text-center border-0 focus:ring-0 focus:outline-none bg-transparent font-semibold
+    ${stockStatus.status === 'OVER_STOCK' || stockStatus.status === 'OUT_OF_STOCK' ? 'text-red-600' : 'text-gray-900'}`}
+                                            style={{ width: `${Math.max((inputValues[item.id] ?? item.quantity.toFixed(2)).length + 3, 6)}ch` }}
                                         />
+
+
+
+
+
+                                        {/* ปุ่มเพิ่ม */}
                                         <button
                                             type="button"
                                             onClick={() => handleIncrementQuantity(item.id)}
@@ -618,6 +649,7 @@ export default function FormEditOrder({ order, onClose, onSuccess }: FormEditOrd
                                             <Plus className="w-3 h-3 text-gray-600" />
                                         </button>
                                     </div>
+
                                     <span className="text-sm text-gray-600 w-8 text-center">
                                         {item.unit || 'ชิ้น'}
                                     </span>
