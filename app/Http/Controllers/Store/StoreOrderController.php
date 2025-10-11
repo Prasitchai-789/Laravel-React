@@ -354,18 +354,38 @@ class StoreOrderController extends Controller
         // 5️⃣ map orders
         $allOrders = $webOrders->map(function ($order) use ($goodUnits, $goods, $employees) {
 
+            // ✅ 1. โหลด store_items mapping ก่อน
+            $productIds = $order->items->pluck('product_id')->toArray();
+            $storeItemsMap = DB::table('store_items')
+                ->whereIn('good_id', $productIds)
+                ->pluck('id', 'good_id'); // key = good_id, value = store_item_id
+
+            \Log::info("Store items map for order {$order->id}:", $storeItemsMap->toArray());
+
             // โหลด movements ของ order
             $orderMovements = StoreMovement::with('user')
                 ->where('store_order_id', $order->id)
                 ->get()
                 ->groupBy('store_item_id');
 
-            $items = $order->items->map(function ($item) use ($orderMovements, $goodUnits, $goods, $employees) {
+            \Log::info("Movements for order {$order->id}:", $orderMovements->toArray());
 
-                $itemMovements = $orderMovements->get($item->product_id, collect());
+            $items = $order->items->map(function ($item) use ($orderMovements, $storeItemsMap, $goodUnits, $goods, $employees) {
+
+                // ✅ 2. หา store_item_id ที่ตรงกับ product_id
+                $storeItemId = $storeItemsMap[$item->product_id] ?? null;
+
+                \Log::info("Item {$item->id}: product_id={$item->product_id}, store_item_id={$storeItemId}");
+
+                // ✅ 3. ใช้ store_item_id ไปหา movements
+                $itemMovements = $storeItemId
+                    ? $orderMovements->get($storeItemId, collect())
+                    : collect();
+
+                \Log::info("Found {$itemMovements->count()} movements for item {$item->id}");
 
                 // history ของ item
-                $history = $itemMovements->map(function ($m) use ($employees) {
+                $history = $itemMovements->map(function ($m) use ($employees, $item) {
                     $empName = $m->user?->employee_id ? ($employees[$m->user->employee_id] ?? $m->user->name) : ($m->user?->name ?? 'ไม่ระบุ');
                     return [
                         'movement_type' => $m->movement_type == 'return' ? 'คืน' : 'เบิก',
@@ -373,11 +393,12 @@ class StoreOrderController extends Controller
                         'docu_no'       => $m->store_order_id ? 'SO-' . $m->store_order_id : $m->id,
                         'docu_date'     => $m->created_at?->format('Y-m-d H:i:s') ?? '-',
                         'user_id'       => $empName,
-                        'product_id'    => $m->store_item_id,
+                        'product_id'    => $item->product_id, // ✅ ส่งเข้ามาใน use
                         'status'        => $m->status,
                         'type'          => $m->type,
                     ];
                 })->sortBy('docu_date')->values();
+
 
                 // คำนวณ pending
                 $stockQty = $item->quantity;
@@ -409,6 +430,7 @@ class StoreOrderController extends Controller
                 return [
                     'id'           => $item->id,
                     'product_id'   => $item->product_id,
+                    'store_item_id' => $storeItemId, // ✅ เพิ่มสำหรับ debug
                     'product_name' => $item->good?->GoodName1 ?? $itemGood?->GoodName1 ?? '-',
                     'product_code' => $item->good?->GoodCode ?? $itemGood?->GoodCode ?? $item->product_id,
                     'quantity'     => $item->quantity,
@@ -416,6 +438,7 @@ class StoreOrderController extends Controller
                     'history'      => $history,
                     'pendingQty'   => $pendingQty,
                     'totalIssued'  => $stockQty,
+                    'movements_count' => $itemMovements->count(), // ✅ เพิ่มจำนวน movements
                 ];
             });
 
@@ -430,9 +453,10 @@ class StoreOrderController extends Controller
                 'requester'       => $order->requester ?? '-',
                 'source'          => 'WEB',
                 'items'           => $items,
+                'movements_count' => $orderMovements->flatten()->count(), // ✅ เพิ่มจำนวน movements ทั้งหมด
             ];
         });
-
+        // dd($allOrders);
         $paginatedOrders = new \Illuminate\Pagination\LengthAwarePaginator(
             $allOrders,
             $total,
@@ -448,37 +472,6 @@ class StoreOrderController extends Controller
             'orders'     => $paginatedOrders->items(),
             'pagination' => $paginatedOrders,
         ]);
-    }
-
-    private function parseDate($dateString)
-    {
-        if (!$dateString) {
-            return null;
-        }
-
-        // ถ้าเป็น Carbon instance อยู่แล้ว ก็ return เลย
-        if ($dateString instanceof \Carbon\Carbon) {
-            return $dateString;
-        }
-
-        try {
-            $formats = [
-                'j/n/Y H:i:s', // 31/8/2025 00:00:00
-                'd/m/Y H:i:s', // 31/08/2025 00:00:00
-                'Y-m-d H:i:s', // 2025-08-31 00:00:00
-            ];
-
-            foreach ($formats as $format) {
-                $date = \Carbon\Carbon::createFromFormat($format, $dateString);
-                if ($date !== false) {
-                    return $date;
-                }
-            }
-
-            return \Carbon\Carbon::parse(str_replace('/', '-', $dateString));
-        } catch (\Exception $e) {
-            return null;
-        }
     }
 
     public function destroy($id)
