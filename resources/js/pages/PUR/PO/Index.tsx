@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import PODocumentShow from './PODocumentShow';
 import PODocumentTable from './PODocumentTable';
-import PODocumentChart from "./PODocumentChart";
 
 interface poDocs {
     POID: number;
@@ -151,15 +150,6 @@ export default function Index() {
         return `${monthNames[m - 1]} ${y + 543}`;
     })();
 
-    const salesByMonth = [
-        { month: 'ม.ค.', total_sales: 95000, total_qty: 3200, total_cost: 65000 },
-        { month: 'ก.พ.', total_sales: 120000, total_qty: 3500, total_cost: 78000 },
-        { month: 'มี.ค.', total_sales: 180000, total_qty: 5000, total_cost: 120000 },
-        { month: 'เม.ย.', total_sales: 150000, total_qty: 4200, total_cost: 105000 },
-        { month: 'พ.ค.', total_sales: 200000, total_qty: 6000, total_cost: 140000 },
-        { month: 'มิ.ย.', total_sales: 250000, total_qty: 7200, total_cost: 180000 },
-    ];
-
     if (loading) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
@@ -180,6 +170,12 @@ export default function Index() {
                 <div className="mb-4">
                     <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Purchase Orders</h1>
                     <p className="mt-2 text-sm text-gray-600">จัดการข้อมูลใบสั่งซื้อและติดตามสถานะ</p>
+                    <a
+                        href="/expense-by-dept"
+                        className="inline-block rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+                    >
+                        ดูกราฟค่าใช้จ่ายรายหน่วยงาน
+                    </a>
                 </div>
 
                 {/* Summary Cards */}
@@ -363,7 +359,6 @@ export default function Index() {
                     />
                 </ModalForm>
             </div>
-            {/* <PODocumentChart data={salesByMonth} /> */}
         </AppLayout>
     );
 }

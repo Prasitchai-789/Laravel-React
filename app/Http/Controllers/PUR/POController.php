@@ -15,10 +15,14 @@ class POController extends Controller
     {
         return Inertia::render('PUR/PO/Index', []);
     }
+    public function expenseByDept()
+    {
+        return Inertia::render('PUR/PO/ExpenseByDept', []);
+    }
     public function apiIndex(Request $request)
     {
         $year = $request->input('year', date('Y'));
-        $month = $request->input('month'); // อาจเป็น "" หรือ "2025-10"
+        $month = $request->input('month');
         $deptId = $request->input('dept_id', '1006');
 
         // รายชื่อฝ่าย
@@ -89,6 +93,59 @@ class POController extends Controller
             ],
         ]);
     }
+
+    public function apiChart(Request $request)
+    {
+        $year   = $request->input('year', date('Y'));
+        $month  = $request->input('month');
+        $deptId = $request->input('dept_id');
+
+        // สร้าง base query สำหรับทั้ง byDept และ yearlyTotal
+        $baseQuery = POHD::on('sqlsrv2')
+            ->join('EMDept', 'POHD.DeptID', '=', 'EMDept.DeptID')
+            ->join('POInvHD', 'POHD.AppvDocuNo', '=', 'POInvHD.PONo')
+            ->join('GLHD', 'POInvHD.DocuNo', '=', 'GLHD.DocuNo')
+            ->whereYear('POHD.DocuDate', $year)
+            ->whereNotNull('POHD.POVendorNo');
+
+        // ถ้ามีเดือน
+        if (!empty($month)) {
+            $monthNum = (int) substr($month, 5, 2);
+            $baseQuery->whereMonth('POHD.DocuDate', $monthNum);
+        }
+
+        // ข้อมูลแยกตามหน่วยงาน
+        $byDept = (clone $baseQuery)
+            ->selectRaw('EMDept.DeptID, EMDept.DeptName, SUM(GLHD.TotaAmnt) as total')
+            ->groupBy('EMDept.DeptID', 'EMDept.DeptName')
+            ->orderBy('EMDept.DeptName')
+            ->get();
+
+        // ผลรวมทั้งปี / ผลรวมตามเงื่อนไขเดียวกับ byDept
+        $yearlyTotal = $byDept->sum(fn($d) => $d->total);
+
+        // ข้อมูลแยกเดือนสำหรับ dept เฉพาะ
+        $byMonth = collect();
+        if (!empty($deptId)) {
+            $byMonth = POHD::on('sqlsrv2')
+                ->join('POInvHD', 'POHD.AppvDocuNo', '=', 'POInvHD.PONo')
+                ->join('GLHD', 'POInvHD.DocuNo', '=', 'GLHD.DocuNo')
+                ->selectRaw('MONTH(POHD.DocuDate) as month, SUM(GLHD.TotaAmnt) as total')
+                ->where('POHD.DeptID', $deptId)
+                ->whereYear('POHD.DocuDate', $year)
+                ->whereNotNull('POHD.POVendorNo')
+                ->groupByRaw('MONTH(POHD.DocuDate)')
+                ->orderByRaw('MONTH(POHD.DocuDate)')
+                ->get();
+        }
+
+        return response()->json([
+            'byDept'      => $byDept,
+            'byMonth'     => $byMonth,
+            'yearlyTotal' => $yearlyTotal,
+        ]);
+    }
+
 
 
 

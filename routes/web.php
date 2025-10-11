@@ -298,6 +298,8 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 Route::get('purchase/po', [POController::class, 'index']);
 Route::get('/purchase/po/api', [POController::class, 'apiIndex']);
 Route::get('/purchase/po/show/{id}', [POController::class, 'show'])->name('po.show');
+Route::get('/purchase/po/chart', [POController::class, 'apiChart'])->name('po.chart');
+Route::get('/expense-by-dept', [POController::class, 'expenseByDept'])->name('expense-by-dept');
 });
 
 
