@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 interface Good {
     GoodCode: string;
@@ -13,7 +14,7 @@ interface Good {
     StockQty?: number;
     GoodTypeID?: string;
     GoodID?: number;
-    status?: string; // ✅ รับ status จาก API
+    status?: string;
     GoodUnitID2?: string;
     GoodPrice2?: number;
     DocuDate?: string;
@@ -66,6 +67,15 @@ const FormCreate: React.FC = () => {
                             status: err.response?.status
                         });
                         setResults([]);
+
+                        // ✅ แจ้งเตือน error ในการค้นหาด้วย Swal
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถค้นหาสินค้าได้ กรุณาลองใหม่อีกครั้ง',
+                            confirmButtonColor: '#3B82F6',
+                            confirmButtonText: 'ตกลง'
+                        });
                     })
                     .finally(() => setIsSearching(false));
             }, 500);
@@ -87,10 +97,41 @@ const FormCreate: React.FC = () => {
         return { isExisting, isDuplicate };
     };
 
+    // ✅ ฟังก์ชันยืนยันการล้างทั้งหมด
+    const confirmClearAll = () => {
+        Swal.fire({
+            title: 'ยืนยันการล้างทั้งหมด?',
+            text: `คุณต้องการล้างสินค้าทั้ง ${selectedGoods.length} รายการออกจากรายการหรือไม่?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#EF4444',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'ใช่, ล้างทั้งหมด',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                clearAll();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ล้างเรียบร้อย',
+                    text: 'ล้างสินค้าทั้งหมดออกจากรายการแล้ว',
+                    confirmButtonColor: '#10B981',
+                    confirmButtonText: 'ตกลง'
+                });
+            }
+        });
+    };
+
     // ✅ ฟังก์ชันบันทึกสินค้า
     const handleSave = async () => {
         if (selectedGoods.length === 0) {
-            alert("ยังไม่มีสินค้าที่เลือก");
+            Swal.fire({
+                icon: 'warning',
+                title: 'ไม่มีสินค้า',
+                text: 'ยังไม่มีสินค้าที่เลือก',
+                confirmButtonColor: '#3B82F6',
+                confirmButtonText: 'ตกลง'
+            });
             return;
         }
 
@@ -99,9 +140,30 @@ const FormCreate: React.FC = () => {
         );
 
         if (hasEmptyFields) {
-            alert("กรุณากรอกจำนวนสต็อกและสต็อกปลอดภัยให้ครบทุกรายการ");
+            Swal.fire({
+                icon: 'warning',
+                title: 'ข้อมูลไม่ครบถ้วน',
+                text: 'กรุณากรอกจำนวนสต็อกและสต็อกปลอดภัยให้ครบทุกรายการ',
+                confirmButtonColor: '#3B82F6',
+                confirmButtonText: 'ตกลง'
+            });
             return;
         }
+
+        // ✅ ยืนยันการบันทึก
+        const { value: isConfirm } = await Swal.fire({
+            title: 'ยืนยันการบันทึก?',
+            html: `คุณต้องการบันทึกสินค้าทั้งหมด <strong>${selectedGoods.length} รายการ</strong> ลงในระบบหรือไม่?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#10B981',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'ใช่, บันทึกทันที',
+            cancelButtonText: 'ยกเลิก',
+            reverseButtons: true
+        });
+
+        if (!isConfirm) return;
 
         setSaveLoading(true);
 
@@ -112,18 +174,60 @@ const FormCreate: React.FC = () => {
 
             const { saved, exists } = response.data;
 
-            let msg = '';
-            if (saved.length > 0) msg += `✅ บันทึกสำเร็จ ${saved.length} รายการ\n`;
-            if (exists.length > 0) msg += `⚠️ มีอยู่แล้ว ${exists.length} รายการ`;
+            // ✅ แสดงผลลัพธ์การบันทึก
+            if (saved.length > 0 && exists.length === 0) {
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'บันทึกสำเร็จ',
+                    html: `✅ บันทึกสินค้าสำเร็จ <strong>${saved.length} รายการ</strong>`,
+                    confirmButtonColor: '#10B981',
+                    confirmButtonText: 'ตกลง'
+                });
 
-            alert(msg);
+                // ล้างทั้งหมดถ้าบันทึกสำเร็จทั้งหมด
+                setSelectedGoods([]);
+            } else if (saved.length > 0 && exists.length > 0) {
+                await Swal.fire({
+                    icon: 'warning',
+                    title: 'บันทึกบางส่วน',
+                    html: `
+                        <div class="text-left">
+                            <div class="mb-2">✅ บันทึกสำเร็จ ${saved.length} รายการ</div>
+                            <div>⚠️ มีอยู่แล้ว ${exists.length} รายการ</div>
+                        </div>
+                    `,
+                    confirmButtonColor: '#3B82F6',
+                    confirmButtonText: 'ตกลง'
+                });
 
-            // อัปเดต state
-            setSelectedGoods(exists); // ให้เหลือเฉพาะรายการที่ยังไม่ถูกบันทึก
+                // อัปเดต state ให้เหลือเฉพาะรายการที่ยังไม่ถูกบันทึก
+                setSelectedGoods(exists);
+            } else {
+                await Swal.fire({
+                    icon: 'info',
+                    title: 'ไม่มีข้อมูลใหม่',
+                    text: 'สินค้าทั้งหมดมีอยู่ในระบบแล้ว',
+                    confirmButtonColor: '#3B82F6',
+                    confirmButtonText: 'ตกลง'
+                });
+            }
+
             setQuery('');
         } catch (error: any) {
             console.error('❌ Save error:', error.response?.data || error.message);
-            alert('เกิดข้อผิดพลาดในการบันทึกสินค้า ❌');
+
+            let errorMessage = 'เกิดข้อผิดพลาดในการบันทึกสินค้า';
+            if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            }
+
+            Swal.fire({
+                icon: 'error',
+                title: 'บันทึกไม่สำเร็จ',
+                text: errorMessage,
+                confirmButtonColor: '#EF4444',
+                confirmButtonText: 'ตกลง'
+            });
         } finally {
             setSaveLoading(false);
         }
@@ -140,11 +244,57 @@ const FormCreate: React.FC = () => {
             setSelectedGoods([...selectedGoods, newSelectedGood]);
             setQuery('');
             setShowResults(false);
+
+            // ✅ แจ้งเตือนการเพิ่มสินค้าสำเร็จ
+            Swal.fire({
+                icon: 'success',
+                title: 'เพิ่มสินค้าแล้ว',
+                html: `เพิ่ม <strong>${good.GoodCode}</strong> ลงในรายการนำเข้าแล้ว`,
+                timer: 1500,
+                showConfirmButton: false,
+                position: 'top-end',
+                toast: true
+            });
+        } else {
+            // ✅ แจ้งเตือนถ้าสินค้าซ้ำ
+            Swal.fire({
+                icon: 'warning',
+                title: 'สินค้าซ้ำ',
+                text: `สินค้า ${good.GoodCode} มีอยู่ในรายการแล้ว`,
+                confirmButtonColor: '#3B82F6',
+                confirmButtonText: 'ตกลง'
+            });
         }
     };
 
     const removeProduct = (goodCode: string) => {
-        setSelectedGoods(selectedGoods.filter(good => good.GoodCode !== goodCode));
+        const productToRemove = selectedGoods.find(g => g.GoodCode === goodCode);
+
+        Swal.fire({
+            title: 'ลบสินค้า?',
+            html: `คุณต้องการลบสินค้า <strong>${goodCode}</strong> ออกจากรายการหรือไม่?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#EF4444',
+            cancelButtonColor: '#6B7280',
+            confirmButtonText: 'ใช่, ลบออก',
+            cancelButtonText: 'ยกเลิก',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                setSelectedGoods(selectedGoods.filter(good => good.GoodCode !== goodCode));
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ลบเรียบร้อย',
+                    html: `ลบสินค้า <strong>${goodCode}</strong> ออกจากรายการแล้ว`,
+                    timer: 1500,
+                    showConfirmButton: false,
+                    position: 'top-end',
+                    toast: true
+                });
+            }
+        });
     };
 
     const clearAll = () => {
@@ -167,6 +317,38 @@ const FormCreate: React.FC = () => {
                 ? { ...good, inputSafetyStock: value }
                 : good
         ));
+    };
+
+    // ✅ ฟังก์ชันยกเลิก
+    const handleCancel = () => {
+        if (selectedGoods.length > 0) {
+            Swal.fire({
+                title: 'ยืนยันการยกเลิก?',
+                text: `คุณต้องการยกเลิกการนำเข้าสินค้า ${selectedGoods.length} รายการหรือไม่? ข้อมูลที่กรอกจะหายไป`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#EF4444',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'ใช่, ยกเลิก',
+                cancelButtonText: 'กลับไปกรอกข้อมูล',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    setSelectedGoods([]);
+                    setQuery('');
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'ยกเลิกแล้ว',
+                        text: 'การนำเข้าสินค้าถูกยกเลิกแล้ว',
+                        confirmButtonColor: '#3B82F6',
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            });
+        } else {
+            setSelectedGoods([]);
+            setQuery('');
+        }
     };
 
     return (
@@ -378,7 +560,7 @@ const FormCreate: React.FC = () => {
 
                             <div className="flex items-center gap-3">
                                 <button
-                                    onClick={clearAll}
+                                    onClick={confirmClearAll}
                                     className="px-5 py-3 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-300 flex items-center gap-2 font-semibold border border-red-200"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -540,7 +722,10 @@ const FormCreate: React.FC = () => {
 
                         {/* Action Buttons */}
                         <div className="flex flex-col sm:flex-row justify-end gap-4 mt-8 pt-8 border-t border-gray-200">
-                            <button className="px-8 py-4 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-all duration-300 flex items-center justify-center gap-3 font-semibold text-lg shadow-lg">
+                            <button
+                                onClick={handleCancel}
+                                className="px-8 py-4 bg-gray-500 text-white rounded-xl hover:bg-gray-600 transition-all duration-300 flex items-center justify-center gap-3 font-semibold text-lg shadow-lg"
+                            >
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>

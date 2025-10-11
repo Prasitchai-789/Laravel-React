@@ -8,21 +8,10 @@ export default function StoreMovementPage({ title, movements }) {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
     const itemsPerPage = 15;
 
-
     // reset page เมื่อ filter/search เปลี่ยน
     useEffect(() => {
         setCurrentPage(1);
-
-        // console.log("จำนวนรายการทั้งหมด:", movements.length);
-        // console.log("จำนวนรายการที่ผ่าน filter:", filteredMovements.length);
-        // console.log("ข้อมูลหลัง filter + approved:", filteredMovements.length);
-
-        // console.log("ข้อมูลทั้งหมดจาก backend:", movements.length); // ตัวนี้ต้องตรงกับจำนวนข้อมูลที่ดึงมา
-
     }, [search, filterType]);
-
-
-
 
     // ฟังก์ชันเรียงลำดับ
     const requestSort = (key) => {
@@ -42,17 +31,17 @@ export default function StoreMovementPage({ title, movements }) {
 
             let matchesType = false;
             if (filterType === "ทั้งหมด") matchesType = true;
-            else if (filterType === "add") matchesType = m.type === "add" || m.movement_type === "adjustment";
+            else if (filterType === "add") matchesType = m.type === "add";
             else if (filterType === "subtract") matchesType = m.type === "subtract";
             else if (filterType === "return") matchesType = m.movement_type === "return";
+            else if (filterType === "adjustment") matchesType = m.movement_type === "adjustment";
 
-            // 🆕 กรอง issue ที่คืนครบแล้วออก
+            // กรอง issue ที่คืนครบแล้วออก
             const notFullyReturned = !(m.movement_type === "issue" && m.remaining_qty === 0);
 
             return matchesSearch && matchesType && notFullyReturned;
         });
     }, [search, filterType, movements]);
-
 
     const sortedMovements = useMemo(() => {
         if (!sortConfig.key) return filteredMovements;
@@ -77,56 +66,74 @@ export default function StoreMovementPage({ title, movements }) {
         return sortedMovements.slice(start, start + itemsPerPage);
     }, [sortedMovements, currentPage]);
 
-
     const totalPages = Math.ceil(filteredMovements.length / itemsPerPage);
-
 
     const goToPage = (page) => {
         if (page >= 1 && page <= totalPages) setCurrentPage(page);
     };
 
-    // แปลง type เป็นภาษาไทย + สี + hover color
+    // แปลง type เป็นภาษาไทย + สี + hover color (แก้ไขให้ถูกต้อง)
     const getTypeLabel = (movement_type, type, category) => {
-        if (movement_type === "issue") {
+        // กรณี issue + add = ลดจำนวนที่เบิก (ยกเลิกการเบิกบางส่วน)
+        if (movement_type === "issue" && type === "add") {
+            return {
+                label: "ลดจำนวนเบิก",
+                color: "bg-amber-100 text-amber-800 border border-amber-200",
+                hoverColor: "hover:bg-amber-200",
+                icon: "↶",
+                description: "ลดจำนวนสินค้าที่เบิกออก"
+            };
+        }
+
+        // กรณี issue + subtract = เบิกออกปกติ
+        if (movement_type === "issue" && type === "subtract") {
             return {
                 label: "เบิกออก",
                 color: "bg-red-100 text-red-800 border border-red-200",
                 hoverColor: "hover:bg-red-200",
-                icon: "-"
+                icon: "-",
+                description: "เบิกสินค้าออกใช้"
             };
         }
+
         if (movement_type === "return") {
             return {
                 label: "คืนสินค้า",
                 color: "bg-blue-100 text-blue-800 border border-blue-200",
                 hoverColor: "hover:bg-blue-200",
-                icon: "+"
+                icon: "+",
+                description: "คืนสินค้าเข้าคลัง"
             };
         }
+
         if (movement_type === "reserve") {
             return {
                 label: "จองสินค้า",
                 color: "bg-purple-100 text-purple-800 border border-purple-200",
                 hoverColor: "hover:bg-purple-200",
-                icon: "-"
+                icon: "-",
+                description: "จองสินค้าไว้ใช้"
             };
         }
+
         if (movement_type === "adjustment") {
             // แยกเพิ่ม/ลด stock ตาม type
             if (type === "add" && category === "stock") {
                 return {
-                    label: "เพิ่มสินค้า",
+                    label: "ปรับเพิ่มสต็อก",
                     color: "bg-green-100 text-green-800 border border-green-200",
                     hoverColor: "hover:bg-green-200",
-                    icon: "+"
+                    icon: "+",
+                    description: "ปรับปรุงสต็อกเพิ่ม"
                 };
             }
             if (type === "subtract" && category === "stock") {
                 return {
-                    label: "ลดสต็อก",
+                    label: "ปรับลดสต็อก",
                     color: "bg-red-100 text-red-800 border border-red-200",
                     hoverColor: "hover:bg-red-200",
-                    icon: "-"
+                    icon: "-",
+                    description: "ปรับปรุงสต็อกลด"
                 };
             }
             // safety หรือ adjustment อื่น ๆ
@@ -135,21 +142,58 @@ export default function StoreMovementPage({ title, movements }) {
                     label: "เพิ่มสต็อก",
                     color: "bg-green-100 text-green-800 border border-green-200",
                     hoverColor: "hover:bg-green-200",
-                    icon: "+"
+                    icon: "+",
+                    description: "เพิ่มสต็อก"
                 } :
                 {
                     label: "ลดสต็อก",
                     color: "bg-red-100 text-red-800 border border-red-200",
                     hoverColor: "hover:bg-red-200",
-                    icon: "-"
+                    icon: "-",
+                    description: "ลดสต็อก"
                 };
         }
+
         return {
             label: "-",
             color: "bg-gray-100 text-gray-800 border border-gray-200",
             hoverColor: "hover:bg-gray-200",
-            icon: ""
+            icon: "",
+            description: "ไม่ระบุ"
         };
+    };
+
+    // ฟังก์ชันสำหรับแสดงสีของจำนวนตามประเภท
+    const getQuantityDisplay = (typeInfo, quantity) => {
+        if (typeInfo.label === "ลดจำนวนเบิก") {
+            return (
+                <span className="text-amber-600 bg-amber-50 px-2 py-1 md:px-3 md:py-1.5 rounded-lg flex items-center transition-all duration-200 hover:bg-amber-100 border border-amber-200 text-xs md:text-sm">
+                    {typeInfo.icon}
+                    <span className="ml-1">{quantity}</span>
+                </span>
+            );
+        } else if (typeInfo.label === "เบิกออก" || typeInfo.label === "ปรับลดสต็อก" || typeInfo.label === "ลดสต็อก") {
+            return (
+                <span className="text-red-600 bg-red-50 px-2 py-1 md:px-3 md:py-1.5 rounded-lg flex items-center transition-all duration-200 hover:bg-red-100 border border-red-200 text-xs md:text-sm">
+                    {typeInfo.icon}
+                    <span className="ml-1">{quantity}</span>
+                </span>
+            );
+        } else if (typeInfo.label === "คืนสินค้า") {
+            return (
+                <span className="text-blue-600 bg-blue-50 px-2 py-1 md:px-3 md:py-1.5 rounded-lg flex items-center transition-all duration-200 hover:bg-blue-100 border border-blue-200 text-xs md:text-sm">
+                    {typeInfo.icon}
+                    <span className="ml-1">{quantity}</span>
+                </span>
+            );
+        } else {
+            return (
+                <span className="text-green-600 bg-green-50 px-2 py-1 md:px-3 md:py-1.5 rounded-lg flex items-center transition-all duration-200 hover:bg-green-100 border border-green-200 text-xs md:text-sm">
+                    {typeInfo.icon}
+                    <span className="ml-1">{quantity}</span>
+                </span>
+            );
+        }
     };
 
     // ฟังก์ชันสำหรับแสดงปุ่ม pagination
@@ -224,7 +268,7 @@ export default function StoreMovementPage({ title, movements }) {
                 <button
                     key={totalPages}
                     onClick={() => goToPage(totalPages)}
-                    className="px-3 p-2 rounded-lg transition-all duration-200 hover:shadow-sm bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 text-sm"
+                    className="px-3 py-2 rounded-lg transition-all duration-200 hover:shadow-sm bg-white border border-blue-200 hover:bg-blue-50 text-blue-700 text-sm"
                 >
                     {totalPages}
                 </button>
@@ -254,7 +298,7 @@ export default function StoreMovementPage({ title, movements }) {
             { title: "หน้าหลัก", href: route('dashboard') },
             { title: "การเคลื่อนไหวของสินค้า", href: route('storemovement.indexPage') },
         ]}>
-            <div className="p-4 md:p-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen  font-anuphan">
+            <div className="p-4 md:p-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen font-anuphan">
                 {/* Header */}
                 <div className="mb-6 md:mb-8 text-center">
                     <h1 className="text-2xl md:text-4xl font-bold text-blue-800 drop-shadow-sm">{title || "การเคลื่อนไหวของสินค้า"}</h1>
@@ -301,9 +345,10 @@ export default function StoreMovementPage({ title, movements }) {
                                 <option value="add">เข้า</option>
                                 <option value="subtract">ออก</option>
                                 <option value="return">คืนสินค้า</option>
+                                <option value="adjustment">ปรับสต็อก</option>
                             </select>
                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-blue-500">
-                                <svg className="h-4 w-4" xmlns="http极://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                                 </svg>
                             </div>
@@ -373,7 +418,7 @@ export default function StoreMovementPage({ title, movements }) {
                                     >
                                         <div className="flex items-center">
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 极 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                                                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                                             </svg>
                                             วันที่
                                         </div>
@@ -404,45 +449,29 @@ export default function StoreMovementPage({ title, movements }) {
                                         <tr key={m.id} className={`transition-all duration-200 group ${typeInfo.hoverColor}`}>
                                             <td className="px-3 md:px-6 py-2 md:py-2 font-medium text-blue-900 text-sm">
                                                 <div className="flex items-center">
-
                                                     <span className="font-mono bg-blue-50 px-2 py-1 rounded-md text-xs md:text-sm">{m.goodCodeStore}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-3 md:px-6 py-2 md:py-2  font-medium text-gray-800 text-sm">
+                                            <td className="px-3 md:px-6 py-2 md:py-2 font-medium text-gray-800 text-sm">
                                                 <div className="max-w-[120px] md:max-w-xs truncate" title={m.goodName}>
                                                     {m.goodName}
                                                 </div>
                                             </td>
 
-                                            <td className="px-3 md:px-6 py-2 md:py-2  text-center">
+                                            <td className="px-3 md:px-6 py-2 md:py-2 text-center">
                                                 <span className={`inline-flex items-center justify-center px-2 py-1 md:px-3 md:py-1.5 rounded-full text-xs font-semibold ${typeInfo.color} transition-all duration-200 hover:scale-105`}>
                                                     {typeInfo.icon}
                                                     <span className="ml-1">{typeInfo.label}</span>
                                                 </span>
                                             </td>
 
-                                            <td className="px-3 md:px-6 py-2 md:py-2  text-center font-medium text-sm">
+                                            <td className="px-3 md:px-6 py-2 md:py-2 text-center font-medium text-sm">
                                                 <div className="flex justify-center items-center">
-                                                    {typeInfo.label.includes("ออก") || typeInfo.label === "ลดสต็อก" ? (
-                                                        <span className="text-red-600 bg-red-50 px-2 py-1 md:px-3 md:py-1.5 rounded-lg flex items-center transition-all duration-200 hover:bg-red-100 border border-red-200 text-xs md:text-sm">
-                                                            {typeInfo.icon}
-                                                            <span className="ml-1">{m.stockQty}</span>
-                                                        </span>
-                                                    ) : typeInfo.label === "คืนสินค้า" ? (
-                                                        <span className="text-blue-600 bg-blue-50 py-2 md:py-2  md:px-3 md:py-1.5 rounded-lg flex items-center transition-all duration-200 hover:bg-blue-100 border border-blue-200 text-xs md:text-sm">
-                                                            {typeInfo.icon}
-                                                            <span className="ml-1">{m.stockQty}</span>
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-green-600 bg-green-50 py-2 md:py-2  md:px-3 md:py-1.5 rounded-lg flex items-center transition-all duration-200 hover:bg-green-100 border border-green-200 text-xs md:text-sm">
-                                                            {typeInfo.icon}
-                                                            <span className="ml-1">{m.stockQty}</span>
-                                                        </span>
-                                                    )}
+                                                    {getQuantityDisplay(typeInfo, m.stockQty)}
                                                 </div>
                                             </td>
 
-                                            <td className="px-3 md:px-6 py-2 md:py-2  text-blue-800 text-sm">
+                                            <td className="px-3 md:px-6 py-2 md:py-2 text-blue-800 text-sm">
                                                 <div className="flex items-center">
                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
                                                         <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
@@ -450,7 +479,7 @@ export default function StoreMovementPage({ title, movements }) {
                                                     {m.date}
                                                 </div>
                                             </td>
-                                            <td className="px-3 md:px-6 py-2 md:py-2  text-sm">
+                                            <td className="px-3 md:px-6 py-2 md:py-2 text-sm">
                                                 <div className="flex items-center">
                                                     <div className={`rounded-full p-1 md:p-1.5 mr-2 transition-colors bg-blue-100`}>
                                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 md:h-4 md:w-4 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
@@ -460,11 +489,10 @@ export default function StoreMovementPage({ title, movements }) {
                                                     <span className="text-blue-900">{m.user}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-3 md:px-6 py-2 md:py-2  text-sm">
+                                            <td className="px-3 md:px-6 py-2 md:py-2 text-sm">
                                                 {m.note && (
                                                     <div className="flex items-center justify-center">
                                                         <div className="relative group">
-                                                            {/* ปุ่มแสดงหมายเหตุ (แสดงบางส่วน) */}
                                                             <button className="bg-blue-100 hover:bg-blue-200 rounded-lg p-2 max-w-[120px] transition-colors duration-200">
                                                                 <div className="flex items-start">
                                                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-600 mt-0.5 mr-1 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
@@ -476,7 +504,6 @@ export default function StoreMovementPage({ title, movements }) {
                                                                 </div>
                                                             </button>
 
-                                                            {/* Popup แสดงข้อความเต็ม (เมื่อ hover) */}
                                                             {m.note.length > 20 && (
                                                                 <div className="absolute z-10 left-1/2 transform -translate-x-1/2 bottom-full mb-2 hidden group-hover:block">
                                                                     <div className="bg-white border border-blue-200 rounded-lg shadow-lg p-3 max-w-xs">
@@ -486,7 +513,6 @@ export default function StoreMovementPage({ title, movements }) {
                                                                             </svg>
                                                                             <span className="text-blue-800 text-sm">{m.note}</span>
                                                                         </div>
-
                                                                         <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-white"></div>
                                                                     </div>
                                                                 </div>

@@ -18,13 +18,13 @@ class ChemicalController extends Controller
     // แสดงรายการทั้งหมดในรูปแบบ Daily Chemicals
     public function index()
     {
-        // ดึงข้อมูลทั้งหมด เรียงจากใหม่สุดไปเก่าสุด
+        // ✅ ดึงข้อมูลทั้งหมด เรียงจากใหม่สุดไปเก่าสุด (เบื้องต้น)
         $raw = DailyChemical::orderBy('date', 'desc')
             ->orderBy('shift', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Group ตาม date+shift
+        // ✅ Group ตาม date+shift
         $grouped = $raw->groupBy(fn($item) => $item->date . '_' . $item->shift)
             ->map(function ($group) {
                 $records = $group->map(fn($item) => [
@@ -34,29 +34,33 @@ class ChemicalController extends Controller
                     'unit' => $item->unit,
                 ])->values();
 
-                $dateString = str_replace(':AM', ' AM', $group[0]->date);
-                $dateString = str_replace(':PM', ' PM', $dateString);
-
-                $formattedDate = Carbon::parse($dateString)->format('d/m/Y');
+                // ✅ แปลงวันที่ให้เป็น Carbon อย่างถูกต้อง
+                $rawDate = str_replace([':AM', ':PM'], [' AM', ' PM'], $group[0]->date);
+                $carbonDate = Carbon::parse($rawDate);
 
                 return [
-                    'date' => $formattedDate,
+                    'date' => $carbonDate->format('d/m/Y'),
                     'shift' => $group[0]->shift,
                     'records' => $records,
                     'totalChemicals' => $records->filter(fn($r) => $r['quantity'] > 0)->count(),
+
+                    // ✅ ใช้เก็บค่าสำหรับเรียงจริง
+                    'sort_key' => $carbonDate->timestamp,
                 ];
             })
-            ->sortByDesc(fn($g) => $g['date'] . '_' . $g['shift']) // เรียงกลุ่มใหม่สุดก่อน
+            // ✅ เรียงตามวันที่จริง (timestamp) จากใหม่สุด → เก่าสุด
+            // และภายในวันให้เรียง AM ก่อน PM
+            ->sortByDesc(fn($g) => sprintf('%s_%s', $g['sort_key'], $g['shift'] === 'PM' ? 1 : 2))
             ->values();
 
-        // Paginate แบบ manual (10 กลุ่มต่อหน้า)
+        // ✅ Paginate แบบ manual (10 กลุ่มต่อหน้า)
         $perPage = 10;
         $currentPage = (int) request()->input('page', 1);
         $lastPage = ceil($grouped->count() / $perPage);
 
         $pagedGroups = $grouped->slice(($currentPage - 1) * $perPage, $perPage)->values();
 
-        // สร้าง pagination object พร้อม URL สำหรับปุ่ม
+        // ✅ สร้าง pagination object พร้อม URL สำหรับปุ่ม
         $pagination = [
             'total' => $grouped->count(),
             'per_page' => $perPage,
@@ -75,11 +79,13 @@ class ChemicalController extends Controller
             ]),
         ];
 
+        // ✅ ส่งข้อมูลไปหน้า Inertia
         return Inertia::render('Chemical/Index', [
             'records' => $pagedGroups,
             'pagination' => $pagination,
         ]);
     }
+
 
 
 
@@ -213,7 +219,6 @@ class ChemicalController extends Controller
                     'updated_at' => now(),
                 ]);
         }
-
     }
 
     // ลบข้อมูล

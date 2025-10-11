@@ -402,7 +402,7 @@ export default function FormEditOrder({ order, onClose, onSuccess }: FormEditOrd
             };
         } else {
             const statusColor = stockInfo.available > 10 ? 'green' :
-                              stockInfo.available > 0 ? 'yellow' : 'red';
+                stockInfo.available > 0 ? 'yellow' : 'red';
 
             return {
                 status: 'IN_STOCK',
@@ -463,8 +463,11 @@ export default function FormEditOrder({ order, onClose, onSuccess }: FormEditOrd
                 {/* ผู้เบิก */}
                 <div className="bg-white p-4 rounded-xl border border-gray-200">
                     <label className="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                        <User className="w-4 h-4 mr-2 text-purple-600" />
+                        <svg className="w-4 h-4 mr-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
                         ผู้เบิก
+                        <span className="text-red-500 ml-1">*</span>
                     </label>
                     <input
                         type="text"
@@ -473,14 +476,24 @@ export default function FormEditOrder({ order, onClose, onSuccess }: FormEditOrd
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
                         placeholder="ระบุชื่อผู้เบิก..."
                         required
+                        disabled
+                        style={{
+                            backgroundColor: '#f9fafb',
+                            cursor: 'not-allowed',
+                            opacity: 0.7
+                        }}
                     />
+
                 </div>
 
                 {/* ฝ่าย/แผนก */}
                 <div className="bg-white p-4 rounded-xl border border-gray-200">
                     <label className="flex items-center text-sm font-semibold text-gray-700 mb-2">
-                        <Building className="w-4 h-4 mr-2 text-orange-600" />
+                        <svg className="w-4 h-4 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
                         ฝ่าย/แผนก
+                        <span className="text-red-500 ml-1">*</span>
                     </label>
                     <input
                         type="text"
@@ -489,7 +502,14 @@ export default function FormEditOrder({ order, onClose, onSuccess }: FormEditOrd
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200"
                         placeholder="ระบุฝ่าย/แผนก..."
                         required
+                        disabled
+                        style={{
+                            backgroundColor: '#f9fafb',
+                            cursor: 'not-allowed',
+                            opacity: 0.7
+                        }}
                     />
+
                 </div>
             </div>
 
@@ -523,11 +543,10 @@ export default function FormEditOrder({ order, onClose, onSuccess }: FormEditOrd
                         return (
                             <div
                                 key={item.id}
-                                className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-200 ${
-                                    stockStatus.status === 'OVER_STOCK' || stockStatus.status === 'OUT_OF_STOCK'
-                                        ? 'bg-red-50 border-red-200'
-                                        : 'bg-gray-50 border-gray-200 hover:bg-white'
-                                }`}
+                                className={`flex items-center justify-between p-3 rounded-lg border transition-all duration-200 ${stockStatus.status === 'OVER_STOCK' || stockStatus.status === 'OUT_OF_STOCK'
+                                    ? 'bg-red-50 border-red-200'
+                                    : 'bg-gray-50 border-gray-200 hover:bg-white'
+                                    }`}
                             >
                                 <div className="flex-1 min-w-0">
                                     <div className="font-semibold text-gray-900 text-sm mb-1">
@@ -551,11 +570,10 @@ export default function FormEditOrder({ order, onClose, onSuccess }: FormEditOrd
                                             </span>
                                         )}
 
-                                        <span className={`px-2 py-1 rounded border ${
-                                            stockStatus.color === 'green' ? 'bg-green-100 text-green-700 border-green-200' :
+                                        <span className={`px-2 py-1 rounded border ${stockStatus.color === 'green' ? 'bg-green-100 text-green-700 border-green-200' :
                                             stockStatus.color === 'yellow' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' :
-                                            'bg-red-100 text-red-700 border-red-200'
-                                        }`}>
+                                                'bg-red-100 text-red-700 border-red-200'
+                                            }`}>
                                             ✅ {stockStatus.message}
                                         </span>
 
@@ -585,11 +603,10 @@ export default function FormEditOrder({ order, onClose, onSuccess }: FormEditOrd
                                             max={stockStatus.available}
                                             value={safeNumber(item.quantity)}
                                             onChange={(e) => handleItemQuantityChange(item.id, safeNumber(e.target.value))}
-                                            className={`w-12 px-1 py-1 text-center border-0 focus:ring-0 focus:outline-none bg-transparent font-semibold ${
-                                                stockStatus.status === 'OVER_STOCK' || stockStatus.status === 'OUT_OF_STOCK'
-                                                    ? 'text-red-600'
-                                                    : 'text-gray-900'
-                                            }`}
+                                            className={`w-12 px-1 py-1 text-center border-0 focus:ring-0 focus:outline-none bg-transparent font-semibold ${stockStatus.status === 'OVER_STOCK' || stockStatus.status === 'OUT_OF_STOCK'
+                                                ? 'text-red-600'
+                                                : 'text-gray-900'
+                                                }`}
                                             disabled={stockStatus.available === 0}
                                         />
                                         <button
