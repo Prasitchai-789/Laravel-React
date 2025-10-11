@@ -1317,9 +1317,12 @@ class StoreOrderController extends Controller
                 ]);
         });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'อัปเดตคำสั่งซื้อเรียบร้อยแล้ว'
+        return redirect()->back()->with('swal', [
+            'title' => 'แก้ไขข้อมูลสำเร็จ!',
+            'text' => 'ระบบได้อัปเดตข้อมูลเรียบร้อยแล้ว',
+            'icon' => 'success',
+            'timer' => 2000,
+            'showConfirmButton' => false,
         ]);
     }
 }

@@ -30,6 +30,7 @@ class StoreMovementController extends Controller
             'store_movements.note',
             'store_movements.status',
             'store_movements.created_at',
+            'store_movements.updated_at',
             'store_items.good_id as goodCode',
             'store_items.good_code as goodCodeStore',
             'users.name as userName',
@@ -37,8 +38,7 @@ class StoreMovementController extends Controller
         )
             ->leftJoin('store_items', 'store_movements.store_item_id', '=', 'store_items.id')
             ->leftJoin('users', 'store_movements.user_id', '=', 'users.id')
-            ->orderByDesc('store_movements.created_at') // เรียงวันที่ล่าสุดก่อน
-            ->orderByDesc('store_movements.id')         // ถ้าวันที่เหมือนกัน เรียง id ใหม่สุดก่อน
+            ->orderByDesc('store_movements.id') // ✅ เรียง id ใหม่ไปเก่า (10, 9, 8, ...)
             ->get();
 
         // ✅ ดึง employee_id ทั้งหมด (ที่ไม่ว่าง)
@@ -48,7 +48,7 @@ class StoreMovementController extends Controller
         $employees = DB::connection('sqlsrv2')
             ->table('dbo.Webapp_Emp')
             ->whereIn('EmpID', $employeeIds)
-            ->pluck('EmpName', 'EmpID'); // key = EmpID, value = EmpName
+            ->pluck('EmpName', 'EmpID');
 
         // ✅ ดึงชื่อสินค้าจาก SQL Server
         $goodCodes = $movements->pluck('goodCodeStore')->unique()->toArray();
@@ -72,7 +72,8 @@ class StoreMovementController extends Controller
                 'type' => $m->type,
                 'movement_type' => $m->movement_type,
                 'category' => $m->category,
-                'date' => $m->created_at->format('Y-m-d'),
+                'date' => $m->created_at->format('Y-m-d '),
+                'created_at' => $m->created_at->format('Y-m-d '),
                 'user' => $empName,
                 'note' => $m->note,
                 'status' => $m->status,
@@ -138,5 +139,4 @@ class StoreMovementController extends Controller
         // dd($movements);
         return redirect()->back()->with('success', 'บันทึก movement เรียบร้อยแล้ว');
     }
-
 }
