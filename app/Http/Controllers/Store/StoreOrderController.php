@@ -1057,65 +1057,71 @@ class StoreOrderController extends Controller
 
     // GoodController.php
     public function searchNew(Request $request)
-    {
-        $query = $request->input('query', '');
+{
+    $query = $request->input('query', '');
 
-        // Subquery ดึงราคาล่าสุดจาก ICStockDetail (1 แถวต่อ GoodID)
-        $latestPriceSub = DB::connection('sqlsrv2')
-            ->table('ICStockDetail as s1')
-            ->select('s1.GoodID', 's1.GoodUnitID2', 's1.GoodPrice2', 's1.DocuDate')
-            ->whereRaw('s1.DocuDate = (
+    // Subquery: ราคาล่าสุดจาก ICStockDetail (1 แถวต่อ GoodID)
+    $latestPriceSub = DB::connection('sqlsrv2')
+        ->table('ICStockDetail as s1')
+        ->select('s1.GoodID', 's1.GoodUnitID2', 's1.GoodPrice2', 's1.DocuDate')
+        ->whereRaw('s1.DocuDate = (
             SELECT MAX(s2.DocuDate)
             FROM ICStockDetail s2
             WHERE s2.GoodID = s1.GoodID
         )');
 
-        // Query หลักจาก EMGood + join sub + join store_items
-        $goods = DB::connection('sqlsrv2')
-            ->table('EMGood as g')
-            ->leftJoinSub($latestPriceSub, 's', 'g.GoodID', '=', 's.GoodID')
-            ->leftJoin(DB::connection('sqlsrv')->getDatabaseName() . '.dbo.store_items as si', function ($join) {
-                $join->on('g.GoodID', '=', 'si.good_id')
-                    ->on('g.GoodCode', '=', 'si.good_code');
-            })
-            ->where(function ($q) {
-                $q->whereNull('g.Inactive')->orWhere('g.Inactive', '!=', '1');
-            })
-            ->when($query, function ($q) use ($query) {
-                $q->where(function ($w) use ($query) {
-                    $w->where('g.GoodCode', 'like', "%{$query}%")
-                        ->orWhere('g.GoodName1', 'like', "%{$query}%");
-                });
-            })
-            ->select([
-                'g.GoodCode',
-                'g.GoodID',
-                'g.GoodName1',
-                's.GoodUnitID2',
-                's.GoodPrice2',
-                's.DocuDate',
-                DB::raw('ISNULL(SUM(si.stock_qty), 0) as stock_qty'),
-                DB::raw('ISNULL(SUM(si.safety_stock), 0) as safety_stock')
-            ])
-            ->groupBy('g.GoodCode', 'g.GoodID', 'g.GoodName1', 's.GoodUnitID2', 's.GoodPrice2', 's.DocuDate')
-            ->orderBy('g.GoodCode')
-            ->limit(50)
-            ->get();
+    // ดึงข้อมูลสินค้าจากฐาน sqlsrv2
+    $goods = DB::connection('sqlsrv2')
+        ->table('EMGood as g')
+        ->leftJoinSub($latestPriceSub, 's', 'g.GoodID', '=', 's.GoodID')
+        ->where(function ($q) {
+            $q->whereNull('g.Inactive')->orWhere('g.Inactive', '!=', '1');
+        })
+        ->when($query, function ($q) use ($query) {
+            $q->where(function ($w) use ($query) {
+                $w->where('g.GoodCode', 'like', "%{$query}%")
+                    ->orWhere('g.GoodName1', 'like', "%{$query}%");
+            });
+        })
+        ->select([
+            'g.GoodCode',
+            'g.GoodID',
+            'g.GoodName1',
+            's.GoodUnitID2',
+            's.GoodPrice2',
+            's.DocuDate',
+        ])
+        ->orderBy('g.GoodCode')
+        ->limit(50)
+        ->get();
 
-        // อัปเดต status ให้ชัดเจน
-        foreach ($goods as $good) {
-            $status = [];
-            if ($good->stock_qty > 0 || $good->safety_stock > 0) {
-                $status[] = '✅ มีอยู่แล้วใน store_items';
-            } else {
-                $status[] = '➕ ยังไม่มีใน store_items';
-            }
+    // ดึงข้อมูล stock จากฐาน sqlsrv
+    $storeItems = DB::connection('sqlsrv')
+        ->table('store_items')
+        ->select('good_id', 'good_code',
+            DB::raw('SUM(stock_qty) as stock_qty'),
+            DB::raw('SUM(safety_stock) as safety_stock')
+        )
+        ->groupBy('good_id', 'good_code')
+        ->get()
+        ->keyBy(fn($i) => "{$i->good_id}-{$i->good_code}");
 
-            $good->status = implode(' | ', $status);
-        }
+    // รวมข้อมูลทั้งสองฝั่ง
+    foreach ($goods as $good) {
+        $key = "{$good->GoodID}-{$good->GoodCode}";
+        $item = $storeItems[$key] ?? null;
 
-        return response()->json($goods);
+        $good->stock_qty = $item->stock_qty ?? 0;
+        $good->safety_stock = $item->safety_stock ?? 0;
+        $good->status = ($good->stock_qty > 0 || $good->safety_stock > 0)
+            ? '✅ มีอยู่แล้วใน store_items'
+            : '➕ ยังไม่มีใน store_items';
     }
+
+    return response()->json($goods);
+}
+
+
 
     public function importNew(Request $request)
     {
