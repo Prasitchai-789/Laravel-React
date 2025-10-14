@@ -20,6 +20,7 @@ interface Document {
     attachment: string;
     attachments: Attachment[];
     status?: 'pending' | 'approved' | 'rejected' | string;
+    status_label?: string;
     attachment_path?: string;
     total_amount?: number;
 }
@@ -35,12 +36,37 @@ interface DocumentTableProps {
     onEdit?: (document: Document) => void;
     onDelete?: (document: Document) => void;
     onDetail?: (document: Document) => void;
+    currentPage: number;
+    perPage: number;
+    totalRecords: number;
+    onPageChange: (page: number) => void;
+    onPerPageChange: (perPage: number) => void;
 }
 
-export default function DocumentTable({ documents, categories, onEdit, onDelete, onDetail }: DocumentTableProps) {
+export default function DocumentTable({
+    documents,
+    categories,
+    onEdit,
+    onDelete,
+    onDetail,
+    currentPage,
+    perPage,
+    totalRecords,
+    onPageChange,
+    onPerPageChange,
+}: DocumentTableProps) {
     const [selectedMonth, setSelectedMonth] = useState('');
 
+    const handlePageChange = (page: number) => {
+        onPageChange(page);
+    };
+
+    const handlePerPageChange = (newPerPage: number) => {
+        onPerPageChange(newPerPage);
+    };
+
     useEffect(() => {}, [selectedMonth]);
+
     const filterByMonth = (documents: Document[], month: string) => {
         if (!month) return documents; // ถ้าเลือก "ทั้งหมด"
         const [year, monthNum] = month.split('-').map(Number);
@@ -137,7 +163,7 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete,
             align: 'center',
             render: (document) => (
                 <div className="text-right">
-                    <div className="text-lg font-semibold text-gray-600">
+                    <div className="font-semibold text-gray-600">
                         {document.amount ? Number(document.amount).toLocaleString('th-TH', { style: 'currency', currency: 'THB' }) : '-'}
                     </div>
                 </div>
@@ -149,7 +175,7 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete,
             align: 'right',
             render: (document) => (
                 <div className="text-right">
-                    <div className="text-lg font-semibold text-green-800">
+                    <div className="font-semibold text-green-800">
                         {document.total_amount ? Number(document.total_amount).toLocaleString('th-TH', { style: 'currency', currency: 'THB' }) : '-'}
                     </div>
                 </div>
@@ -192,9 +218,16 @@ export default function DocumentTable({ documents, categories, onEdit, onDelete,
     return (
         <GenericTable
             title="ข้อมูลเอกสารบันทึกข้อความ"
-            data={filteredDocuments.sort((a, b) => b.id - a.id)}
             columns={documentColumns}
+            data={filteredDocuments.sort((a, b) => b.id - a.id)}
             idField="id"
+            // ส่ง props pagination ไปยัง GenericTable
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            onPageChange={handlePageChange}
+            onPerPageChange={handlePerPageChange}
+            itemsPerPage={perPage}
+            externalSearch={true}
             actions={(row) => (
                 <div className="flex justify-center gap-2">
                     <button

@@ -26,6 +26,7 @@ interface Summary {
 // ==== Index Page ====
 export default function Index() {
     const [loading, setLoading] = useState(true);
+    const [summaryLoading, setSummaryLoading] = useState(false);
     const [data, setData] = useState<poDocs[]>([]);
     const [isModalOpenDetail, setIsModalOpenDetail] = useState(false);
     const [selectedDept, setSelectedDept] = useState<string>('1006');
@@ -54,6 +55,7 @@ export default function Index() {
     // ใน fetchData function
     const fetchData = async () => {
         setLoading(true);
+        setSummaryLoading(true);
         try {
             const res = await axios.get('/purchase/po/api', {
                 params: {
@@ -89,6 +91,7 @@ export default function Index() {
             });
         } finally {
             setLoading(false);
+            setSummaryLoading(false);
         }
     };
 
@@ -208,18 +211,18 @@ export default function Index() {
 
     const yearLabel = selectedYear ? `${parseInt(selectedYear) + 543}` : 'ทั้งหมด';
 
-    if (loading) {
-        return (
-            <AppLayout breadcrumbs={breadcrumbs}>
-                <div className="flex h-64 items-center justify-center">
-                    <div className="flex flex-col items-center">
-                        <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
-                        <p className="mt-4 font-anuphan text-lg font-medium text-gray-600">กำลังโหลดข้อมูล...</p>
-                    </div>
-                </div>
-            </AppLayout>
-        );
-    }
+    // if (loading) {
+    //     return (
+    //         <AppLayout breadcrumbs={breadcrumbs}>
+    //             <div className="flex h-64 items-center justify-center">
+    //                 <div className="flex flex-col items-center">
+    //                     <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+    //                     <p className="mt-4 font-anuphan text-lg font-medium text-gray-600">กำลังโหลดข้อมูล...</p>
+    //                 </div>
+    //             </div>
+    //         </AppLayout>
+    //     );
+    // }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -254,7 +257,7 @@ export default function Index() {
                                 </div>
                                 <div className="ml-4 flex-1">
                                     <h3 className="text-sm font-medium text-gray-500">ผลรวมปี {yearLabel}</h3>
-                                    <p className="mt-1 text-2xl font-bold text-gray-900">{formatCurrency(summary.year.total)}</p>
+                                    <p className="mt-1 text-2xl font-bold text-gray-900">{summaryLoading ? 'กำลังโหลด...' : formatCurrency(summary.year.total)}</p>
                                     <p className="mt-1 text-xs text-gray-500">{summary.year.count.toLocaleString()} รายการ</p>
                                 </div>
                             </div>
@@ -279,7 +282,7 @@ export default function Index() {
                                     <h3 className="text-sm font-medium text-gray-500">
                                         ผลรวมเดือน {selectedMonth ? monthLabel : `ทั้งหมดปี ${yearLabel}`}
                                     </h3>
-                                    <p className="mt-1 text-2xl font-bold text-gray-900">{formatCurrency(summary.month.total)}</p>
+                                    <p className="mt-1 text-2xl font-bold text-gray-900">{summaryLoading ? 'กำลังโหลด...' :formatCurrency(summary.month.total)}</p>
                                     <p className="mt-1 text-xs text-gray-500">{summary.month.count.toLocaleString()} รายการ</p>
                                 </div>
                             </div>
@@ -302,7 +305,7 @@ export default function Index() {
                                 </div>
                                 <div className="ml-4 flex-1">
                                     <h3 className="text-sm font-medium text-gray-500">ข้อมูลทั้งหมด</h3>
-                                    <p className="mt-1 text-2xl font-bold text-gray-900">{data.length.toLocaleString()}</p>
+                                    <p className="mt-1 text-2xl font-bold text-gray-900">{summaryLoading ? 'กำลังโหลด...' :data.length.toLocaleString()}</p>
                                     <p className="mt-1 text-xs text-gray-500">รายการที่แสดง</p>
                                 </div>
                             </div>
