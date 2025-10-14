@@ -290,7 +290,7 @@ Route::fallback(function () {
 
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 Route::get('purchase/dashboard', [PurchaseDashboardController::class, 'index']);
-Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'apiIndex']);
+Route::get('/purchase/dashboard/api', [PurchaseDashboardController::class, 'apiIndex']);
 });
 
 
