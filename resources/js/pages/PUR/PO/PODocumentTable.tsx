@@ -9,6 +9,7 @@ interface Data {
     DocuDate: string;
     DeptName: string;
     POVendorNo: string;
+    RefDocuNo: string;
     AppvDocuNo: string;
     status: string;
     status_label: string;
@@ -82,11 +83,11 @@ export default function PODocumentTable({
             render: (document) => document.POVendorNo || '-'
         },
         {
-            key: 'DeptName',
+            key: 'RefDocuNo',
             label: 'หน่วยงาน',
             sortable: true,
             align: 'left',
-            render: (document) => document.DeptName || '-'
+            render: (document) => document.RefDocuNo || '-'
         },
         {
             key: 'AppvDocuNo',

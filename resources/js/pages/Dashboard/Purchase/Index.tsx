@@ -7,9 +7,7 @@ import { useEffect, useState } from 'react';
 interface PurchaseData {
     DeptID: number;
     DeptName: string;
-    TotalBase: number;
-    TotalVAT: number;
-    TotalNet: number;
+    SumTotalAmount: number;
 }
 
 export default function Index() {
@@ -22,7 +20,7 @@ export default function Index() {
     const fetchDashboard = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('/purchase/dashboard-json', { params: { year, month } });
+            const res = await axios.get('/purchase/dashboard/api', { params: { year, month } });
             const apiData: PurchaseData[] = res.data.dashboard || [];
             setDashboard(apiData);
         } catch (error) {
@@ -68,7 +66,7 @@ export default function Index() {
     ];
 
     // เรียงข้อมูลจากมากไปน้อยก่อนคำนวณ total
-    const sortedDashboard = [...dashboard].sort((a, b) => b.TotalBase - a.TotalBase);
+    const sortedDashboard = [...dashboard].sort((a, b) => b.TotalNet - a.TotalNet);
     const totalNet = sortedDashboard.reduce((sum, item) => sum + Number(item.TotalNet), 0);
 
     return (
@@ -158,8 +156,6 @@ export default function Index() {
                                     <tr className="border-b border-gray-200 bg-gray-50">
                                         <th className="px-6 py-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase">ลำดับ</th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase">หน่วยงาน</th>
-                                        <th className="px-6 py-4 text-right text-xs font-semibold tracking-wider text-gray-600 uppercase">ยอดก่อน VAT</th>
-                                        <th className="px-6 py-4 text-right text-xs font-semibold tracking-wider text-gray-600 uppercase">VAT</th>
                                         <th className="px-6 py-4 text-right text-xs font-semibold tracking-wider text-gray-600 uppercase">ยอดสุทธิ</th>
                                     </tr>
                                 </thead>
@@ -175,12 +171,6 @@ export default function Index() {
                                                         <div className="mr-3 h-2 w-2 rounded-full bg-blue-500"></div>
                                                         <span className="text-sm font-medium text-gray-900">{d.DeptName}</span>
                                                     </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right whitespace-nowrap">
-                                                    {Number(d.TotalBase).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-                                                </td>
-                                                <td className="px-6 py-4 text-right whitespace-nowrap">
-                                                    {Number(d.TotalVAT).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                                                 </td>
                                                 <td className="px-6 py-4 text-right whitespace-nowrap">
                                                     {Number(d.TotalNet).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
@@ -201,16 +191,6 @@ export default function Index() {
                                         <tr>
                                             <td className="px-6 py-4 font-semibold text-gray-900" colSpan={2}>
                                                 รวมทั้งหมด
-                                            </td>
-                                            <td className="px-6 py-4 text-right font-semibold text-gray-900">
-                                                {sortedDashboard
-                                                    .reduce((s, i) => s + Number(i.TotalBase), 0)
-                                                    .toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-                                            </td>
-                                            <td className="px-6 py-4 text-right font-semibold text-gray-900">
-                                                {sortedDashboard
-                                                    .reduce((s, i) => s + Number(i.TotalVAT), 0)
-                                                    .toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                                             </td>
                                             <td className="px-6 py-4 text-right font-semibold text-gray-900">
                                                 {sortedDashboard
