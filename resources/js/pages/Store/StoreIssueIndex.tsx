@@ -6,9 +6,7 @@ import FormEditOrder from './FormEditOrder'; // ต้องสร้าง comp
 import Swal from 'sweetalert2';
 import { Eye, Search, Pencil, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Calendar, User, Building, FileText, Monitor, Globe, Filter, X, Download, BarChart3, RefreshCw, Plus } from "lucide-react";
 import ModalForm from '@/components/ModalForm';
-import { can } from '@/lib/can';
-
-
+import { can } from '@/lib/can'
 interface OrderItem {
     id: number;
     product_name: string;
@@ -20,7 +18,6 @@ interface OrderItem {
     unit?: string;
     issueDate?: string;
 }
-
 interface Order {
     id: number;
     document_number: string;
@@ -31,7 +28,6 @@ interface Order {
     requester?: string;
     items?: OrderItem[];
 }
-
 interface Props {
     orders: Order[];
     pagination: {
@@ -48,7 +44,6 @@ interface Props {
         prev_page_url: string | null;
     };
 }
-
 export default function StoreOrderIndex({ orders, pagination }: Props) {
     const { url } = usePage() as any;
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -56,17 +51,15 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
     const [detailOrder, setDetailOrder] = useState<Order | null>(null);
     const [editOrder, setEditOrder] = useState<Order | null>(null); // เพิ่ม state สำหรับข้อมูลที่ต้องการแก้ไข
     const [isFilterOpen, setIsFilterOpen] = useState(false);
-
-    // ดึงค่าจาก URL parameters แทนการใช้ filters prop
     const urlParams = new URLSearchParams(window.location.search);
     const [dailyDate, setDailyDate] = useState(urlParams.get('dailyDate') || '');
     const [searchTerm, setSearchTerm] = useState(urlParams.get('search') || '');
     const [statusFilter, setStatusFilter] = useState(urlParams.get('status') || 'ทั้งหมด');
+    const { userRole } = usePage<{ userRole: string }>().props;
     const [activeTab, setActiveTab] = useState<'WIN' | 'WEB'>(
         (urlParams.get('source') as 'WIN' | 'WEB') || 'WEB'
     );
     const [dailyTotal, setDailyTotal] = useState(0);
-
     // คำนวณรายการวันนี้จาก orders ปัจจุบัน
     useEffect(() => {
         const todayCount = orders.filter(order =>
@@ -74,24 +67,20 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
         ).length;
         setDailyTotal(todayCount);
     }, [orders]);
-
     const formatNumber = (num: number | undefined | null): string => {
         if (num === undefined || num === null) return '0';
         return num.toLocaleString('th-TH');
     };
-
     // ฟังก์ชันเปิด modal แก้ไข
     const handleEdit = (order: Order) => {
         setEditOrder(order);
         setIsEditOpen(true);
     };
-
     // ฟังก์ชันปิด modal แก้ไข
     const handleEditClose = () => {
         setIsEditOpen(false);
         setEditOrder(null);
     };
-
     // ฟังก์ชันเมื่อบันทึกการแก้ไขสำเร็จ
     const handleEditSuccess = () => {
         handleEditClose();
@@ -105,7 +94,6 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
             customClass: { popup: 'rounded-2xl font-anuphan' }
         });
     };
-
     const handleTabChange = (tab: 'WIN' | 'WEB') => {
         setActiveTab(tab);
         router.get(route('StoreIssue.index'), {
@@ -119,7 +107,6 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
             preserveScroll: true,
         });
     };
-
     const handlePagination = (url?: string) => {
         if (!url) return;
 
@@ -150,7 +137,6 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
             preserveScroll: true
         });
     };
-
     const handleSearch = () => {
         router.get(route('StoreIssue.index'), {
             source: activeTab,
@@ -163,13 +149,11 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
             preserveScroll: true,
         });
     };
-
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             handleSearch();
         }
     };
-
     const handleClearFilters = () => {
         setSearchTerm('');
         setStatusFilter('ทั้งหมด');
@@ -182,7 +166,6 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
             preserveScroll: true,
         });
     };
-
     const handleStatusChange = async (orderId: number, newStatus: string) => {
         const result = await Swal.fire({
             title: 'ยืนยันการเปลี่ยนสถานะ',
@@ -236,7 +219,6 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
             });
         }
     };
-
     const getStatusColor = (status: string) => {
         switch (status.toLowerCase()) {
             case 'pending': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -245,7 +227,6 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
     };
-
     const getStatusText = (status: string) => {
         switch (status.toLowerCase()) {
             case 'pending': return 'รอดำเนินการ';
@@ -255,19 +236,17 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
             default: return status;
         }
     };
-
     // นับจำนวน orders ตาม source สำหรับสถิติ
     const winOrdersCount = orders.filter(o => o.source === 'WIN').length;
     const webOrdersCount = orders.filter(o => o.source === 'WEB').length;
-
     return (
         <AppLayout breadcrumbs={[
             { title: "หน้าหลัก", href: route('dashboard') },
             { title: "ประวัติการเบิก", href: route('StoreIssue.index') },
         ]}>
             <Head title="ประวัติการเบิก" />
-
             <div className="px-4 py-6 sm:px-6 lg:px-8 font-anuphan">
+
                 {/* Header */}
                 <div className="mb-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -574,7 +553,6 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
                                                         })}
                                                     </div>
                                                 </td>
-
                                                 {/* ผู้เบิก */}
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center text-sm text-gray-700">
@@ -584,7 +562,6 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
                                                         {order.requester || 'ไม่ระบุ'}
                                                     </div>
                                                 </td>
-
                                                 {/* แผนก */}
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center text-sm text-gray-700">
@@ -594,7 +571,6 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
                                                         {order.department || 'ไม่ระบุ'}
                                                     </div>
                                                 </td>
-
                                                 {/* รายการสินค้า */}
                                                 <td className="px-6 py-4">
                                                     <div className="text-sm text-gray-700 flex flex-col">
@@ -616,26 +592,29 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
                                                         ))}
                                                     </div>
                                                 </td>
-
                                                 {/* สถานะ */}
-                                                <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                    <div className="flex justify-center">
-                                                        <select
-                                                            value={order.status}
-                                                            onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                                                            className={`text-xs px-3 py-2 rounded-xl font-medium border ${getStatusColor(order.status)} shadow-sm cursor-pointer hover:shadow-md transition-shadow`}
-                                                            disabled={
-                                                                !can('PUR.edit') ||
-                                                                order.status === 'approved' ||
-                                                                order.status === 'rejected'
-                                                            }
-                                                        >
-                                                            <option value="pending">{getStatusText('pending')}</option>
-                                                            <option value="approved">{getStatusText('approved')}</option>
-                                                            <option value="rejected">{getStatusText('rejected')}</option>
-                                                        </select>
-                                                    </div>
+                                                <td className="px-4 py-2 text-center">
+                                                    <select
+                                                        value={order.status}
+                                                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                                                        disabled={!can('PUR.edit')}
+                                                        title={!can('PUR.edit') ? "คุณไม่มีสิทธิ์แก้ไข" : ""}
+                                                        className={`px-3 py-2 rounded-xl font-medium shadow-sm cursor-pointer hover:shadow-md transition-shadow
+            ${order.status.toLowerCase() === 'pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ''}
+            ${order.status.toLowerCase() === 'approved' ? 'bg-green-100 text-green-800 border-green-300' : ''}
+            ${order.status.toLowerCase() === 'rejected' ? 'bg-red-100 text-red-800 border-red-300' : ''}
+            ${!can('PUR.edit') ? 'opacity-50 cursor-not-allowed' : ''}
+        `}
+                                                    >
+                                                        <option value="pending">รออนุมัติ</option>
+                                                        <option value="approved">อนุมัติ</option>
+                                                        <option value="rejected">ปฏิเสธ</option>
+                                                    </select>
                                                 </td>
+
+
+
+
 
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">
                                                     <div className="flex justify-center gap-2">
@@ -790,6 +769,7 @@ export default function StoreOrderIndex({ orders, pagination }: Props) {
                         />
                     </ModalForm>
                 )}
+
             </div>
         </AppLayout>
     );
