@@ -228,7 +228,7 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ onClose, onSuccess }) => {
 
     return (
         <div className="bg-white rounded-2xl shadow-xl p-6 max-w-4xl mx-auto modal-container  font-anuphan">
-            
+
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* ค้นหาและเลือกเอกสาร */}
@@ -418,6 +418,7 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ onClose, onSuccess }) => {
                                                     min={0}
                                                     max={item.remainingQty}
                                                     value={item.returnQty}
+                                                    step="0.01"
                                                     onChange={e => {
                                                         const value = Math.max(0, Math.min(item.remainingQty, Number(e.target.value) || 0));
                                                         setDocumentItems(prev => {

@@ -26,8 +26,8 @@ export default function StoreMovementPage({ title, movements }) {
     const filteredMovements = useMemo(() => {
         return movements.filter(m => {
             const matchesSearch =
-                (m.goodName || '').toLowerCase().includes(search.toLowerCase()) ||
-                (m.goodCode || '').toLowerCase().includes(search.toLowerCase());
+                (m.goodName || '').toLowerCase().includes(search.toLowerCase().trim()) ||
+                (m.goodCodeStore?.toString().toLowerCase() || '').includes(search.toLowerCase().trim());
 
             let matchesType = false;
             if (filterType === "ทั้งหมด") matchesType = true;
@@ -554,6 +554,7 @@ export default function StoreMovementPage({ title, movements }) {
                         </div>
                     </div>
                 )}
+                
             </div>
         </AppLayout>
     );
