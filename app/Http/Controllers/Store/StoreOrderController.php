@@ -21,6 +21,8 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Log;
+
 
 class StoreOrderController extends Controller
 {
@@ -28,8 +30,8 @@ class StoreOrderController extends Controller
     public function index(Request $request)
     {
         $goodCode = $request->query('search');
-
         $storeItems = StoreItem::when($goodCode, fn($q) => $q->where('good_code', $goodCode))->get();
+        // dd($storeItems);
 
         // โหลด unit ทั้งหมด
         $goodUnits = DB::connection('sqlsrv2')
@@ -206,7 +208,7 @@ class StoreOrderController extends Controller
     public function StoreIssueIndex()
     {
         $page = request()->get('page', 1);
-        $perPage = 20;
+        $perPage = 12;
 
         $source = request()->get('source', 'WEB');
         $search = request()->get('search', '');
@@ -302,25 +304,36 @@ class StoreOrderController extends Controller
 
     private function getWebOrders($page, $perPage, $search, $status, $dailyDate)
     {
-        // 1️⃣ โหลด orders + items + good - เรียงตามวันที่ใหม่ก่อน
-        $webOrdersQuery = StoreOrder::with(['items.good'])
+        // 1️⃣ โหลด orders + items - เรียงตามวันที่ใหม่ก่อน
+        $webOrdersQuery = StoreOrder::with(['items'])
             ->orderBy('order_date', 'desc')
             ->orderBy('id', 'desc');
 
+        // 2️⃣ ถ้ามี search
         if (!empty($search)) {
-            $webOrdersQuery->where(function ($query) use ($search) {
-                $query->where('document_number', 'like', '%' . $search . '%')
-                    ->orWhereHas('items.good', function ($q) use ($search) {
-                        $q->where('GoodName1', 'like', '%' . $search . '%')
-                            ->orWhere('GoodCode', 'like', '%' . $search . '%');
+            // 🔹 ดึง GoodID ที่ตรงกับ search จาก EMGood
+            $goodIds = DB::connection('sqlsrv2')
+                ->table('EMGood')
+                ->where('GoodName1', 'like', "%{$search}%")
+                ->orWhere('GoodCode', 'like', "%{$search}%")
+                ->pluck('GoodID')
+                ->toArray();
+
+            $webOrdersQuery->where(function ($query) use ($search, $goodIds) {
+                $query->where('document_number', 'like', "%{$search}%")
+                    ->orWhereHas('items', function ($q) use ($goodIds) {
+                        // filter order items ที่ product_id อยู่ใน goodIds
+                        $q->whereIn('product_id', $goodIds);
                     });
             });
         }
 
+        // 3️⃣ filter status
         if (!empty($status)) {
             $webOrdersQuery->where('status', $status);
         }
 
+        // 4️⃣ filter daily date
         if (!empty($dailyDate)) {
             $webOrdersQuery->whereDate('order_date', $dailyDate);
         }
@@ -332,14 +345,14 @@ class StoreOrderController extends Controller
             ->take($perPage)
             ->get();
 
-        // 2️⃣ โหลด EMGoodUnit ทั้งหมด
+        // 5️⃣ โหลด EMGoodUnit
         $goodUnits = DB::connection('sqlsrv2')
             ->table('EMGoodUnit')
             ->select('GoodUnitID', 'GoodUnitName')
             ->get()
             ->keyBy(fn($u) => (string)$u->GoodUnitID);
 
-        // 3️⃣ โหลด EMGood ของสินค้าทั้งหมดใน orders
+        // 6️⃣ โหลด EMGood ของสินค้าทั้งหมดใน orders
         $goodIds = $webOrders->flatMap(fn($o) => $o->items->pluck('product_id'))->unique()->toArray();
         $goods = DB::connection('sqlsrv2')
             ->table('EMGood')
@@ -348,131 +361,90 @@ class StoreOrderController extends Controller
             ->get()
             ->keyBy('GoodID');
 
-        // 4️⃣ โหลด employee list ล่วงหน้า
-        $employees = DB::connection('sqlsrv2')->table('dbo.Webapp_Emp')->pluck('EmpName', 'EmpID');
+        // 7️⃣ โหลด employee list
+        $employees = DB::connection('sqlsrv2')->table('Webapp_Emp')->pluck('EmpName', 'EmpID');
 
-        // 5️⃣ map orders
+        // 8️⃣ map orders + items + movements
         $allOrders = $webOrders->map(function ($order) use ($goodUnits, $goods, $employees) {
-
-            // ✅ 1. โหลด store_items mapping ก่อน
             $productIds = $order->items->pluck('product_id')->toArray();
-            $storeItemsMap = DB::table('store_items')
-                ->whereIn('good_id', $productIds)
-                ->pluck('id', 'good_id'); // key = good_id, value = store_item_id
+            $storeItemsMap = DB::table('store_items')->whereIn('good_id', $productIds)->pluck('id', 'good_id');
 
-            \Log::info("Store items map for order {$order->id}:", $storeItemsMap->toArray());
-
-            // โหลด movements ของ order
-            $orderMovements = StoreMovement::with('user')
-                ->where('store_order_id', $order->id)
-                ->get()
-                ->groupBy('store_item_id');
-
-            \Log::info("Movements for order {$order->id}:", $orderMovements->toArray());
+            $orderMovements = StoreMovement::with('user')->where('store_order_id', $order->id)->get()->groupBy('store_item_id');
 
             $items = $order->items->map(function ($item) use ($orderMovements, $storeItemsMap, $goodUnits, $goods, $employees) {
-
-                // ✅ 2. หา store_item_id ที่ตรงกับ product_id
                 $storeItemId = $storeItemsMap[$item->product_id] ?? null;
+                $itemMovements = $storeItemId ? $orderMovements->get($storeItemId, collect()) : collect();
 
-                \Log::info("Item {$item->id}: product_id={$item->product_id}, store_item_id={$storeItemId}");
-
-                // ✅ 3. ใช้ store_item_id ไปหา movements
-                $itemMovements = $storeItemId
-                    ? $orderMovements->get($storeItemId, collect())
-                    : collect();
-
-                \Log::info("Found {$itemMovements->count()} movements for item {$item->id}");
-
-                // history ของ item
                 $history = $itemMovements->map(function ($m) use ($employees, $item) {
                     $empName = $m->user?->employee_id ? ($employees[$m->user->employee_id] ?? $m->user->name) : ($m->user?->name ?? 'ไม่ระบุ');
                     return [
                         'movement_type' => $m->movement_type == 'return' ? 'คืน' : 'เบิก',
-                        'quantity'      => $m->quantity,
-                        'docu_no'       => $m->store_order_id ? 'SO-' . $m->store_order_id : $m->id,
-                        'docu_date'     => $m->created_at?->format('Y-m-d H:i:s') ?? '-',
-                        'user_id'       => $empName,
-                        'product_id'    => $item->product_id, // ✅ ส่งเข้ามาใน use
-                        'status'        => $m->status,
-                        'type'          => $m->type,
+                        'quantity' => $m->quantity,
+                        'docu_no' => $m->store_order_id ? 'SO-' . $m->store_order_id : $m->id,
+                        'docu_date' => $m->created_at ?? '-',
+                        'user_id' => $empName,
+                        'product_id' => $item->product_id,
+                        'status' => $m->status,
+                        'type' => $m->type,
                     ];
                 })->sortBy('docu_date')->values();
 
+                // pending
+                $totalIssuedSubtract = $itemMovements->where('movement_type', 'issue')->where('type', 'subtract')->sum('quantity');
+                $totalIssuedAdd = $itemMovements->where('movement_type', 'issue')->where('type', 'add')->sum('quantity');
+                $netIssuedQuantity = max($totalIssuedSubtract - $totalIssuedAdd, 0);
+                $pendingQty = max($item->quantity - $netIssuedQuantity, 0);
 
-                // คำนวณ pending
-                $stockQty = $item->quantity;
-
-                $reservedQty = $itemMovements
-                    ->where('movement_type', 'issue')
-                    ->where('type', 'subtract')
-                    ->where('status', 'pending')
-                    ->sum('quantity');
-
-                $issueAddApproved = $itemMovements
-                    ->where('movement_type', 'issue')
-                    ->where('type', 'add')
-                    ->where('status', 'approved')
-                    ->sum('quantity');
-
-                $reservedQty = max($reservedQty - $issueAddApproved, 0);
-
-                $pendingQty = max($stockQty - $reservedQty, 0);
-
-                // lookup unit
                 $itemGood = $goods[$item->product_id] ?? null;
-                $unitName = '-';
-                if ($itemGood) {
-                    $unitId = (string)$itemGood->MainGoodUnitID;
-                    $unitName = $goodUnits->get($unitId)?->GoodUnitName ?? '-';
-                }
+                $unitName = $itemGood ? ($goodUnits[(string)$itemGood->MainGoodUnitID]->GoodUnitName ?? '-') : '-';
 
                 return [
-                    'id'           => $item->id,
-                    'product_id'   => $item->product_id,
-                    'store_item_id' => $storeItemId, // ✅ เพิ่มสำหรับ debug
+                    'id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'store_item_id' => $storeItemId,
                     'product_name' => $item->good?->GoodName1 ?? $itemGood?->GoodName1 ?? '-',
                     'product_code' => $item->good?->GoodCode ?? $itemGood?->GoodCode ?? $item->product_id,
-                    'quantity'     => $item->quantity,
-                    'unit'         => $unitName,
-                    'history'      => $history,
-                    'pendingQty'   => $pendingQty,
-                    'totalIssued'  => $stockQty,
-                    'movements_count' => $itemMovements->count(), // ✅ เพิ่มจำนวน movements
+                    'quantity' => $item->quantity,
+                    'unit' => $unitName,
+                    'history' => $history,
+                    'pendingQty' => $pendingQty,
+                    'totalIssued' => $netIssuedQuantity,
+                    'movements_count' => $itemMovements->count(),
                 ];
             });
 
             return [
-                'id'              => $order->id,
+                'id' => $order->id,
                 'document_number' => $order->document_number,
-                'order_date'      => $order->order_date
-                    ? \Carbon\Carbon::parse($order->order_date)->format('Y-m-d H:i:s')
-                    : now()->format('Y-m-d H:i:s'),
-                'status'          => $order->status ?? 'รออนุมัติ',
-                'department'      => $order->department ?? '-',
-                'requester'       => $order->requester ?? '-',
-                'source'          => 'WEB',
-                'items'           => $items,
-                'movements_count' => $orderMovements->flatten()->count(), // ✅ เพิ่มจำนวน movements ทั้งหมด
+                'order_date' => $order->order_date ? date('Y-m-d H:i:s', strtotime($order->order_date)) : date('Y-m-d H:i:s'),
+                'status' => $order->status ?? 'รออนุมัติ',
+                'department' => $order->department ?? '-',
+                'requester' => $order->requester ?? '-',
+                'source' => 'WEB',
+                'items' => $items,
+                'movements_count' => $orderMovements->flatten()->count(),
+
             ];
         });
-        // dd($allOrders);
+
         $paginatedOrders = new \Illuminate\Pagination\LengthAwarePaginator(
             $allOrders,
             $total,
             $perPage,
             $page,
             [
-                'path'  => request()->url(),
+                'path' => request()->url(),
                 'query' => array_merge(request()->query(), ['source' => 'WEB']),
             ]
         );
 
         return \Inertia\Inertia::render('Store/StoreIssueIndex', [
-            'orders'     => $paginatedOrders->items(),
+            'orders' => $paginatedOrders->items(),
             'pagination' => $paginatedOrders,
+            'userRole' => auth()->user()->role ?? '',
         ]);
     }
+
 
     public function destroy($id)
     {
@@ -637,7 +609,7 @@ class StoreOrderController extends Controller
             'message' => '✅ ทำการเบิกและยืนยันสำเร็จ',
         ]);
     }
-    // ST-SM-AS011
+
     public function storeOrder()
     {
         // 1️⃣ ดึง store_items ทั้งหมด
@@ -834,8 +806,6 @@ class StoreOrderController extends Controller
         return redirect()->back()->with('success', 'อัปเดตสถานะเรียบร้อยแล้ว');
     }
 
-
-
     public function showQRCode($order)
     {
         // ดึง store_item จาก MySQL
@@ -939,6 +909,7 @@ class StoreOrderController extends Controller
 
         return redirect()->back()->with('success', '✅ คืนสินค้าสำเร็จ');
     }
+
     public function documents()
     {
         $documents = StoreOrder::with(['items:id,store_order_id,good_id,good_name,quantity,unit'])
@@ -965,7 +936,7 @@ class StoreOrderController extends Controller
 
         return response()->json($data);
     }
-    // SO-20250924062134
+
     // ถ้าต้องการ method สำหรับดึงแค่รายการสินค้าของ document เดี่ยว
     public function items($documentNumber)
     {
@@ -1027,73 +998,72 @@ class StoreOrderController extends Controller
         return response()->json($order);
     }
 
-    // GoodController.php
     public function searchNew(Request $request)
-{
-    $query = $request->input('query', '');
+    {
+        $query = $request->input('query', '');
 
-    // Subquery: ราคาล่าสุดจาก ICStockDetail (1 แถวต่อ GoodID)
-    $latestPriceSub = DB::connection('sqlsrv2')
-        ->table('ICStockDetail as s1')
-        ->select('s1.GoodID', 's1.GoodUnitID2', 's1.GoodPrice2', 's1.DocuDate')
-        ->whereRaw('s1.DocuDate = (
+        // Subquery: ราคาล่าสุดจาก ICStockDetail (1 แถวต่อ GoodID)
+        $latestPriceSub = DB::connection('sqlsrv2')
+            ->table('ICStockDetail as s1')
+            ->select('s1.GoodID', 's1.GoodUnitID2', 's1.GoodPrice2', 's1.DocuDate')
+            ->whereRaw('s1.DocuDate = (
             SELECT MAX(s2.DocuDate)
             FROM ICStockDetail s2
             WHERE s2.GoodID = s1.GoodID
         )');
 
-    // ดึงข้อมูลสินค้าจากฐาน sqlsrv2
-    $goods = DB::connection('sqlsrv2')
-        ->table('EMGood as g')
-        ->leftJoinSub($latestPriceSub, 's', 'g.GoodID', '=', 's.GoodID')
-        ->where(function ($q) {
-            $q->whereNull('g.Inactive')->orWhere('g.Inactive', '!=', '1');
-        })
-        ->when($query, function ($q) use ($query) {
-            $q->where(function ($w) use ($query) {
-                $w->where('g.GoodCode', 'like', "%{$query}%")
-                    ->orWhere('g.GoodName1', 'like', "%{$query}%");
-            });
-        })
-        ->select([
-            'g.GoodCode',
-            'g.GoodID',
-            'g.GoodName1',
-            's.GoodUnitID2',
-            's.GoodPrice2',
-            's.DocuDate',
-        ])
-        ->orderBy('g.GoodCode')
-        ->limit(50)
-        ->get();
+        // ดึงข้อมูลสินค้าจากฐาน sqlsrv2
+        $goods = DB::connection('sqlsrv2')
+            ->table('EMGood as g')
+            ->leftJoinSub($latestPriceSub, 's', 'g.GoodID', '=', 's.GoodID')
+            ->where(function ($q) {
+                $q->whereNull('g.Inactive')->orWhere('g.Inactive', '!=', '1');
+            })
+            ->when($query, function ($q) use ($query) {
+                $q->where(function ($w) use ($query) {
+                    $w->where('g.GoodCode', 'like', "%{$query}%")
+                        ->orWhere('g.GoodName1', 'like', "%{$query}%");
+                });
+            })
+            ->select([
+                'g.GoodCode',
+                'g.GoodID',
+                'g.GoodName1',
+                's.GoodUnitID2',
+                's.GoodPrice2',
+                's.DocuDate',
+            ])
+            ->orderBy('g.GoodCode')
+            ->limit(50)
+            ->get();
 
-    // ดึงข้อมูล stock จากฐาน sqlsrv
-    $storeItems = DB::connection('sqlsrv')
-        ->table('store_items')
-        ->select('good_id', 'good_code',
-            DB::raw('SUM(stock_qty) as stock_qty'),
-            DB::raw('SUM(safety_stock) as safety_stock')
-        )
-        ->groupBy('good_id', 'good_code')
-        ->get()
-        ->keyBy(fn($i) => "{$i->good_id}-{$i->good_code}");
+        // ดึงข้อมูล stock จากฐาน sqlsrv
+        $storeItems = DB::connection('sqlsrv')
+            ->table('store_items')
+            ->select(
+                'good_id',
+                'good_code',
+                DB::raw('SUM(stock_qty) as stock_qty'),
+                DB::raw('SUM(safety_stock) as safety_stock')
+            )
+            ->groupBy('good_id', 'good_code')
+            ->get()
+            ->keyBy(fn($i) => "{$i->good_id}-{$i->good_code}");
 
-    // รวมข้อมูลทั้งสองฝั่ง
-    foreach ($goods as $good) {
-        $key = "{$good->GoodID}-{$good->GoodCode}";
-        $item = $storeItems[$key] ?? null;
+        // รวมข้อมูลทั้งสองฝั่ง
+        foreach ($goods as $good) {
+            $key = "{$good->GoodID}-{$good->GoodCode}";
+            $item = $storeItems[$key] ?? null;
 
-        $good->stock_qty = $item->stock_qty ?? 0;
-        $good->safety_stock = $item->safety_stock ?? 0;
-        $good->status = ($good->stock_qty > 0 || $good->safety_stock > 0)
-            ? '✅ มีอยู่แล้วใน store_items'
-            : '➕ ยังไม่มีใน store_items';
+            $good->stock_qty = $item->stock_qty ?? 0;
+            $good->safety_stock = $item->safety_stock ?? 0;
+            $good->status = ($good->stock_qty > 0 || $good->safety_stock > 0)
+                ? '✅ มีอยู่แล้วใน store_items'
+                : '➕ ยังไม่มีใน store_items';
+        }
+
+        return response()->json($goods);
     }
-
-    return response()->json($goods);
-}
-
-
 
     public function importNew(Request $request)
     {
@@ -1151,16 +1121,103 @@ class StoreOrderController extends Controller
             $goodCodes = explode(',', $goodCodes);
         }
 
-        $items = StoreItem::whereIn('good_code', $goodCodes)->get();
+        $storeItems = StoreItem::whereIn('good_code', $goodCodes)->get();
 
-        $response = $items->map(function ($item) {
+        // โหลด unit ทั้งหมด
+        $goodUnits = DB::connection('sqlsrv2')
+            ->table('EMGoodUnit')
+            ->select('GoodUnitID', 'GoodUnitName')
+            ->get()
+            ->keyBy(fn($u) => (string)$u->GoodUnitID);
+
+        // โหลดชื่อและหน่วยสินค้าจาก EMGood
+        $goodInfos = DB::connection('sqlsrv2')
+            ->table('EMGood as g')
+            ->leftJoin('EMGoodUnit as u', 'g.MainGoodUnitID', '=', 'u.GoodUnitID')
+            ->select('g.GoodCode', 'g.GoodName1', 'g.MainGoodUnitID', 'u.GoodUnitName')
+            ->get()
+            ->map(fn($item) => (object)[
+                'GoodName1' => $item->GoodName1 ?? null,
+                'MainGoodUnitID' => $item->MainGoodUnitID ?? null,
+                'GoodUnitName' => $item->GoodUnitName ?? null,
+                'GoodCode' => strtoupper(trim($item->GoodCode))
+            ])
+            ->keyBy(fn($g) => $g->GoodCode);
+
+        // โหลด movement ของสินค้าทั้งหมด
+        $movementsGrouped = StoreMovement::with('storeOrder')
+            ->whereIn('store_item_id', $storeItems->pluck('id'))
+            ->get()
+            ->groupBy('store_item_id');
+
+        $response = $storeItems->map(function ($item) use ($goodInfos, $movementsGrouped, $goodUnits) {
+            $info = $goodInfos->get(strtoupper(trim($item->good_code)));
+
+            $goodName = $info?->GoodName1 ?? $item->GoodName ?? 'ไม่ระบุ';
+
+            $unitName = $info?->GoodUnitName
+                ?? ($info?->MainGoodUnitID && isset($goodUnits[(string)$info->MainGoodUnitID])
+                    ? $goodUnits[(string)$info->MainGoodUnitID]->GoodUnitName
+                    : 'ชิ้น');
+
+            $movements = $movementsGrouped->get($item->id, collect());
+
+            // เริ่มต้นด้วย stock จริงจาก database
+            $stockQty = floatval($item->stock_qty);
+            $reservedQty = 0;
+
+            // 🔹 คำนวณ stock / reserved ตาม approved/pending - ใช้ logic เดียวกับ index method
+            foreach ($movements as $m) {
+                $quantity = floatval($m->quantity);
+
+                if ($m->movement_type === 'issue') {
+                    if ($m->type === 'subtract') {
+                        if ($m->status === 'pending') {
+                            // 📌 pending issue subtract → เพิ่ม reserved (จองสินค้า)
+                            $reservedQty += $quantity;
+                        } elseif ($m->status === 'approved') {
+                            // 📌 approved issue subtract → ลด stock (เบิกสินค้าจริง)
+                            $stockQty -= $quantity;
+                        }
+                        // rejected issue subtract → ไม่ต้องทำอะไร
+                    } elseif ($m->type === 'add') {
+                        if ($m->status === 'pending') {
+                            // 📌 pending issue add → ลด reserved (ยกเลิกการจอง)
+                            $reservedQty = max(0, $reservedQty - $quantity);
+                        } elseif ($m->status === 'approved') {
+                            // 📌 approved issue add → เพิ่ม stock (คืนสินค้า)
+                            $stockQty += $quantity;
+                        }
+                        // rejected issue add → ไม่ต้องทำอะไร
+                    }
+                } elseif ($m->movement_type === 'return' && $m->status === 'approved') {
+                    // 📌 return approved → เพิ่ม stock (คืนสินค้า)
+                    $stockQty += $quantity;
+                } elseif ($m->movement_type === 'adjustment' && $m->status === 'approved') {
+                    // 📌 adjustment → เพิ่ม/ลด stock ตาม type
+                    if ($m->type === 'add') {
+                        $stockQty += $quantity;
+                    } else {
+                        $stockQty -= $quantity;
+                    }
+                } elseif ($m->movement_type === 'receipt' && $m->status === 'approved') {
+                    // 📌 receipt → เพิ่ม stock (รับสินค้าเข้า)
+                    if ($m->type === 'add') {
+                        $stockQty += $quantity;
+                    }
+                }
+            }
+
+            $reservedQty = max($reservedQty, 0);
+            $availableQty = max($stockQty - $reservedQty, 0);
+
             return [
                 'GoodCode' => $item->good_code,
-                'stock_qty' => $item->stock_qty ?? 0,
-                'reservedQty' => $item->reserved_qty ?? 0,
-                'availableQty' => max(($item->stock_qty ?? 0) - ($item->reserved_qty ?? 0), 0),
-                'GoodStockUnitName' => $item->GoodStockUnitName ?? 'ชิ้น',
-                'GoodName' => $item->GoodName ?? '-',
+                'stock_qty' => $stockQty,
+                'reservedQty' => $reservedQty,
+                'availableQty' => $availableQty,
+                'GoodStockUnitName' => $unitName,
+                'GoodName' => $goodName,
             ];
         });
 
@@ -1171,110 +1228,207 @@ class StoreOrderController extends Controller
     {
         $items = $request->input('items', []);
 
-        DB::transaction(function () use ($items, $orderId, $request) {
+        // ✅ ดึงรายการเดิมทั้งหมดจาก database
+        $existingItems = DB::table('store_order_items')
+            ->where('store_order_id', $orderId)
+            ->pluck('id')
+            ->toArray();
 
+        DB::transaction(function () use ($items, $orderId, $request, $existingItems) {
+            // ✅ สร้าง array ของ item IDs ที่ส่งมาจาก frontend
+            $submittedItemIds = [];
             foreach ($items as $item) {
+                if ($item['id'] != 0) {
+                    $submittedItemIds[] = $item['id'];
+                }
+            }
 
-                // 🔹 หา quantity เก่า
-                $oldQuantity = DB::table('store_order_items')
-                    ->where('id', $item['id'])
-                    ->value('quantity');
+            // ✅ หา items ที่ถูกลบออกจากฟอร์ม (มีใน database แต่ไม่มีใน request)
+            $deletedItemIds = array_diff($existingItems, $submittedItemIds);
 
-                $quantityChange = $item['quantity'] - $oldQuantity;
-
-                // 🔹 อัปเดต order_item
-                DB::table('store_order_items')
-                    ->where('id', $item['id'])
-                    ->update([
-                        'quantity'   => $item['quantity'],
-                        'updated_at' => now(),
-                    ]);
-
-                // 🔹 ถ้ามีการเปลี่ยนแปลงจำนวน
-                if ($quantityChange !== 0) {
-
-                    // หา store_item_id
-                    $storeItem = DB::table('store_items')
-                        ->where('good_code', $item['product_code'])
-                        ->select('id', 'stock_qty')
+            // ✅ ลบรายการที่ถูกลบออกจากฟอร์ม
+            if (!empty($deletedItemIds)) {
+                foreach ($deletedItemIds as $deletedItemId) {
+                    // 🔹 ดึงข้อมูลรายการที่จะลบ
+                    $deletedItem = DB::table('store_order_items')
+                        ->where('id', $deletedItemId)
                         ->first();
 
-                    if (!$storeItem) continue;
+                    if ($deletedItem) {
+                        // 🔹 หา store_item_id จาก product_id
+                        $storeItem = DB::table('store_items')
+                            ->where('good_id', $deletedItem->product_id)
+                            ->select('id', 'good_id', 'good_code')
+                            ->first();
 
-                    $storeItemId = $storeItem->id;
+                        if ($storeItem) {
+                            // 🔹 สร้าง movement เพื่อยกเลิกการจอง (ถ้ามี pending movements)
+                            $pendingMovements = DB::table('store_movements')
+                                ->where('store_order_id', $orderId)
+                                ->where('store_item_id', $storeItem->id)
+                                ->where('status', 'pending')
+                                ->get();
 
-                    // 🔹 นับจำนวน movement เฉพาะ pending (ไม่รวม rejected)
-                    $totalPendingSubtract = DB::table('store_movements')
-                        ->where('store_order_id', $orderId)
-                        ->where('store_item_id', $storeItemId)
-                        ->where('movement_type', 'issue')
-                        ->where('type', 'subtract')
-                        ->where('status', 'pending')  // ✅ เฉพาะ pending
-                        ->sum('quantity');
+                            foreach ($pendingMovements as $movement) {
+                                if ($movement->type === 'subtract') {
+                                    // 🔹 สร้าง movement add เพื่อยกเลิกการจอง
+                                    DB::table('store_movements')->insert([
+                                        'store_item_id'   => $storeItem->id,
+                                        'movement_type'   => 'issue',
+                                        'type'            => 'add',
+                                        'category'        => 'stock',
+                                        'quantity'        => $movement->quantity,
+                                        'note'            => "ยกเลิกการจองเนื่องจากลบรายการออกจากคำสั่งซื้อ #{$orderId}",
+                                        'user_id'         => auth()->id(),
+                                        'status'          => 'pending',
+                                        'store_order_id'  => $orderId,
+                                        'created_at'      => now(),
+                                        'updated_at'      => now(),
+                                    ]);
+                                }
+                            }
 
-                    $totalPendingAdd = DB::table('store_movements')
-                        ->where('store_order_id', $orderId)
-                        ->where('store_item_id', $storeItemId)
-                        ->where('movement_type', 'issue')
-                        ->where('type', 'add')
-                        ->where('status', 'pending')  // ✅ เฉพาะ pending
-                        ->sum('quantity');
+                            \Log::info('🗑️ Processing deleted item', [
+                                'order_id' => $orderId,
+                                'deleted_item_id' => $deletedItemId,
+                                'product_id' => $deletedItem->product_id,
+                                'store_item_id' => $storeItem->id,
+                                'pending_movements_count' => $pendingMovements->count()
+                            ]);
+                        }
+                    }
 
-                    // ✅ คำนวณจำนวนที่จองอยู่จริง (pending subtract - pending add)
-                    $currentReservedQty = $totalPendingSubtract - $totalPendingAdd;
+                    // 🔹 ลบรายการออกจาก store_order_items
+                    DB::table('store_order_items')
+                        ->where('id', $deletedItemId)
+                        ->delete();
 
-                    $desiredReservedQty = $item['quantity'];
+                    \Log::info('✅ Deleted order item', [
+                        'order_id' => $orderId,
+                        'deleted_item_id' => $deletedItemId
+                    ]);
+                }
+            }
 
-                    $delta = $desiredReservedQty - $currentReservedQty;
+            // ✅ ประมวลผลรายการที่ส่งมา (เพิ่ม/อัปเดต)
+            foreach ($items as $item) {
+                // ✅ หาทั้ง id และ good_id จาก good_code
+                $storeItem = DB::table('store_items')
+                    ->where('good_code', $item['product_code'])
+                    ->select('id', 'good_id', 'good_code', 'stock_qty')
+                    ->first();
 
-                    if ($delta === 0) continue; // ไม่ต้องทำอะไร
+                if (!$storeItem) {
+                    \Log::warning('❌ Store item not found', [
+                        'order_id' => $orderId,
+                        'good_code' => $item['product_code']
+                    ]);
+                    continue;
+                }
 
-                    // 🔹 ปรับ movement เท่านั้น (ไม่ต้องปรับ stock_qty โดยตรง)
-                    if ($delta > 0) {
-                        // จองเพิ่ม → สร้าง movement subtract pending
+                $storeItemId = $storeItem->id;
+                $storeItemGoodId = $storeItem->good_id;
+
+                // ✅ ตรวจสอบว่าเป็นสินค้าใหม่ (id = 0) หรือสินค้าเดิม
+                if ($item['id'] == 0) {
+                    // 🔹 สร้างสินค้าใหม่ใน order - ใช้ good_id
+                    $newItemId = DB::table('store_order_items')->insertGetId([
+                        'store_order_id' => $orderId,
+                        'product_id'     => $storeItemGoodId,
+                        'quantity'       => $item['quantity'],
+                        'created_at'     => now(),
+                        'updated_at'     => now(),
+                    ]);
+
+                    // 🔹 สร้าง movement สำหรับสินค้าใหม่ (ถ้ามีจำนวนเบิก)
+                    if ($item['quantity'] > 0) {
                         DB::table('store_movements')->insert([
                             'store_item_id'   => $storeItemId,
                             'movement_type'   => 'issue',
                             'type'            => 'subtract',
                             'category'        => 'stock',
-                            'quantity'        => $delta,
-                            'note'            => "แก้ไขคำสั่งซื้อ #{$orderId}",
+                            'quantity'        => $item['quantity'],
+                            'note'            => "เพิ่มสินค้าใหม่ในคำสั่งซื้อ #{$orderId}",
                             'user_id'         => auth()->id(),
                             'status'          => 'pending',
                             'store_order_id'  => $orderId,
                             'created_at'      => now(),
                             'updated_at'      => now(),
                         ]);
-                        \Log::info('➕ Created subtract movement for order update', [
-                            'order_id' => $orderId,
-                            'store_item_id' => $storeItemId,
-                            'delta' => $delta,
-                            'current_reserved' => $currentReservedQty,
-                            'desired_reserved' => $desiredReservedQty
+                    }
+                } else {
+                    // 🔹 อัปเดตสินค้าเดิม
+                    $oldQuantity = DB::table('store_order_items')
+                        ->where('id', $item['id'])
+                        ->value('quantity');
+
+                    // 🔹 อัปเดต order_item
+                    DB::table('store_order_items')
+                        ->where('id', $item['id'])
+                        ->update([
+                            'quantity'   => $item['quantity'],
+                            'updated_at' => now(),
                         ]);
-                    } else {
-                        // ยกเลิกการจอง → สร้าง movement add pending
-                        $delta = abs($delta);
-                        DB::table('store_movements')->insert([
-                            'store_item_id'   => $storeItemId,
-                            'movement_type'   => 'issue',
-                            'type'            => 'add',
-                            'category'        => 'stock',
-                            'quantity'        => $delta,
-                            'note'            => "แก้ไขคำสั่งซื้อ #{$orderId}",
-                            'user_id'         => auth()->id(),
-                            'status'          => 'pending',
-                            'store_order_id'  => $orderId,
-                            'created_at'      => now(),
-                            'updated_at'      => now(),
-                        ]);
-                        \Log::info('🔻 Created add movement for order update', [
-                            'order_id' => $orderId,
-                            'store_item_id' => $storeItemId,
-                            'delta' => $delta,
-                            'current_reserved' => $currentReservedQty,
-                            'desired_reserved' => $desiredReservedQty
-                        ]);
+
+                    $quantityChange = $item['quantity'] - $oldQuantity;
+
+                    // 🔹 ถ้ามีการเปลี่ยนแปลงจำนวน
+                    if ($quantityChange !== 0) {
+                        // 🔹 นับจำนวน movement เฉพาะ pending
+                        $totalPendingSubtract = DB::table('store_movements')
+                            ->where('store_order_id', $orderId)
+                            ->where('store_item_id', $storeItemId)
+                            ->where('movement_type', 'issue')
+                            ->where('type', 'subtract')
+                            ->where('status', 'pending')
+                            ->sum('quantity');
+
+                        $totalPendingAdd = DB::table('store_movements')
+                            ->where('store_order_id', $orderId)
+                            ->where('store_item_id', $storeItemId)
+                            ->where('movement_type', 'issue')
+                            ->where('type', 'add')
+                            ->where('status', 'pending')
+                            ->sum('quantity');
+
+                        $currentReservedQty = $totalPendingSubtract - $totalPendingAdd;
+                        $desiredReservedQty = $item['quantity'];
+                        $delta = $desiredReservedQty - $currentReservedQty;
+
+                        if ($delta !== 0) {
+                            if ($delta > 0) {
+                                // จองเพิ่ม
+                                DB::table('store_movements')->insert([
+                                    'store_item_id'   => $storeItemId,
+                                    'movement_type'   => 'issue',
+                                    'type'            => 'subtract',
+                                    'category'        => 'stock',
+                                    'quantity'        => $delta,
+                                    'note'            => "แก้ไขคำสั่งซื้อ #{$orderId}",
+                                    'user_id'         => auth()->id(),
+                                    'status'          => 'pending',
+                                    'store_order_id'  => $orderId,
+                                    'created_at'      => now(),
+                                    'updated_at'      => now(),
+                                ]);
+                            } else {
+                                // ยกเลิกการจอง
+                                $delta = abs($delta);
+                                DB::table('store_movements')->insert([
+                                    'store_item_id'   => $storeItemId,
+                                    'movement_type'   => 'issue',
+                                    'type'            => 'add',
+                                    'category'        => 'stock',
+                                    'quantity'        => $delta,
+                                    'note'            => "แก้ไขคำสั่งซื้อ #{$orderId}",
+                                    'user_id'         => auth()->id(),
+                                    'status'          => 'pending',
+                                    'store_order_id'  => $orderId,
+                                    'created_at'      => now(),
+                                    'updated_at'      => now(),
+                                ]);
+                            }
+                        }
                     }
                 }
             }
@@ -1286,6 +1440,14 @@ class StoreOrderController extends Controller
                     'note'       => $request->input('note', ''),
                     'updated_at' => now(),
                 ]);
+
+            \Log::info('✅ Order update completed', [
+                'order_id' => $orderId,
+                'items_count' => count($items),
+                'deleted_items_count' => count($deletedItemIds),
+                'new_items_count' => count(array_filter($items, fn($item) => $item['id'] == 0)),
+                'existing_items_count' => count(array_filter($items, fn($item) => $item['id'] != 0))
+            ]);
         });
 
         return redirect()->back()->with('swal', [
@@ -1296,4 +1458,109 @@ class StoreOrderController extends Controller
             'showConfirmButton' => false,
         ]);
     }
+
+    public function searchJson(Request $request)
+    {
+        $search = trim($request->query('search', ''));
+        Log::info('Search query received', ['search' => $search]);
+
+        if (empty($search)) {
+            return response()->json(['goods' => []]);
+        }
+
+        $searchUpper = strtoupper($search);
+
+        // 1️⃣ Query EMGood จาก SQL Server โดย search GoodCode และ GoodName1
+        $goodInfos = DB::connection('sqlsrv2')
+            ->table('EMGood as g')
+            ->leftJoin('EMGoodUnit as u', 'g.MainGoodUnitID', '=', 'u.GoodUnitID')
+            ->select('g.GoodCode', 'g.GoodName1', 'g.MainGoodUnitID', 'u.GoodUnitName')
+            ->whereRaw('UPPER(g.GoodCode) LIKE ? OR UPPER(g.GoodName1) LIKE ?', ["%{$searchUpper}%", "%{$searchUpper}%"])
+            ->get()
+            ->map(fn($item) => (object)[
+                'GoodCode' => strtoupper(trim($item->GoodCode)),
+                'GoodName1' => $item->GoodName1 ?? null,
+                'MainGoodUnitID' => $item->MainGoodUnitID ?? null,
+                'GoodUnitName' => $item->GoodUnitName ?? null,
+            ])
+            ->keyBy(fn($g) => $g->GoodCode);
+
+        if ($goodInfos->isEmpty()) {
+            return response()->json(['goods' => []]);
+        }
+
+        // 2️⃣ ดึง store_items ที่ good_code ตรงกับ EMGood
+        $storeItems = StoreItem::whereIn(DB::raw('UPPER(good_code)'), $goodInfos->keys()->map(fn($v) => strtoupper($v))->toArray())
+            ->get();
+
+        if ($storeItems->isEmpty()) {
+            return response()->json(['goods' => []]);
+        }
+
+        // 3️⃣ โหลด unit ทั้งหมด
+        $goodUnits = DB::connection('sqlsrv2')
+            ->table('EMGoodUnit')
+            ->select('GoodUnitID', 'GoodUnitName')
+            ->get()
+            ->keyBy(fn($u) => (string)$u->GoodUnitID);
+
+        // 4️⃣ โหลด movement
+        $movementsGrouped = StoreMovement::with('storeOrder')
+            ->whereIn('store_item_id', $storeItems->pluck('id'))
+            ->get()
+            ->groupBy('store_item_id');
+
+        // 5️⃣ Map ผลลัพธ์
+        $goods = $storeItems->map(function ($item) use ($goodInfos, $movementsGrouped, $goodUnits) {
+            $info = $goodInfos->get(strtoupper(trim($item->good_code)));
+
+            $goodName = $info?->GoodName1 ?? 'ไม่ระบุ';
+            $unitName = $info?->GoodUnitName
+                ?? ($info?->MainGoodUnitID && isset($goodUnits[(string)$info->MainGoodUnitID])
+                    ? $goodUnits[(string)$info->MainGoodUnitID]->GoodUnitName
+                    : 'ชิ้น');
+
+            $movements = $movementsGrouped->get($item->id, collect());
+
+            $stockQty = floatval($item->stock_qty);
+            $reservedQty = 0;
+
+            foreach ($movements as $m) {
+                $quantity = floatval($m->quantity);
+
+                if ($m->movement_type === 'issue') {
+                    if ($m->type === 'subtract') {
+                        if ($m->status === 'pending') $reservedQty += $quantity;
+                        elseif ($m->status === 'approved') $stockQty -= $quantity;
+                    } elseif ($m->type === 'add') {
+                        if ($m->status === 'pending') $reservedQty = max(0, $reservedQty - $quantity);
+                        elseif ($m->status === 'approved') $stockQty += $quantity;
+                    }
+                } elseif ($m->movement_type === 'return' && $m->status === 'approved') {
+                    $stockQty += $quantity;
+                } elseif ($m->movement_type === 'adjustment' && $m->status === 'approved') {
+                    $stockQty += $m->type === 'add' ? $quantity : -$quantity;
+                } elseif ($m->movement_type === 'receipt' && $m->status === 'approved') {
+                    if ($m->type === 'add') $stockQty += $quantity;
+                }
+            }
+
+            $reservedQty = max($reservedQty, 0);
+            $availableQty = max($stockQty - $reservedQty, 0);
+
+            return [
+                'GoodID' => $item->good_id,
+                'GoodCode' => $item->good_code,
+                'GoodName' => $goodName,
+                'GoodStockUnitName' => $unitName,
+                'stock_qty' => $stockQty,
+                'reservedQty' => $reservedQty,
+                'availableQty' => $availableQty,
+                'price' => $item->price,
+            ];
+        });
+
+        return response()->json(['goods' => $goods]);
+    }
+
 }

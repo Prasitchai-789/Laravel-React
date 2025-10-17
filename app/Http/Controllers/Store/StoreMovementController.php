@@ -17,11 +17,12 @@ use Illuminate\Support\Facades\DB;
 
 class StoreMovementController extends Controller
 {
-
-    public function indexPage()
+    public function indexPage(Request $request)
     {
-        // ดึง movements จาก MySQL
-        $movements = \App\Models\StoreMovement::select(
+        $search = mb_strtolower(trim($request->input('search', '')));
+
+        // Query หลัก
+        $query = \App\Models\StoreMovement::select(
             'store_movements.id',
             'store_movements.quantity',
             'store_movements.type',
@@ -38,27 +39,39 @@ class StoreMovementController extends Controller
         )
             ->leftJoin('store_items', 'store_movements.store_item_id', '=', 'store_items.id')
             ->leftJoin('users', 'store_movements.user_id', '=', 'users.id')
-            ->orderByDesc('store_movements.id') // ✅ เรียง id ใหม่ไปเก่า (10, 9, 8, ...)
-            ->get();
+            ->where('store_movements.status', '!=', 'rejected')
+            ->where(function ($q) {
+                $q->where('store_movements.quantity', '!=', 0)
+                    ->whereNotNull('store_movements.quantity');
+            })
+            ->orderByDesc('store_movements.id');
 
-        // ✅ ดึง employee_id ทั้งหมด (ที่ไม่ว่าง)
+        // 🔍 Filter ค้นหา
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(store_items.good_code) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(store_movements.note) LIKE ?', ["%{$search}%"]);
+            });
+        }
+
+        // ❗️ใช้ get() แทน paginate()
+        $movements = $query->get();
+
+        // ดึง employee name จาก SQL Server
         $employeeIds = $movements->pluck('employee_id')->filter()->unique()->toArray();
-
-        // ✅ ดึงชื่อจริง EmpName จาก SQL Server ครั้งเดียว
         $employees = DB::connection('sqlsrv2')
             ->table('dbo.Webapp_Emp')
             ->whereIn('EmpID', $employeeIds)
             ->pluck('EmpName', 'EmpID');
 
-        // ✅ ดึงชื่อสินค้าจาก SQL Server
-        $goodCodes = $movements->pluck('goodCodeStore')->unique()->toArray();
-
+        // ดึง GoodName จาก EMGood
+        $goodCodes = $movements->pluck('goodCodeStore')->filter()->unique()->toArray();
         $emGoods = \App\Models\WIN\EMGood::on('sqlsrv2')
             ->whereIn('GoodCode', $goodCodes)
             ->get()
             ->keyBy('GoodCode');
 
-        // ✅ map รวมข้อมูลทั้งหมด
+        // Map ข้อมูลสุดท้าย
         $movementsData = $movements->map(function ($m) use ($emGoods, $employees) {
             $goodName = $emGoods[$m->goodCodeStore]->GoodName1 ?? '-';
             $empName = $employees[$m->employee_id] ?? $m->userName ?? '-';
@@ -72,19 +85,22 @@ class StoreMovementController extends Controller
                 'type' => $m->type,
                 'movement_type' => $m->movement_type,
                 'category' => $m->category,
-                'date' => $m->created_at->format('Y-m-d '),
-                'created_at' => $m->created_at->format('Y-m-d '),
+                'date' => $m->created_at?->format('Y-m-d'),
+                'created_at' => $m->created_at?->format('Y-m-d'),
                 'user' => $empName,
                 'note' => $m->note,
                 'status' => $m->status,
             ];
         });
 
+        // ✅ ส่งทั้งหมดให้ Inertia
         return Inertia::render('Store/StoreMovement', [
             'title' => 'การเคลื่อนไหวของสินค้า',
             'movements' => $movementsData,
+            'total' => $movementsData->count(),
         ]);
     }
+
 
     // สร้าง movement ใหม่
     public function stock(Request $request)
@@ -108,13 +124,13 @@ class StoreMovementController extends Controller
             'safety_type' => 'nullable|in:add,subtract',
         ]);
 
-        $userId = auth()->id(); // ใช้ session auth
+        $userId = auth()->id();
         $movements = [];
 
         // ฟังก์ชันช่วยสร้าง movement
         $createMovement = function ($category, $quantity, $type) use ($request, $userId, &$movements, $storeItem) {
             $movements[] = \App\Models\StoreMovement::create([
-                'store_item_id' => $storeItem->id, // ใช้ id จริง
+                'store_item_id' => $storeItem->id,
                 'movement_type' => 'adjustment',
                 'category' => $category,
                 'type' => $type,
@@ -125,7 +141,6 @@ class StoreMovementController extends Controller
             ]);
         };
 
-        // dd($createMovement);
         // สร้าง stock movement
         if ($request->filled('stock_qty') && $request->stock_type) {
             $createMovement('stock', $request->stock_qty, $request->stock_type);

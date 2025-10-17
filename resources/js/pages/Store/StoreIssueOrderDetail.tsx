@@ -221,8 +221,8 @@ export default function StoreOrderDetail({ order, onClose, showHistory = true }:
                                                                                         : 'text-gray-600 bg-gray-50'
                                                                                     }`}
                                                                             >
-                                                                                {formatDecimal(pendingQty)}
-                                                                                {pendingQty === 0 && ' ✓'}
+                                                                                {formatDecimal(item.quantity - returnedFromHistory)}
+                                                                                {(item.quantity - returnedFromHistory) === 0 && ' ✓'}
                                                                             </span>
                                                                         </div>
                                                                     </td>
@@ -329,7 +329,8 @@ export default function StoreOrderDetail({ order, onClose, showHistory = true }:
                                                                     </td>
                                                                     <td className="px-4 py-3 text-center text-sm">
                                                                         <span className="text-orange-700 bg-orange-50 px-2 py-1 rounded-md">
-                                                                            ยอดคงค้าง: {formatDecimal(pendingQty)}
+                                                                            ยอดคงค้าง: {formatDecimal(item.quantity - returnedFromHistory)}
+
                                                                         </span>
                                                                     </td>
                                                                     <td className="px-4 py-3 text-center text-sm text-gray-600">{item.unit}</td>
@@ -338,6 +339,7 @@ export default function StoreOrderDetail({ order, onClose, showHistory = true }:
                                                                             <span className="text-green-700 bg-green-50 px-2 py-1 rounded-md">
                                                                                 คืนทั้งหมด: {formatDecimal(returnedFromHistory)}
                                                                             </span>
+
                                                                             <span className="text-blue-700 bg-blue-50 px-2 py-1 rounded-md">
                                                                                 เบิกทั้งหมด: {formatDecimal(totalIssued)}
                                                                             </span>
