@@ -17,6 +17,7 @@ interface Category {
 
 interface SaleMar {
     GoodID: number;
+    total_goodnet: number;
 }
 interface SaleMarWin {
     GoodID: number;
@@ -26,12 +27,26 @@ interface SaleMarWinRe {
     total_amount: number;
 }
 interface POInvWin {
-    totalQty: number;
+    total_qty: number;
+    total_amount: number;
 }
 
 export default function FinancialReport() {
-    const [startDate, setStartDate] = useState('2025-01-01');
-    const [endDate, setEndDate] = useState('2025-09-30');
+    const getCurrentDate = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const getFirstDayOfCurrentYear = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        return `${year}-01-01`;
+    };
+    const [startDate, setStartDate] = useState(getFirstDayOfCurrentYear());
+    const [endDate, setEndDate] = useState(getCurrentDate());
     const [reportData, setReportData] = useState<Category[]>([]);
     const [salesDataWeb, setSalesDataWeb] = useState<SaleMar[]>([]);
     const [salesDataWinRe, setSalesDataWinRe] = useState<SaleMarWinRe[]>([]);
@@ -211,7 +226,6 @@ export default function FinancialReport() {
                 params: { start_date: startDate, end_date: endDate },
             });
             const saleMarWinRe: SaleMarWinRe[] = response.data.returns || [];
-            const saleMarWin: SaleMarWin[] = response.data.sales || [];
             setSalesDataWinRe(saleMarWinRe);
         } catch (error) {
             console.error(error);
@@ -246,7 +260,14 @@ export default function FinancialReport() {
         }
     };
 
-    const sumColumn = (data: any[], field: string) => data.reduce((sum, item) => sum + (item[field] || 0), 0);
+    const sumColumn = (data: any[], field: string) => {
+        if (!data || !Array.isArray(data)) return 0;
+
+        return data.reduce((sum, item) => {
+            const value = item[field] || 0;
+            return sum + (isNaN(Number(value)) ? 0 : Number(value));
+        }, 0);
+    };
 
     const toggleCategory = (category: string) => {
         const newExpanded = new Set(expandedCategories);
@@ -256,6 +277,13 @@ export default function FinancialReport() {
             newExpanded.add(category);
         }
         setExpandedCategories(newExpanded);
+    };
+    
+
+    // const netIncome = (totalIncomeCr - totalIncomeDr) - (totalExpenseDr - totalExpenseCr);
+    const calculateSafeValue = (value: any): number => {
+        const num = Number(value);
+        return isNaN(num) ? 0 : num;
     };
 
     const totalIncomeDr = sumColumn(
@@ -274,8 +302,8 @@ export default function FinancialReport() {
         reportData.flatMap((c) => c.accounts),
         'Cr',
     );
-    // const netIncome = (totalIncomeCr - totalIncomeDr) - (totalExpenseDr - totalExpenseCr);
-    const netIncome = totalIncomeDr - totalIncomeCr - (totalExpenseDr - totalExpenseCr);
+
+    const netIncome = calculateSafeValue(totalIncomeDr - totalIncomeCr) - calculateSafeValue(totalExpenseDr - totalExpenseCr);
 
     const filteredReportData = reportData.filter(
         (cat) =>
@@ -296,6 +324,9 @@ export default function FinancialReport() {
     };
 
     const formatMB = (amount: number) => {
+        if (amount === null || amount === undefined || isNaN(amount)) {
+            return '0.00';
+        }
         return (amount / 1000000).toLocaleString('th-TH', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -310,21 +341,32 @@ export default function FinancialReport() {
         }).format(amount);
     };
 
-    const expensePercent = ((totalExpenseDr - totalExpenseCr) / (totalIncomeDr - totalIncomeCr) || 0) * 100;
+    const calculateFinancialMetrics = () => {
+        const income = calculateSafeValue(totalIncomeDr - totalIncomeCr);
+        const expense = calculateSafeValue(totalExpenseDr - totalExpenseCr);
 
-    // กำหนดสีตาม %
-    let barColorClass = '';
-    if (expensePercent >= 90) {
-        barColorClass = 'to-red-500';
-    } else if (expensePercent >= 80) {
-        barColorClass = 'to-orange-500';
-    } else if (expensePercent >= 70) {
-        barColorClass = 'to-yellow-500';
-    } else if (expensePercent >= 60) {
-        barColorClass = 'to-green-500';
-    } else {
-        barColorClass = 'to-green-600'; // ต่ำกว่า 60% ให้เป็นสีน้ำเงิน
-    }
+        // คำนวณอัตราส่วน
+        let ratio = 0;
+        if (expense > 0) {
+            ratio = income / expense;
+        }
+
+        // คำนวณเปอร์เซ็นต์ค่าใช้จ่าย
+        let expensePercent = 0;
+        if (income > 0) {
+            expensePercent = (expense / income) * 100;
+        }
+
+        // กำหนดสี
+        let barColorClass = 'to-green-600';
+        if (expensePercent >= 90) barColorClass = 'to-red-500';
+        else if (expensePercent >= 80) barColorClass = 'to-orange-500';
+        else if (expensePercent >= 70) barColorClass = 'to-yellow-500';
+        else if (expensePercent >= 60) barColorClass = 'to-green-500';
+
+        return { ratio, expensePercent, barColorClass };
+    };
+    const { ratio, expensePercent, barColorClass } = calculateFinancialMetrics();
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-4 font-anuphan">
@@ -508,9 +550,16 @@ export default function FinancialReport() {
                                     <div className="space-y-3">
                                         {incomeData.map((cat) => {
                                             const goodId = Object.keys(incomeGoodMap).find((key) => incomeMap[key] === cat.category);
-                                            // หา total_goodnet จาก saleMar
                                             const saleWeb = salesDataWeb.find((s) => Number(s.GoodID) === Number(incomeGoodMap[goodId ?? '']));
                                             const saleWinRe = salesDataWinRe.find((s) => Number(s.GoodID) === Number(incomeGoodMap[goodId ?? '']));
+
+                                            const categoryAmount = calculateSafeValue(sumColumn(cat.accounts, 'Dr') - sumColumn(cat.accounts, 'Cr'));
+                                            const returnAmount = calculateSafeValue(saleWinRe ? saleWinRe.total_amount : 0);
+                                            const netAmount = categoryAmount - returnAmount;
+
+                                            const totalGoodNet = saleWeb ? calculateSafeValue(saleWeb.total_goodnet) : 0;
+                                            const avgPrice = totalGoodNet > 0 ? categoryAmount / totalGoodNet : 0;
+
                                             return (
                                                 <div
                                                     key={cat.category}
@@ -520,52 +569,31 @@ export default function FinancialReport() {
                                                         <span className="text-sm font-medium text-gray-700">
                                                             {cat.category}
                                                             <span className="mt-1 text-xs text-blue-500">
-                                                                {' ('}{' '}
-                                                                {saleWeb
-                                                                    ? saleWeb.total_goodnet.toLocaleString(undefined, { maximumFractionDigits: 0 })
-                                                                    : '-'}{' '}
-                                                                Kg.{')'}
+                                                                {' ('} {totalGoodNet.toLocaleString('th-TH', { maximumFractionDigits: 0 })} Kg.{')'}
                                                             </span>
                                                         </span>
                                                         <span
-                                                            className={`text-sm font-semibold ${
-                                                                sumColumn(cat.accounts, 'Dr') - sumColumn(cat.accounts, 'Cr') >= 0
-                                                                    ? 'text-green-600'
-                                                                    : 'text-red-600'
-                                                            }`}
+                                                            className={`text-sm font-semibold ${netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}
                                                         >
-                                                            {formatMB(
-                                                                sumColumn(cat.accounts, 'Dr') -
-                                                                    sumColumn(cat.accounts, 'Cr') -
-                                                                    (saleWinRe ? saleWinRe.total_amount : 0),
-                                                            )}{' '}
-                                                            MB.
+                                                            {formatMB(netAmount)} MB.
                                                         </span>
                                                     </div>
                                                     <div className="flex justify-between">
                                                         <span className="mt-1 text-xs text-gray-500">
                                                             ราคาเฉลี่ย :{' '}
-                                                            {saleWeb && saleWeb.total_goodnet > 0
-                                                                ? (
-                                                                      (sumColumn(cat.accounts, 'Dr') - sumColumn(cat.accounts, 'Cr')) /
-                                                                      saleWeb.total_goodnet
-                                                                  ).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                                                            {avgPrice > 0
+                                                                ? avgPrice.toLocaleString('th-TH', {
+                                                                      minimumFractionDigits: 2,
+                                                                      maximumFractionDigits: 2,
+                                                                  })
                                                                 : '-'}{' '}
                                                             บาท
                                                         </span>
-                                                        {saleWinRe && saleWinRe.total_amount > 0 ? (
+                                                        {returnAmount > 0 && (
                                                             <span className="mt-1 text-xs text-gray-500">
-                                                                ( {formatMB(sumColumn(cat.accounts, 'Dr') - sumColumn(cat.accounts, 'Cr'))}
-                                                                {' MB.  - '}
-                                                                <span className="text-red-600">
-                                                                    ลดหนี้{' '}
-                                                                    {/* {saleWinRe.total_amount.toLocaleString(undefined, { maximumFractionDigits: 0 })} */}
-                                                                    {formatCurrency(saleWinRe.total_amount)}
-                                                                </span>
-                                                                )
+                                                                ( {formatMB(categoryAmount)} MB. -
+                                                                <span className="text-red-600"> ลดหนี้ {formatCurrency(returnAmount)} </span>)
                                                             </span>
-                                                        ) : (
-                                                            <span className="mt-1 text-xs text-gray-500"></span>
                                                         )}
                                                     </div>
                                                 </div>
@@ -589,7 +617,7 @@ export default function FinancialReport() {
                                         </svg>
                                         รายจ่ายทั้งหมด
                                     </h3>
-                                    <p className="mt-1 text-2xl font-bold text-white">{formatMB(totalExpenseDr - totalExpenseCr)} MB.</p>
+                                    <p className="mt-1 text-2xl font-bold text-white">{formatMB(Number(totalExpenseDr - totalExpenseCr))} MB.</p>
                                 </div>
                                 <div className="p-4">
                                     <div className="space-y-3">
@@ -635,7 +663,7 @@ export default function FinancialReport() {
                                         <div>
                                             <p className="text-sm opacity-90">กำไร(ขาดทุน) สุทธิ</p>
                                             <p className={`text-2xl font-bold ${netIncome >= 0 ? 'text-white' : 'text-yellow-200'}`}>
-                                                {formatMB(netIncome)} MB.
+                                                {formatMB(calculateSafeValue(netIncome))} MB.
                                             </p>
                                         </div>
                                     </div>
@@ -649,7 +677,9 @@ export default function FinancialReport() {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-500">รายรับสุทธิ</p>
-                                                <p className="text-sm font-semibold text-gray-900">{formatMB(totalIncomeDr - totalIncomeCr)} MB.</p>
+                                                <p className="text-sm font-semibold text-gray-900">
+                                                    {formatMB(calculateSafeValue(totalIncomeDr - totalIncomeCr))} MB.
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -661,7 +691,9 @@ export default function FinancialReport() {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-500">รายจ่ายสุทธิ</p>
-                                                <p className="text-sm font-semibold text-gray-900">{formatMB(totalExpenseDr - totalExpenseCr)} MB.</p>
+                                                <p className="text-sm font-semibold text-gray-900">
+                                                    {formatMB(calculateSafeValue(totalExpenseDr - totalExpenseCr))} MB.
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -670,21 +702,15 @@ export default function FinancialReport() {
                                 <div className="rounded-xl bg-white p-4 shadow-lg">
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-medium text-gray-700">อัตราส่วนรายรับต่อรายจ่าย</span>
-                                        <span
-                                            className={`text-sm font-bold ${
-                                                totalIncomeDr - totalIncomeCr > totalExpenseDr - totalExpenseCr ? 'text-green-600' : 'text-red-600'
-                                            }`}
-                                        >
-                                            {((totalIncomeDr - totalIncomeCr) / (totalExpenseDr - totalExpenseCr) || 0).toFixed(2)}:1
+                                        <span className={`text-sm font-bold ${ratio >= 1 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {ratio.toFixed(2)}:1
                                         </span>
                                     </div>
                                     <div className="mt-2 h-2 rounded-full bg-gray-200">
-                                        <div className="mt-2 h-2 rounded-full bg-gray-200">
-                                            <div
-                                                className={`h-2 rounded-full bg-gradient-to-r from-green-500 ${barColorClass} transition-all duration-500`}
-                                                style={{ width: `${Math.min(100, expensePercent)}%` }}
-                                            ></div>
-                                        </div>
+                                        <div
+                                            className={`h-2 rounded-full bg-gradient-to-r from-green-500 ${barColorClass} transition-all duration-500`}
+                                            style={{ width: `${Math.min(100, expensePercent)}%` }}
+                                        ></div>
                                     </div>
                                 </div>
 
@@ -702,11 +728,10 @@ export default function FinancialReport() {
                                                 </svg>
                                                 ซื้อผลปาล์มทะลาย
                                             </h3>
-                                            <p className={`text-2xl font-bold ${totalAmount >= 0 ? 'text-white' : 'text-yellow-200'}`}>
-                                                {totalQty.toLocaleString()} Kg.
+                                            <p className="text-2xl font-bold text-white">
+                                                {calculateSafeValue(totalQty).toLocaleString('th-TH')} Kg.
                                             </p>
-
-                                            <p className="text-sm">ราคาเฉลี่ย: {avgPrice.toFixed(2)} บาท</p>
+                                            <p className="text-sm">ราคาเฉลี่ย: {calculateSafeValue(avgPrice).toFixed(2)} บาท</p>
                                         </div>
                                     </div>
                                 </div>
