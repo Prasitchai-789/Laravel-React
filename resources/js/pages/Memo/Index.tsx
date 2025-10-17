@@ -26,17 +26,20 @@ interface Attachment {
 interface Document {
     id: number;
     document_no: string;
-    date: string; // expect ISO-like string e.g. "2025-10-01"
+    date: string;
     description: string;
     category_id: number;
     amount: number;
     winspeed_ref_id: number;
     attachment: string;
     attachments: Attachment[];
-    total_amount?: number;
+    category?: { name: string };
+    total_amount?: number; // นี้คือยอดจาก GLHD
+    status_label?: string;
+    status?: string;
+    AppvDocuNo?: string; // เพิ่ม field นี้
 }
 
-// ==== Form State ====
 interface DocumentFormState {
     document_no: string;
     date: string;
@@ -47,41 +50,78 @@ interface DocumentFormState {
     attachment: File | null;
 }
 
-// ==== Summary Interface ====
 interface SummaryData {
     totalAmount: number;
     monthlyAmount: number;
     categoryAmount: number;
 }
 
+interface PaginationData {
+    current_page: number;
+    last_page: number;
+    total: number;
+    per_page: number;
+}
+
+interface SummaryResponse {
+    yearAmount: number;
+    yearCount: number;
+    monthAmount: number;
+    monthCount: number;
+    categoryAmount: number;
+    totalCount: number;
+}
+
 export default function Index() {
     // ==== UI State ====
     const [loading, setLoading] = useState(true);
+    const [summaryLoading, setSummaryLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isModalOpenDetail, setIsModalOpenDetail] = useState(false);
     const [mode, setMode] = useState<'create' | 'edit'>('create');
     const page = usePage<{ auth: { user?: any; permissions?: string[] } }>();
 
-    // permissions may be on page.props.auth.permissions or page.props.auth.user.permissions
     const userPermissions: string[] = Array.isArray(page.props.auth?.permissions)
         ? page.props.auth.permissions
         : Array.isArray(page.props.auth?.user?.permissions)
           ? page.props.auth.user.permissions
           : [];
-    const getCurrentMonth = () => {
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        return `${year}-${month}`;
-    };
-
-    const [selectedMonth, setSelectedMonth] = useState<string>(getCurrentMonth());
 
     // ==== Data State ====
     const [categories, setCategories] = useState<Category[]>([]);
     const [documents, setDocuments] = useState<Document[]>([]);
     const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
     const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+
+    // ==== Filter & Pagination State ====
+    const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        return `${year}-${month}`;
+    });
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [sortField, setSortField] = useState('id');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+    // Simplified pagination state
+    const [pagination, setPagination] = useState<PaginationData>({
+        current_page: 1,
+        last_page: 1,
+        total: 0,
+        per_page: 10,
+    });
+
+    // ==== Summary State ====
+    const [summaryData, setSummaryData] = useState<SummaryResponse>({
+        yearAmount: 0,
+        yearCount: 0,
+        monthAmount: 0,
+        monthCount: 0,
+        categoryAmount: 0,
+        totalCount: 0,
+    });
 
     // ==== Form State ====
     const [form, setForm] = useState<DocumentFormState>({
@@ -94,15 +134,13 @@ export default function Index() {
         attachment: null,
     });
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedId, setSelectedId] = useState<number | null>(null);
 
     // ฟังก์ชันแปลงวันที่ให้เป็นรูปแบบมาตรฐาน YYYY-MM
     const parseDocumentDate = (dateString: string): string => {
         if (!dateString) return '';
 
-        // รูปแบบ: 'Oct  3 2025 12:00:00:AM'
         const monthMap: Record<string, string> = {
             Jan: '01',
             Feb: '02',
@@ -119,15 +157,14 @@ export default function Index() {
         };
 
         try {
-            // แยกส่วนของวันที่
+            // รูปแบบ: 'Oct  3 2025 12:00:00:AM'
             const cleanDate = dateString.replace(/\s+/g, ' ').trim();
             const parts = cleanDate.split(' ');
 
             if (parts.length >= 3) {
-                const monthAbbr = parts[0]; // 'Oct'
-                const day = parts[1]; // '3'
-                const year = parts[2]; // '2025'
-
+                const monthAbbr = parts[0];
+                const day = parts[1];
+                const year = parts[2];
                 const monthNum = monthMap[monthAbbr];
 
                 if (monthNum && year && day) {
@@ -135,7 +172,7 @@ export default function Index() {
                 }
             }
 
-            // ลองใช้ Date object เป็น fallback
+            // Fallback to Date object
             const date = new Date(dateString);
             if (!isNaN(date.getTime())) {
                 const year = date.getFullYear();
@@ -149,31 +186,36 @@ export default function Index() {
         return '';
     };
 
+    // 📡 ดึงข้อมูลเอกสารจาก API
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('/memo/documents/api');
+            const params = {
+                page: pagination.current_page,
+                per_page: pagination.per_page,
+                search: searchQuery,
+                sort: sortField,
+                order: sortOrder,
+                month: selectedMonth,
+                category: selectedCategory,
+            };
+            const res = await axios.get('/memo/documents/api', { params });
             const { categories: catRes, documents: docRes } = res.data;
-            setCategories(Array.isArray(catRes) ? catRes : []);
-            setDocuments(Array.isArray(docRes) ? docRes : []);
-
-            // Debug: แสดงข้อมูลวันที่หลังจากโหลด
-            if (Array.isArray(docRes)) {
-                docRes.forEach((doc: Document, index: number) => {
-                    const parsedDate = parseDocumentDate(doc.date);
-                    // console.log(`[${index + 1}]`, {
-                    //     id: doc.id,
-                    //     originalDate: doc.date,
-                    //     parsedDate: parsedDate,
-                    //     category: doc.category_id,
-                    // });
-                });
+            if (catRes) setCategories(catRes);
+            if (docRes?.data) {
+                setDocuments(docRes.data);
+                setPagination((prev) => ({
+                    ...prev,
+                    current_page: docRes.current_page || 1,
+                    last_page: docRes.last_page || 1,
+                    total: docRes.total || 0,
+                }));
             }
         } catch (error) {
-            console.error('Error fetching:', error);
+            console.error('Error fetching data:', error);
             Swal.fire({
                 icon: 'error',
-                title: 'ไม่สามารถโหลดข้อมูลได้',
+                title: 'โหลดข้อมูลล้มเหลว',
                 text: 'กรุณาลองใหม่อีกครั้ง',
                 customClass: {
                     popup: 'custom-swal font-anuphan',
@@ -185,69 +227,137 @@ export default function Index() {
             setLoading(false);
         }
     };
-    // ==== Filter Functions ====
+
+    // 📡 ดึงข้อมูลสรุปจาก API
+    const fetchSummaryData = async () => {
+        setSummaryLoading(true);
+        try {
+            const params = {
+                summary: true,
+                year: new Date().getFullYear(),
+                month: selectedMonth,
+                category: selectedCategory,
+            };
+
+            const res = await axios.get(route('memo.documents.api'), { params });
+            if (res.data.summary) {
+                setSummaryData(res.data.summary);
+            } else {
+                // Fallback: คำนวณจากข้อมูลที่โหลดมา
+                calculateSummaryFromDocuments();
+            }
+        } catch (error) {
+            console.error('Error fetching summary data:', error);
+            // Fallback: คำนวณจากข้อมูลที่โหลดมา
+            calculateSummaryFromDocuments();
+        } finally {
+            setSummaryLoading(false);
+        }
+    };
+
+    // Fallback: คำนวณสรุปจากข้อมูลเอกสาร
+    const calculateSummaryFromDocuments = () => {
+        const currentYear = new Date().getFullYear().toString();
+
+        // เอกสารปีปัจจุบัน
+        const yearDocs = documents.filter((doc) => {
+            const parsedDate = parseDocumentDate(doc.date);
+            return parsedDate.startsWith(currentYear);
+        });
+
+        const yearAmount = yearDocs.reduce((sum, doc) => sum + Number(doc.amount || 0), 0);
+        const yearCount = yearDocs.length;
+
+        // เอกสารเดือนที่เลือก
+        const monthDocs = selectedMonth
+            ? documents.filter((doc) => {
+                  const parsedDate = parseDocumentDate(doc.date);
+                  return parsedDate === selectedMonth;
+              })
+            : documents;
+
+        const monthAmount = monthDocs.reduce((sum, doc) => sum + Number(doc.amount || 0), 0);
+        const monthCount = monthDocs.length;
+        // เอกสารตามหมวดหมู่ที่กรอง
+        const categoryDocs = documents.filter((doc) => {
+            const parsedDate = parseDocumentDate(doc.date);
+            const monthMatch = selectedMonth ? parsedDate === selectedMonth : true;
+            const categoryMatch = selectedCategory ? doc.category_id === selectedCategory : true;
+            return monthMatch && categoryMatch;
+        });
+
+        const categoryAmount = categoryDocs.reduce((sum, doc) => sum + Number(doc.amount || 0), 0);
+
+        setSummaryData({
+            yearAmount,
+            yearCount,
+            monthAmount,
+            monthCount,
+            categoryAmount,
+            totalCount: categoryDocs.length,
+        });
+    };
+
+    // Fetch data when dependencies change
+    useEffect(() => {
+        fetchData();
+    }, [pagination.current_page, pagination.per_page, searchQuery, sortField, sortOrder, selectedMonth, selectedCategory]);
+
+    // Fetch summary data when filters change
+    useEffect(() => {
+        fetchSummaryData();
+    }, [selectedMonth, selectedCategory]);
+
+    // ==== Event Handlers ====
+    const handlePageChange = (page: number) => {
+        if (page >= 1 && page <= pagination.last_page) {
+            setPagination((prev) => ({ ...prev, current_page: page }));
+        }
+    };
+
+    const handlePerPageChange = (newPerPage: number) => {
+        setPagination((prev) => ({
+            ...prev,
+            per_page: newPerPage,
+            current_page: 1,
+        }));
+    };
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+        setPagination((prev) => ({ ...prev, current_page: 1 }));
+    };
+
+    const handleSort = (field: string) => {
+        if (sortField === field) {
+            setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortField(field);
+            setSortOrder('asc');
+        }
+        setPagination((prev) => ({ ...prev, current_page: 1 }));
+    };
+
     const handleCategoryFilter = (categoryId: number | null) => {
         setSelectedCategory(categoryId);
+        setPagination((prev) => ({ ...prev, current_page: 1 }));
     };
 
     const handleMonthFilter = (month: string) => {
         setSelectedMonth(month);
+        setPagination((prev) => ({ ...prev, current_page: 1 }));
     };
 
-    // ==== Memoized filtered arrays and summary calculations ====
-    const { summary, yearCount, yearAmount, monthCount } = useMemo(() => {
-        const currentYear = new Date().getFullYear().toString();
-
-        const safeDocs = documents.filter((d) => {
-            if (typeof d.date !== 'string' || !d.date) return false;
-            const parsedDate = parseDocumentDate(d.date);
-            return !!parsedDate; // มีค่าไม่ว่าง
-        });
-
-        const yearDocs = safeDocs.filter((doc) => {
-            const parsedDate = parseDocumentDate(doc.date);
-            return parsedDate.slice(0, 4) === currentYear;
-        });
-        const yearAmount = yearDocs.reduce((sum, doc) => sum + Number(doc.amount || 0), 0);
-        const yearCount = yearDocs.length;
-
-        // ใช้ selectedMonth โดยตรงในการคำนวณ
-        const monthDocs = selectedMonth
-            ? safeDocs.filter((doc) => {
-                  const parsedDate = parseDocumentDate(doc.date);
-                  return parsedDate === selectedMonth;
-              })
-            : safeDocs.slice();
-        const monthAmount = monthDocs.reduce((sum, doc) => sum + Number(doc.amount || 0), 0);
-        const monthCount = monthDocs.length;
-
-        const filteredDocs = safeDocs.filter((doc) => {
-            const parsedDate = parseDocumentDate(doc.date);
-            const catMatch = selectedCategory ? Number(doc.category_id) === selectedCategory || doc.category_id === selectedCategory : true;
-            const monthMatch = selectedMonth ? parsedDate === selectedMonth : true;
-            return catMatch && monthMatch;
-        });
-        const categoryAmount = filteredDocs.reduce((sum, doc) => sum + Number(doc.amount || 0), 0);
-
-        const summary: SummaryData = {
-            totalAmount: yearAmount,
-            monthlyAmount: monthAmount,
-            categoryAmount,
-        };
-
-        return { summary, yearCount, yearAmount, monthCount };
-    }, [documents, selectedMonth, selectedCategory]);
-
-    // ==== Counts by category (optimized) ====
+    // ==== Counts by category ====
     const countsByCategory = useMemo(() => {
         const map: Record<number, number> = {};
-        // count within selected month if set, otherwise across all documents
         const docsToCount = selectedMonth
             ? documents.filter((d) => {
                   const parsedDate = parseDocumentDate(d.date);
                   return parsedDate === selectedMonth;
               })
             : documents;
+
         docsToCount.forEach((d) => {
             map[d.category_id] = (map[d.category_id] || 0) + 1;
         });
@@ -255,47 +365,16 @@ export default function Index() {
     }, [documents, selectedMonth]);
 
     // ==== Filtered Documents for table ====
-    const filteredDocuments = useMemo(() => {
-        const result = documents.filter((document) => {
-            if (typeof document.date !== 'string' || !document.date) {
-                return false;
-            }
+    const filteredDocuments = documents;
 
-            const documentMonth = parseDocumentDate(document.date);
-            if (!documentMonth) {
-                return false;
-            }
-
-            const categoryMatch = selectedCategory
-                ? Number(document.category_id) === Number(selectedCategory) || document.category_id === selectedCategory
-                : true;
-            const monthMatch = selectedMonth ? documentMonth === selectedMonth : true;
-
-            const isMatch = categoryMatch && monthMatch;
-            if (isMatch) {
-                // console.log('✅ Document matched:', {
-                //     id: document.id,
-                //     originalDate: document.date,
-                //     parsedMonth: documentMonth,
-                //     selectedMonth,
-                // });
-            }
-
-            return isMatch;
-        });
-
-        return result;
-    }, [documents, selectedCategory, selectedMonth]);
-
-    // ==== Get Category Name ====
+    // ==== Helper Functions ====
     const getCategoryName = (): string => {
         if (!selectedCategory) return 'ทั้งหมด';
         const category = categories.find((cat) => cat.id === selectedCategory);
         return category ? category.name : 'ทั้งหมด';
     };
 
-    // ==== Get Available Months ====
-    function getAvailableMonths() {
+    const getAvailableMonths = () => {
         const now = new Date();
         const months: string[] = [];
         for (let i = 0; i < 12; i++) {
@@ -305,16 +384,13 @@ export default function Index() {
             months.push(`${y}-${m}`);
         }
         return months;
-    }
+    };
 
     const openCreate = () => {
         setMode('create');
         setSelectedDocument(null);
         setIsModalOpen(true);
     };
-
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [selectedId, setSelectedId] = useState<number | null>(null);
 
     const openDeleteModal = (id: number) => {
         setSelectedId(id);
@@ -346,10 +422,6 @@ export default function Index() {
 
         try {
             const res = await axios.get(`/memo/documents/show/${document.winspeed_ref_id}`);
-            setSelectedDocument(res.data);
-            // console.log('Header:', res.data.winspeed_header);
-            // console.log('Details:', res.data.winspeed_detail);
-            // console.log('Memo Document:', res.data.memo_document);
             return res.data;
         } catch (error) {
             console.error('Error fetching:', error);
@@ -371,14 +443,16 @@ export default function Index() {
         setMode('edit');
         setLoading(true);
         try {
-            await fetchDataShow(document); // ✅ รอให้โหลดข้อมูลเสร็จก่อน
-            setIsModalOpenDetail(true); // ✅ ค่อยเปิด modal
+            const data = await fetchDataShow(document);
+            setSelectedDocument(data);
+            setIsModalOpenDetail(true);
         } catch (error) {
             console.error('Error in handleDetail:', error);
         } finally {
             setLoading(false);
         }
     };
+
     const handleEdit = (document: Document) => {
         setMode('edit');
         setSelectedDocument(document);
@@ -417,6 +491,7 @@ export default function Index() {
                     Toast.fire({ icon: 'success', title: 'ลบเอกสารเรียบร้อยแล้ว' });
                     closeDeleteModal();
                     fetchData();
+                    fetchSummaryData(); // รีเฟรชข้อมูลสรุปด้วย
                 },
                 preserveScroll: true,
             });
@@ -428,7 +503,6 @@ export default function Index() {
         { title: 'Expense Documents', href: '/memo/documents' },
     ];
 
-    // ==== Format Currency ====
     const formatCurrency = (amount: number): string => {
         return new Intl.NumberFormat('th-TH', {
             style: 'currency',
@@ -437,40 +511,25 @@ export default function Index() {
         }).format(amount);
     };
 
-    const debugInfo = () => {
-        if (documents.length === 0) return 'ไม่มีข้อมูล';
-
-        const currentYearDocs = documents.filter((doc) => {
-            const parsedDate = parseDocumentDate(doc.date);
-            return parsedDate.slice(0, 4) === new Date().getFullYear().toString();
-        });
-        const currentMonthDocs = selectedMonth
-            ? documents.filter((doc) => {
-                  const parsedDate = parseDocumentDate(doc.date);
-                  return parsedDate === selectedMonth;
-              })
-            : documents;
-
-        return `ข้อมูล: ${documents.length} รายการ, ปีนี้: ${currentYearDocs.length} รายการ, เดือนนี้: ${currentMonthDocs.length} รายการ`;
-    };
-
-    if (loading) {
-        return (
-            <AppLayout breadcrumbs={breadcrumbs}>
-                <div className="flex h-64 items-center justify-center">
-                    <p className="text-lg text-gray-600">Loading...</p>
-                </div>
-            </AppLayout>
-        );
-    }
-
-    // month label safe rendering
     const monthLabel = (() => {
         if (!selectedMonth) return 'ทั้งหมด';
         const [y, m] = selectedMonth.split('-').map(Number);
         if (Number.isNaN(y) || Number.isNaN(m)) return selectedMonth;
-        return new Date(y, m - 1, 1).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+        return new Date(y, m - 1, 1).toLocaleDateString('th-TH', {
+            month: 'long',
+            year: 'numeric',
+        });
     })();
+
+    // if (loading) {
+    //     return (
+    //         <AppLayout breadcrumbs={breadcrumbs}>
+    //             <div className="flex h-64 items-center justify-center">
+    //                 <p className="text-lg text-gray-600">Loading...</p>
+    //             </div>
+    //         </AppLayout>
+    //     );
+    // }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -480,7 +539,9 @@ export default function Index() {
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800">Expense Documents</h1>
                         <p className="text-sm text-gray-500">จัดการข้อมูลเอกสารค่าใช้จ่าย</p>
-                        <p className="mt-1 text-xs text-gray-400">{debugInfo()}</p>
+                        <p className="mt-1 text-xs text-gray-400">
+                            ข้อมูล: {pagination.total} รายการ, หน้า {pagination.current_page} จาก {pagination.last_page}
+                        </p>
                     </div>
 
                     <div className="flex w-full flex-nowrap items-center justify-end gap-3 py-1 md:w-auto">
@@ -512,9 +573,11 @@ export default function Index() {
                                 </svg>
                             </div>
                             <div className="ml-4">
-                                <h3 className="text-sm font-medium text-gray-500">ผลรวมทั้งปี ({new Date().getFullYear()})</h3>
-                                <p className="text-2xl font-bold text-gray-900">{formatCurrency(yearAmount)}</p>
-                                <p className="mt-1 text-xs text-gray-500">{yearCount} รายการ</p>
+                                <h3 className="text-sm font-medium text-gray-500">ผลรวมทั้งปี ({new Date().getFullYear()+543})</h3>
+                                <p className="text-2xl font-bold text-gray-900">
+                                    {summaryLoading ? 'กำลังโหลด...' : formatCurrency(summaryData.yearAmount)}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500">{summaryData.yearCount} รายการ</p>
                             </div>
                         </div>
                     </div>
@@ -534,8 +597,10 @@ export default function Index() {
                             </div>
                             <div className="ml-4">
                                 <h3 className="text-sm font-medium text-gray-500">ผลรวมเดือน {monthLabel}</h3>
-                                <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.monthlyAmount)}</p>
-                                <p className="mt-1 text-xs text-gray-500">{monthCount} รายการ</p>
+                                <p className="text-2xl font-bold text-gray-900">
+                                    {summaryLoading ? 'กำลังโหลด...' : formatCurrency(summaryData.monthAmount)}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500">{summaryData.monthCount} รายการ</p>
                             </div>
                         </div>
                     </div>
@@ -555,8 +620,10 @@ export default function Index() {
                             </div>
                             <div className="ml-4">
                                 <h3 className="text-sm font-medium text-gray-500">ผลรวม {getCategoryName()} (เดือนปัจจุบัน)</h3>
-                                <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.categoryAmount)}</p>
-                                <p className="mt-1 text-xs text-gray-500">{filteredDocuments.length} รายการ</p>
+                                <p className="text-2xl font-bold text-gray-900">
+                                    {summaryLoading ? 'กำลังโหลด...' : formatCurrency(summaryData.categoryAmount)}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500">{summaryData.totalCount} รายการ</p>
                             </div>
                         </div>
                     </div>
@@ -565,12 +632,8 @@ export default function Index() {
                 {/* Filter Section */}
                 <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-                        {/* Category Filter - อยู่ซ้าย */}
+                        {/* Category Filter */}
                         <div className="flex-1">
-                            {/* <div className="mb-3 flex items-center gap-3">
-                                <div className="h-6 w-2 rounded-full bg-blue-500"></div>
-                                <h3 className="text-sm font-semibold text-gray-700">กรองตามหมวดหมู่</h3>
-                            </div> */}
                             <div className="flex flex-wrap gap-2">
                                 <Button
                                     onClick={() => handleCategoryFilter(null)}
@@ -591,19 +654,16 @@ export default function Index() {
                                             size="sm"
                                             className="px-4 py-2 whitespace-nowrap"
                                         >
-                                            {category.name} <span className="bg-opacity-20 ml-1 px-1.5 py-0.5 text-xs">({count})</span>
+                                            {category.name}
+                                            {/* <span className="bg-opacity-20 ml-1 px-1.5 py-0.5 text-xs">({count})</span> */}
                                         </Button>
                                     );
                                 })}
                             </div>
                         </div>
 
-                        {/* Month Filter - อยู่ขวา */}
+                        {/* Month Filter */}
                         <div className="w-full md:w-72">
-                            {/* <div className="mb-2 flex items-center gap-3">
-                                <div className="h-6 w-2 rounded-full bg-green-500"></div>
-                                <h3 className="text-sm font-semibold text-gray-700">กรองตามเดือน</h3>
-                            </div> */}
                             <div className="group relative">
                                 <select
                                     id="month-filter"
@@ -631,7 +691,6 @@ export default function Index() {
                                             'ธันวาคม',
                                         ];
                                         const monthName = monthNames[monthNum - 1];
-
                                         return (
                                             <option key={month} value={month} className="text-gray-900">
                                                 {monthName} {year + 543}
@@ -673,6 +732,7 @@ export default function Index() {
                     onSuccess={() => {
                         setIsModalOpen(false);
                         fetchData();
+                        fetchSummaryData(); // รีเฟรชข้อมูลสรุปด้วย
                     }}
                     categories={categories}
                     mode={mode}
@@ -680,7 +740,7 @@ export default function Index() {
                 />
             </ModalForm>
 
-            {/* Document Form Modal */}
+            {/* Document Detail Modal */}
             <ModalForm
                 isModalOpen={isModalOpenDetail}
                 onClose={() => setIsModalOpenDetail(false)}
@@ -693,6 +753,7 @@ export default function Index() {
                     onSuccess={() => {
                         setIsModalOpenDetail(false);
                         fetchData();
+                        fetchSummaryData(); // รีเฟรชข้อมูลสรุปด้วย
                     }}
                     categories={categories}
                     mode={mode}
@@ -707,6 +768,19 @@ export default function Index() {
                 onEdit={handleEditWithPermission}
                 onDelete={handleDeleteWithPermission}
                 onDetail={handleDetail}
+                // Pagination props
+                currentPage={pagination.current_page}
+                perPage={pagination.per_page}
+                totalRecords={pagination.total}
+                onPageChange={handlePageChange}
+                onPerPageChange={handlePerPageChange}
+                // Sorting props
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+                // Search props
+                searchQuery={searchQuery}
+                onSearchChange={handleSearchChange}
             />
 
             <DeleteModal isModalOpen={isDeleteModalOpen} onClose={closeDeleteModal} title="ยืนยันการลบ" onConfirm={handleDelete}>
