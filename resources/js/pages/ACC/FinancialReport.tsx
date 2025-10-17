@@ -278,6 +278,7 @@ export default function FinancialReport() {
         }
         setExpandedCategories(newExpanded);
     };
+    
 
     // const netIncome = (totalIncomeCr - totalIncomeDr) - (totalExpenseDr - totalExpenseCr);
     const calculateSafeValue = (value: any): number => {
