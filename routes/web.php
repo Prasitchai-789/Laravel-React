@@ -197,7 +197,7 @@ Route::prefix('fertilizer')->group(function () {
 
 
 Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrder')->group(function () {
-
+    Route::get('/search', [StoreOrderController::class, 'searchJson']);
     // หน้าเลือกสินค้า / Index
     Route::get('/', [StoreOrderController::class, 'index'])->name('Store.index');
     // หน้าเบิกสินค้า
@@ -246,9 +246,7 @@ Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrde
 
     Route::get('/store-items/stock-info', [StoreOrderController::class, 'getStockInfo']);
     Route::put('/{order}', [StoreOrderController::class, 'update'])
-    ->name('store-order.update');
-
-
+        ->name('store-order.update');
 });
 // web.php
 Route::middleware(['auth'])->prefix('store-movements')->group(function () {
@@ -289,17 +287,17 @@ Route::fallback(function () {
 
 
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {
-Route::get('purchase/dashboard', [PurchaseDashboardController::class, 'index']);
-Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'apiIndex']);
+    Route::get('purchase/dashboard', [PurchaseDashboardController::class, 'index']);
+    Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'apiIndex']);
 });
 
 
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {
-Route::get('purchase/po', [POController::class, 'index']);
-Route::get('/purchase/po/api', [POController::class, 'apiIndex']);
-Route::get('/purchase/po/show/{id}', [POController::class, 'show'])->name('po.show');
-Route::get('/purchase/po/chart', [POController::class, 'apiChart'])->name('po.chart');
-Route::get('/expense-by-dept', [POController::class, 'expenseByDept'])->name('expense-by-dept');
+    Route::get('purchase/po', [POController::class, 'index']);
+    Route::get('/purchase/po/api', [POController::class, 'apiIndex']);
+    Route::get('/purchase/po/show/{id}', [POController::class, 'show'])->name('po.show');
+    Route::get('/purchase/po/chart', [POController::class, 'apiChart'])->name('po.chart');
+    Route::get('/expense-by-dept', [POController::class, 'expenseByDept'])->name('expense-by-dept');
 });
 
 

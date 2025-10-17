@@ -17,12 +17,9 @@ use Illuminate\Support\Facades\DB;
 
 class StoreMovementController extends Controller
 {
-
     public function indexPage(Request $request)
     {
         $search = mb_strtolower(trim($request->input('search', '')));
-        $perPage = 20; // จำนวนต่อหน้า สามารถปรับได้
-        $page = $request->input('page', 1);
 
         // Query หลัก
         $query = \App\Models\StoreMovement::select(
@@ -43,17 +40,22 @@ class StoreMovementController extends Controller
             ->leftJoin('store_items', 'store_movements.store_item_id', '=', 'store_items.id')
             ->leftJoin('users', 'store_movements.user_id', '=', 'users.id')
             ->where('store_movements.status', '!=', 'rejected')
+            ->where(function ($q) {
+                $q->where('store_movements.quantity', '!=', 0)
+                    ->whereNotNull('store_movements.quantity');
+            })
             ->orderByDesc('store_movements.id');
 
-        // Filter search (SQL side)
+        // 🔍 Filter ค้นหา
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
-                $q->whereRaw('LOWER(store_items.good_code) LIKE ?', ["%{$search}%"]);
-                // GoodName1 จะ filter หลัง map เพราะอยู่ DB อื่น
+                $q->whereRaw('LOWER(store_items.good_code) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(store_movements.note) LIKE ?', ["%{$search}%"]);
             });
         }
 
-        $movements = $query->paginate($perPage, ['*'], 'page', $page);
+        // ❗️ใช้ get() แทน paginate()
+        $movements = $query->get();
 
         // ดึง employee name จาก SQL Server
         $employeeIds = $movements->pluck('employee_id')->filter()->unique()->toArray();
@@ -63,26 +65,16 @@ class StoreMovementController extends Controller
             ->pluck('EmpName', 'EmpID');
 
         // ดึง GoodName จาก EMGood
-        $goodCodes = $movements->pluck('goodCodeStore')->unique()->toArray();
+        $goodCodes = $movements->pluck('goodCodeStore')->filter()->unique()->toArray();
         $emGoods = \App\Models\WIN\EMGood::on('sqlsrv2')
             ->whereIn('GoodCode', $goodCodes)
             ->get()
             ->keyBy('GoodCode');
 
-        // Map data สำหรับส่งไป Inertia
-        $movementsData = $movements->map(function ($m) use ($emGoods, $employees, $search) {
+        // Map ข้อมูลสุดท้าย
+        $movementsData = $movements->map(function ($m) use ($emGoods, $employees) {
             $goodName = $emGoods[$m->goodCodeStore]->GoodName1 ?? '-';
             $empName = $employees[$m->employee_id] ?? $m->userName ?? '-';
-
-            // Filter GoodName ถ้ามี search
-            if (!empty($search)) {
-                if (
-                    !str_contains(mb_strtolower($goodName), $search) &&
-                    !str_contains(mb_strtolower($m->goodCodeStore ?? ''), $search)
-                ) {
-                    return null;
-                }
-            }
 
             return [
                 'id' => $m->id,
@@ -93,25 +85,22 @@ class StoreMovementController extends Controller
                 'type' => $m->type,
                 'movement_type' => $m->movement_type,
                 'category' => $m->category,
-                'date' => $m->created_at->format('Y-m-d'),
-                'created_at' => $m->created_at->format('Y-m-d'),
+                'date' => $m->created_at?->format('Y-m-d'),
+                'created_at' => $m->created_at?->format('Y-m-d'),
                 'user' => $empName,
                 'note' => $m->note,
                 'status' => $m->status,
             ];
-        })->filter()->values(); // filter null ออก
+        });
 
+        // ✅ ส่งทั้งหมดให้ Inertia
         return Inertia::render('Store/StoreMovement', [
             'title' => 'การเคลื่อนไหวของสินค้า',
             'movements' => $movementsData,
-            'pagination' => [
-                'current_page' => $movements->currentPage(),
-                'last_page' => $movements->lastPage(),
-                'per_page' => $movements->perPage(),
-                'total' => $movements->total(),
-            ]
+            'total' => $movementsData->count(),
         ]);
     }
+
 
     // สร้าง movement ใหม่
     public function stock(Request $request)
@@ -165,5 +154,4 @@ class StoreMovementController extends Controller
         // dd($movements);
         return redirect()->back()->with('success', 'บันทึก movement เรียบร้อยแล้ว');
     }
-
 }

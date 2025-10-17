@@ -22,9 +22,21 @@ export default function StoreMovementPage({ title, movements }) {
         setSortConfig({ key, direction });
     };
 
-    // Filter และเรียงลำดับ
+
+    // Filter และเรียงลำดับ - กรอง quantity เป็น 0 ใน React
     const filteredMovements = useMemo(() => {
-        return movements.filter(m => {
+        if (!movements || !Array.isArray(movements)) {
+            return [];
+        }
+
+        const filtered = movements.filter(m => {
+            if (!m) return false;
+
+            // กรอง quantity เป็น 0
+            if (m.stockQty === 0 || m.stockQty === "0") {
+                return false;
+            }
+
             const matchesSearch =
                 (m.goodName || '').toLowerCase().includes(search.toLowerCase().trim()) ||
                 (m.goodCodeStore?.toString().toLowerCase() || '').includes(search.toLowerCase().trim());
@@ -36,11 +48,10 @@ export default function StoreMovementPage({ title, movements }) {
             else if (filterType === "return") matchesType = m.movement_type === "return";
             else if (filterType === "adjustment") matchesType = m.movement_type === "adjustment";
 
-            // กรอง issue ที่คืนครบแล้วออก
-            const notFullyReturned = !(m.movement_type === "issue" && m.remaining_qty === 0);
-
-            return matchesSearch && matchesType && notFullyReturned;
+            return matchesSearch && matchesType;
         });
+
+        return filtered;
     }, [search, filterType, movements]);
 
     const sortedMovements = useMemo(() => {
@@ -554,7 +565,7 @@ export default function StoreMovementPage({ title, movements }) {
                         </div>
                     </div>
                 )}
-                
+
             </div>
         </AppLayout>
     );
