@@ -32,8 +32,21 @@ interface POInvWin {
 }
 
 export default function FinancialReport() {
-    const [startDate, setStartDate] = useState('2025-01-01');
-    const [endDate, setEndDate] = useState('2025-09-30');
+    const getCurrentDate = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const getFirstDayOfCurrentYear = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        return `${year}-01-01`;
+    };
+    const [startDate, setStartDate] = useState(getFirstDayOfCurrentYear());
+    const [endDate, setEndDate] = useState(getCurrentDate());
     const [reportData, setReportData] = useState<Category[]>([]);
     const [salesDataWeb, setSalesDataWeb] = useState<SaleMar[]>([]);
     const [salesDataWinRe, setSalesDataWinRe] = useState<SaleMarWinRe[]>([]);
