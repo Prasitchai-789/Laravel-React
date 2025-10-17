@@ -164,6 +164,11 @@ const DevNavItems: NavItem[] = [
         href: '/purchase/dashboard',
         icon: CreditCard,
     },
+    {
+        title: 'งบทดลองเบื้องต้น',
+        href: '/accounts',
+        icon: CreditCard,
+    },
 
 ];
 

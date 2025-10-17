@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\POInvController;
 use Inertia\Inertia;
 use Dflydev\DotAccessData\Data;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\PUR\POController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ChemicalController;
 use App\Http\Controllers\AGR\SalesController;
@@ -13,6 +15,7 @@ use App\Http\Controllers\AGR\StockController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\StockOrderController;
+use App\Http\Controllers\ACC\AccountController;
 use App\Http\Controllers\AGR\ProductController;
 use App\Http\Controllers\Api\CitizenController;
 use App\Http\Controllers\ExportStoreController;
@@ -23,6 +26,7 @@ use App\Http\Controllers\Store\StoreOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
 use App\Http\Controllers\Store\StoreMovementController;
 use App\Http\Controllers\Api\PurchaseDashboardController;
+use App\Http\Controllers\Api\SaleMARController;
 use App\Http\Controllers\Dashboard\CostAnalysisController;
 use App\Http\Controllers\Dashboard\DailyBarCharController;
 use App\Http\Controllers\Dashboard\PalmDashboardController;
@@ -31,7 +35,6 @@ use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
-use App\Http\Controllers\PUR\POController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -296,11 +299,19 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 
 
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {
-    Route::get('purchase/po', [POController::class, 'index']);
-    Route::get('/purchase/po/api', [POController::class, 'apiIndex']);
-    Route::get('/purchase/po/show/{id}', [POController::class, 'show'])->name('po.show');
-    Route::get('/purchase/po/chart', [POController::class, 'apiChart'])->name('po.chart');
-    Route::get('/expense-by-dept', [POController::class, 'expenseByDept'])->name('expense-by-dept');
+
+Route::get('purchase/po', [POController::class, 'index']);
+Route::get('/purchase/po/api', [POController::class, 'apiIndex']);
+Route::get('/purchase/po/show/{id}', [POController::class, 'show'])->name('po.show');
+Route::get('/purchase/po/chart', [POController::class, 'apiChart'])->name('po.chart');
+Route::get('/expense-by-dept', [POController::class, 'expenseByDept'])->name('expense-by-dept');
+Route::get('/accounts', [AccountController::class, 'index'])->name('accounts');
+Route::get('/accounts/api', [AccountController::class, 'getAccounts'])->name('accounts.api');
+Route::get('/sales-mar/api', [SaleMARController::class, 'getSalesWeb'])->name('sales.mar.api');
+Route::get('/sales-mar-win/api', [SaleMARController::class, 'getSalesWin'])->name('sales.mar.win.api');
+Route::get('/poinv-win/api', [POInvController::class, 'getPOInv'])->name('poinv.win.api');
+
+
 });
 
 
