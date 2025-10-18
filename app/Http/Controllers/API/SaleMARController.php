@@ -46,7 +46,7 @@ class SaleMARController extends Controller
             $sales = SOInvDT::selectRaw('GoodID, SUM(GoodAmnt) as total_amount')
                 ->whereHas('invoice', function ($query) use ($start_date, $end_date) {
                     $query->whereBetween('DocuDate', [$start_date, $end_date])
-                        ->whereIn('DocuType', [107, 108]);
+                        ->whereIn('Docutype', [107, 108]);
                 })
                 ->groupBy('GoodID')
                 ->get();
@@ -55,7 +55,7 @@ class SaleMARController extends Controller
             $returns = SOInvDT::selectRaw('GoodID, SUM(GoodAmnt) as total_amount')
                 ->whereHas('invoice', function ($query) use ($start_date, $end_date) {
                     $query->whereBetween('DocuDate', [$start_date, $end_date])
-                        ->whereIn('DocuType', [109]);
+                        ->whereIn('Docutype', [109]);
                 })
                 ->groupBy('GoodID')
                 ->get();
