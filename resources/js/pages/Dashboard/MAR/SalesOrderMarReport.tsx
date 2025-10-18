@@ -88,7 +88,8 @@ export default function SalesOrderMarReport() {
                     good_id: selectedGoodId
                 },
             });
-            const salesData = response.data.data || [];
+            console.log('API Response:', response.data); // Debug log
+            const salesData = response.data.data || {};
             setSalesData(salesData);
         } catch (error) {
             console.error(error);
@@ -98,45 +99,66 @@ export default function SalesOrderMarReport() {
         }
     };
 
+    // ฟังก์ชันช่วยในการแปลงค่าให้เป็นตัวเลข
+    const parseNumber = (value: any): number => {
+        if (value === null || value === undefined || value === '') return 0;
+        const num = Number(value);
+        return isNaN(num) ? 0 : num;
+    };
+
+    // ฟังก์ชันจัดรูปแบบตัวเลข
+    const formatNumber = (num: number): string => {
+        return num.toLocaleString('th-TH');
+    };
+
     // Summary Cards Component
     const SummaryCards = () => {
         if (!salesData) return null;
+
+        console.log('Sales Data for Summary:', salesData); // Debug log
 
         const sales = salesData.sales?.[selectedGoodId] || [];
         const returns = salesData.returns?.[selectedGoodId] || [];
         const weights = salesData.weights?.[selectedGoodId] || [];
 
-        const totalSales = sales.reduce((sum: number, item: MonthlyData) => sum + (item.total_amount || 0), 0);
-        const totalReturns = returns.reduce((sum: number, item: MonthlyData) => sum + (item.total_amount || 0), 0);
-        const totalWeight = weights.reduce((sum: number, item: WeightData) => sum + (item.total_weight || 0), 0);
+        // ใช้ parseNumber เพื่อแปลงค่าให้เป็นตัวเลขที่ถูกต้อง
+        const totalSales = sales.reduce((sum: number, item: MonthlyData) =>
+            sum + parseNumber(item?.total_amount), 0);
+        const totalReturns = returns.reduce((sum: number, item: MonthlyData) =>
+            sum + parseNumber(item?.total_amount), 0);
+        const totalWeight = weights.reduce((sum: number, item: WeightData) =>
+            sum + parseNumber(item?.total_weight), 0);
+
         const netSales = totalSales - totalReturns;
         const avgPrice = totalWeight > 0 ? netSales / totalWeight : 0;
+
+        console.log('Calculated values:', { totalSales, totalReturns, totalWeight, avgPrice }); // Debug log
 
         const cards = [
             {
                 title: 'ปริมาณรวม',
-                value: `${totalWeight.toLocaleString('th-TH')} กก.`,
+                value: `${formatNumber(totalWeight)} กก.`,
                 icon: '⚖️',
                 color: 'from-blue-500 to-blue-600',
                 textColor: 'text-blue-100'
             },
             {
                 title: 'ยอดขายรวม',
-                value: `${totalSales.toLocaleString('th-TH')} บาท`,
+                value: `${formatNumber(totalSales)} บาท`,
                 icon: '💰',
                 color: 'from-green-500 to-green-600',
                 textColor: 'text-green-100'
             },
             {
                 title: 'ลดหนี้รวม',
-                value: `${totalReturns.toLocaleString('th-TH')} บาท`,
+                value: `${formatNumber(totalReturns)} บาท`,
                 icon: '📉',
                 color: 'from-red-500 to-red-600',
                 textColor: 'text-red-100'
             },
             {
                 title: 'ราคาเฉลี่ย',
-                value: `${avgPrice.toFixed(2)} บาท/กก.`,
+                value: avgPrice > 0 ? `${avgPrice.toFixed(2)} บาท/กก.` : '0.00 บาท/กก.',
                 icon: '📊',
                 color: 'from-purple-500 to-purple-600',
                 textColor: 'text-purple-100'
@@ -175,6 +197,8 @@ export default function SalesOrderMarReport() {
         const returns = salesData.returns?.[selectedGoodId] || [];
         const weights = salesData.weights?.[selectedGoodId] || [];
 
+        console.log('Table Data:', { sales, returns, weights }); // Debug log
+
         const monthNames = [
             'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
             'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
@@ -187,12 +211,20 @@ export default function SalesOrderMarReport() {
 
         const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
-        // คำนวณผลรวม
-        const totalSales = sales.reduce((sum: number, item: MonthlyData) => sum + (item.total_amount || 0), 0);
-        const totalReturns = returns.reduce((sum: number, item: MonthlyData) => sum + (item.total_amount || 0), 0);
-        const totalWeight = weights.reduce((sum: number, item: WeightData) => sum + (item.total_weight || 0), 0);
+        // คำนวณผลรวมด้วย parseNumber
+        const totalSales = sales.reduce((sum: number, item: MonthlyData) =>
+            sum + parseNumber(item?.total_amount), 0);
+        const totalReturns = returns.reduce((sum: number, item: MonthlyData) =>
+            sum + parseNumber(item?.total_amount), 0);
+        const totalWeight = weights.reduce((sum: number, item: WeightData) =>
+            sum + parseNumber(item?.total_weight), 0);
         const netSales = totalSales - totalReturns;
         const avgPrice = totalWeight > 0 ? netSales / totalWeight : 0;
+
+        // นับเดือนที่มีการขาย
+        const monthsWithSales = sales.filter((s: MonthlyData) =>
+            parseNumber(s?.total_amount) > 0
+        ).length;
 
         return (
             <div className="rounded-2xl bg-white p-4 lg:p-6 shadow-lg border border-gray-100">
@@ -201,12 +233,13 @@ export default function SalesOrderMarReport() {
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <h2 className="text-xl lg:text-2xl font-bold text-gray-900">
-                                {goods.find(g => g.id === selectedGoodId)?.name || 'สินค้า'} <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full font-medium">
-                                ปี {currentYear + 543}
-                            </span>
+                                {goods.find(g => g.id === selectedGoodId)?.name || 'สินค้า'}
+                                <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full font-medium ml-2">
+                                    ปี {currentYear + 543}
+                                </span>
                             </h2>
                             <p className="text-gray-600 mt-1 text-sm lg:text-base">
-                                 {new Date(startDate).toLocaleDateString('th-TH')} - {new Date(endDate).toLocaleDateString('th-TH')}
+                                {new Date(startDate).toLocaleDateString('th-TH')} - {new Date(endDate).toLocaleDateString('th-TH')}
                             </p>
                         </div>
                     </div>
@@ -223,9 +256,9 @@ export default function SalesOrderMarReport() {
                         <thead>
                             <tr className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                                 <th className="p-3 font-semibold text-left rounded-tl-2xl">เดือน</th>
-                                <th className="p-3 font-semibold text-right">ปริมาณ</th>
-                                <th className="p-3 font-semibold text-right">ยอดเงิน</th>
-                                <th className="p-3 font-semibold text-right">ลดหนี้</th>
+                                <th className="p-3 font-semibold text-right">ปริมาณ (กก.)</th>
+                                <th className="p-3 font-semibold text-right">ยอดเงิน (บาท)</th>
+                                <th className="p-3 font-semibold text-right">ลดหนี้ (บาท)</th>
                                 <th className="p-3 font-semibold text-right rounded-tr-2xl">เฉลี่ย/กก.</th>
                             </tr>
                         </thead>
@@ -235,9 +268,10 @@ export default function SalesOrderMarReport() {
                                 const ret = returns.find((r: MonthlyData) => r.month === month);
                                 const wei = weights.find((w: WeightData) => w.month === month);
 
-                                const totalAmount = sale?.total_amount || 0;
-                                const totalReturn = ret?.total_amount || 0;
-                                const totalWeight = wei?.total_weight || 0;
+                                // ใช้ parseNumber เพื่อความปลอดภัย
+                                const totalAmount = parseNumber(sale?.total_amount);
+                                const totalReturn = parseNumber(ret?.total_amount);
+                                const totalWeight = parseNumber(wei?.total_weight);
                                 const netAmount = totalAmount - totalReturn;
                                 const avgPrice = totalWeight > 0 ? netAmount / totalWeight : 0;
 
@@ -252,28 +286,36 @@ export default function SalesOrderMarReport() {
                                     >
                                         <td className="p-3 font-medium text-gray-900">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm text-gray-500 w-6">{(month).toString().padStart(2, '0')}</span>
+                                                <span className="text-sm text-gray-500 w-6">{month.toString().padStart(2, '0')}</span>
                                                 <span>{fullMonthNames[month - 1]}</span>
                                             </div>
                                         </td>
                                         <td className="p-3 text-right font-mono text-sm">
-                                            {totalWeight ? (
-                                                <span className="font-semibold text-blue-700">{totalWeight.toLocaleString('th-TH')}</span>
+                                            {totalWeight > 0 ? (
+                                                <span className="font-semibold text-blue-700">
+                                                    {formatNumber(totalWeight)}
+                                                </span>
                                             ) : '-'}
                                         </td>
                                         <td className="p-3 text-right font-mono text-sm">
-                                            {totalAmount ? (
-                                                <span className="font-semibold text-gray-900">{totalAmount.toLocaleString('th-TH')}</span>
+                                            {totalAmount > 0 ? (
+                                                <span className="font-semibold text-gray-900">
+                                                    {formatNumber(totalAmount)}
+                                                </span>
                                             ) : '-'}
                                         </td>
                                         <td className="p-3 text-right font-mono text-sm">
-                                            {totalReturn ? (
-                                                <span className="font-semibold text-red-600">-{totalReturn.toLocaleString('th-TH')}</span>
+                                            {totalReturn > 0 ? (
+                                                <span className="font-semibold text-red-600">
+                                                    -{formatNumber(totalReturn)}
+                                                </span>
                                             ) : '-'}
                                         </td>
                                         <td className="p-3 text-right font-mono text-sm">
-                                            {avgPrice ? (
-                                                <span className="font-semibold text-green-600">{avgPrice.toFixed(2)}</span>
+                                            {avgPrice > 0 ? (
+                                                <span className="font-semibold text-green-600">
+                                                    {avgPrice.toFixed(2)}
+                                                </span>
                                             ) : '-'}
                                         </td>
                                     </tr>
@@ -283,10 +325,18 @@ export default function SalesOrderMarReport() {
                         <tfoot>
                             <tr className="bg-gray-50 font-semibold">
                                 <td className="p-3 text-gray-900 rounded-bl-2xl">รวมทั้งหมด</td>
-                                <td className="p-3 text-right font-mono text-blue-700">{totalWeight.toLocaleString('th-TH')}</td>
-                                <td className="p-3 text-right font-mono">{totalSales.toLocaleString('th-TH')}</td>
-                                <td className="p-3 text-right font-mono text-red-600">-{totalReturns.toLocaleString('th-TH')}</td>
-                                <td className="p-3 text-right font-mono text-green-600 rounded-br-2xl">{avgPrice.toFixed(2)}</td>
+                                <td className="p-3 text-right font-mono text-blue-700">
+                                    {formatNumber(totalWeight)}
+                                </td>
+                                <td className="p-3 text-right font-mono">
+                                    {formatNumber(totalSales)}
+                                </td>
+                                <td className="p-3 text-right font-mono text-red-600">
+                                    -{formatNumber(totalReturns)}
+                                </td>
+                                <td className="p-3 text-right font-mono text-green-600 rounded-br-2xl">
+                                    {avgPrice > 0 ? avgPrice.toFixed(2) : '0.00'}
+                                </td>
                             </tr>
                         </tfoot>
                     </table>
@@ -297,13 +347,13 @@ export default function SalesOrderMarReport() {
                     <div className="bg-blue-50 rounded-lg p-3 text-center">
                         <div className="text-blue-600 font-semibold">เดือนที่มีการขาย</div>
                         <div className="text-gray-900 font-bold text-sm">
-                            {sales.filter((s: MonthlyData) => s.total_amount > 0).length} / 12 เดือน
+                            {monthsWithSales} / 12 เดือน
                         </div>
                     </div>
                     <div className="bg-green-50 rounded-lg p-3 text-center">
                         <div className="text-green-600 font-semibold">อัตราการขาย</div>
                         <div className="text-gray-900 font-bold text-sm">
-                            {((sales.filter((s: MonthlyData) => s.total_amount > 0).length / 12) * 100).toFixed(0)}%
+                            {((monthsWithSales / 12) * 100).toFixed(0)}%
                         </div>
                     </div>
                 </div>
@@ -389,25 +439,6 @@ export default function SalesOrderMarReport() {
                             </div>
                         </div>
                     </div>
-
-                    {/* Search Button */}
-                    {/* <button
-                        onClick={fetchData}
-                        disabled={loading || !selectedGoodId}
-                        className="w-full lg:w-auto flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 lg:px-8 py-3 font-medium text-white shadow-lg transition-all duration-300 hover:scale-[1.02] hover:from-blue-700 hover:to-blue-800 hover:shadow-xl disabled:from-gray-400 disabled:to-gray-500 disabled:hover:scale-100 disabled:cursor-not-allowed"
-                    >
-                        {loading ? (
-                            <>
-                                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                                <span>กำลังโหลด...</span>
-                            </>
-                        ) : (
-                            <>
-                                <span className="text-lg">🔍</span>
-                                <span>ค้นหาข้อมูล</span>
-                            </>
-                        )}
-                    </button> */}
                 </div>
 
                 {/* Summary Cards - Desktop */}
