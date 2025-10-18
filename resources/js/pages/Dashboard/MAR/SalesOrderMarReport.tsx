@@ -88,7 +88,6 @@ export default function SalesOrderMarReport() {
                     good_id: selectedGoodId,
                 },
             });
-            console.log('API Response:', response.data); // Debug log
             const salesData = response.data.data || {};
             setSalesData(salesData);
         } catch (error) {
@@ -111,11 +110,27 @@ export default function SalesOrderMarReport() {
         return num.toLocaleString('th-TH');
     };
 
+     const formatMB = (amount: number) => {
+        if (amount === null || amount === undefined || isNaN(amount)) {
+            return '0.00';
+        }
+        return (amount / 1000000).toLocaleString('th-TH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    };
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('th-TH', {
+            style: 'currency',
+            currency: 'THB',
+            minimumFractionDigits: 0,
+        }).format(amount);
+    };
     // Summary Cards Component
     const SummaryCards = () => {
         if (!salesData) return null;
 
-        console.log('Sales Data for Summary:', salesData); // Debug log
 
         const sales = salesData.sales?.[selectedGoodId] || [];
         const returns = salesData.returns?.[selectedGoodId] || [];
@@ -129,7 +144,6 @@ export default function SalesOrderMarReport() {
         const netSales = totalSales - totalReturns;
         const avgPrice = totalWeight > 0 ? netSales / totalWeight : 0;
 
-        console.log('Calculated values:', { totalSales, totalReturns, totalWeight, avgPrice }); // Debug log
 
         const cards = [
             {
@@ -141,7 +155,7 @@ export default function SalesOrderMarReport() {
             },
             {
                 title: 'ยอดขายรวม',
-                value: `${formatNumber(totalSales)} บาท`,
+                value: `${formatMB(totalSales)} MB.`,
                 icon: '💰',
                 color: 'from-green-500 to-green-600',
                 textColor: 'text-green-100',
@@ -195,7 +209,6 @@ export default function SalesOrderMarReport() {
         const returns = salesData.returns?.[selectedGoodId] || [];
         const weights = salesData.weights?.[selectedGoodId] || [];
 
-        console.log('Table Data:', { sales, returns, weights }); // Debug log
 
         const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
@@ -264,9 +277,9 @@ export default function SalesOrderMarReport() {
                         </thead>
                         <tbody>
                             {months.map((month) => {
-                                const sale = sales.find((s: MonthlyData) => s.month === month);
-                                const ret = returns.find((r: MonthlyData) => r.month === month);
-                                const wei = weights.find((w: WeightData) => w.month === month);
+                                const sale = sales.find((s: MonthlyData) => Number(s.month) === Number(month) );
+                                const ret = returns.find((r: MonthlyData) => Number(r.month) === Number(month));
+                                const wei = weights.find((w: WeightData) => Number(w.month) === Number(month));
 
                                 // ใช้ parseNumber เพื่อความปลอดภัย
                                 const totalAmount = parseNumber(sale?.total_amount);
@@ -298,10 +311,10 @@ export default function SalesOrderMarReport() {
                                             {hasWeightData ? <span className="font-semibold text-blue-700">{formatNumber(totalWeight)}</span> : '-'}
                                         </td>
                                         <td className="p-3 text-right font-anuphan text-sm">
-                                            {hasAmountData ? <span className="font-semibold text-gray-900">{formatNumber(totalAmount)}</span> : '-'}
+                                            {hasAmountData ? <span className="font-semibold text-gray-900">{formatCurrency(totalAmount)}</span> : '-'}
                                         </td>
                                         <td className="p-3 text-right font-anuphan text-sm">
-                                            {hasReturnData ? <span className="font-semibold text-red-600">-{formatNumber(totalReturn)}</span> : '-'}
+                                            {hasReturnData ? <span className="font-semibold text-red-600">-{formatCurrency(totalReturn)}</span> : '-'}
                                         </td>
                                         <td className="p-3 text-right font-anuphan text-sm">
                                             {hasWeightData && totalWeight > 0 ? (
