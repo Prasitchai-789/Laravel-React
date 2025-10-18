@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\POInvController;
 use Inertia\Inertia;
 use Dflydev\DotAccessData\Data;
 use Illuminate\Support\Facades\Route;
@@ -12,12 +11,14 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ChemicalController;
 use App\Http\Controllers\AGR\SalesController;
 use App\Http\Controllers\AGR\StockController;
+use App\Http\Controllers\Api\POInvController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\StockOrderController;
 use App\Http\Controllers\ACC\AccountController;
 use App\Http\Controllers\AGR\ProductController;
 use App\Http\Controllers\Api\CitizenController;
+use App\Http\Controllers\Api\SaleMARController;
 use App\Http\Controllers\ExportStoreController;
 use App\Http\Controllers\StoreExportController;
 use App\Http\Controllers\AGR\CustomerController;
@@ -26,10 +27,11 @@ use App\Http\Controllers\Store\StoreOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
 use App\Http\Controllers\Store\StoreMovementController;
 use App\Http\Controllers\Api\PurchaseDashboardController;
-use App\Http\Controllers\Api\SaleMARController;
 use App\Http\Controllers\Dashboard\CostAnalysisController;
 use App\Http\Controllers\Dashboard\DailyBarCharController;
+use App\Http\Controllers\Dashboard\SaleOrderMarController;
 use App\Http\Controllers\Dashboard\PalmDashboardController;
+use App\Http\Controllers\Dashboard\SalesOrderMarController;
 use App\Http\Controllers\Dashboard\PalmProductionController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
@@ -310,6 +312,8 @@ Route::get('/accounts/api', [AccountController::class, 'getAccounts'])->name('ac
 Route::get('/sales-mar/api', [SaleMARController::class, 'getSalesWeb'])->name('sales.mar.api');
 Route::get('/sales-mar-win/api', [SaleMARController::class, 'getSalesWin'])->name('sales.mar.win.api');
 Route::get('/poinv-win/api', [POInvController::class, 'getPOInv'])->name('poinv.win.api');
+Route::get('/sales-order', [SalesOrderMarController::class, 'index'])->name('sales.order.index');
+Route::get('/sales-order-summary/api', [SaleMARController::class, 'getSalesSummary'])->name('sales.order.summary.api');
 
 
 });

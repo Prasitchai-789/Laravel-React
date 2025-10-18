@@ -42,6 +42,7 @@ import {
     MonitorSmartphone,
     ScrollText,
     CreditCard,
+    BadgeDollarSign
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -168,6 +169,11 @@ const DevNavItems: NavItem[] = [
         title: 'งบทดลองเบื้องต้น',
         href: '/accounts',
         icon: CreditCard,
+    },
+    {
+        title: 'รายงานการขายสินค้า',
+        href: '/sales-order',
+        icon: BadgeDollarSign,
     },
 
 ];
