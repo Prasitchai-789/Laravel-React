@@ -257,7 +257,9 @@ export default function Index() {
                                 </div>
                                 <div className="ml-4 flex-1">
                                     <h3 className="text-sm font-medium text-gray-500">ผลรวมปี {yearLabel}</h3>
-                                    <p className="mt-1 text-2xl font-bold text-gray-900">{summaryLoading ? 'กำลังโหลด...' : formatCurrency(summary.year.total)}</p>
+                                    <p className="mt-1 text-2xl font-bold text-gray-900">
+                                        {summaryLoading ? 'กำลังโหลด...' : formatCurrency(summary.year.total)}
+                                    </p>
                                     <p className="mt-1 text-xs text-gray-500">{summary.year.count.toLocaleString()} รายการ</p>
                                 </div>
                             </div>
@@ -282,7 +284,9 @@ export default function Index() {
                                     <h3 className="text-sm font-medium text-gray-500">
                                         ผลรวมเดือน {selectedMonth ? monthLabel : `ทั้งหมดปี ${yearLabel}`}
                                     </h3>
-                                    <p className="mt-1 text-2xl font-bold text-gray-900">{summaryLoading ? 'กำลังโหลด...' :formatCurrency(summary.month.total)}</p>
+                                    <p className="mt-1 text-2xl font-bold text-gray-900">
+                                        {summaryLoading ? 'กำลังโหลด...' : formatCurrency(summary.month.total)}
+                                    </p>
                                     <p className="mt-1 text-xs text-gray-500">{summary.month.count.toLocaleString()} รายการ</p>
                                 </div>
                             </div>
@@ -305,7 +309,9 @@ export default function Index() {
                                 </div>
                                 <div className="ml-4 flex-1">
                                     <h3 className="text-sm font-medium text-gray-500">ข้อมูลทั้งหมด</h3>
-                                    <p className="mt-1 text-2xl font-bold text-gray-900">{summaryLoading ? 'กำลังโหลด...' :data.length.toLocaleString()}</p>
+                                    <p className="mt-1 text-2xl font-bold text-gray-900">
+                                        {summaryLoading ? 'กำลังโหลด...' : data.length.toLocaleString()}
+                                    </p>
                                     <p className="mt-1 text-xs text-gray-500">รายการที่แสดง</p>
                                 </div>
                             </div>
@@ -322,18 +328,35 @@ export default function Index() {
                                 <label htmlFor="dept-filter" className="mb-2 block text-sm font-medium text-gray-700">
                                     หน่วยงาน
                                 </label>
-                                <select
-                                    id="dept-filter"
-                                    value={selectedDept}
-                                    onChange={(e) => handleDeptChange(e.target.value)}
-                                    className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:text-sm"
-                                >
-                                    {depts.map((d) => (
-                                        <option key={d.DeptID} value={d.DeptID}>
-                                            {d.DeptName}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="relative">
+                                    <select
+                                        id="dept-filter"
+                                        value={selectedDept}
+                                        onChange={(e) => handleDeptChange(e.target.value)}
+                                        className="block w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:text-sm"
+                                    >
+                                        {depts.map((d) => (
+                                            <option key={d.DeptID} value={d.DeptID}>
+                                                {d.DeptName}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                        <svg
+                                            className="h-5 w-5 text-gray-400"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                            aria-hidden="true"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Year Filter */}
