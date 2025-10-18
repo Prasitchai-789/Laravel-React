@@ -17,61 +17,64 @@ class PurchaseDashboardController extends Controller
     }
 
     public function apiIndex(Request $request)
-{
-    $year = $request->input('year', date('Y'));
-    $month = $request->input('month', date('m'));
+    {
+        $year = $request->input('year', date('Y'));
+        $month = $request->input('month', null); // null = ทั้งปี
+        $deptId = $request->input('dept_id', null); // null = ทุกฝ่าย
+        $onhold = $request->input('OnHold', 'N'); // ค่า default ตามที่ต้องการ
+        $cancelflag = $request->input('CancelFlag', 'N');
 
-    $query = POHD::on('sqlsrv2')
-        ->join('PODT', 'POHD.POID', '=', 'PODT.POID')
-        ->join('dbo.EMDept', 'POHD.DeptID', '=', 'EMDept.DeptID')
-        ->select(
-            'POHD.DeptID',
-            'EMDept.DeptName',
-            DB::raw('SUM(POHD.TotabaseAmnt) as TotalBase'),
-            DB::raw('SUM(POHD.VATAmnt) as TotalVAT'),
-            DB::raw('SUM(POHD.NetAmnt) as TotalNet')
-        )
-        ->whereYear('POHD.DocuDate', $year);
+        $query = DB::connection('sqlsrv2')
+            ->table('POHD')
+            ->join('EMDept', 'EMDept.DeptID', '=', 'POHD.DeptID')
+            ->leftJoin('POInvHD', 'POInvHD.PONo', '=', 'POHD.AppvDocuNo')
+            ->leftJoin('GLHD', 'GLHD.DocuNo', '=', 'POInvHD.DocuNo')
+            ->select(
+                'POHD.DeptID',
+                'EMDept.DeptName',
+                DB::raw('SUM(POHD.SumGoodAmnt) as TotalBase'),
+                DB::raw('SUM(GLHD.TotaAmnt) as TotalNet')
+            )
+            ->whereYear('POHD.DocuDate', $year)
+            ->whereNotNull('POHD.POVendorNo')
+            ->whereNotNull('POHD.RefDocuNo')
+            ->where('POHD.DocuType', 305);
+        // กรองเดือน ถ้า user เลือก
+        if ($month) {
+            $query->whereMonth('POHD.DocuDate', $month);
+        }
 
-    if ($month != 0) { // 0 = ทั้งหมด
-        $query->whereMonth('POHD.DocuDate', $month);
+        // กรองฝ่าย ถ้า user เลือก
+        if ($deptId) {
+            $query->where('POHD.DeptID', $deptId);
+        }
+
+        $data = $query
+            ->groupBy('POHD.DeptID', 'EMDept.DeptName')
+            ->orderBy('EMDept.DeptName', 'asc')
+            ->get();
+
+        return response()->json(['dashboard' => $data]);
     }
 
-    $data = $query
-        ->groupBy('POHD.DeptID', 'EMDept.DeptName')
-        ->get();
-
-    return response()->json(['dashboard' => $data]);
-}
 
 
-    /**
-     * Store a newly created resource in storage.
-     */
+
     public function store(Request $request)
     {
         //
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         //
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
         //
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         //

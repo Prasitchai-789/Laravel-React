@@ -9,6 +9,7 @@ interface Data {
     DocuDate: string;
     DeptName: string;
     POVendorNo: string;
+    RefDocuNo: string;
     AppvDocuNo: string;
     status: string;
     status_label: string;
@@ -18,27 +19,36 @@ interface Data {
 interface PODocumentTableProps {
     documents: Data[];
     onDetail?: (document: Data) => void;
+    currentPage: number;
+    perPage: number;
+    totalRecords: number;
+    onPageChange: (page: number) => void;
+    onPerPageChange: (perPage: number) => void;
 }
 
-export default function PODocumentTable({ documents, onDetail }: PODocumentTableProps) {
+export default function PODocumentTable({
+    documents,
+    onDetail,
+    currentPage,
+    perPage,
+    totalRecords,
+    onPageChange,
+    onPerPageChange
+}: PODocumentTableProps) {
     const [selectedMonth, setSelectedMonth] = useState('');
 
-    useEffect(() => {}, [selectedMonth]);
-    const filterByMonth = (documents: Document[], month: string) => {
-        if (!month) return documents; // ถ้าเลือก "ทั้งหมด"
-        const [year, monthNum] = month.split('-').map(Number);
-        return documents.filter((doc) => {
-            const docDate = new Date(doc.DocuDate);
-            return docDate.getFullYear() === year && docDate.getMonth() + 1 === monthNum;
-        });
-    };
-    const handleDetail = (document: Document) => {
-        if (onDetail) onDetail(document);
+    const handlePageChange = (page: number) => {
+        onPageChange(page);
     };
 
-    const getCategoryName = (categories: Category[], row: Document) => {
-        const category = categories.find((category) => Number(category.id) === Number(row.category_id));
-        return category ? category.name : '-';
+    const handlePerPageChange = (newPerPage: number) => {
+        onPerPageChange(newPerPage);
+    };
+
+    useEffect(() => {}, [selectedMonth]);
+
+    const handleDetail = (document: Data) => {
+        if (onDetail) onDetail(document);
     };
 
     const statusMap: Record<string, { bg: string; text: string; label: string }> = {
@@ -52,53 +62,84 @@ export default function PODocumentTable({ documents, onDetail }: PODocumentTable
         return <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${s.bg} ${s.text}`}>{s.label}</span>;
     };
 
-    const filteredDocuments = filterByMonth(documents, selectedMonth);
+    // เรียงข้อมูลจากใหม่ไปเก่าก่อนส่งไปยัง GenericTable
+    const sortedDocuments = [...documents].sort((a, b) => {
+        return new Date(b.DocuDate).getTime() - new Date(a.DocuDate).getTime();
+    });
 
     const documentColumns: Column<Data>[] = [
-    {
-        key: 'DocuDate',
-        label: 'วันที่',
-        sortable: true,
-        align: 'center',
-        render: (document) => dayjs(document.DocuDate).format('DD/MM/YYYY')
-    },
-    {
-        key: 'POID',
-        label: 'เลขที่เอกสาร',
-        sortable: true,
-        align: 'center',
-        render: (document) => document.POVendorNo
-    },
-    {
-        key: 'total_amount',
-        label: 'ยอดชำระเงิน (บาท)',
-        align: 'right',
-        render: (document) =>  Number(document.total_amount).toLocaleString('th-TH', { style: 'currency', currency: 'THB' })
-    },
-    {
-        key: 'status',
-        label: 'สถานะ',
-        align: 'center',
-        render: (document) => renderStatus(document.status)
-    },
-    {
-        key: 'actions',
-        label: 'การดำเนินการ',
-        align: 'center',
-        render: (document) => (
-            <button onClick={() => handleDetail(document)}>
-                <Eye size={18} />
-            </button>
-        )
-    }
-];
+        {
+            key: 'DocuDate',
+            label: 'วันที่',
+            sortable: true,
+            align: 'center',
+            render: (document) => dayjs(document.DocuDate).format('DD/MM/YYYY')
+        },
+        {
+            key: 'POID',
+            label: 'เลขที่เอกสาร',
+            sortable: true,
+            align: 'center',
+            render: (document) => document.POVendorNo || '-'
+        },
+        {
+            key: 'RefDocuNo',
+            label: 'หน่วยงาน',
+            sortable: true,
+            align: 'left',
+            render: (document) => document.RefDocuNo || '-'
+        },
+        {
+            key: 'AppvDocuNo',
+            label: 'เลขที่อนุมัติ',
+            sortable: true,
+            align: 'center',
+            render: (document) => document.AppvDocuNo || '-'
+        },
+        {
+            key: 'total_amount',
+            label: 'ยอดชำระเงิน (บาท)',
+            align: 'right',
+            render: (document) => Number(document.total_amount || 0).toLocaleString('th-TH', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })
+        },
+        {
+            key: 'status',
+            label: 'สถานะ',
+            align: 'center',
+            render: (document) => renderStatus(document.status)
+        },
+        {
+            key: 'actions',
+            label: 'การดำเนินการ',
+            align: 'center',
+            render: (document) => (
+                <button
+                    onClick={() => handleDetail(document)}
+                    className="text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                    <Eye size={18} />
+                </button>
+            )
+        }
+    ];
 
     return (
         <GenericTable
             title="ข้อมูลเอกสารบันทึกข้อความ"
             columns={documentColumns}
-            data={filteredDocuments.sort((a, b) => b.POID - a.POID)}
+            data={sortedDocuments} // ใช้ข้อมูลที่เรียงแล้ว
             idField="POID"
+            // ส่ง props pagination ไปยัง GenericTable
+            currentPage={currentPage}
+            totalRecords={totalRecords}
+            onPageChange={handlePageChange}
+            onPerPageChange={handlePerPageChange}
+            itemsPerPage={perPage}
+            externalSearch={true}
+            initialSort="DocuDate" // ตั้งค่าให้เรียงตามวันที่เป็นค่าเริ่มต้น
             actions={(row) => (
                 <div className="flex justify-center gap-2">
                     <button

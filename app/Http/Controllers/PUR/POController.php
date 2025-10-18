@@ -25,6 +25,10 @@ class POController extends Controller
         $month = $request->input('month');
         $deptId = $request->input('dept_id', '1006');
 
+        // รับ pagination parameters จาก frontend
+        $page = $request->input('page', 1);
+        $perPage = $request->input('per_page', 10);
+
         // รายชื่อฝ่าย
         $depts = EMDept::select('DeptID', 'DeptName')->get();
 
@@ -33,7 +37,11 @@ class POController extends Controller
             ->with(['poInv.glHeader', 'department'])
             ->where('DeptID', $deptId)
             ->whereYear('DocuDate', $year)
-            ->whereNotNull('POVendorNo');
+            ->whereNotNull('POVendorNo')
+            ->whereNotNull('RefDocuNo')
+            ->where('POHD.DocuType', 305)
+            ->orderBy('DocuDate', 'desc') // เรียงจากใหม่ไปเก่า
+            ->orderBy('POID', 'desc'); // เรียงตาม POID ด้วยเพื่อความแน่นอน
 
         // ถ้ามีการเลือกเดือน -> กรองเฉพาะเดือนนั้น
         if (!empty($month)) {
@@ -41,8 +49,8 @@ class POController extends Controller
             $query->whereMonth('DocuDate', $monthNum);
         }
 
-        // ดึงข้อมูลแบบแบ่งหน้า
-        $data = $query->paginate(50);
+        // ดึงข้อมูลแบบแบ่งหน้า ด้วย page และ per_page ที่ส่งมาจาก frontend
+        $data = $query->paginate($perPage, ['*'], 'page', $page);
 
         // แปลงข้อมูลก่อนส่งออก
         $mapped = $data->getCollection()->map(function ($po) {
@@ -51,6 +59,7 @@ class POController extends Controller
                 'DocuDate'     => $po->DocuDate,
                 'DeptName'     => $po->department?->DeptName,
                 'POVendorNo'   => $po->POVendorNo,
+                'RefDocuNo'   => $po->RefDocuNo,
                 'AppvDocuNo'   => $po->AppvDocuNo,
                 'status'       => !empty($po->AppvDocuNo) ? 'approved' : 'pending',
                 'status_label' => !empty($po->AppvDocuNo) ? 'อนุมัติ' : 'รอดำเนินการ',
@@ -60,32 +69,39 @@ class POController extends Controller
         $data->setCollection($mapped);
 
         // ===== คำนวณผลรวมทั้งปีของฝ่าย =====
-        $yearDocs = POHD::on('sqlsrv2')
+        $yearQuery = POHD::on('sqlsrv2')
             ->with(['poInv.glHeader'])
             ->where('DeptID', $deptId)
             ->whereYear('DocuDate', $year)
-            ->whereNotNull('POVendorNo')
-            ->get();
+            ->whereNotNull('POVendorNo');
 
-        $yearCount = $yearDocs->count();
-        $yearTotal = $yearDocs->sum(fn($po) => $po->poInv?->glHeader?->TotaAmnt ?? 0);
+        $yearCount = $yearQuery->count();
+        $yearTotal = $yearQuery->get()->sum(fn($po) => $po->poInv?->glHeader?->TotaAmnt ?? 0);
 
         // ===== คำนวณผลรวมเดือนที่เลือก (ถ้ามี) =====
+        $monthQuery = POHD::on('sqlsrv2')
+            ->with(['poInv.glHeader'])
+            ->where('DeptID', $deptId)
+            ->whereYear('DocuDate', $year)
+            ->whereNotNull('POVendorNo');
+
         if (!empty($month)) {
-            $monthDocs = $yearDocs->filter(function ($po) use ($month) {
-                return date('Y-m', strtotime($po->DocuDate)) === $month;
-            });
-        } else {
-            $monthDocs = collect(); // ถ้าไม่เลือกเดือน
+            $monthNum = (int)substr($month, 5, 2);
+            $monthQuery->whereMonth('DocuDate', $monthNum);
         }
 
-        $monthCount = $monthDocs->count();
-        $monthTotal = $monthDocs->sum(fn($po) => $po->poInv?->glHeader?->TotaAmnt ?? 0);
-
+        $monthCount = $monthQuery->count();
+        $monthTotal = $monthQuery->get()->sum(fn($po) => $po->poInv?->glHeader?->TotaAmnt ?? 0);
 
         // ===== ส่ง response =====
         return response()->json([
-            'poDocs'  => $data,
+            'poDocs'  => [
+                'data' => $data->items(),
+                'total' => $data->total(),
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'last_page' => $data->lastPage(),
+            ],
             'depts'   => $depts,
             'summary' => [
                 'year'  => ['count' => $yearCount,  'total' => $yearTotal],
@@ -106,7 +122,9 @@ class POController extends Controller
             ->join('POInvHD', 'POHD.AppvDocuNo', '=', 'POInvHD.PONo')
             ->join('GLHD', 'POInvHD.DocuNo', '=', 'GLHD.DocuNo')
             ->whereYear('POHD.DocuDate', $year)
-            ->whereNotNull('POHD.POVendorNo');
+            ->whereNotNull('POHD.POVendorNo')
+            ->whereNotNull('RefDocuNo')
+            ->where('POHD.DocuType', 305);
 
         // ถ้ามีเดือน
         if (!empty($month)) {
