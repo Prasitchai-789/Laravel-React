@@ -18,6 +18,7 @@
         "maatwebsite/excel": "^3.1",
         "setasign/fpdi-tcpdf": "2.3",
         "spatie/laravel-permission": "^6.21",
+        "tecnickcom/tcpdf": "^6.10",
         "tightenco/ziggy": "^2.4"
     },
     "require-dev": {
