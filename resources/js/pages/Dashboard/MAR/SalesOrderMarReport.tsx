@@ -60,6 +60,7 @@ export default function SalesOrderMarReport() {
                 { id: 2147, name: 'น้ำมันปาล์มดิบ' },
                 { id: 2152, name: 'เมล็ดใน' },
                 { id: 2151, name: 'กะลาปาล์ม (เพียว)' },
+                { id: 9012, name: 'ทะลายสับ (EFB Fiber)' },
                 { id: 2149, name: 'ทะลายปาล์ม' },
                 { id: 2150, name: 'ใยปาล์ม' },
             ];
@@ -331,8 +332,8 @@ export default function SalesOrderMarReport() {
                             <tr className="bg-gray-50 font-semibold">
                                 <td className="rounded-bl-2xl p-3 text-gray-900">รวมทั้งหมด</td>
                                 <td className="p-3 text-right font-anuphan text-blue-700">{formatNumber(totalWeight)}</td>
-                                <td className="p-3 text-right font-anuphan">{formatNumber(totalSales)}</td>
-                                <td className="p-3 text-right font-anuphan text-red-600">-{formatNumber(totalReturns)}</td>
+                                <td className="p-3 text-right font-anuphan">{formatCurrency(totalSales)}</td>
+                                <td className="p-3 text-right font-anuphan text-red-600">-{formatCurrency(totalReturns)}</td>
                                 <td className="rounded-br-2xl p-3 text-right font-anuphan text-green-600">
                                     {avgPrice > 0 ? avgPrice.toFixed(2) : '0.00'}
                                 </td>
