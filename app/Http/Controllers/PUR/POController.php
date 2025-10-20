@@ -128,8 +128,10 @@ class POController extends Controller
 
         // ถ้ามีเดือน
         if (!empty($month)) {
-            $monthNum = (int) substr($month, 5, 2);
-            $baseQuery->whereMonth('POHD.DocuDate', $monthNum);
+            $monthNum = (int) $month; // แปลง string เป็น integer
+            if ($monthNum >= 1 && $monthNum <= 12) {
+                $baseQuery->whereMonth('POInvHD.DocuDate', $monthNum);
+            }
         }
 
         // ข้อมูลแยกตามหน่วยงาน
@@ -164,6 +166,84 @@ class POController extends Controller
         ]);
     }
 
+
+    public function apiPOinvChart(Request $request)
+    {
+        $year   = $request->input('year', date('Y'));
+        $month  = $request->input('month');   // ถ้า null = ทั้งปี
+        $deptId = $request->input('dept_id'); // กรองแผนกถ้ามี
+        $branchId = $request->input('brchid'); // กรองสาขา
+
+        // Base query สำหรับ POInvHD
+        $baseQuery = DB::connection('sqlsrv2')
+            ->table('POInvHD')
+            ->join('EMDept', 'POInvHD.DeptID', '=', 'EMDept.DeptID')
+            ->where('POInvHD.DocuType', 309)
+            ->where('POInvHD.MultiCurr', 'N')
+            ->whereYear('POInvHD.DocuDate', $year);
+
+        if (!empty($month)) {
+            [$y, $m] = explode('-', $month);
+            $baseQuery->whereYear('POInvHD.DocuDate', (int)$y)
+                ->whereMonth('POInvHD.DocuDate', (int)$m);
+        } else {
+            $baseQuery->whereYear('POInvHD.DocuDate', (int)$year);
+        }
+
+        if (!empty($branchId)) {
+            $baseQuery->where('POInvHD.BrchID', $branchId);
+        }
+
+        // ข้อมูลรวมต่อแผนก
+        $byDept = (clone $baseQuery)
+            ->select(
+                'POInvHD.DeptID',
+                'EMDept.DeptName',
+                DB::raw('SUM(POInvHD.TotaBaseAmnt) as totalBase'),
+                DB::raw('SUM(POInvHD.BillDiscAmnt) as totalBillDiscount'),
+                DB::raw('SUM(POInvHD.AdvnAmnt) as totalAdvance'),
+                DB::raw('SUM(POInvHD.VATAmnt) as totalVAT'),
+                DB::raw('SUM(POInvHD.NetAmnt) as totalNet')
+            )
+            ->groupBy('POInvHD.DeptID', 'EMDept.DeptName')
+            ->orderBy('EMDept.DeptName')
+            ->get();
+
+        // ผลรวมทั้งปี / เงื่อนไขเดียวกับ byDept
+        $yearlyTotal = [
+            'totalBase'       => $byDept->sum(fn($d) => $d->totalBase),
+            'totalBillDiscount' => $byDept->sum(fn($d) => $d->totalBillDiscount),
+            'totalAdvance'    => $byDept->sum(fn($d) => $d->totalAdvance),
+            'totalVAT'        => $byDept->sum(fn($d) => $d->totalVAT),
+            'totalNet'        => $byDept->sum(fn($d) => $d->totalNet),
+        ];
+
+        // ข้อมูลต่อเดือน สำหรับแผนกเฉพาะ
+        $byMonth = collect();
+        if (!empty($deptId)) {
+            $byMonth = DB::connection('sqlsrv2')
+                ->table('POInvHD')
+                ->select(
+                    DB::raw('MONTH(DocuDate) as month'),
+                    DB::raw('SUM(TotaBaseAmnt) as totalBase'),
+                    DB::raw('SUM(BillDiscAmnt) as totalBillDiscount'),
+                    DB::raw('SUM(AdvnAmnt) as totalAdvance'),
+                    DB::raw('SUM(VATAmnt) as totalVAT'),
+                    DB::raw('SUM(NetAmnt) as totalNet')
+                )
+                ->where('DeptID', $deptId)
+                ->whereYear('DocuDate', $year)
+                ->groupByRaw('MONTH(DocuDate)')
+                ->orderByRaw('MONTH(DocuDate)')
+                ->get();
+        }
+
+        return response()->json([
+            'byDept'      => $byDept,
+            'byMonth'     => $byMonth,
+            'yearlyTotal' => $yearlyTotal,
+        ]);
+    }
 
 
 

@@ -50,14 +50,14 @@ export default function ExpenseByDept() {
                 const byDept = res.data.byDept || [];
 
                 // เรียงข้อมูลจากมากไปน้อย
-                const sortedData = [...byDept].sort((a, b) => Number(b.total) - Number(a.total));
+                const sortedData = [...byDept].sort((a, b) => Number(b.totalNet) - Number(a.totalNet));
                 setData(sortedData);
-
+console.log(selectedMonth);
                 // คำนวณข้อมูลสรุป
                 const highest =
-                    sortedData.length > 0 ? { name: sortedData[0].DeptName, amount: Number(sortedData[0].total) } : { name: '', amount: 0 };
+                    sortedData.length > 0 ? { name: sortedData[0].DeptName, amount: Number(sortedData[0].totalNet) } : { name: '', amount: 0 };
 
-                const monthlyTotal = sortedData.reduce((sum, dept) => sum + Number(dept.total), 0);
+                const monthlyTotal = sortedData.reduce((sum, dept) => sum + Number(dept.totalNet), 0);
 
                 setSummaryData({
                     highestDept: highest,
@@ -69,14 +69,14 @@ export default function ExpenseByDept() {
     }, [selectedYear, selectedMonth]);
 
     // เรียงข้อมูลจากมากไปน้อยก่อนสร้าง chart data
-    const sortedData = [...data].sort((a, b) => Number(b.total) - Number(a.total));
+    const sortedData = [...data].sort((a, b) => Number(b.totalNet) - Number(a.totalNet));
 
     const chartData = {
         labels: sortedData.map((d) => d.DeptName),
         datasets: [
             {
                 label: 'ค่าใช้จ่าย',
-                data: sortedData.map((d) => Number(d.total)),
+                data: sortedData.map((d) => Number(d.totalNet)),
                 backgroundColor: sortedData.map((d, i) => `hsl(${i * 30}, 70%, 60%)`),
                 borderColor: sortedData.map((d, i) => `hsl(${i * 30}, 70%, 45%)`),
                 borderWidth: 2,

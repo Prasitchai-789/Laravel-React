@@ -294,7 +294,7 @@ Route::fallback(function () {
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 
     Route::get('purchase/dashboard', [PurchaseDashboardController::class, 'index']);
-    Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'apiIndex']);
+    Route::get('/purchase/dashboard/api', [PurchaseDashboardController::class, 'apiPOinvByDept'])->name('purchase.dashboard.api');
 
 
 });
@@ -305,7 +305,7 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 Route::get('purchase/po', [POController::class, 'index']);
 Route::get('/purchase/po/api', [POController::class, 'apiIndex']);
 Route::get('/purchase/po/show/{id}', [POController::class, 'show'])->name('po.show');
-Route::get('/purchase/po/chart', [POController::class, 'apiChart'])->name('po.chart');
+Route::get('/purchase/po/chart', [POController::class, 'apiPOinvChart'])->name('po.chart');
 Route::get('/expense-by-dept', [POController::class, 'expenseByDept'])->name('expense-by-dept');
 Route::get('/accounts', [AccountController::class, 'index'])->name('accounts');
 Route::get('/accounts/api', [AccountController::class, 'getAccounts'])->name('accounts.api');

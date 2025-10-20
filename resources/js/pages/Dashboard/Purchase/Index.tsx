@@ -21,8 +21,9 @@ export default function Index() {
         setLoading(true);
         try {
             const res = await axios.get('/purchase/dashboard/api', { params: { year, month } });
-            const apiData: PurchaseData[] = res.data.dashboard || [];
+            const apiData: PurchaseData[] = res.data.data || [];
             setDashboard(apiData);
+            console.log(apiData);
         } catch (error) {
             console.error('Error fetching dashboard:', error);
         } finally {
@@ -68,6 +69,7 @@ export default function Index() {
     // เรียงข้อมูลจากมากไปน้อยก่อนคำนวณ total
     const sortedDashboard = [...dashboard].sort((a, b) => b.TotalNet - a.TotalNet);
     const totalNet = sortedDashboard.reduce((sum, item) => sum + Number(item.TotalNet), 0);
+
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

@@ -467,8 +467,8 @@ export default function SalesOrderMarReport() {
                                     <tr className="bg-gray-50 font-semibold">
                                         <td className="rounded-bl-2xl p-3 text-gray-900">รวมทั้งหมด</td>
                                         <td className="p-3 text-right font-anuphan text-blue-700">{formatNumber(totalWeight/1000)}</td>
-                                        <td className="p-3 text-right font-anuphan">{formatMB(totalSales)}</td>
-                                        <td className="p-3 text-right font-anuphan text-red-600">-{formatCurrency(totalReturns)} MB.</td>
+                                        <td className="p-3 text-right font-anuphan">{formatMB(totalSales)}  MB.</td>
+                                        <td className="p-3 text-right font-anuphan text-red-600">-{formatCurrency(totalReturns)}</td>
                                         <td className="rounded-br-2xl p-3 text-right font-anuphan text-green-600">
                                             {avgPrice > 0 ? Number(avgPrice).toFixed(2) : '0.00'}
                                         </td>
