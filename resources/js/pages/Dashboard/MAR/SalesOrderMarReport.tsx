@@ -26,6 +26,7 @@ interface Good {
 interface POInvWin {
     total_qty: number;
     total_amount: number;
+    month: number;
 }
 
 export default function SalesOrderMarReport() {
@@ -139,8 +140,9 @@ export default function SalesOrderMarReport() {
     };
 
     // ฟังก์ชันจัดรูปแบบตัวเลข
-    const formatNumber = (num: number): string => {
-        return num.toLocaleString('th-TH');
+    const formatNumber = (num?: number): string => {
+        if (num === null || num === undefined || isNaN(num)) return '0';
+        return num.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
 
     const formatMB = (amount: number) => {
@@ -153,11 +155,12 @@ export default function SalesOrderMarReport() {
         });
     };
 
-    const formatCurrency = (amount: number) => {
+    const formatCurrency = (amount?: number): string => {
+        if (amount === null || amount === undefined || isNaN(amount)) return '฿0';
         return new Intl.NumberFormat('th-TH', {
             style: 'currency',
             currency: 'THB',
-            minimumFractionDigits: 0,
+            minimumFractionDigits: 2,
         }).format(amount);
     };
     // Summary Cards Component
@@ -279,14 +282,18 @@ export default function SalesOrderMarReport() {
         // นับเดือนที่มีการขาย
         const monthsWithSales = sales.filter((s: MonthlyData) => parseNumber(s?.total_amount) > 0).length;
 
+        const totalQtyAll = POInvData.reduce((sum, p) => sum + (Number(p.total_qty) || 0), 0);
+        const totalAmountAll = POInvData.reduce((sum, p) => sum + (Number(p.total_amount) || 0), 0);
+        const avgPriceAll = totalQtyAll > 0 ? totalAmountAll / totalQtyAll : 0;
+
         return (
             <div className="">
                 {/* Summary Cards - Mobile */}
                 <div className="mb-6 lg:hidden">
                     <SummaryCards />
                 </div>
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-lg lg:p-6">
+                <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-2 shadow-lg lg:p-4">
                         {/* Header */}
                         <div className="mb-6">
                             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
@@ -309,25 +316,24 @@ export default function SalesOrderMarReport() {
                                 <thead>
                                     <tr className="bg-gradient-to-r from-green-600 to-green-700 text-white">
                                         <th className="rounded-tl-2xl p-3 text-left font-semibold">เดือน</th>
-                                        <th className="p-3 text-right font-semibold">ปริมาณ (กก.)</th>
-                                        <th className="p-3 text-right font-semibold">ยอดเงิน (บาท)</th>
+                                        <th className="p-3 text-right font-semibold">ปริมาณ (ตัน)</th>
+                                        <th className="p-3 text-right font-semibold">ยอดเงิน</th>
                                         <th className="rounded-tr-2xl p-3 text-right font-semibold">เฉลี่ย/กก.</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {months.map((month) => {
                                         const po = POInvData.find((p) => Number(p.month) === Number(month));
-                                        const totalQty = po?.total_qty || 0;
-                                        const totalAmount = po?.total_amount || 0;
-                                        const avgPrice = po?.avg_price || 0;
+                                        const totalQty = Number(po?.total_qty) || 0;
+                                        const totalAmount = Number(po?.total_amount) || 0;
+                                        const avgPrice = totalQty > 0 ? totalAmount / totalQty : 0;
                                         const hasData = totalQty > 0 || totalAmount > 0;
 
                                         return (
                                             <tr
                                                 key={month}
-                                                className={`border-b border-gray-200 transition-colors ${
-                                                    hasData ? 'hover:bg-green-50' : 'opacity-50 hover:bg-gray-50'
-                                                }`}
+                                                className={`border-b border-gray-200 transition-colors ${hasData ? 'hover:bg-green-50' : 'opacity-50 hover:bg-gray-50'
+                                                    }`}
                                             >
                                                 <td className="p-3 font-medium text-gray-900">
                                                     <div className="flex items-center gap-2">
@@ -336,11 +342,11 @@ export default function SalesOrderMarReport() {
                                                     </div>
                                                 </td>
                                                 <td className="p-3 text-right font-anuphan text-sm">
-                                                    {hasData ? <span className="font-semibold text-green-700">{formatNumber(totalQty)}</span> : '-'}
+                                                    {hasData ? <span className="font-semibold text-green-700">{formatNumber(totalQty/1000)}</span> : '-'}
                                                 </td>
                                                 <td className="p-3 text-right font-anuphan text-sm">
                                                     {hasData ? (
-                                                        <span className="font-semibold text-gray-900">{formatCurrency(totalAmount)}</span>
+                                                        <span className="font-semibold text-gray-900">{formatMB(totalAmount)} MB.</span>
                                                     ) : (
                                                         '-'
                                                     )}
@@ -355,29 +361,17 @@ export default function SalesOrderMarReport() {
                                 <tfoot>
                                     <tr className="bg-gray-50 font-semibold">
                                         <td className="rounded-bl-2xl p-3 text-gray-900">รวมทั้งหมด</td>
-                                        <td className="p-3 text-right font-anuphan text-green-700">{formatNumber(totalQty)}</td>
-                                        <td className="p-3 text-right font-anuphan">{formatCurrency(totalAmount)}</td>
+                                        <td className="p-3 text-right font-anuphan text-green-700">{formatNumber(totalQtyAll/1000)}</td>
+                                        <td className="p-3 text-right font-anuphan">{formatMB(totalAmountAll)} MB.</td>
                                         <td className="rounded-br-2xl p-3 text-right font-anuphan text-green-600">
-                                            {avgPrice > 0 ? Number(avgPrice).toFixed(2) : '0.00'}
+                                            {formatNumber(avgPriceAll)}
                                         </td>
                                     </tr>
                                 </tfoot>
                             </table>
                         </div>
-
-                        {/* Quick Stats */}
-                        {/* <div className="mt-6 grid grid-cols-2 gap-3 text-xs">
-                        <div className="rounded-lg bg-blue-50 p-3 text-center">
-                            <div className="font-semibold text-blue-600">เดือนที่มีการขาย</div>
-                            <div className="text-sm font-bold text-gray-900">{monthsWithSales} / 12 เดือน</div>
-                        </div>
-                        <div className="rounded-lg bg-green-50 p-3 text-center">
-                            <div className="font-semibold text-green-600">อัตราการขาย</div>
-                            <div className="text-sm font-bold text-gray-900">{((monthsWithSales / 12) * 100).toFixed(0)}%</div>
-                        </div>
-                    </div> */}
                     </div>
-                    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-lg lg:p-6">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-2 shadow-lg lg:p-4">
                         {/* Header */}
                         <div className="mb-6">
                             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
@@ -400,8 +394,8 @@ export default function SalesOrderMarReport() {
                                 <thead>
                                     <tr className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                                         <th className="rounded-tl-2xl p-3 text-left font-semibold">เดือน</th>
-                                        <th className="p-3 text-right font-semibold">ปริมาณ (กก.)</th>
-                                        <th className="p-3 text-right font-semibold">ยอดเงิน (บาท)</th>
+                                        <th className="p-3 text-right font-semibold">ปริมาณ (ตัน)</th>
+                                        <th className="p-3 text-right font-semibold">ยอดเงิน</th>
                                         <th className="p-3 text-right font-semibold">ลดหนี้ (บาท)</th>
                                         <th className="rounded-tr-2xl p-3 text-right font-semibold">เฉลี่ย/กก.</th>
                                     </tr>
@@ -428,9 +422,8 @@ export default function SalesOrderMarReport() {
                                         return (
                                             <tr
                                                 key={month}
-                                                className={`border-b border-gray-200 transition-colors ${
-                                                    hasData ? 'hover:bg-blue-50' : 'hover:bg-gray-50'
-                                                } ${!hasData ? 'opacity-60' : ''}`}
+                                                className={`border-b border-gray-200 transition-colors ${hasData ? 'hover:bg-blue-50' : 'hover:bg-gray-50'
+                                                    } ${!hasData ? 'opacity-60' : ''}`}
                                             >
                                                 <td className="p-3 font-medium text-gray-900">
                                                     <div className="flex items-center gap-2">
@@ -440,14 +433,14 @@ export default function SalesOrderMarReport() {
                                                 </td>
                                                 <td className="p-3 text-right font-anuphan text-sm">
                                                     {hasWeightData ? (
-                                                        <span className="font-semibold text-blue-700">{formatNumber(totalWeight)}</span>
+                                                        <span className="font-semibold text-blue-700">{formatNumber(totalWeight/1000)}</span>
                                                     ) : (
                                                         '-'
                                                     )}
                                                 </td>
                                                 <td className="p-3 text-right font-anuphan text-sm">
                                                     {hasAmountData ? (
-                                                        <span className="font-semibold text-gray-900">{formatCurrency(totalAmount)}</span>
+                                                        <span className="font-semibold text-gray-900">{formatMB(totalAmount)} MB.</span>
                                                     ) : (
                                                         '-'
                                                     )}
@@ -473,9 +466,9 @@ export default function SalesOrderMarReport() {
                                 <tfoot>
                                     <tr className="bg-gray-50 font-semibold">
                                         <td className="rounded-bl-2xl p-3 text-gray-900">รวมทั้งหมด</td>
-                                        <td className="p-3 text-right font-anuphan text-blue-700">{formatNumber(totalWeight)}</td>
-                                        <td className="p-3 text-right font-anuphan">{formatCurrency(totalSales)}</td>
-                                        <td className="p-3 text-right font-anuphan text-red-600">-{formatCurrency(totalReturns)}</td>
+                                        <td className="p-3 text-right font-anuphan text-blue-700">{formatNumber(totalWeight/1000)}</td>
+                                        <td className="p-3 text-right font-anuphan">{formatMB(totalSales)}</td>
+                                        <td className="p-3 text-right font-anuphan text-red-600">-{formatCurrency(totalReturns)} MB.</td>
                                         <td className="rounded-br-2xl p-3 text-right font-anuphan text-green-600">
                                             {avgPrice > 0 ? Number(avgPrice).toFixed(2) : '0.00'}
                                         </td>
