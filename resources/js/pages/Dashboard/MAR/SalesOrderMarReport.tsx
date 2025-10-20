@@ -210,7 +210,7 @@ export default function SalesOrderMarReport() {
             },
             {
                 title: 'ราคาเฉลี่ย',
-                value: avgPrice > 0 ? `${avgPrice.toFixed(2)} บาท/กก.` : '0.00 บาท/กก.',
+                value: avgPrice > 0 ? `${Number(avgPrice).toFixed(2)} บาท/กก.` : '0.00 บาท/กก.',
                 icon: '📊',
                 color: 'from-purple-500 to-purple-600',
                 textColor: 'text-purple-100',
@@ -346,7 +346,7 @@ export default function SalesOrderMarReport() {
                                                     )}
                                                 </td>
                                                 <td className="p-3 text-right font-anuphan text-sm">
-                                                    {hasData ? <span className="font-semibold text-green-600">{avgPrice.toFixed(2)}</span> : '-'}
+                                                    {hasData ? <span className="font-semibold text-green-600">{Number(avgPrice).toFixed(2)}</span> : '-'}
                                                 </td>
                                             </tr>
                                         );
@@ -358,7 +358,7 @@ export default function SalesOrderMarReport() {
                                         <td className="p-3 text-right font-anuphan text-green-700">{formatNumber(totalQty)}</td>
                                         <td className="p-3 text-right font-anuphan">{formatCurrency(totalAmount)}</td>
                                         <td className="rounded-br-2xl p-3 text-right font-anuphan text-green-600">
-                                            {avgPrice > 0 ? avgPrice.toFixed(2) : '0.00'}
+                                            {avgPrice > 0 ? Number(avgPrice).toFixed(2) : '0.00'}
                                         </td>
                                     </tr>
                                 </tfoot>
@@ -461,7 +461,7 @@ export default function SalesOrderMarReport() {
                                                 </td>
                                                 <td className="p-3 text-right font-anuphan text-sm">
                                                     {hasWeightData && totalWeight > 0 ? (
-                                                        <span className="font-semibold text-green-600">{avgPrice.toFixed(2)}</span>
+                                                        <span className="font-semibold text-green-600">{Number(avgPrice).toFixed(2)}</span>
                                                     ) : (
                                                         '-'
                                                     )}
@@ -477,7 +477,7 @@ export default function SalesOrderMarReport() {
                                         <td className="p-3 text-right font-anuphan">{formatCurrency(totalSales)}</td>
                                         <td className="p-3 text-right font-anuphan text-red-600">-{formatCurrency(totalReturns)}</td>
                                         <td className="rounded-br-2xl p-3 text-right font-anuphan text-green-600">
-                                            {avgPrice > 0 ? avgPrice.toFixed(2) : '0.00'}
+                                            {avgPrice > 0 ? Number(avgPrice).toFixed(2) : '0.00'}
                                         </td>
                                     </tr>
                                 </tfoot>
