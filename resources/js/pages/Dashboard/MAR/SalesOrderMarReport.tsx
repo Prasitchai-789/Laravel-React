@@ -23,6 +23,10 @@ interface Good {
     id: number;
     name: string;
 }
+interface POInvWin {
+    total_qty: number;
+    total_amount: number;
+}
 
 export default function SalesOrderMarReport() {
     const getCurrentDate = () => {
@@ -47,10 +51,15 @@ export default function SalesOrderMarReport() {
     const [selectedGoodId, setSelectedGoodId] = useState<number>(2147);
     const [goodLoading, setGoodLoading] = useState(false);
     const [currentYear] = useState(new Date().getFullYear());
+    const [POInvData, setPOInvData] = useState<POInvWin[]>([]);
+    const [totalQty, setTotalQty] = useState(0);
+    const [totalAmount, setTotalAmount] = useState(0);
+    const [avgPrice, setAvgPrice] = useState(0);
 
     // Fetch goods list on component mount
     useEffect(() => {
         fetchGoods();
+        fetchDataPOInvWin();
     }, []);
 
     const fetchGoods = async () => {
@@ -99,6 +108,29 @@ export default function SalesOrderMarReport() {
         }
     };
 
+    const fetchDataPOInvWin = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.get('/poinv-win-monthly/api', {
+                params: { start_date: startDate, end_date: endDate },
+            });
+            const POInvWin: POInvWin[] = response.data.data || [];
+            // ใช้ POInvWin ที่เพิ่งดึงมา
+            const totalQty = POInvWin.reduce((sum, item) => sum + (item.total_qty || 0), 0);
+            const totalAmount = POInvWin.reduce((sum, item) => sum + (item.total_amount || 0), 0);
+            const avgPrice = totalQty > 0 ? totalAmount / totalQty : 0;
+
+            setPOInvData(POInvWin);
+            setTotalQty(totalQty);
+            setTotalAmount(totalAmount);
+            setAvgPrice(avgPrice);
+        } catch (error) {
+            console.error(error);
+            alert('เกิดข้อผิดพลาดในการดึงข้อมูล');
+        } finally {
+            setLoading(false);
+        }
+    };
     // ฟังก์ชันช่วยในการแปลงค่าให้เป็นตัวเลข
     const parseNumber = (value: any): number => {
         if (value === null || value === undefined || value === '') return 0;
@@ -111,7 +143,7 @@ export default function SalesOrderMarReport() {
         return num.toLocaleString('th-TH');
     };
 
-     const formatMB = (amount: number) => {
+    const formatMB = (amount: number) => {
         if (amount === null || amount === undefined || isNaN(amount)) {
             return '0.00';
         }
@@ -132,7 +164,6 @@ export default function SalesOrderMarReport() {
     const SummaryCards = () => {
         if (!salesData) return null;
 
-
         const sales = salesData.sales?.[selectedGoodId] || [];
         const returns = salesData.returns?.[selectedGoodId] || [];
         const weights = salesData.weights?.[selectedGoodId] || [];
@@ -145,6 +176,15 @@ export default function SalesOrderMarReport() {
         const netSales = totalSales - totalReturns;
         const avgPrice = totalWeight > 0 ? netSales / totalWeight : 0;
 
+        // ฟังก์ชันสำหรับคำนวณเปอร์เซ็นต์การเปลี่ยนแปลง
+        const calculateTrend = (current, previous) => {
+            if (!previous || previous === 0) return { value: 0, isPositive: true };
+            const change = ((current - previous) / previous) * 100;
+            return {
+                value: Math.abs(change),
+                isPositive: change >= 0,
+            };
+        };
 
         const cards = [
             {
@@ -182,7 +222,7 @@ export default function SalesOrderMarReport() {
                 {cards.map((card, index) => (
                     <div
                         key={index}
-                        className={`bg-gradient-to-br ${card.color} transform rounded-2xl p-4 text-white shadow-lg transition-transform hover:scale-105`}
+                        className={`bg-gradient-to-br ${card.color} transform rounded-2xl p-4 py-6 text-white shadow-lg transition-transform hover:scale-105`}
                     >
                         <div className="flex items-center justify-between">
                             <div>
@@ -209,7 +249,6 @@ export default function SalesOrderMarReport() {
         const sales = salesData.sales?.[selectedGoodId] || [];
         const returns = salesData.returns?.[selectedGoodId] || [];
         const weights = salesData.weights?.[selectedGoodId] || [];
-
 
         const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
@@ -241,116 +280,221 @@ export default function SalesOrderMarReport() {
         const monthsWithSales = sales.filter((s: MonthlyData) => parseNumber(s?.total_amount) > 0).length;
 
         return (
-            <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-lg lg:p-6">
-                {/* Header */}
-                <div className="mb-6">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900 lg:text-2xl">
-                                {goods.find((g) => g.id === selectedGoodId)?.name || 'สินค้า'}
-                                <span className="ml-2 inline-block rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
-                                    ปี {currentYear + 543}
-                                </span>
-                            </h2>
-                            <p className="mt-1 text-sm text-gray-600 lg:text-base">
-                                {new Date(startDate).toLocaleDateString('th-TH')} - {new Date(endDate).toLocaleDateString('th-TH')}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
+            <div className="">
                 {/* Summary Cards - Mobile */}
                 <div className="mb-6 lg:hidden">
                     <SummaryCards />
                 </div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-lg lg:p-6">
+                        {/* Header */}
+                        <div className="mb-6">
+                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900 lg:text-2xl">
+                                        ปริมาณการรับซื้อผลปาล์ม
+                                        <span className="ml-2 inline-block rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+                                            ปี {currentYear + 543}
+                                        </span>
+                                    </h2>
+                                    <p className="mt-1 text-sm text-gray-600 lg:text-base">
+                                        {new Date(startDate).toLocaleDateString('th-TH')} - {new Date(endDate).toLocaleDateString('th-TH')}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Table */}
+                        <div className="overflow-x-auto shadow">
+                            <table className="w-full min-w-[600px]">
+                                <thead>
+                                    <tr className="bg-gradient-to-r from-green-600 to-green-700 text-white">
+                                        <th className="rounded-tl-2xl p-3 text-left font-semibold">เดือน</th>
+                                        <th className="p-3 text-right font-semibold">ปริมาณ (กก.)</th>
+                                        <th className="p-3 text-right font-semibold">ยอดเงิน (บาท)</th>
+                                        <th className="rounded-tr-2xl p-3 text-right font-semibold">เฉลี่ย/กก.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {months.map((month) => {
+                                        const po = POInvData.find((p) => Number(p.month) === Number(month));
+                                        const totalQty = po?.total_qty || 0;
+                                        const totalAmount = po?.total_amount || 0;
+                                        const avgPrice = po?.avg_price || 0;
+                                        const hasData = totalQty > 0 || totalAmount > 0;
 
-                {/* Table */}
-                <div className="overflow-x-auto">
-                    <table className="w-full min-w-[600px]">
-                        <thead>
-                            <tr className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-                                <th className="rounded-tl-2xl p-3 text-left font-semibold">เดือน</th>
-                                <th className="p-3 text-right font-semibold">ปริมาณ (กก.)</th>
-                                <th className="p-3 text-right font-semibold">ยอดเงิน (บาท)</th>
-                                <th className="p-3 text-right font-semibold">ลดหนี้ (บาท)</th>
-                                <th className="rounded-tr-2xl p-3 text-right font-semibold">เฉลี่ย/กก.</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {months.map((month) => {
-                                const sale = sales.find((s: MonthlyData) => Number(s.month) === Number(month) );
-                                const ret = returns.find((r: MonthlyData) => Number(r.month) === Number(month));
-                                const wei = weights.find((w: WeightData) => Number(w.month) === Number(month));
-
-                                // ใช้ parseNumber เพื่อความปลอดภัย
-                                const totalAmount = parseNumber(sale?.total_amount);
-                                const totalReturn = parseNumber(ret?.total_amount);
-                                const totalWeight = parseNumber(wei?.total_weight);
-                                const netAmount = totalAmount - totalReturn;
-                                const avgPrice = totalWeight > 0 ? netAmount / totalWeight : 0;
-
-                                // เปลี่ยนเงื่อนไขเป็นตรวจสอบว่ามีข้อมูลหรือไม่ (ไม่ใช่แค่ > 0)
-                                const hasAmountData = sale !== undefined;
-                                const hasReturnData = ret !== undefined;
-                                const hasWeightData = wei !== undefined;
-                                const hasData = hasAmountData || hasReturnData || hasWeightData;
-
-                                return (
-                                    <tr
-                                        key={month}
-                                        className={`border-b border-gray-200 transition-colors ${
-                                            hasData ? 'hover:bg-blue-50' : 'hover:bg-gray-50'
-                                        } ${!hasData ? 'opacity-60' : ''}`}
-                                    >
-                                        <td className="p-3 font-medium text-gray-900">
-                                            <div className="flex items-center gap-2">
-                                                <span className="w-6 text-sm text-gray-500">{month.toString().padStart(2, '0')}</span>
-                                                <span>{fullMonthNames[month - 1]}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-3 text-right font-anuphan text-sm">
-                                            {hasWeightData ? <span className="font-semibold text-blue-700">{formatNumber(totalWeight)}</span> : '-'}
-                                        </td>
-                                        <td className="p-3 text-right font-anuphan text-sm">
-                                            {hasAmountData ? <span className="font-semibold text-gray-900">{formatCurrency(totalAmount)}</span> : '-'}
-                                        </td>
-                                        <td className="p-3 text-right font-anuphan text-sm">
-                                            {hasReturnData ? <span className="font-semibold text-red-600">-{formatCurrency(totalReturn)}</span> : '-'}
-                                        </td>
-                                        <td className="p-3 text-right font-anuphan text-sm">
-                                            {hasWeightData && totalWeight > 0 ? (
-                                                <span className="font-semibold text-green-600">{avgPrice.toFixed(2)}</span>
-                                            ) : (
-                                                '-'
-                                            )}
+                                        return (
+                                            <tr
+                                                key={month}
+                                                className={`border-b border-gray-200 transition-colors ${
+                                                    hasData ? 'hover:bg-green-50' : 'opacity-50 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                <td className="p-3 font-medium text-gray-900">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-6 text-sm text-gray-500">{month.toString().padStart(2, '0')}</span>
+                                                        <span>{fullMonthNames[month - 1]}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-right font-anuphan text-sm">
+                                                    {hasData ? <span className="font-semibold text-green-700">{formatNumber(totalQty)}</span> : '-'}
+                                                </td>
+                                                <td className="p-3 text-right font-anuphan text-sm">
+                                                    {hasData ? (
+                                                        <span className="font-semibold text-gray-900">{formatCurrency(totalAmount)}</span>
+                                                    ) : (
+                                                        '-'
+                                                    )}
+                                                </td>
+                                                <td className="p-3 text-right font-anuphan text-sm">
+                                                    {hasData ? <span className="font-semibold text-green-600">{avgPrice.toFixed(2)}</span> : '-'}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="bg-gray-50 font-semibold">
+                                        <td className="rounded-bl-2xl p-3 text-gray-900">รวมทั้งหมด</td>
+                                        <td className="p-3 text-right font-anuphan text-green-700">{formatNumber(totalQty)}</td>
+                                        <td className="p-3 text-right font-anuphan">{formatCurrency(totalAmount)}</td>
+                                        <td className="rounded-br-2xl p-3 text-right font-anuphan text-green-600">
+                                            {avgPrice > 0 ? avgPrice.toFixed(2) : '0.00'}
                                         </td>
                                     </tr>
-                                );
-                            })}
-                        </tbody>
-                        <tfoot>
-                            <tr className="bg-gray-50 font-semibold">
-                                <td className="rounded-bl-2xl p-3 text-gray-900">รวมทั้งหมด</td>
-                                <td className="p-3 text-right font-anuphan text-blue-700">{formatNumber(totalWeight)}</td>
-                                <td className="p-3 text-right font-anuphan">{formatCurrency(totalSales)}</td>
-                                <td className="p-3 text-right font-anuphan text-red-600">-{formatCurrency(totalReturns)}</td>
-                                <td className="rounded-br-2xl p-3 text-right font-anuphan text-green-600">
-                                    {avgPrice > 0 ? avgPrice.toFixed(2) : '0.00'}
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+                                </tfoot>
+                            </table>
+                        </div>
 
-                {/* Quick Stats */}
-                <div className="mt-6 grid grid-cols-2 gap-3 text-xs">
-                    <div className="rounded-lg bg-blue-50 p-3 text-center">
-                        <div className="font-semibold text-blue-600">เดือนที่มีการขาย</div>
-                        <div className="text-sm font-bold text-gray-900">{monthsWithSales} / 12 เดือน</div>
+                        {/* Quick Stats */}
+                        {/* <div className="mt-6 grid grid-cols-2 gap-3 text-xs">
+                        <div className="rounded-lg bg-blue-50 p-3 text-center">
+                            <div className="font-semibold text-blue-600">เดือนที่มีการขาย</div>
+                            <div className="text-sm font-bold text-gray-900">{monthsWithSales} / 12 เดือน</div>
+                        </div>
+                        <div className="rounded-lg bg-green-50 p-3 text-center">
+                            <div className="font-semibold text-green-600">อัตราการขาย</div>
+                            <div className="text-sm font-bold text-gray-900">{((monthsWithSales / 12) * 100).toFixed(0)}%</div>
+                        </div>
+                    </div> */}
                     </div>
-                    <div className="rounded-lg bg-green-50 p-3 text-center">
-                        <div className="font-semibold text-green-600">อัตราการขาย</div>
-                        <div className="text-sm font-bold text-gray-900">{((monthsWithSales / 12) * 100).toFixed(0)}%</div>
+                    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-lg lg:p-6">
+                        {/* Header */}
+                        <div className="mb-6">
+                            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900 lg:text-2xl">
+                                        {goods.find((g) => g.id === selectedGoodId)?.name || 'สินค้า'}
+                                        <span className="ml-2 inline-block rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+                                            ปี {currentYear + 543}
+                                        </span>
+                                    </h2>
+                                    <p className="mt-1 text-sm text-gray-600 lg:text-base">
+                                        {new Date(startDate).toLocaleDateString('th-TH')} - {new Date(endDate).toLocaleDateString('th-TH')}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Table */}
+                        <div className="overflow-x-auto shadow">
+                            <table className="w-full min-w-[600px]">
+                                <thead>
+                                    <tr className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                                        <th className="rounded-tl-2xl p-3 text-left font-semibold">เดือน</th>
+                                        <th className="p-3 text-right font-semibold">ปริมาณ (กก.)</th>
+                                        <th className="p-3 text-right font-semibold">ยอดเงิน (บาท)</th>
+                                        <th className="p-3 text-right font-semibold">ลดหนี้ (บาท)</th>
+                                        <th className="rounded-tr-2xl p-3 text-right font-semibold">เฉลี่ย/กก.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {months.map((month) => {
+                                        const sale = sales.find((s: MonthlyData) => Number(s.month) === Number(month));
+                                        const ret = returns.find((r: MonthlyData) => Number(r.month) === Number(month));
+                                        const wei = weights.find((w: WeightData) => Number(w.month) === Number(month));
+
+                                        // ใช้ parseNumber เพื่อความปลอดภัย
+                                        const totalAmount = parseNumber(sale?.total_amount);
+                                        const totalReturn = parseNumber(ret?.total_amount);
+                                        const totalWeight = parseNumber(wei?.total_weight);
+                                        const netAmount = totalAmount - totalReturn;
+                                        const avgPrice = totalWeight > 0 ? netAmount / totalWeight : 0;
+
+                                        // เปลี่ยนเงื่อนไขเป็นตรวจสอบว่ามีข้อมูลหรือไม่ (ไม่ใช่แค่ > 0)
+                                        const hasAmountData = sale !== undefined;
+                                        const hasReturnData = ret !== undefined;
+                                        const hasWeightData = wei !== undefined;
+                                        const hasData = hasAmountData || hasReturnData || hasWeightData;
+
+                                        return (
+                                            <tr
+                                                key={month}
+                                                className={`border-b border-gray-200 transition-colors ${
+                                                    hasData ? 'hover:bg-blue-50' : 'hover:bg-gray-50'
+                                                } ${!hasData ? 'opacity-60' : ''}`}
+                                            >
+                                                <td className="p-3 font-medium text-gray-900">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-6 text-sm text-gray-500">{month.toString().padStart(2, '0')}</span>
+                                                        <span>{fullMonthNames[month - 1]}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-right font-anuphan text-sm">
+                                                    {hasWeightData ? (
+                                                        <span className="font-semibold text-blue-700">{formatNumber(totalWeight)}</span>
+                                                    ) : (
+                                                        '-'
+                                                    )}
+                                                </td>
+                                                <td className="p-3 text-right font-anuphan text-sm">
+                                                    {hasAmountData ? (
+                                                        <span className="font-semibold text-gray-900">{formatCurrency(totalAmount)}</span>
+                                                    ) : (
+                                                        '-'
+                                                    )}
+                                                </td>
+                                                <td className="p-3 text-right font-anuphan text-sm">
+                                                    {hasReturnData ? (
+                                                        <span className="font-semibold text-red-600">-{formatCurrency(totalReturn)}</span>
+                                                    ) : (
+                                                        '-'
+                                                    )}
+                                                </td>
+                                                <td className="p-3 text-right font-anuphan text-sm">
+                                                    {hasWeightData && totalWeight > 0 ? (
+                                                        <span className="font-semibold text-green-600">{avgPrice.toFixed(2)}</span>
+                                                    ) : (
+                                                        '-'
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                                <tfoot>
+                                    <tr className="bg-gray-50 font-semibold">
+                                        <td className="rounded-bl-2xl p-3 text-gray-900">รวมทั้งหมด</td>
+                                        <td className="p-3 text-right font-anuphan text-blue-700">{formatNumber(totalWeight)}</td>
+                                        <td className="p-3 text-right font-anuphan">{formatCurrency(totalSales)}</td>
+                                        <td className="p-3 text-right font-anuphan text-red-600">-{formatCurrency(totalReturns)}</td>
+                                        <td className="rounded-br-2xl p-3 text-right font-anuphan text-green-600">
+                                            {avgPrice > 0 ? avgPrice.toFixed(2) : '0.00'}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        {/* Quick Stats */}
+                        {/* <div className="mt-6 grid grid-cols-2 gap-3 text-xs">
+                        <div className="rounded-lg bg-blue-50 p-3 text-center">
+                            <div className="font-semibold text-blue-600">เดือนที่มีการขาย</div>
+                            <div className="text-sm font-bold text-gray-900">{monthsWithSales} / 12 เดือน</div>
+                        </div>
+                        <div className="rounded-lg bg-green-50 p-3 text-center">
+                            <div className="font-semibold text-green-600">อัตราการขาย</div>
+                            <div className="text-sm font-bold text-gray-900">{((monthsWithSales / 12) * 100).toFixed(0)}%</div>
+                        </div>
+                    </div> */}
                     </div>
                 </div>
             </div>
@@ -395,7 +539,6 @@ export default function SalesOrderMarReport() {
                                         <option value="">กำลังโหลดสินค้า...</option>
                                     ) : (
                                         <>
-                                            <option value="">-- เลือกสินค้า --</option>
                                             {goods.map((good) => (
                                                 <option key={good.id} value={good.id}>
                                                     {good.name}

@@ -14,43 +14,43 @@ class PurchaseSummaryController extends Controller
 {
     public function index(Request $request)
     {
-        $validated = $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'good_ids' => 'array',
-            'good_ids.*' => 'integer',
-            'province' => 'nullable|string',
-        ]);
-        $cacheKey = 'purchases.summary:' . md5(json_encode($validated));
-        return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($validated) {
-            $q = DB::table('vw_PalmPurchases')
-                ->select('Province', DB::raw('SUM(GoodAmnt) AS total_amount'))
-                ->whereBetween('DocDate', [$validated['start_date'], $validated['end_date']]);
+        // $validated = $request->validate([
+        //     'start_date' => 'required|date',
+        //     'end_date' => 'required|date|after_or_equal:start_date',
+        //     'good_ids' => 'array',
+        //     'good_ids.*' => 'integer',
+        //     'province' => 'nullable|string',
+        // ]);
+        // $cacheKey = 'purchases.summary:' . md5(json_encode($validated));
+        // return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($validated) {
+        //     $q = DB::table('vw_PalmPurchases')
+        //         ->select('Province', DB::raw('SUM(GoodAmnt) AS total_amount'))
+        //         ->whereBetween('DocDate', [$validated['start_date'], $validated['end_date']]);
 
 
-            if (!empty($validated['good_ids'])) {
-                $q->whereIn('GoodID', $validated['good_ids']);
-            }
-            if (!empty($validated['province'])) {
-                $q->where('Province', $validated['province']);
-            }
+        //     if (!empty($validated['good_ids'])) {
+        //         $q->whereIn('GoodID', $validated['good_ids']);
+        //     }
+        //     if (!empty($validated['province'])) {
+        //         $q->where('Province', $validated['province']);
+        //     }
 
 
-            $rows = $q->groupBy('Province')
-                ->orderByDesc(DB::raw('SUM(GoodAmnt)'))
-                ->get();
+        //     $rows = $q->groupBy('Province')
+        //         ->orderByDesc(DB::raw('SUM(GoodAmnt)'))
+        //         ->get();
 
 
-            $total = $rows->sum('total_amount');
-            $users = User::all();
-            return Inertia::render('RPO/Index', [
-                'data' => $users,
-                'total' => $total,
-                'items' => $rows,
+        //     $total = $rows->sum('total_amount');
+        //     $users = User::all();
+            return Inertia::render('RPO/ReportPurchasePlam', [
+                // 'data' => $users,
+                // 'total' => $total,
+                // 'items' => $rows,
             ]);
 
             // return response()->json([]);
-        });
+        // });
     }
 
     public function summary(Request $request)

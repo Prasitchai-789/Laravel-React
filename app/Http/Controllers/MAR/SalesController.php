@@ -16,7 +16,7 @@ class SalesController extends Controller
         $this->salesRepo = $salesRepo;
     }
 
-    public function index(Request $request)
+    public function index()
     {
         // // รับค่ากรองจาก query parameters
         // $year = $request->get('year', null);
@@ -32,7 +32,7 @@ class SalesController extends Controller
         // $conversionStats = $this->salesRepo->getOrderToInvoiceStats($year, $month);
         // $availableYears = $this->salesRepo->getAvailableYears();
 
-        return Inertia::render('Dashboard/MAR/Index', [
+        return Inertia::render('MAR/Dashboard', [
             // 'monthlySales'    => $monthlySales,
             // 'topProducts'     => $topProducts,
             // 'topCustomers'    => $topCustomers,
