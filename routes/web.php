@@ -152,7 +152,7 @@ Route::middleware('permission:users.delete')->group(function () {
 
 // Purchases Routes
 Route::middleware(['permission:users.view'])->group(function () {
-    Route::get('purchases', [PurchaseSummaryController::class, 'index'])->name('purchases.index');
+    Route::get('purchases/palm', [PurchaseSummaryController::class, 'index'])->name('purchases.index');
     Route::get('purchases/summary', [PurchaseSummaryController::class, 'summary'])->name('purchases.summary');
 });
 
@@ -311,9 +311,11 @@ Route::get('/accounts', [AccountController::class, 'index'])->name('accounts');
 Route::get('/accounts/api', [AccountController::class, 'getAccounts'])->name('accounts.api');
 Route::get('/sales-mar/api', [SaleMARController::class, 'getSalesWeb'])->name('sales.mar.api');
 Route::get('/sales-mar-win/api', [SaleMARController::class, 'getSalesWin'])->name('sales.mar.win.api');
-Route::get('/poinv-win/api', [POInvController::class, 'getPOInv'])->name('poinv.win.api');
+Route::get('/poinv-win-summary/api', [POInvController::class, 'getPOInvSummary'])->name('poinv.win.summary.api');
+Route::get('/poinv-win-monthly/api', [POInvController::class, 'getPOInvMonthly'])->name('poinv.win.monthly.api');
 Route::get('/sales-order', [SalesOrderMarController::class, 'index'])->name('sales.order.index');
 Route::get('/sales-order-summary/api', [SaleMARController::class, 'getSalesSummary'])->name('sales.order.summary.api');
+Route::get('/sales/dashboard', [MARSalesController::class, 'index'])->name('sales.index');
 
 
 });

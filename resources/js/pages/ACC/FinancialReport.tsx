@@ -240,7 +240,7 @@ export default function FinancialReport() {
     const fetchDataPOInvWin = async () => {
         setSummaryLoading(true);
         try {
-            const response = await axios.get('/poinv-win/api', {
+            const response = await axios.get('/poinv-win-summary/api', {
                 params: { start_date: startDate, end_date: endDate },
             });
             const POInvWin: POInvWin[] = response.data.data || [];
@@ -897,7 +897,7 @@ export default function FinancialReport() {
                                         <div className="flex items-center gap-4">
                                             <div className="text-right">
                                                 <p className="text-sm font-semibold text-red-600">
-                                                    {formatMoney(sumColumn(category.accounts, 'Dr') - sumColumn(category.accounts, 'Cr'))}
+                                                    {formatCurrency(sumColumn(category.accounts, 'Dr') - sumColumn(category.accounts, 'Cr'))}
                                                 </p>
                                                 <p className="text-xs text-gray-500">รวมรายจ่าย</p>
                                             </div>
@@ -941,23 +941,23 @@ export default function FinancialReport() {
                                                                     <div className="text-sm font-medium text-gray-900">{acc.AccName}</div>
                                                                     <div className="text-sm text-gray-500">{acc.AccCode}</div>
                                                                 </td>
-                                                                <td className="px-4 py-3 text-right text-sm text-gray-900">{formatMoney(acc.Dr)}</td>
-                                                                <td className="px-4 py-3 text-right text-sm text-gray-900">{formatMoney(acc.Cr)}</td>
+                                                                <td className="px-4 py-3 text-right text-sm text-gray-900">{formatCurrency(acc.Dr)}</td>
+                                                                <td className="px-4 py-3 text-right text-sm text-gray-900">{formatCurrency(acc.Cr)}</td>
                                                                 <td className="px-4 py-3 text-right text-sm font-semibold text-red-600">
-                                                                    {formatMoney(acc.Dr - acc.Cr)}
+                                                                    {formatCurrency(acc.Dr - acc.Cr)}
                                                                 </td>
                                                             </tr>
                                                         ))}
                                                         <tr className="bg-gray-50 font-semibold">
                                                             <td className="px-4 py-3 text-sm text-gray-900">รวม</td>
                                                             <td className="px-4 py-3 text-right text-sm text-gray-900">
-                                                                {formatMoney(sumColumn(category.accounts, 'Dr'))}
+                                                                {formatCurrency(sumColumn(category.accounts, 'Dr'))}
                                                             </td>
                                                             <td className="px-4 py-3 text-right text-sm text-gray-900">
-                                                                {formatMoney(sumColumn(category.accounts, 'Cr'))}
+                                                                {formatCurrency(sumColumn(category.accounts, 'Cr'))}
                                                             </td>
                                                             <td className="px-4 py-3 text-right text-sm text-red-600">
-                                                                {formatMoney(sumColumn(category.accounts, 'Dr') - sumColumn(category.accounts, 'Cr'))}
+                                                                {formatCurrency(sumColumn(category.accounts, 'Dr') - sumColumn(category.accounts, 'Cr'))}
                                                             </td>
                                                         </tr>
                                                     </tbody>
@@ -970,7 +970,7 @@ export default function FinancialReport() {
                         </div>
                     )}
 
-                    
+
                 </div>
             </div>
         </AppLayout>
