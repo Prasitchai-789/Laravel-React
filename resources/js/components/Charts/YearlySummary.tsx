@@ -13,19 +13,24 @@ import {
 } from 'recharts';
 
 interface YearlySummaryProps {
-  data?: { name: string; revenue: number; avgPrice: number }[];
-  timeframe?: string;
-  title?: string;
-  totalRevenue?: number;
-  growthRate?: number;
-  avgPrice?: number;
   invoiced?: number;
+  profit?: number;
+  expenses?: number;
+  growth?: number;
+  data?: { name: string; net?: number; revenue?: number; avgPrice?: number }[];
+  timeframe?: string;
+  variant?: 'default' | 'modern' | 'minimal';
+  title?: string;
+  goodName?: string;     // ✅ เพิ่ม
+  monthLabel?: string;   // ✅ เพิ่ม
 }
 
 export default function YearlySummary({
   data = [],
   timeframe = '2024',
   title = 'ยอดขายและราคาเฉลี่ยรายเดือน',
+  goodName = 'ทั้งหมด',
+  monthLabel = '',
 //   growthRate = 15.3,
 }: YearlySummaryProps) {
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -74,12 +79,11 @@ export default function YearlySummary({
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h3 className="text-2xl font-bold text-gray-800 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-            {title}
+            {title} <span className="font-medium text-gray-800 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent text-lg">(สินค้า : {goodName})</span>
           </h3>
-          <p className="text-gray-500 text-sm mt-1 flex items-center">
-            <Calendar size={14} className="mr-1" />
-            ข้อมูลประจำปี {timeframe}
-          </p>
+          <p className="text-sm text-gray-600">
+          • ช่วงข้อมูล: <span className="font-medium text-gray-800">{monthLabel}</span>
+        </p>
         </div>
 
         <div className="flex items-center space-x-3">

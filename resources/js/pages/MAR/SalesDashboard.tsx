@@ -14,7 +14,7 @@ import {
     TimeScale,
     Tooltip,
 } from 'chart.js';
-import React, { useCallback, useEffect, useMemo, useState , useRef } from 'react';
+import React, { Component, ErrorInfo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler, TimeScale);
@@ -92,15 +92,21 @@ export default function SalesDashboard() {
     const startDate = useMemo(() => `${year}-01-01`, [year]);
     const endDate = useMemo(() => `${year}-12-31`, [year]);
 
-    // Animate KPI values
-    // ✅ ปรับแก้ ไม่ให้เกิด infinite re-render
+    // ✅ ป้องกัน loop render จากการ animate ค่า
     const prevSummaryRef = useRef<Summary | null>(null);
 
     useEffect(() => {
         if (!summary) return;
 
-        // ตรวจว่าค่า summary เปลี่ยนจริงๆ หรือไม่
-        if (prevSummaryRef.current && JSON.stringify(prevSummaryRef.current) === JSON.stringify(summary)) {
+        const prev = prevSummaryRef.current;
+        // ตรวจว่าค่า summary เปลี่ยนจริงหรือไม่ (เฉพาะ field หลัก)
+        if (
+            prev &&
+            prev.total_sales === summary.total_sales &&
+            prev.total_returns === summary.total_returns &&
+            prev.total_weight === summary.total_weight &&
+            prev.average_price === summary.average_price
+        ) {
             return;
         }
 
@@ -116,16 +122,17 @@ export default function SalesDashboard() {
         const tick = (now: number) => {
             const p = Math.min(1, (now - t0) / duration);
             const e = easeOut(p);
-            setAnimatedValues({
+            setAnimatedValues((prev) => ({
                 total_sales: Math.round(start.total_sales + (target.total_sales - start.total_sales) * e),
                 total_returns: Math.round(start.total_returns + (target.total_returns - start.total_returns) * e),
                 total_weight: Math.round(start.total_weight + (target.total_weight - start.total_weight) * e),
                 average_price: start.average_price + (target.average_price - start.average_price) * e,
-            });
+            }));
             if (p < 1) raf = requestAnimationFrame(tick);
         };
         raf = requestAnimationFrame(tick);
         return () => cancelAnimationFrame(raf);
+        // ❌ ไม่มี animatedValues ใน dependency → จะไม่ loop
     }, [summary]);
 
     const fetchAll = async () => {
@@ -226,12 +233,6 @@ export default function SalesDashboard() {
                     production_ratio: 0.02,
                 },
             ]);
-            setMonthlyTrends([
-                { month: `${year}-01`, sales: 4200000, returns: 150000, net_sales: 4050000, average_price: 18.75 },
-                { month: `${year}-02`, sales: 4900000, returns: 170000, net_sales: 4730000, average_price: 19.2 },
-                { month: `${year}-03`, sales: 3800000, returns: 120000, net_sales: 3680000, average_price: 19.1 },
-                { month: `${year}-04`, sales: 5200000, returns: 180000, net_sales: 5020000, average_price: 19.7 },
-            ]);
             setTrend3y([
                 { year: year - 2, points: monthLabels.map((_, i) => ({ month: i + 1, net_sales: 2500000 + i * 80000 })) },
                 { year: year - 1, points: monthLabels.map((_, i) => ({ month: i + 1, net_sales: 2800000 + i * 90000 })) },
@@ -244,30 +245,53 @@ export default function SalesDashboard() {
 
     useEffect(() => {
         fetchAll();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [year, month, goodId]);
 
+    class ChartBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+        constructor(props: any) {
+            super(props);
+            this.state = { hasError: false };
+        }
+
+        static getDerivedStateFromError() {
+            return { hasError: true };
+        }
+
+        componentDidCatch(error: Error, info: ErrorInfo) {
+            console.error('Chart error:', error, info);
+        }
+
+        render() {
+            if (this.state.hasError) {
+                return <div className="text-sm text-red-600">⚠️ เกิดข้อผิดพลาดในการแสดงกราฟ</div>;
+            }
+            return this.props.children;
+        }
+    }
+
     const trend3yData = useMemo(() => {
-        const labels = monthNamesEN;
-        const colors = ['rgb(107, 114, 128)', 'rgb(59, 130, 246)', 'rgb(16, 185, 129)'];
+        if (!trend3y.length) return { labels: monthNamesEN, datasets: [] };
+        const labels = [...monthNamesEN];
+        const colors = ['#6b7280', '#3b82f6', '#10b981'];
+
         return {
             labels,
             datasets: trend3y.map((line, idx) => ({
                 label: `${line.year}`,
-                data: labels.map((_, i) => line.points.find((p) => p.month === i + 1)?.net_sales || 0),
-                tension: 0.3,
+                data: labels.map((_, i) => {
+                    const point = line.points.find((p) => p.month === i + 1);
+                    return point ? point.net_sales : 0;
+                }),
+                borderColor: colors[idx % colors.length],
+                backgroundColor: colors[idx % colors.length],
                 borderWidth: 3,
+                tension: 0.3,
                 fill: false,
-                borderColor: colors[idx],
-                backgroundColor: colors[idx],
-                pointBackgroundColor: colors[idx],
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
                 pointRadius: 4,
                 pointHoverRadius: 6,
             })),
         };
-    }, [trend3y]);
+    }, [JSON.stringify(trend3y)]);
 
     // ===== Chart Options (improved) =====
     const lineOpts: any = {
@@ -367,7 +391,10 @@ export default function SalesDashboard() {
                             <h1 className="bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-2xl font-bold text-gray-900 text-transparent md:text-3xl">
                                 Dashboard รายงานสรุปการขาย
                             </h1>
-                            <p className="mt-1 text-sm text-gray-600">โรงงานปาล์มน้ำมัน - วิเคราะห์ยอดขาย ราคา ตลาด และประสิทธิภาพการผลิต</p>
+                            <p className="mt-1 text-sm text-gray-600">
+                                สรุปรายการสินค้า และรายการยอดขาย
+                                {month ? ` (ช่วงข้อมูล: ${monthLabels[parseInt(month) - 1]} ${year})` : ` (ช่วงข้อมูล: มกราคม – ธันวาคม ${year})`}
+                            </p>
                         </div>
                         <div className="flex flex-wrap items-end gap-3">
                             <div className="min-w-[120px] flex-1">
@@ -459,35 +486,37 @@ export default function SalesDashboard() {
 
                 {/* KPI Cards */}
                 <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <WaveCard
-                        value={summary ? `${toTHB(animatedValues.total_weight)} ตัน` : '0'}
-                        label="ปริมาณการขายรวม"
-                        direction="up"
-                        color="from-blue-400 to-blue-600"
-                        data={chartWeightSales}
-                    />
-                    <WaveCard
-                        value={summary ? `${toTHB(animatedValues.total_sales)} ฿` : '0'}
-                        label="ยอดขายรวม"
-                        direction="down"
-                        color="from-emerald-500 to-emerald-600"
-                        data={chartNetSales}
-                    />
-                    <WaveCard
-                        value={summary ? `${toTHB(animatedValues.total_returns)} ฿` : '0'}
-                        label="ลดหนี้"
-                        direction="down"
-                        color="from-rose-500 to-rose-600"
-                        data={chartReturns}
-                    />
+                    <ChartBoundary>
+                        <WaveCard
+                            value={summary ? `${toTHB(animatedValues.total_weight)} ตัน` : '0'}
+                            label="ปริมาณการขายรวม"
+                            // direction="up"
+                            color="from-blue-400 to-blue-600"
+                            data={chartWeightSales}
+                        />
+                        <WaveCard
+                            value={summary ? `${toTHB(animatedValues.total_sales)} ฿` : '0'}
+                            label="ยอดขายรวม"
+                            // direction="down"
+                            color="from-emerald-500 to-emerald-600"
+                            data={chartNetSales}
+                        />
+                        <WaveCard
+                            value={summary ? `${toTHB(animatedValues.total_returns)} ฿` : '0'}
+                            label="ลดหนี้"
+                            // direction="down"
+                            color="from-rose-500 to-rose-600"
+                            data={chartReturns}
+                        />
 
-                    <WaveCard
-                        value={summary ? `${toPrice(animatedValues.average_price)} ฿` : '0.00'}
-                        label="ราคาเฉลี่ย"
-                        direction="down"
-                        color="from-violet-500 to-violet-600"
-                        data={chartAveragePrice}
-                    />
+                        <WaveCard
+                            value={goodId ? (summary ? `${toPrice(animatedValues.average_price)} ฿` : '0.00') : '—'}
+                            label="ราคาเฉลี่ย"
+                            // direction="down"
+                            color="from-violet-500 to-violet-600"
+                            data={chartAveragePrice}
+                        />
+                    </ChartBoundary>
                 </div>
 
                 <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -497,10 +526,23 @@ export default function SalesDashboard() {
                             profit={summary ? summary.total_sales - summary.total_returns : 0}
                             expenses={summary?.total_returns || 0}
                             growth={15.3}
-                            data={yearlyData} // ✅ ใช้ข้อมูลจริง
+                            data={yearlyData}
                             timeframe={year.toString()}
                             variant="modern"
                             title="สรุปยอดขายรายเดือน"
+                            goodName={
+                                goodId
+                                    ? {
+                                          2147: 'น้ำมันปาล์มดิบ',
+                                          2152: 'เมล็ดในปาล์ม',
+                                          2151: 'กะลา',
+                                          9012: 'ทะลายสับ',
+                                          2149: 'ทะลายปาล์มเปล่า',
+                                          2150: 'ใยปาล์ม',
+                                      }[goodId] || 'ทั้งหมด'
+                                    : 'ทั้งหมด'
+                            }
+                            monthLabel={month ? `${monthLabels[parseInt(month) - 1]} ${year}` : `มกราคม – ธันวาคม ${year}`}
                         />
                     </div>
 
@@ -508,7 +550,6 @@ export default function SalesDashboard() {
                     <div className="xl:col-span-3">
                         <ModernCard
                             title="สรุปรายการสินค้า"
-                            subtitle="เรียงตามยอดขายสุทธิ"
                             // action={
                             //     <button className="flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-1.5 text-sm text-blue-600 transition-colors hover:bg-blue-100">
                             //         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -518,7 +559,22 @@ export default function SalesDashboard() {
                             //     </button>
                             // }
                         >
-                            <EnhancedProductTable rows={products} />
+                            <EnhancedProductTable
+                                rows={products}
+                                goodName={
+                                    goodId
+                                        ? {
+                                              2147: 'น้ำมันปาล์มดิบ',
+                                              2152: 'เมล็ดในปาล์ม',
+                                              2151: 'กะลา',
+                                              9012: 'ทะลายสับ',
+                                              2149: 'ทะลายปาล์มเปล่า',
+                                              2150: 'ใยปาล์ม',
+                                          }[goodId] || 'ทั้งหมด'
+                                        : 'ทั้งหมด'
+                                }
+                                monthLabel={month ? `${monthLabels[parseInt(month) - 1]} ${year}` : `มกราคม – ธันวาคม ${year}`}
+                            />
                         </ModernCard>
                     </div>
                 </div>
@@ -526,18 +582,10 @@ export default function SalesDashboard() {
                 <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
                     <Card title="แนวโน้มยอดขายย้อนหลัง 3 ปี" className="xl:col-span-3">
                         <div className="h-80">
-                            <Line data={trend3yData} options={lineOpts} />
+                            <Line key={year} data={trend3yData} options={lineOpts} />
                         </div>
                     </Card>
                 </div>
-
-                {/* <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
-                    <Card title="Top 5 ลูกค้าใหญ่ (ยอดขายสุทธิ)">
-                        <div className="h-80">
-                            <Bar data={topCustomerBar} options={barOpts} />
-                        </div>
-                    </Card>
-                </div> */}
 
                 {loading && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md">
@@ -581,9 +629,14 @@ function ModernCard({ title, subtitle, action, children }: any) {
     );
 }
 
-function EnhancedProductTable({ rows }: { rows: ProductRow[] }) {
+function EnhancedProductTable({ rows, goodName = 'ทั้งหมด', monthLabel = '' }: { rows: ProductRow[]; goodName?: string; monthLabel?: string }) {
     return (
         <div className="overflow-hidden rounded-xl">
+            <div className="border-b border-gray-200 bg-gray-50 px-6 py-4 text-sm text-gray-700">
+                <span>
+                    <strong>ช่วงข้อมูล:</strong> {monthLabel}
+                </span>
+            </div>
             <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
                     <thead className="bg-gray-50/80">
