@@ -5,8 +5,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CitizenController;
 use App\Http\Controllers\Api\ProjectController;
-use App\Http\Controllers\Api\PurchaseDashboardController;
+use App\Http\Controllers\Api\SaleMARController;
 use App\Http\Controllers\Store\StoreMovementController;
+use App\Http\Controllers\Api\PurchaseDashboardController;
 
 
 Route::prefix('projects')->group(function () {
@@ -29,10 +30,6 @@ Route::post('/citizens/bulk', [CitizenController::class, 'bulkUpload']);
 // Route::middleware(['auth', ''])->group(function () {
     // Route::apiResource('purchase/dashboard', PurchaseDashboardController::class)->only(['index']);
 // });
-
-
-
-
 
 
 Route::post('/citizens/clear', function () {

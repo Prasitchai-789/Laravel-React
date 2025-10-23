@@ -3,368 +3,508 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
-export default function CostAnalysis({ auth }) {
-    const { props } = usePage();
-    const { lotData: initialLotData, sales: initialSales, startDate: propStart, endDate: propEnd } = props;
+interface LotDataItem {
+  productionDate?: string;
+  DocuNo?: string;
+  productionQty?: number;
+  totalCost?: number;
+  unitCost?: number;
+}
 
-    // แปลงข้อมูลให้เป็น array หากไม่ใช่
-    const [lotData, setLotData] = useState([]);
-    const [sales, setSales] = useState([]);
+interface SalesItem {
+  GoodID: number;
+  GoodName: string;
+  total_qty?: number;
+  total_amnt?: number;
+}
 
-    useEffect(() => {
-        // แปลง lotData ให้เป็น array
-        if (Array.isArray(initialLotData)) {
-            setLotData(initialLotData);
-        } else if (initialLotData && typeof initialLotData === 'object') {
-            setLotData(Object.values(initialLotData));
-        } else {
-            setLotData([]);
-        }
+interface GroupedSales {
+  [key: string]: {
+    GoodID: number;
+    GoodName: string;
+    total_qty: number;
+    total_amnt: number;
+    avg_price: number;
+    sales: SalesItem[];
+  };
+}
 
-        // แปลง sales ให้เป็น array
-        if (Array.isArray(initialSales)) {
-            setSales(initialSales);
-        } else if (initialSales && typeof initialSales === 'object') {
-            setSales(Object.values(initialSales));
-        } else {
-            setSales([]);
-        }
-    }, [initialLotData, initialSales]);
+interface CostAnalysisProps {
+  auth: any;
+}
 
-    const today = new Date();
-    function formatDateLocal(date: Date): string {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+interface FormData {
+  startDate: string;
+  endDate: string;
+}
+
+export default function CostAnalysis({ auth }: CostAnalysisProps) {
+  const { props } = usePage();
+  const {
+    lotData: initialLotData,
+    sales: initialSales,
+    startDate: propStart,
+    endDate: propEnd
+  } = props as {
+    lotData?: LotDataItem[] | Record<string, LotDataItem>;
+    sales?: SalesItem[] | Record<string, SalesItem>;
+    startDate?: string;
+    endDate?: string;
+  };
+
+  const [lotData, setLotData] = useState<LotDataItem[]>([]);
+  const [sales, setSales] = useState<SalesItem[]>([]);
+
+  useEffect(() => {
+    // แปลง lotData ให้เป็น array
+    if (Array.isArray(initialLotData)) {
+      setLotData(initialLotData);
+    } else if (initialLotData && typeof initialLotData === 'object') {
+      setLotData(Object.values(initialLotData));
+    } else {
+      setLotData([]);
     }
 
-    const defaultStart = formatDateLocal(new Date(today.getFullYear(), today.getMonth(), 1));
-    const defaultEnd = formatDateLocal(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+    // แปลง sales ให้เป็น array
+    if (Array.isArray(initialSales)) {
+      setSales(initialSales);
+    } else if (initialSales && typeof initialSales === 'object') {
+      setSales(Object.values(initialSales));
+    } else {
+      setSales([]);
+    }
+  }, [initialLotData, initialSales]);
 
-    const { data, setData, processing, errors } = useForm({
-        startDate: propStart ?? defaultStart,
-        endDate: propEnd ?? defaultEnd,
-    });
-    const submit = (e) => {
-        e.preventDefault();
-        console.log('Submitting with data:', data);
-        if (!data.startDate || !data.endDate) {
-            alert('กรุณาเลือกช่วงวันที่');
-            return;
-        }
-        router.get(route('cost-analysis.dashboard.index'), data);
-    };
+  const today = new Date();
 
-    // คำนวณยอดรวมต่างๆ
-    const totalProduction = Array.isArray(lotData) ? lotData.reduce((sum, item) => sum + (item.productionQty || 0), 0) : 0;
+  function formatDateLocal(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
 
-    const totalProductionCost = Array.isArray(lotData) ? lotData.reduce((sum, item) => sum + (item.totalCost || 0), 0) : 0;
+  const defaultStart = formatDateLocal(new Date(today.getFullYear(), today.getMonth(), 1));
+  const defaultEnd = formatDateLocal(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
-    const totalSales = Array.isArray(sales) ? sales.reduce((sum, item) => sum + (item.total_amnt || 0), 0) : 0;
+  const { data, setData, processing, errors } = useForm<FormData>({
+    startDate: propStart ?? defaultStart,
+    endDate: propEnd ?? defaultEnd,
+  });
 
-    const totalSalesQty = Array.isArray(sales) ? sales.reduce((sum, item) => sum + (item.total_qty || 0), 0) : 0;
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!data.startDate || !data.endDate) {
+      alert('กรุณาเลือกช่วงวันที่');
+      return;
+    }
+    router.get(route('cost-analysis.dashboard.index'), data);
+  };
 
-    // จัดกลุ่มข้อมูลขายตาม GoodID
-    const groupedSales = Array.isArray(sales)
-        ? sales.reduce((acc, item) => {
-              const key = item.GoodID;
-              if (!acc[key]) {
-                  acc[key] = {
-                      GoodID: item.GoodID,
-                      GoodName: item.GoodName,
-                      total_qty: 0,
-                      total_amnt: 0,
-                      sales: [],
-                  };
-              }
-              acc[key].total_qty += item.total_qty || 0;
-              acc[key].total_amnt += item.total_amnt || 0;
-              acc[key].sales.push(item);
-              return acc;
-          }, {})
-        : {};
+  // คำนวณยอดรวมต่างๆ
+  const totalProduction = lotData.reduce((sum: number, item: LotDataItem) =>
+    sum + (Number(item.productionQty) || 0), 0
+  );
 
-    // คำนวณราคาขายเฉลี่ยต่อสินค้า
-    Object.keys(groupedSales).forEach((key) => {
-        groupedSales[key].avg_price = groupedSales[key].total_qty > 0 ? groupedSales[key].total_amnt / groupedSales[key].total_qty : 0;
-    });
+  const totalProductionCost = lotData.reduce((sum: number, item: LotDataItem) =>
+    sum + (Number(item.totalCost) || 0), 0
+  );
 
-    const avgCostPerUnit = totalProduction > 0 ? totalProductionCost / totalProduction : 0;
-    const avgPrice2147 = groupedSales[2147] ? groupedSales[2147].avg_price : 0;
-    const total_qty2147 = groupedSales[2147] ? groupedSales[2147].total_qty : 0;
-    const CostCPO = (avgCostPerUnit / 17.18) * 100;
-    const CostLostCPO = avgPrice2147 - CostCPO;
-    const lostPrice = CostLostCPO * total_qty2147;
+  const totalSales = sales.reduce((sum: number, item: SalesItem) =>
+    sum + (Number(item.total_amnt) || 0), 0
+  );
 
-    const CostFFB = (total_qty2147 / 17.18) * 100 * avgCostPerUnit;
+  const totalSalesQty = sales.reduce((sum: number, item: SalesItem) =>
+    sum + (Number(item.total_qty) || 0), 0
+  );
 
-    const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Dashboard', href: '/dashboard' },
-        { title: 'การวิเคราะห์ต้นทุน', href: '/roles' },
-    ];
+  // จัดกลุ่มข้อมูลขายตาม GoodID
+  const groupedSales: GroupedSales = sales.reduce((acc: GroupedSales, item: SalesItem) => {
+    const key = String(item.GoodID);
+    if (!acc[key]) {
+      acc[key] = {
+        GoodID: item.GoodID,
+        GoodName: item.GoodName,
+        total_qty: 0,
+        total_amnt: 0,
+        avg_price: 0,
+        sales: [],
+      };
+    }
+    acc[key].total_qty += Number(item.total_qty) || 0;
+    acc[key].total_amnt += Number(item.total_amnt) || 0;
+    acc[key].sales.push(item);
+    return acc;
+  }, {});
 
-    return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="การวิเคราะห์ต้นทุน" />
-            <div className="p-4 font-anuphan">
-                <div className="mx-auto">
-                    <div className="overflow-hidden bg-white">
-                        {/* Header */}
-                        <div className="mb-4 border-b border-gray-200 pb-4">
-                            <h1 className="text-2xl font-bold text-gray-900">การวิเคราะห์ต้นทุนการผลิต</h1>
-                            <p className="mt-1 text-sm text-gray-600">
-                                ข้อมูลระหว่างวันที่ {data.startDate} ถึง {data.endDate}
-                            </p>
-                        </div>
+  // คำนวณราคาขายเฉลี่ยต่อสินค้า
+  Object.keys(groupedSales).forEach((key) => {
+    const item = groupedSales[key];
+    item.avg_price = item.total_qty > 0 ? item.total_amnt / item.total_qty : 0;
+  });
 
-                        {/* ฟอร์มเลือกช่วงเวลา */}
-                        <form onSubmit={submit} className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="date"
-                                    className="flex-1 rounded-lg border border-gray-200 px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
-                                    value={data.startDate}
-                                    onChange={(e) => setData('startDate', e.target.value)}
-                                />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-gray-400">ถึง</span>
-                                <input
-                                    type="date"
-                                    className="flex-1 rounded-lg border border-gray-200 px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
-                                    value={data.endDate}
-                                    onChange={(e) => setData('endDate', e.target.value)}
-                                />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="submit"
-                                    className="rounded-lg bg-green-500 px-4 py-2 text-white hover:bg-green-600"
-                                    disabled={processing}
-                                >
-                                    ค้นหา
-                                </button>
-                                <button
-                                    type="button"
-                                    className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200"
-                                    onClick={() => setData({ startDate: '', endDate: '' })}
-                                >
-                                    ล้างช่วงวันที่
-                                </button>
-                            </div>
-                        </form>
-                        {/* สรุปข้อมูล */}
-                        <div className="mt-2 mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-                            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 shadow-sm">
-                                <h3 className="text-sm font-medium text-blue-800">ราคารับซื้อผลปาล์ม</h3>
-                                <p className="text-2xl font-bold text-blue-900">
-                                    {CostFFB.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </p>
-                                <p className="mt-1 text-xs text-blue-600">บาท</p>
-                            </div>
-                            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 shadow-sm">
-                                <h3 className="text-sm font-medium text-yellow-800">ต้นทุน CPO</h3>
-                                <p className="text-2xl font-bold text-yellow-900">
-                                    {CostCPO.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </p>
-                                <p className="mt-1 text-xs text-yellow-600">บาท/กิโลกรัม</p>
-                            </div>
-                            <div className="rounded-lg border border-red-200 bg-red-50 p-4 shadow-sm">
-                                <h3 className="text-sm font-medium text-red-800">ส่วนต่างราคา CPO</h3>
-                                <p className="text-2xl font-bold text-red-900">
-                                    {lostPrice.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </p>
-                                <p className="mt-1 text-xs text-red-600">บาท</p>
-                            </div>
-                            <div className="rounded-lg border border-green-200 bg-green-50 p-4 shadow-sm">
-                                <h3 className="text-sm font-medium text-green-800">ยอดขายทั้งหมด</h3>
-                                <p className="text-2xl font-bold text-green-900">
-                                    {totalSales.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                </p>
-                                <p className="mt-1 text-xs text-green-600">บาท</p>
-                            </div>
-                        </div>
-                        {/* ตารางยอดขายตามสินค้า */}
-                        <div className="mb-4">
-                            <div className="mb-4 flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-gray-900">ตารางยอดขายแยกตามสินค้า</h3>
-                                <span className="text-sm text-gray-500">ทั้งหมด {Object.keys(groupedSales).length} สินค้า</span>
-                            </div>
-                            <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                                รหัสสินค้า
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                                ชื่อสินค้า
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                                จำนวนขาย
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">ยอดขาย</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                                ราคาขายเฉลี่ย
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 bg-white">
-                                        {Object.keys(groupedSales).length > 0 ? (
-                                            Object.values(groupedSales).map((product, index) => (
-                                                <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50 hover:bg-gray-100'}>
-                                                    <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900">
-                                                        {product.GoodID || 'N/A'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm text-gray-900">{product.GoodName || 'N/A'}</td>
-                                                    <td className="px-6 py-4 text-right text-sm whitespace-nowrap text-gray-500">
-                                                        {product.total_qty.toLocaleString('th-TH', {
-                                                            minimumFractionDigits: 0,
-                                                            maximumFractionDigits: 0,
-                                                        })}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-sm whitespace-nowrap text-gray-500">
-                                                        {product.total_amnt.toLocaleString('th-TH', {
-                                                            minimumFractionDigits: 0,
-                                                            maximumFractionDigits: 0,
-                                                        })}{' '}
-                                                        บาท
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-sm whitespace-nowrap text-gray-500">
-                                                        {product.avg_price.toLocaleString('th-TH', {
-                                                            minimumFractionDigits: 2,
-                                                            maximumFractionDigits: 2,
-                                                        })}{' '}
-                                                        บาท
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
-                                                    ไม่มีข้อมูลการขาย
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                    {Object.keys(groupedSales).length > 0 && (
-                                        <tfoot className="bg-gray-50">
-                                            <tr>
-                                                <td colSpan="2" className="px-6 py-3 text-right text-sm font-medium text-gray-900">
-                                                    รวมทั้งหมด
-                                                </td>
-                                                <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">
-                                                    {totalSalesQty.toLocaleString()}
-                                                </td>
-                                                <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">
-                                                    {totalSales.toLocaleString()} บาท
-                                                </td>
-                                                <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">-</td>
-                                            </tr>
-                                        </tfoot>
-                                    )}
-                                </table>
-                            </div>
-                        </div>
+  // คำนวณค่าต่างๆ
+  const avgCostPerUnit = totalProduction > 0 ? totalProductionCost / totalProduction : 0;
+  const avgPrice2147 = groupedSales['2147'] ? groupedSales['2147'].avg_price : 0;
+  const total_qty2147 = groupedSales['2147'] ? groupedSales['2147'].total_qty : 0;
+  const CostCPO = (avgCostPerUnit / 18) * 100;
+  const CostLostCPO = avgPrice2147 - CostCPO;
+  const lostPrice = CostLostCPO * total_qty2147;
+  const CostFFB = (total_qty2147 / 18) * 100 * avgCostPerUnit;
 
-                        {/* ตารางต้นทุนการผลิต */}
-                        <div className="mb-4">
-                            <div className="mb-4 flex items-center justify-between">
-                                <h3 className="text-lg font-semibold text-gray-900">ตารางต้นทุนการผลิต</h3>
-                                <span className="text-sm text-gray-500">ทั้งหมด {lotData.length} รายการ</span>
-                            </div>
-                            <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                                วันที่ผลิต
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                                COA Number
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                                ปริมาณการผลิต
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                                ต้นทุนรวม
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
-                                                ต้นทุนต่อหน่วย
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 bg-white">
-                                        {lotData.length > 0 ? (
-                                            lotData.map((item, index) => (
-                                                <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50 hover:bg-gray-100'}>
-                                                    <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
-                                                        {item.productionDate ? new Date(item.productionDate).toLocaleDateString('th-TH') : 'N/A'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900">
-                                                        {item.DocuNo || 'N/A'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-sm whitespace-nowrap text-gray-500">
-                                                        {item.productionQty
-                                                            ? item.productionQty.toLocaleString('th-TH', {
-                                                                  minimumFractionDigits: 0,
-                                                                  maximumFractionDigits: 0,
-                                                              })
-                                                            : '0'}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-sm whitespace-nowrap text-gray-500">
-                                                        {item.totalCost
-                                                            ? item.totalCost.toLocaleString('th-TH', {
-                                                                  minimumFractionDigits: 0,
-                                                                  maximumFractionDigits: 0,
-                                                              })
-                                                            : '0'}{' '}
-                                                        บาท
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-sm whitespace-nowrap text-gray-500">
-                                                        {item.unitCost
-                                                            ? item.unitCost.toLocaleString('th-TH', {
-                                                                  minimumFractionDigits: 2,
-                                                                  maximumFractionDigits: 2,
-                                                              })
-                                                            : '0'}{' '}
-                                                        บาท
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
-                                                    ไม่มีข้อมูลการผลิต
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                    {lotData.length > 0 && (
-                                        <tfoot className="bg-gray-50">
-                                            <tr>
-                                                <td colSpan="2" className="px-6 py-3 text-right text-sm font-medium text-gray-900">
-                                                    รวมทั้งหมด
-                                                </td>
-                                                <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">
-                                                    {totalProduction.toLocaleString()}
-                                                </td>
-                                                <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">
-                                                    {totalProductionCost.toLocaleString()} บาท
-                                                </td>
-                                                <td className="px-6 py-3 text-right text-sm font-medium text-gray-900">
-                                                    {totalProduction > 0 ? (totalProductionCost / totalProduction).toFixed(2) : '0'} บาท
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    )}
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+  const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Dashboard', href: '/dashboard' },
+    { title: 'การวิเคราะห์ต้นทุน', href: '/roles' },
+  ];
+
+  return (
+    <AppLayout breadcrumbs={breadcrumbs}>
+      <Head title="การวิเคราะห์ต้นทุน" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 font-anuphan">
+        <div className="mx-auto max-w-7xl">
+          <div className="overflow-hidden rounded-2xl bg-white shadow-xl">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-8 py-6 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold">การวิเคราะห์ต้นทุนการผลิต</h1>
+                  <p className="mt-2 text-emerald-100">
+                    ข้อมูลระหว่างวันที่ {data.startDate} ถึง {data.endDate}
+                  </p>
                 </div>
+                <div className="rounded-full bg-white/20 p-3">
+                  <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+              </div>
             </div>
-        </AppLayout>
-    );
+
+            {/* ฟอร์มเลือกช่วงเวลา */}
+            <div className="border-b border-gray-200 bg-white px-8 py-6">
+              <form onSubmit={submit} className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-1 flex-col gap-4 sm:flex-row">
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-gray-700">จากวันที่</label>
+                    <input
+                      type="date"
+                      className="flex-1 rounded-lg border border-gray-300 px-4 py-3 shadow-sm transition-all duration-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                      value={data.startDate}
+                      onChange={(e) => setData('startDate', e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-gray-700">ถึงวันที่</label>
+                    <input
+                      type="date"
+                      className="flex-1 rounded-lg border border-gray-300 px-4 py-3 shadow-sm transition-all duration-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
+                      value={data.endDate}
+                      onChange={(e) => setData('endDate', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    className="flex items-center gap-2 rounded-lg bg-green-500 px-6 py-3 font-medium text-white shadow-lg transition-all duration-200 hover:bg-green-600 hover:shadow-xl disabled:opacity-50"
+                    disabled={processing}
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    ค้นหาข้อมูล
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-gray-300 bg-white px-6 py-3 font-medium text-gray-700 transition-all duration-200 hover:bg-gray-50"
+                    onClick={() => setData({ startDate: '', endDate: '' })}
+                  >
+                    ล้างค่า
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* สรุปข้อมูล */}
+            <div className="grid grid-cols-1 gap-6 p-8 md:grid-cols-2 lg:grid-cols-4">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white shadow-2xl">
+                <div className="relative z-10">
+                  <h3 className="text-sm font-medium opacity-90">ราคารับซื้อผลปาล์ม</h3>
+                  <p className="mt-2 text-3xl font-bold">
+                    {CostFFB.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="mt-1 text-sm opacity-80">บาท</p>
+                </div>
+                <div className="absolute right-4 top-4 rounded-full bg-white/20 p-3">
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 p-6 text-white shadow-2xl">
+                <div className="relative z-10">
+                  <h3 className="text-sm font-medium opacity-90">ต้นทุน CPO</h3>
+                  <p className="mt-2 text-3xl font-bold">
+                    {CostCPO.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="mt-1 text-sm opacity-80">บาท/กิโลกรัม</p>
+                </div>
+                <div className="absolute right-4 top-4 rounded-full bg-white/20 p-3">
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 p-6 text-white shadow-2xl">
+                <div className="relative z-10">
+                  <h3 className="text-sm font-medium opacity-90">ส่วนต่างราคา CPO</h3>
+                  <p className="mt-2 text-3xl font-bold">
+                    {lostPrice.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="mt-1 text-sm opacity-80">บาท</p>
+                </div>
+                <div className="absolute right-4 top-4 rounded-full bg-white/20 p-3">
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 text-white shadow-2xl">
+                <div className="relative z-10">
+                  <h3 className="text-sm font-medium opacity-90">ยอดขายทั้งหมด</h3>
+                  <p className="mt-2 text-3xl font-bold">
+                    {totalSales.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="mt-1 text-sm opacity-80">บาท</p>
+                </div>
+                <div className="absolute right-4 top-4 rounded-full bg-white/20 p-3">
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* ตารางยอดขายตามสินค้า */}
+            <div className="px-8 pb-8">
+              <div className="mb-6 rounded-2xl bg-white p-6 shadow-lg">
+                <div className="mb-6 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">ตารางยอดขายแยกตามสินค้า</h3>
+                    <p className="mt-1 text-sm text-gray-600">รายละเอียดการขายทั้งหมด {Object.keys(groupedSales).length} สินค้า</p>
+                  </div>
+                  <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-medium text-green-800">
+                    {Object.keys(groupedSales).length} สินค้า
+                  </span>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
+                          รหัสสินค้า
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
+                          ชื่อสินค้า
+                        </th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">
+                          จำนวนขาย
+                        </th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">
+                          ยอดขาย
+                        </th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">
+                          ราคาขายเฉลี่ย
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {Object.keys(groupedSales).length > 0 ? (
+                        Object.values(groupedSales).map((product, index) => (
+                          <tr
+                            key={product.GoodID}
+                            className="transition-colors duration-200 hover:bg-gray-50"
+                          >
+                            <td className="whitespace-nowrap px-6 py-4">
+                              <span className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+                                {product.GoodID || 'N/A'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                              {product.GoodName || 'N/A'}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-900">
+                              {product.total_qty.toLocaleString('th-TH')}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                              {product.total_amnt.toLocaleString('th-TH', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })} บาท
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-green-600">
+                              {product.avg_price.toLocaleString('th-TH', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })} บาท
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                            <div className="flex flex-col items-center justify-center">
+                              <svg className="h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <p className="mt-2">ไม่พบข้อมูลการขาย</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    {Object.keys(groupedSales).length > 0 && (
+                      <tfoot className="bg-gradient-to-r from-gray-50 to-gray-100">
+                        <tr>
+                          <td colSpan={2} className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                            รวมทั้งหมด
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                            {totalSalesQty.toLocaleString('th-TH')}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                            {totalSales.toLocaleString('th-TH', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })} บาท
+                          </td>
+                          <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900">-</td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              </div>
+
+              {/* ตารางต้นทุนการผลิต */}
+              <div className="rounded-2xl bg-white p-6 shadow-lg">
+                <div className="mb-6 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">ตารางต้นทุนการผลิต</h3>
+                    <p className="mt-1 text-sm text-gray-600">รายละเอียดต้นทุนการผลิตทั้งหมด {lotData.length} รายการ</p>
+                  </div>
+                  <span className="rounded-full bg-amber-100 px-4 py-2 text-sm font-medium text-amber-800">
+                    {lotData.length} รายการ
+                  </span>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
+                          วันที่ผลิต
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
+                          COA Number
+                        </th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">
+                          ปริมาณการผลิต
+                        </th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">
+                          ต้นทุนรวม
+                        </th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">
+                          ต้นทุนต่อหน่วย
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {lotData.length > 0 ? (
+                        lotData.map((item, index) => (
+                          <tr
+                            key={index}
+                            className="transition-colors duration-200 hover:bg-gray-50"
+                          >
+                            <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                              {item.productionDate ?
+                                new Date(item.productionDate).toLocaleDateString('th-TH') :
+                                'N/A'
+                              }
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4">
+                              <span className="inline-flex rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-800">
+                                {item.DocuNo || 'N/A'}
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-right text-sm text-gray-900">
+                              {Number(item.productionQty || 0).toLocaleString('th-TH')}
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                              {Number(item.totalCost || 0).toLocaleString('th-TH', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })} บาท
+                            </td>
+                            <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-rose-600">
+                              {Number(item.unitCost || 0).toLocaleString('th-TH', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })} บาท
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                            <div className="flex flex-col items-center justify-center">
+                              <svg className="h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <p className="mt-2">ไม่พบข้อมูลการผลิต</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                    {lotData.length > 0 && (
+                      <tfoot className="bg-gradient-to-r from-gray-50 to-gray-100">
+                        <tr>
+                          <td colSpan={2} className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                            รวมทั้งหมด
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                            {totalProduction.toLocaleString('th-TH')}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                            {totalProductionCost.toLocaleString('th-TH', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })} บาท
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                            {totalProduction > 0 ?
+                              (totalProductionCost / totalProduction).toLocaleString('th-TH', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }) :
+                              '0.00'
+                            } บาท
+                          </td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </AppLayout>
+  );
 }

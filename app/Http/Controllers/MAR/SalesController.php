@@ -18,30 +18,12 @@ class SalesController extends Controller
 
     public function index()
     {
-        // // รับค่ากรองจาก query parameters
-        // $year = $request->get('year', null);
-        // $month = $request->get('month', null);
 
-        // // แปลงค่า 'all' เป็น null
-        // if ($year === 'all') $year = null;
-        // if ($month === 'all') $month = null;
-
-        // $monthlySales = $this->salesRepo->getMonthlySales($year, $month);
-        // $topProducts = $this->salesRepo->getTopProducts(5, $year, $month);
-        // $topCustomers = $this->salesRepo->getTopCustomers(5, $year, $month);
-        // $conversionStats = $this->salesRepo->getOrderToInvoiceStats($year, $month);
-        // $availableYears = $this->salesRepo->getAvailableYears();
-
-        return Inertia::render('MAR/Dashboard', [
-            // 'monthlySales'    => $monthlySales,
-            // 'topProducts'     => $topProducts,
-            // 'topCustomers'    => $topCustomers,
-            // 'conversionStats' => $conversionStats,
-            // 'availableYears'  => $availableYears,
-            // 'filters' => [
-            //     'year' => $year,
-            //     'month' => $month
-            // ]
+        return Inertia::render('MAR/SalesDashboard', [
         ]);
+
+
+        // return Inertia::render('QAC/ProductionReport', [
+        // ]);
     }
 }
