@@ -142,7 +142,7 @@ export default function Index() {
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
-        { title: 'Expense Documents', href: '/memo/documents' },
+        { title: 'สรุปค่าใช้จ่ายตามหน่วยงาน', href: '#' },
     ];
 
     // เรียงข้อมูลจากมากไปน้อยก่อนคำนวณ total

@@ -367,7 +367,7 @@ export default function SalesDashboard() {
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
-        { title: 'Expense Documents', href: '/memo/documents' },
+        { title: 'รายงานสรุปการขาย', href: '/memo/documents' },
     ];
 
     const yearlyData = useMemo(() => {
@@ -389,7 +389,7 @@ export default function SalesDashboard() {
                     <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                         <div>
                             <h1 className="bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-2xl font-bold text-gray-900 text-transparent md:text-3xl">
-                                Dashboard รายงานสรุปการขาย
+                                รายงานสรุปการขาย
                             </h1>
                             <p className="mt-1 text-sm text-gray-600">
                                 สรุปรายการสินค้า และรายการยอดขาย
