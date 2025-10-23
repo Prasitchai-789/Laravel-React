@@ -42,7 +42,8 @@ import {
     MonitorSmartphone,
     ScrollText,
     CreditCard,
-    BadgeDollarSign
+    BadgeDollarSign,
+    Truck
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -154,6 +155,11 @@ const DevNavItems: NavItem[] = [
         title: 'ต้นทุนการขาย',
         href: '/cost-analysis/dashboard',
         icon: ChartCandlestick,
+    },
+    {
+        title: 'รายงานการขาย',
+        href: '/sales/dashboard',
+        icon: Truck,
     },
     {
         title: 'รายการใบสั่งซื้อ',

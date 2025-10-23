@@ -314,8 +314,14 @@ Route::get('/sales-mar-win/api', [SaleMARController::class, 'getSalesWin'])->nam
 Route::get('/poinv-win-summary/api', [POInvController::class, 'getPOInvSummary'])->name('poinv.win.summary.api');
 Route::get('/poinv-win-monthly/api', [POInvController::class, 'getPOInvMonthly'])->name('poinv.win.monthly.api');
 Route::get('/sales-order', [SalesOrderMarController::class, 'index'])->name('sales.order.index');
-Route::get('/sales-order-summary/api', [SaleMARController::class, 'getSalesSummary'])->name('sales.order.summary.api');
+Route::get('/sales-order-summary/api', [SaleMARController::class, 'getSalesOrder'])->name('sales.order.api');
 Route::get('/sales/dashboard', [MARSalesController::class, 'index'])->name('sales.index');
+Route::get('/sales-summary/api', [SaleMARController::class, 'getSalesSummary'])->name('sales.summary.api');
+Route::get('/market-price/api', [SaleMARController::class, 'getMarketPrice']);
+Route::get('/trends-3y/api', [SaleMARController::class, 'getTrends3Y']);
+Route::get('/conversion/api', [SaleMARController::class, 'getConversion']);
+Route::get('/loss-analysis/api', [SaleMARController::class, 'getLossAnalysis']);
+Route::get('/top-customers/api', [SaleMARController::class, 'getTopCustomers']);
 
 
 });

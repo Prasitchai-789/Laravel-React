@@ -1,0 +1,60 @@
+import React, { useMemo } from 'react';
+import { ArrowDown, ArrowUp } from 'lucide-react';
+import { Area, AreaChart, ResponsiveContainer, Tooltip } from 'recharts';
+
+interface WaveCardProps {
+    value: string;
+    label: string;
+    color?: string;
+    direction?: 'up' | 'down';
+    data?: { name: string; value: number }[];
+}
+
+function WaveCard({ value, label, color = 'from-blue-400 to-blue-600', direction = 'up', data = [] }: WaveCardProps) {
+    const Icon = direction === 'up' ? ArrowUp : ArrowDown;
+    const arrowColor = direction === 'up' ? 'text-emerald-300' : 'text-rose-300';
+
+    // ✅ ป้องกัน data สร้างใหม่ทุก render
+    const stableData = useMemo(() => data ?? [], [JSON.stringify(data)]);
+
+    return (
+        <div className="w-full max-w-xs overflow-hidden rounded-2xl font-anuphan shadow-md transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl">
+            <div className={`relative bg-gradient-to-b ${color} flex flex-col justify-center pt-6 pb-10 text-white`}>
+                <div className="flex w-full items-center justify-between px-6 pb-2">
+                    <div className="absolute -right-5 bottom-10 h-24 w-24 rounded-full bg-white/10"></div>
+                    <h2 className="text-2xl font-bold tracking-wide">{value}</h2>
+                    <Icon className={`h-5 w-5 opacity-90 transition-transform duration-300 ${arrowColor}`} />
+                </div>
+
+                <div className="absolute bottom-0 m-0 h-[60px] w-full pt-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={stableData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="waveWhite" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="100%" stopColor="white" stopOpacity={1} />
+                                </linearGradient>
+                            </defs>
+                            <Tooltip content={() => null} />
+                            <Area
+                                type="monotone"
+                                dataKey="value"
+                                stroke="white"
+                                strokeWidth={2}
+                                fill="url(#waveWhite)"
+                                fillOpacity={1}
+                                dot={false}
+                                isAnimationActive={false}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            <div className="bg-white py-2 text-center">
+                <p className="text-sm font-medium text-gray-800">{label}</p>
+            </div>
+        </div>
+    );
+}
+
+export default React.memo(WaveCard);
