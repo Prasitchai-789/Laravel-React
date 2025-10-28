@@ -5,18 +5,15 @@ import ModalForm from '@/components/ModalForm';
 import SummaryCard from '@/components/SummaryCard';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
+import axios from 'axios';
 import dayjs from 'dayjs';
 import { DollarSign, Plus, ShoppingCart } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import PayForm from './PayForm';
 import SaleForm from './SaleForm';
 import SaleTable from './SaleTable';
-import { can } from '@/lib/can';
-import { usePage } from '@inertiajs/react';
-
-
 
 interface Sale {
     id: number;
@@ -43,6 +40,8 @@ export default function Index(props) {
     const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
     const [isPayModalOpen, setIsPayModalOpen] = useState(false);
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+    const [data, setData] = useState<any[]>([]);
+    const [productsAPI, setProductsAPI] = useState<string[]>([]);
 
     function openCreate() {
         setMode('create');
@@ -82,7 +81,6 @@ export default function Index(props) {
                 icon: 'error',
                 customClass: { popup: 'custom-swal' },
                 title: 'ไม่สามารถลบข้อมูลได้',
-
             });
         }
     };
@@ -126,6 +124,13 @@ export default function Index(props) {
             });
         }
     };
+
+    useEffect(() => {
+        axios.get('/agr-sales/subdistrict').then((res) => {
+            setData(res.data.data || []);
+            setProductsAPI(res.data.products || []);
+        });
+    }, []);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
@@ -188,7 +193,7 @@ export default function Index(props) {
                         value={ordersToday}
                         icon={ShoppingCart}
                         color="green"
-                    // trend={{ value: 8.2, isPositive: true }}
+                        // trend={{ value: 8.2, isPositive: true }}
                     />
                     <SummaryCard
                         title="รายได้วันนี้ (บาท)"
@@ -197,8 +202,8 @@ export default function Index(props) {
                         }
                         icon={DollarSign}
                         color="yellow"
-                    // trend={{ value: 5.7, isPositive: true }}
-                    // description="เดือนนี้เพิ่มขึ้น 5.7%"
+                        // trend={{ value: 5.7, isPositive: true }}
+                        // description="เดือนนี้เพิ่มขึ้น 5.7%"
                     />
                     <SummaryCard
                         title="รายได้รวม (บาท)"
@@ -207,8 +212,8 @@ export default function Index(props) {
                         }
                         icon={DollarSign}
                         color="green"
-                    // trend={{ value: 5.7, isPositive: true }}
-                    // description="เดือนนี้เพิ่มขึ้น 5.7%"
+                        // trend={{ value: 5.7, isPositive: true }}
+                        // description="เดือนนี้เพิ่มขึ้น 5.7%"
                     />
                 </div>
 
@@ -263,6 +268,57 @@ export default function Index(props) {
                     )} */}
                 </div>
 
+                <h1 className="mb-4 text-xl font-semibold">รายงานปริมาณต้นกล้าแยกตามพื้นที่</h1>
+                <div className="overflow-x-auto rounded-xl bg-white shadow">
+                    <table className="min-w-full border-collapse text-sm">
+                        <thead>
+                            <tr className="bg-gray-100 text-gray-700">
+                                <th className="w-12 border p-2 text-center">ลำดับ</th>
+                                <th className="border p-2">พื้นที่ (ตำบล)</th>
+                                {productsAPI.map((p, i) => (
+                                    <th key={`${p}-${i}`} className="border p-2 text-center">
+                                        {p}
+                                    </th>
+                                ))}
+                                <th className="border p-2 text-center">รวม</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {Array.isArray(data) &&
+                                data.map((row, i) => (
+                                    <tr key={i} className="hover:bg-gray-50">
+                                        <td className="border p-2 text-center">{row.index}</td>
+                                        <td className="border p-2">{row.subdistrict}</td>
+                                        {productsAPI.map((p, i) => (
+                                            <td key={`${p}-${i}`} className="border p-2 text-right">
+                                                {row[p] ? row[p].toLocaleString() : '-'}
+                                            </td>
+                                        ))}
+                                        <td className="border p-2 text-right font-semibold">{row.total.toLocaleString()}</td>
+                                    </tr>
+                                ))}
+
+                            {/* ✅ แถวรวมทั้งหมด */}
+                            {Array.isArray(data) && data.length > 0 && (
+                                <tr className="bg-gray-100 font-bold text-gray-800">
+                                    <td className="border p-2 text-center" colSpan={2}>
+                                        รวมทั้งหมด
+                                    </td>
+                                    {productsAPI.map((p, i) => {
+                                        const sum = data.reduce((acc, row) => acc + (row[p] || 0), 0);
+                                        return (
+                                            <td key={`${p}-${i}`} className="border p-2 text-right">
+                                                {sum.toLocaleString()}
+                                            </td>
+                                        );
+                                    })}
+
+                                    <td className="border p-2 text-right">{data.reduce((acc, row) => acc + (row.total || 0), 0).toLocaleString()}</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
                 {/* Sales Table Section */}
                 <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm">
                     <SaleTable
@@ -271,7 +327,7 @@ export default function Index(props) {
                         products={products}
                         statusFilter={statusFilter}
                         onPay={handlePay}
-                        onEdit={handleEditWithPermission}      // ✅ ใช้ฟังก์ชัน wrapper
+                        onEdit={handleEditWithPermission} // ✅ ใช้ฟังก์ชัน wrapper
                         onDelete={handleDeleteWithPermission}
                         searchTerm={searchTerm}
                     />
@@ -315,15 +371,8 @@ export default function Index(props) {
                     />
                 </ModalForm>
 
-                <DeleteModal
-                    isModalOpen={isDeleteModalOpen}
-                    onClose={closeDeleteModal}
-                    title="ยืนยันการลบ"
-                    onConfirm={handleDelete}
-                >
-                    <p className="font-anuphan text-sm text-gray-500">
-                        คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้
-                    </p>
+                <DeleteModal isModalOpen={isDeleteModalOpen} onClose={closeDeleteModal} title="ยืนยันการลบ" onConfirm={handleDelete}>
+                    <p className="font-anuphan text-sm text-gray-500">คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</p>
                 </DeleteModal>
             </div>
         </AppLayout>
