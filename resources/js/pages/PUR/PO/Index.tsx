@@ -455,18 +455,31 @@ export default function Index() {
 
                 {/* Table Section */}
                 <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
-                    <div className="border-t border-gray-200">
-                        <PODocumentTable
-                            documents={data}
-                            onDetail={handleDetail}
-                            // ส่ง props pagination ไปยังตาราง
-                            currentPage={currentPage}
-                            perPage={perPage}
-                            totalRecords={totalRecords}
-                            onPageChange={handlePageChange}
-                            onPerPageChange={handlePerPageChange}
-                        />
-                    </div>
+                    {loading ? (
+                        <div className="py-12 text-center">
+                           <div className="flex flex-col items-center">
+                            <div className="mb-4 h-16 w-16 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600"></div>
+                            <p className="text-lg font-semibold text-gray-700">กำลังโหลดข้อมูล...</p>
+                            <p className="mt-1 text-sm text-gray-500">กรุณารอสักครู่</p>
+                        </div>
+                        </div>
+                    ) : data && data.length > 0 ? (
+                        <div className="border-t border-gray-200">
+                            <PODocumentTable
+                                documents={data}
+                                onDetail={handleDetail}
+                                currentPage={currentPage}
+                                perPage={perPage}
+                                totalRecords={totalRecords}
+                                onPageChange={handlePageChange}
+                                onPerPageChange={handlePerPageChange}
+                            />
+                        </div>
+                    ) : (
+                        <div className="py-12 text-center text-gray-500">
+                            <p className="text-lg">ไม่พบข้อมูลในระบบ</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Document Form Modal */}
