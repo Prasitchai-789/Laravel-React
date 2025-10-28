@@ -29,7 +29,7 @@ class POController extends Controller
         $page = $request->input('page', 1);
         $perPage = $request->input('per_page', 10);
 
-        // รายชื่อฝ่าย
+        // ===== รายชื่อฝ่าย =====
         $depts = EMDept::select('DeptID', 'DeptName')->get();
 
         // ===== ดึงข้อมูลหลักตามเงื่อนไข =====
@@ -37,43 +37,55 @@ class POController extends Controller
             ->with(['poInv.glHeader', 'department'])
             ->where('DeptID', $deptId)
             ->whereYear('DocuDate', $year)
+            ->where('POHD.DocuType', 305)
             ->whereNotNull('POVendorNo')
             ->whereNotNull('RefDocuNo')
-            ->where('POHD.DocuType', 305)
-            ->orderBy('DocuDate', 'desc') // เรียงจากใหม่ไปเก่า
-            ->orderBy('POID', 'desc'); // เรียงตาม POID ด้วยเพื่อความแน่นอน
+            ->whereNotNull('AppvDocuNo')
+            ->orderBy('DocuDate', 'desc')
+            ->orderBy('POID', 'desc');
 
-        // ถ้ามีการเลือกเดือน -> กรองเฉพาะเดือนนั้น
+        // ===== เงื่อนไขเดือน (ถ้ามี) =====
         if (!empty($month)) {
             $monthNum = (int)substr($month, 5, 2);
             $query->whereMonth('DocuDate', $monthNum);
         }
 
-        // ดึงข้อมูลแบบแบ่งหน้า ด้วย page และ per_page ที่ส่งมาจาก frontend
+        // ===== ดึงข้อมูลแบบแบ่งหน้า =====
         $data = $query->paginate($perPage, ['*'], 'page', $page);
 
-        // แปลงข้อมูลก่อนส่งออก
-        $mapped = $data->getCollection()->map(function ($po) {
-            return [
-                'POID'         => $po->POID,
-                'DocuDate'     => $po->DocuDate,
-                'DeptName'     => $po->department?->DeptName,
-                'POVendorNo'   => $po->POVendorNo,
-                'RefDocuNo'   => $po->RefDocuNo,
-                'AppvDocuNo'   => $po->AppvDocuNo,
-                'status'       => !empty($po->AppvDocuNo) ? 'approved' : 'pending',
-                'status_label' => !empty($po->AppvDocuNo) ? 'อนุมัติ' : 'รอดำเนินการ',
-                'total_amount' => $po->poInv?->glHeader?->TotaAmnt ?? 0,
-            ];
-        });
-        $data->setCollection($mapped);
+        // ===== แปลงข้อมูลก่อนส่งออก =====
+        $mapped = $data->getCollection()
+            ->filter(
+                fn($po) =>
+                !empty($po->POVendorNo) &&
+                    !empty($po->RefDocuNo) &&
+                    !empty($po->AppvDocuNo)
+            )
+            ->map(function ($po) {
+                return [
+                    'POID'         => $po->POID,
+                    'DocuDate'     => $po->DocuDate,
+                    'DeptName'     => $po->department?->DeptName,
+                    'POVendorNo'   => $po->POVendorNo,
+                    'RefDocuNo'    => $po->RefDocuNo,
+                    'AppvDocuNo'   => $po->AppvDocuNo,
+                    'status'       => !empty($po->AppvDocuNo) ? 'approved' : 'pending',
+                    'status_label' => !empty($po->AppvDocuNo) ? 'อนุมัติ' : 'รอดำเนินการ',
+                    'total_amount' => $po->poInv?->glHeader?->TotaAmnt ?? null,
+                ];
+            });
+
+        // อัปเดต Collection หลัง filter แล้ว
+        $data->setCollection($mapped->values());
 
         // ===== คำนวณผลรวมทั้งปีของฝ่าย =====
         $yearQuery = POHD::on('sqlsrv2')
             ->with(['poInv.glHeader'])
             ->where('DeptID', $deptId)
             ->whereYear('DocuDate', $year)
-            ->whereNotNull('POVendorNo');
+            ->whereNotNull('POVendorNo')
+            ->whereNotNull('RefDocuNo')
+            ->whereNotNull('AppvDocuNo');
 
         $yearCount = $yearQuery->count();
         $yearTotal = $yearQuery->get()->sum(fn($po) => $po->poInv?->glHeader?->TotaAmnt ?? 0);
@@ -83,7 +95,9 @@ class POController extends Controller
             ->with(['poInv.glHeader'])
             ->where('DeptID', $deptId)
             ->whereYear('DocuDate', $year)
-            ->whereNotNull('POVendorNo');
+            ->whereNotNull('POVendorNo')
+            ->whereNotNull('RefDocuNo')
+            ->whereNotNull('AppvDocuNo');
 
         if (!empty($month)) {
             $monthNum = (int)substr($month, 5, 2);
@@ -95,20 +109,21 @@ class POController extends Controller
 
         // ===== ส่ง response =====
         return response()->json([
-            'poDocs'  => [
-                'data' => $data->items(),
-                'total' => $data->total(),
-                'current_page' => $data->currentPage(),
-                'per_page' => $data->perPage(),
-                'last_page' => $data->lastPage(),
+            'poDocs' => [
+                'data'          => $data->items(),
+                'total'         => $data->total(),
+                'current_page'  => $data->currentPage(),
+                'per_page'      => $data->perPage(),
+                'last_page'     => $data->lastPage(),
             ],
-            'depts'   => $depts,
+            'depts' => $depts,
             'summary' => [
                 'year'  => ['count' => $yearCount,  'total' => $yearTotal],
                 'month' => ['count' => $monthCount, 'total' => $monthTotal],
             ],
         ]);
     }
+
 
     public function apiChart(Request $request)
     {
