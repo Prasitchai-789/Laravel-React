@@ -9,6 +9,7 @@ use App\Models\AGR\AgrPayment;
 use App\Models\AGR\AgrProduct;
 use App\Models\AGR\AgrCustomer;
 use App\Models\AGR\LocationStore;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Container\Attributes\Auth;
 
@@ -104,8 +105,8 @@ class SalesController extends Controller
             $validated['customer_id'] = $validated['customer_id'] !== null ? (int) $validated['customer_id'] : null;
             $validated['total_amount'] = ($validated['quantity'] * $validated['price']) + $validated['shipping_cost'];
 
-            $product = AgrProduct::findOrFail($validated['product_id']) ;
-            $validated ['store_id']= $product->store_id;
+            $product = AgrProduct::findOrFail($validated['product_id']);
+            $validated['store_id'] = $product->store_id;
 
             $sale = AgrSale::create($validated);
 
@@ -169,15 +170,15 @@ class SalesController extends Controller
 
             $validated['total_amount'] = ($validated['quantity'] * $validated['price']) + $validated['shipping_cost'];
 
-            $product = AgrProduct::findOrFail($validated['product_id']) ;
-            $validated ['store_id']= $product->store_id;
+            $product = AgrProduct::findOrFail($validated['product_id']);
+            $validated['store_id'] = $product->store_id;
 
 
 
             $sale = AgrSale::findOrFail($id);
             $sale->update($validated);
 
-              $slipPath = null;
+            $slipPath = null;
             if ($request->hasFile('payment_slip')) {
                 $slipPath = $request->file('payment_slip')->store('payment_slips', 'public');
             }
@@ -220,5 +221,11 @@ class SalesController extends Controller
     {
         AgrSale::destroy($id);
         return redirect()->back()->with('success', 'deleted successfully');
+    }
+
+
+    public function show()
+    {
+        return Inertia::render('AGR/Sales/SalesReport');
     }
 }

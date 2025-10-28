@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\SaleMARController;
 use App\Http\Controllers\ExportStoreController;
 use App\Http\Controllers\StoreExportController;
 use App\Http\Controllers\AGR\CustomerController;
+use App\Http\Controllers\Api\SalesAGRController;
 use App\Http\Controllers\ChemicalOrderController;
 use App\Http\Controllers\Store\StoreOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
@@ -190,6 +191,12 @@ Route::middleware(['auth', 'permission:developer.view|agr.view'])->group(functio
     Route::delete('/stock-agr/{production}', [ProductController::class, 'destroy'])->name('stock.agr.destroy');
 });
 
+Route::middleware(['auth', 'permission:developer.view'])->group(function () {
+    Route::get('/report-by-subdistrict', [SalesAGRController::class, 'reportBySubdistrict']);
+    Route::get('/payment-stats', [SalesAGRController::class, 'paymentStats']);
+    Route::get('/top-areas', [SalesAGRController::class, 'topAreas']);
+    Route::get('/summary-by-product', [SalesAGRController::class, 'summaryByProduct']);
+});
 
 // MUN Routes
 Route::prefix('fertilizer')->group(function () {
@@ -295,35 +302,31 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 
     Route::get('purchase/dashboard', [PurchaseDashboardController::class, 'index']);
     Route::get('/purchase/dashboard/api', [PurchaseDashboardController::class, 'apiPOinvByDept'])->name('purchase.dashboard.api');
-
-
 });
 
 
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 
-Route::get('purchase/po', [POController::class, 'index']);
-Route::get('/purchase/po/api', [POController::class, 'apiIndex']);
-Route::get('/purchase/po/show/{id}', [POController::class, 'show'])->name('po.show');
-Route::get('/purchase/po/chart', [POController::class, 'apiPOinvChart'])->name('po.chart');
-Route::get('/expense-by-dept', [POController::class, 'expenseByDept'])->name('expense-by-dept');
-Route::get('/accounts', [AccountController::class, 'index'])->name('accounts');
-Route::get('/accounts/api', [AccountController::class, 'getAccounts'])->name('accounts.api');
-Route::get('/sales-mar/api', [SaleMARController::class, 'getSalesWeb'])->name('sales.mar.api');
-Route::get('/sales-mar-win/api', [SaleMARController::class, 'getSalesWin'])->name('sales.mar.win.api');
-Route::get('/poinv-win-summary/api', [POInvController::class, 'getPOInvSummary'])->name('poinv.win.summary.api');
-Route::get('/poinv-win-monthly/api', [POInvController::class, 'getPOInvMonthly'])->name('poinv.win.monthly.api');
-Route::get('/sales-order', [SalesOrderMarController::class, 'index'])->name('sales.order.index');
-Route::get('/sales-order-summary/api', [SaleMARController::class, 'getSalesOrder'])->name('sales.order.api');
-Route::get('/sales/dashboard', [MARSalesController::class, 'index'])->name('sales.index');
-Route::get('/sales-summary/api', [SaleMARController::class, 'getSalesSummary'])->name('sales.summary.api');
-Route::get('/market-price/api', [SaleMARController::class, 'getMarketPrice']);
-Route::get('/trends-3y/api', [SaleMARController::class, 'getTrends3Y']);
-Route::get('/conversion/api', [SaleMARController::class, 'getConversion']);
-Route::get('/loss-analysis/api', [SaleMARController::class, 'getLossAnalysis']);
-Route::get('/top-customers/api', [SaleMARController::class, 'getTopCustomers']);
-
-
+    Route::get('purchase/po', [POController::class, 'index']);
+    Route::get('/purchase/po/api', [POController::class, 'apiIndex']);
+    Route::get('/purchase/po/show/{id}', [POController::class, 'show'])->name('po.show');
+    Route::get('/purchase/po/chart', [POController::class, 'apiPOinvChart'])->name('po.chart');
+    Route::get('/expense-by-dept', [POController::class, 'expenseByDept'])->name('expense-by-dept');
+    Route::get('/accounts', [AccountController::class, 'index'])->name('accounts');
+    Route::get('/accounts/api', [AccountController::class, 'getAccounts'])->name('accounts.api');
+    Route::get('/sales-mar/api', [SaleMARController::class, 'getSalesWeb'])->name('sales.mar.api');
+    Route::get('/sales-mar-win/api', [SaleMARController::class, 'getSalesWin'])->name('sales.mar.win.api');
+    Route::get('/poinv-win-summary/api', [POInvController::class, 'getPOInvSummary'])->name('poinv.win.summary.api');
+    Route::get('/poinv-win-monthly/api', [POInvController::class, 'getPOInvMonthly'])->name('poinv.win.monthly.api');
+    Route::get('/sales-order', [SalesOrderMarController::class, 'index'])->name('sales.order.index');
+    Route::get('/sales-order-summary/api', [SaleMARController::class, 'getSalesOrder'])->name('sales.order.api');
+    Route::get('/sales/dashboard', [MARSalesController::class, 'index'])->name('sales.index');
+    Route::get('/sales-summary/api', [SaleMARController::class, 'getSalesSummary'])->name('sales.summary.api');
+    Route::get('/market-price/api', [SaleMARController::class, 'getMarketPrice']);
+    Route::get('/trends-3y/api', [SaleMARController::class, 'getTrends3Y']);
+    Route::get('/conversion/api', [SaleMARController::class, 'getConversion']);
+    Route::get('/loss-analysis/api', [SaleMARController::class, 'getLossAnalysis']);
+    Route::get('/top-customers/api', [SaleMARController::class, 'getTopCustomers']);
 });
 
 

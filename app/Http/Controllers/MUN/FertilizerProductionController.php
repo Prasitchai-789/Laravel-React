@@ -83,6 +83,26 @@ class FertilizerProductionController extends Controller
                 'fuel_litre'      => 0,
             ]);
 
+
+            $Telegram = new TelegramService();
+
+            $message = "
+                📦 *Production Record Updated*
+                -----------------------------------
+                🗓️ วันที่: {$validated['date']}
+                🌔 กะ: {$validated['shift']}
+                🏭 ไลน์ผลิต: ID {$validated['line_id']}
+                ⚙️ ปริมาณผลิตจริง: {$validated['product_qty']} ตัน
+                🎯 เป้าหมาย: {$validated['target_qty']} ตัน
+                👷‍♂️ พนักงาน: {$validated['workers']} คน
+                ⏱️ ชั่วโมงทำงาน: {$validated['hours']} ชม.
+                💡 พลังงานไฟฟ้า: {$validated['number_kwh']} kWh
+                -----------------------------------
+                ✅ บันทึกข้อมูลสำเร็จโดยระบบ Fertilizer Production
+                ";
+
+            $Telegram->sendToTelegramFER($message);
+
             return redirect()->back()->with('message', 'Production created successfully');
         } catch (ValidationException $ve) {
             return redirect()->back()->withErrors($ve->errors())->withInput();
@@ -145,8 +165,9 @@ class FertilizerProductionController extends Controller
             }
 
 
-            $Telegram = new TelegramService();
-            $Telegram->sendToTelegramITE('Production updated successfully');
+            // $Telegram = new TelegramService();
+            // $Telegram->sendToTelegramITE('Production updated successfully');
+
 
             return redirect()->back()->with('message', 'Production updated successfully');
         } catch (ValidationException $ve) {
