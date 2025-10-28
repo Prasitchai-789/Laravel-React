@@ -15,20 +15,20 @@ interface Labor {
 interface Energy {
     production_id: number;
     type: string;
-    quantity: number | string;
-    price: number | string;
-    total: number | string;
-    number_kwh?: number | string;
-    electricity_kwh?: number | string;
+    quantity: number;
+    price: number;
+    total: number;
+    number_kwh?: number;
+    electricity_kwh?: number;
 }
 
 interface Production {
     id: number;
     date: string;
     shift: string;
-    line_id: number | string;
-    product_qty: number | string;
-    target_qty?: number; // เพิ่ม property ที่ขาดหาย
+    line_id: number;
+    product_qty: number;
+    target_qty?: number;
     labors?: Labor[];
     energies?: Energy[];
 }
@@ -55,8 +55,8 @@ export default function ProductionTable({ productions, onEdit, onDelete, labors,
     };
 
     const calculateAchievementRate = (productQty: number, targetQty: number) => {
-        if (!targetQty || targetQty === 0) return '0.00';
-        return ((productQty / targetQty) * 100).toFixed(2);
+        if (!targetQty || targetQty === 0) return 0;
+        return (productQty / targetQty) * 100;
     };
 
     const getShiftColor = (shift: string) => {
@@ -72,11 +72,15 @@ export default function ProductionTable({ productions, onEdit, onDelete, labors,
         }
     };
 
-    const productionsWithLabors = productions.map((p) => {
-        const matchedLabors = labors.filter((l) => l.production_id === p.id);
+    // รวมข้อมูล productions, labors, และ energies
+    const productionsWithDetails = productions.map((p) => {
+        const matchedLabors = labors.filter((l) => Number(l.production_id) === Number(p.id));
+        const matchedEnergies = energies.filter((e) => Number(e.production_id) === Number(p.id));
+
         return {
             ...p,
             labors: matchedLabors,
+            energies: matchedEnergies
         };
     });
 
@@ -115,7 +119,6 @@ export default function ProductionTable({ productions, onEdit, onDelete, labors,
                     );
                 }
 
-                // รวมจำนวน workers ทั้งหมดของ labor ที่ตรง production.id
                 const totalWorkers = production.labors.reduce((acc, labor) => acc + (labor.workers || 0), 0);
 
                 return (
@@ -150,14 +153,17 @@ export default function ProductionTable({ productions, onEdit, onDelete, labors,
             label: 'จำนวนที่ผลิตได้',
             sortable: true,
             align: 'right',
-            render: (production) => (
-                <div className="text-right">
-                    <div className="text-lg font-bold text-gray-900">
-                        {production.product_qty ? Number(production.product_qty).toLocaleString('th-TH') : '-'}
+            render: (production) => {
+                const productQty = Number(production.product_qty) || 0;
+                return (
+                    <div className="text-right">
+                        <div className="text-lg font-bold text-gray-900">
+                            {productQty.toLocaleString('th-TH')}
+                        </div>
+                        <div className="text-xs text-gray-500">หน่วย</div>
                     </div>
-                    <div className="text-xs text-gray-500">หน่วย</div>
-                </div>
-            ),
+                );
+            },
         },
         {
             key: 'target',
@@ -165,12 +171,9 @@ export default function ProductionTable({ productions, onEdit, onDelete, labors,
             sortable: true,
             align: 'center',
             render: (production) => {
-                const rate = parseFloat(
-                    calculateAchievementRate(
-                        Number(production.product_qty),
-                        Number(production.target_qty || 0)
-                    )
-                );
+                const productQty = Number(production.product_qty) || 0;
+                const targetQty = Number(production.target_qty) || 0;
+                const rate = calculateAchievementRate(productQty, targetQty);
 
                 const getRateColor = () => {
                     if (rate >= 100) return 'bg-green-100 text-green-800';
@@ -187,9 +190,8 @@ export default function ProductionTable({ productions, onEdit, onDelete, labors,
                 return (
                     <div className="flex flex-col items-center">
                         <div className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold ${getRateColor()}`}>
-                            {/* <Target size={14} /> */}
-                            {rate}%
-                        <div className="text-xs text-gray-500">{getRateIcon()}</div>
+                            {rate.toFixed(2)}%
+                            <div className="text-xs text-gray-500">{getRateIcon()}</div>
                         </div>
                     </div>
                 );
@@ -198,18 +200,18 @@ export default function ProductionTable({ productions, onEdit, onDelete, labors,
         {
             key: 'hours',
             label: 'ชั่วโมงทำงาน',
-            render: (p) => {
-                if (!p.labors || p.labors.length === 0) return (
+            render: (production) => {
+                if (!production.labors || production.labors.length === 0) return (
                     <div className="text-center text-gray-400">-</div>
                 );
 
-                const totalHours = p.labors.reduce((acc, labor) => acc + (labor.hours || 0), 0);
+                const totalHours = production.labors.reduce((acc, labor) => acc + (Number(labor.hours) || 0), 0);
 
                 return (
                     <div className="flex flex-col items-center">
                         <div className="flex items-center gap-1">
                             <Clock size={14} className="text-blue-600" />
-                            <span className="font-medium">{(totalHours).toFixed(2)}</span>
+                            <span className="font-medium">{totalHours.toFixed(2)}</span>
                         </div>
                         <div className="text-xs text-gray-500">ชั่วโมง</div>
                     </div>
@@ -220,18 +222,18 @@ export default function ProductionTable({ productions, onEdit, onDelete, labors,
         {
             key: 'ot_hours',
             label: 'ชั่วโมง OT',
-            render: (p) => {
-                if (!p.labors || p.labors.length === 0) return (
+            render: (production) => {
+                if (!production.labors || production.labors.length === 0) return (
                     <div className="text-center text-gray-400">-</div>
                 );
 
-                const totalOtHours = p.labors.reduce((acc, labor) => acc + (labor.ot_hours || 0), 0);
+                const totalOtHours = production.labors.reduce((acc, labor) => acc + (Number(labor.ot_hours) || 0), 0);
 
                 return (
                     <div className="flex flex-col items-center">
                         <div className="flex items-center gap-1">
                             <Clock size={14} className="text-orange-500" />
-                            <span className="font-medium">{(totalOtHours).toFixed(2)}</span>
+                            <span className="font-medium">{totalOtHours.toFixed(2)}</span>
                         </div>
                         <div className="text-xs text-gray-500">ชั่วโมง</div>
                     </div>
@@ -244,14 +246,20 @@ export default function ProductionTable({ productions, onEdit, onDelete, labors,
             label: 'การใช้ไฟฟ้า',
             sortable: true,
             align: 'center',
-            render: (production) => (
-                <div className="flex flex-col items-center">
-                    <div className="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-purple-800">
-                        <Zap size={14} className="text-orange-500 me-2" />
-                         {production.energies[0]?.electricity_kwh || '-'}
+            render: (production) => {
+                // หาข้อมูลพลังงานที่ตรงกับ production นี้
+                const energyData = energies.find(e => Number(e.production_id) === Number(production.id));
+                const electricityKwh = energyData?.electricity_kwh || energyData?.number_kwh || 0;
+
+                return (
+                    <div className="flex flex-col items-center">
+                        <div className="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-800">
+                            <Zap size={14} className="text-orange-500 me-2" />
+                            {Number(electricityKwh).toLocaleString('th-TH')} kWh
+                        </div>
                     </div>
-                </div>
-            ),
+                );
+            },
         },
         {
             key: 'actions',
@@ -263,7 +271,7 @@ export default function ProductionTable({ productions, onEdit, onDelete, labors,
     return (
         <GenericTable
             title="ข้อมูลการผลิตปุ๋ย"
-            data={productionsWithLabors}
+            data={productionsWithDetails}
             columns={productionColumns}
             idField="id"
             actions={(row) => (

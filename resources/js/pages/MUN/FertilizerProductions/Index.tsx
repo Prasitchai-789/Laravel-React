@@ -184,19 +184,9 @@ export default function Index() {
                 </div>
 
                 {/* Production Table */}
-                <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm">
-                    <FerProductionTable
-                        productions={productionsWithDetails}
-                        onEdit={handleEdit}
-                        onDelete={openDeleteModal}
-                        labors={labors}
-                        energies={energies}
-                    />
-                </div>
-
                 {/* Production Summary */}
                 {productions.length > 0 && (
-                    <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div className="rounded-lg bg-white p-4 shadow">
                             <h3 className="text-sm font-medium text-gray-500">จำนวนรายการทั้งหมด</h3>
                             <p className="text-2xl font-bold text-gray-900">{productions.length}</p>
@@ -215,6 +205,15 @@ export default function Index() {
                         </div>
                     </div>
                 )}
+                <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm">
+                    <FerProductionTable
+                        productions={productionsWithDetails}
+                        onEdit={handleEdit}
+                        onDelete={openDeleteModal}
+                        labors={labors}
+                        energies={energies}
+                    />
+                </div>
             </div>
 
             {/* Production Form Modal */}
