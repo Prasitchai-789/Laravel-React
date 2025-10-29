@@ -10,42 +10,23 @@ interface AreaData {
 
 interface TopAreaCardProps {
     areas: AreaData[];
+    formatQuantity: (value: number | undefined) => string;
+    formatCurrency: (value: number | undefined) => string;
+    formatOrders: (value: number | undefined) => string;
 }
 
-const TopAreaCard: React.FC<TopAreaCardProps> = ({ areas }) => {
-    // ฟังก์ชันจัดรูปแบบตัวเลข
-    const formatNumber = (value: number | undefined): string => {
-        if (!value && value !== 0) return '-';
-        return value.toLocaleString('th-TH');
-    };
-
-    // ฟังก์ชันจัดรูปแบบจำนวนต้น (ไม่มีทศนิยม)
-    const formatQuantity = (value: number | undefined): string => {
-        if (!value && value !== 0) return '-';
-        return Math.floor(value).toLocaleString('th-TH');
-    };
-
-    // ฟังก์ชันจัดรูปแบบเงิน (มีทศนิยม 2 ตำแหน่ง)
-    const formatCurrency = (value: number | undefined): string => {
-        if (!value && value !== 0) return '-';
-        return value.toLocaleString('th-TH', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
-    };
-
-    // ฟังก์ชันจัดรูปแบบจำนวนรายการ (ไม่มีทศนิยม)
-    const formatOrders = (value: number | undefined): string => {
-        if (!value && value !== 0) return '-';
-        return Math.floor(value).toLocaleString('th-TH');
-    };
-
+const TopAreaCard: React.FC<TopAreaCardProps> = ({
+    areas,
+    formatQuantity,
+    formatCurrency,
+    formatOrders
+}) => {
     return (
         <div className="bg-white rounded-2xl shadow-sm p-6 font-anuphan">
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">พื้นที่ที่มาซื้อมากที่สุด</h2>
                 <div className="text-sm text-gray-500">
-                    {areas.length > 0 ? `5 พื้นที่` : 'ไม่มีข้อมูล'}
+                    {areas.length > 0 ? `${Math.min(areas.length, 5)} พื้นที่` : 'ไม่มีข้อมูล'}
                 </div>
             </div>
 
@@ -92,6 +73,30 @@ const TopAreaCard: React.FC<TopAreaCardProps> = ({ areas }) => {
                     </div>
                     <p className="text-gray-500 text-lg">ไม่มีข้อมูลพื้นที่</p>
                     <p className="text-gray-400 text-sm mt-1">ไม่พบข้อมูลการขายในช่วงวันที่นี้</p>
+                </div>
+            )}
+
+            {/* Summary for top areas */}
+            {areas.length > 0 && (
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <p className="text-gray-600 text-sm">พื้นที่ทั้งหมด</p>
+                            <p className="font-bold text-gray-800 text-lg">{areas.length} พื้นที่</p>
+                        </div>
+                        <div>
+                            <p className="text-gray-600 text-sm">ยอดขายรวม</p>
+                            <p className="font-bold text-blue-600 text-lg">
+                                {formatQuantity(areas.reduce((sum, area) => sum + (area.total_quantity || 0), 0))} ต้น
+                            </p>
+                        </div>
+                        <div>
+                            <p className="text-gray-600 text-sm">มูลค่ารวม</p>
+                            <p className="font-bold text-green-600 text-lg">
+                                {formatCurrency(areas.reduce((sum, area) => sum + (area.total_amount || 0), 0))}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

@@ -3,10 +3,15 @@ import { type BreadcrumbItem } from '@/types';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
 import { useEffect, useState } from 'react';
 import PaymentStats from './Components/PaymentStats';
 import SalesTable from './Components/SalesTable';
 import TopAreaCard from './Components/TopAreaCard';
+
+// Extend dayjs with Buddhist era plugin
+dayjs.extend(buddhistEra);
+dayjs.locale('th');
 
 // Interface definitions
 interface SalesData {
@@ -46,39 +51,66 @@ interface DateRange {
 }
 
 const SalesReport = () => {
-    const today = new Date().toISOString().split('T')[0];
+    // Function to get today's date in YYYY-MM-DD format
+    const getTodayDate = (): string => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
     const [salesData, setSalesData] = useState<SalesData[]>([]);
     const [paymentStats, setPaymentStats] = useState<PaymentStatsData>({});
     const [products, setProducts] = useState<string[]>([]);
     const [topAreas, setTopAreas] = useState<AreaData[]>([]);
     const [summaryByProduct, setSummaryByProduct] = useState<ProductSummary>({ summary: {} });
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const [dateRange, setDateRange] = useState<DateRange>({
-        start: today,
-        end: today,
+        start: getTodayDate(),
+        end: getTodayDate(),
     });
 
-    dayjs.locale('th');
+    // Function to format date for API (ensure YYYY-MM-DD format)
+    const formatDateForAPI = (dateString: string): string => {
+        if (!dateString) return '';
 
-    const formatDateThai = (date: string) => {
-        if (!date) return '-';
-        return dayjs(date).format('D MMM YYYY'); // เช่น 1 ม.ค. 2025
+        // If date is already in YYYY-MM-DD format from input type="date"
+        if (dateString.includes('-')) {
+            return dateString;
+        }
+
+        // Convert from MM/DD/YYYY to YYYY-MM-DD
+        const parts = dateString.split('/');
+        if (parts.length === 3) {
+            const [month, day, year] = parts;
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+
+        return dateString;
     };
 
-    // ฟังก์ชันจัดรูปแบบตัวเลข
+    // Function to format date for Thai display
+    const formatDateThai = (date: string) => {
+        if (!date) return '-';
+        return dayjs(date).format('D MMM BBBB'); // Display in Buddhist era (พ.ศ.)
+    };
+
+    // Function to format numbers with commas
     const formatNumber = (value: number | undefined): string => {
         if (!value && value !== 0) return '0';
         return value.toLocaleString('th-TH');
     };
 
-    // ฟังก์ชันจัดรูปแบบจำนวนต้น (ไม่มีทศนิยม)
+    // Function to format quantity (no decimals)
     const formatQuantity = (value: number | undefined): string => {
         if (!value && value !== 0) return '0';
         return Math.floor(value).toLocaleString('th-TH');
     };
 
-    // ฟังก์ชันจัดรูปแบบเงิน (มีทศนิยม 2 ตำแหน่ง)
+    // Function to format currency (2 decimal places)
     const formatCurrency = (value: number | undefined): string => {
         if (!value && value !== 0) return '0.00';
         return value.toLocaleString('th-TH', {
@@ -87,7 +119,7 @@ const SalesReport = () => {
         });
     };
 
-    // ฟังก์ชันจัดรูปแบบจำนวนรายการ (ไม่มีทศนิยม)
+    // Function to format order count (no decimals)
     const formatOrders = (value: number | undefined): string => {
         if (!value && value !== 0) return '0';
         return Math.floor(value).toLocaleString('th-TH');
@@ -97,26 +129,31 @@ const SalesReport = () => {
         fetchAllData();
     }, []);
 
-
-
     const fetchAllData = async () => {
         setLoading(true);
+        setError(null);
         try {
+            // Format dates for API
+            const apiDateRange = {
+                start: formatDateForAPI(dateRange.start),
+                end: formatDateForAPI(dateRange.end)
+            };
+
             const [sales, areas, payments, summary] = await Promise.all([
-                axios.get('/report-by-subdistrict', { params: dateRange }),
-                axios.get('/top-areas', { params: dateRange }),
-                axios.get('/payment-stats/methods', { params: dateRange }),
-                axios.get('/summary-by-product', { params: dateRange }),
+                axios.get('/report-by-subdistrict', { params: apiDateRange }),
+                axios.get('/top-areas', { params: apiDateRange }),
+                axios.get('/payment-stats/methods', { params: apiDateRange }),
+                axios.get('/summary-by-product', { params: apiDateRange }),
             ]);
 
+            const backendData = payments.data.by_method;
+            const transformedData: PaymentStatsData = {
+                cash: backendData['1']?.total_paid || 0,
+                transfer: backendData['2']?.total_paid || 0,
+                credit: backendData['3']?.total_paid || 0,
+                other: backendData['4']?.total_paid || 0,
+            };
 
-            const backendData = payments.data.by_method; // { '1': {...}, '2': {...}, ... }
-                const transformedData: PaymentStatsData = {
-                    cash: backendData['1']?.total_paid || 0,
-                    transfer: backendData['2']?.total_paid || 0,
-                    credit: backendData['3']?.total_paid || 0,
-                    other: backendData['4']?.total_paid || 0,
-                };
             setSalesData(sales.data.data || []);
             setProducts(sales.data.products || []);
             setTopAreas(areas.data || []);
@@ -124,23 +161,51 @@ const SalesReport = () => {
             setSummaryByProduct(summary.data || { summary: {} });
         } catch (error) {
             console.error('Error fetching data:', error);
+            setError('เกิดข้อผิดพลาดในการโหลดข้อมูล กรุณาลองใหม่อีกครั้ง');
         } finally {
             setLoading(false);
         }
     };
 
-    // ✅ เมื่อผู้ใช้เลือกวันที่ใหม่
+    // Handle date change
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setDateRange((prev) => ({
             ...prev,
-            [name]: value,
+            [name]: value, // input type="date" provides YYYY-MM-DD format
         }));
     };
 
     const totalSales = salesData.reduce((sum, row) => sum + (row.total || 0), 0);
-    // const totalRevenue = Object.values(paymentStats).reduce((sum, amount) => sum + (amount || 0), 0);
     const totalRevenue = Object.values(summaryByProduct.summary).reduce((sum, item) => sum + (item.amount || 0), 0);
+
+    // Show error state
+    if (error) {
+        return (
+            <AppLayout breadcrumbs={[]}>
+                <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-4 font-anuphan">
+                    <div className="mx-auto max-w-7xl">
+                        <div className="rounded-2xl bg-red-50 p-6 text-center">
+                            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </div>
+                            <h3 className="mt-4 text-lg font-medium text-red-800">เกิดข้อผิดพลาด</h3>
+                            <p className="mt-2 text-red-600">{error}</p>
+                            <button
+                                onClick={fetchAllData}
+                                className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                            >
+                                โหลดข้อมูลอีกครั้ง
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </AppLayout>
+        );
+    }
+
     if (loading) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 font-anuphan backdrop-blur-md">
@@ -261,7 +326,7 @@ const SalesReport = () => {
                                         </button>
                                         <button
                                             onClick={() => {
-                                                const today = new Date().toISOString().split('T')[0];
+                                                const today = getTodayDate();
                                                 setDateRange({ start: today, end: today });
                                                 fetchAllData();
                                             }}
@@ -461,22 +526,19 @@ const SalesReport = () => {
 
                     {/* Stats Grid */}
                     <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        <PaymentStats stats={paymentStats} />
-                        <TopAreaCard areas={topAreas} />
+                        <PaymentStats stats={paymentStats} formatCurrency={formatCurrency} />
+                        <TopAreaCard areas={topAreas} formatQuantity={formatQuantity} formatCurrency={formatCurrency} formatOrders={formatOrders} />
                     </div>
 
                     {/* Sales Table */}
                     <div className="">
-                        {/* <div className="mb-6 flex items-center justify-between">
-                            <div>
-                                <h2 className="text-xl font-semibold text-gray-800">รายงานปริมาณต้นกล้าแยกตามพื้นที่ </h2>
-                                <span className="text-sm text-gray-500">
-                                    ช่วงวันที่ {formatDateThai(dateRange.start)} ถึง {formatDateThai(dateRange.end)}
-                                </span>
-                            </div>
-                            <div className="text-sm text-gray-500">{salesData.length} พื้นที่</div>
-                        </div> */}
-                        <SalesTable data={salesData} productsAPI={products} />
+                        <SalesTable
+                            data={salesData}
+                            productsAPI={products}
+                            formatQuantity={formatQuantity}
+                            formatDateThai={formatDateThai}
+                            dateRange={dateRange}
+                        />
                     </div>
 
                     {/* Footer Info */}

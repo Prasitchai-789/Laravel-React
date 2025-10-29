@@ -9,17 +9,10 @@ interface PaymentStatsData {
 
 interface PaymentStatsProps {
     stats: PaymentStatsData;
+    formatCurrency: (value: number | undefined) => string;
 }
 
-const PaymentStats: React.FC<PaymentStatsProps> = ({ stats }) => {
-    // Mapping ระหว่างค่า method จาก backend กับ key ใน component
-    const methodMapping = {
-        '1': 'cash',      // เงินสด
-        '2': 'transfer',  // โอนเงิน
-        '3': 'credit',    // บัตรเครดิต/เดบิต
-        '4': 'other'      // อื่นๆ
-    };
-
+const PaymentStats: React.FC<PaymentStatsProps> = ({ stats, formatCurrency }) => {
     const paymentMethods = [
         { key: 'cash' as keyof PaymentStatsData, label: 'เงินสด', color: 'bg-green-500', gradient: 'from-green-500 to-green-600' },
         { key: 'transfer' as keyof PaymentStatsData, label: 'เงินโอน', color: 'bg-blue-500', gradient: 'from-blue-500 to-blue-600' },
@@ -35,15 +28,6 @@ const PaymentStats: React.FC<PaymentStatsProps> = ({ stats }) => {
     };
 
     const total = calculateTotal();
-
-    // ฟังก์ชันจัดรูปแบบเงิน (มีทศนิยม 2 ตำแหน่ง)
-    const formatCurrency = (value: number | undefined): string => {
-        if (!value && value !== 0) return '0.00';
-        return value.toLocaleString('th-TH', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
-    };
 
     // ฟังก์ชันคำนวณ percentage
     const calculatePercentage = (amount: number): number => {
@@ -78,9 +62,6 @@ const PaymentStats: React.FC<PaymentStatsProps> = ({ stats }) => {
         <div className="bg-white rounded-2xl shadow-sm p-6 font-anuphan">
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-800">สถิติการชำระเงิน</h2>
-                {/* <div className="text-sm text-gray-500">
-                    {total > 0 ? `${formatCurrency(total)} บาท` : 'ไม่มีข้อมูล'}
-                </div> */}
             </div>
 
             <div className="space-y-4 mb-6">
@@ -151,7 +132,7 @@ const PaymentStats: React.FC<PaymentStatsProps> = ({ stats }) => {
                     <div className="grid grid-cols-2 gap-4 text-center">
                         <div>
                             <p className="text-gray-600 text-sm">ยอดรวมทั้งหมด</p>
-                            <p className="font-bold text-gray-800 text-lg">{formatCurrency(total)}</p>
+                            <p className="font-bold text-gray-800 text-lg">{formatCurrency(total)} บาท</p>
                         </div>
                         <div>
                             <p className="text-gray-600 text-sm">วิธีการชำระเงิน</p>

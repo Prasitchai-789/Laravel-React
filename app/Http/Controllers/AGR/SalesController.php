@@ -209,12 +209,11 @@ class SalesController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            $validated =  $request->validate([
-                'sale_date' => 'required',
-                // 'store_id' => 'required|integer',
+            $validated = $request->validate([
+                'sale_date' => 'required|date',
                 'product_id' => 'required|integer',
                 'customer_id' => 'nullable|integer',
-                'quantity' => 'nullable|integer|min:0',
+                'quantity' => 'required|numeric|min:0',
                 'price' => 'required|numeric|min:0',
                 'status' => 'required|in:reserved,completed,cancelled',
                 'total_amount' => 'nullable|numeric|min:0',
@@ -225,7 +224,7 @@ class SalesController extends Controller
                 'method' => 'nullable|string|max:255',
                 'note' => 'nullable|string',
                 'new_payment' => 'nullable|numeric|min:0',
-                'payment_slip'  => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+                'payment_slip' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
                 'payment_status' => 'nullable',
             ]);
 
@@ -274,7 +273,7 @@ class SalesController extends Controller
             $product = AgrProduct::findOrFail($validated['product_id']);
             $validated['store_id'] = $product->store_id;
 
-            // ตรวจสอบสต็อกก่อนอัพเดท (คำนึงถึงจำนวนเดิมที่เคยสั่ง)
+            // ตรวจสอบสต็อกก่อนอัพเดท
             $availableStock = $product->stock;
 
             // ถ้าไม่เปลี่ยนสินค้า ให้เพิ่มสต็อกคืนจากจำนวนเดิมก่อนคำนวณใหม่

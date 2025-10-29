@@ -7,23 +7,7 @@ import React, { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import CustomerSelect from './CustomerSelect';
 import SaleProductSelect from './SaleProductSelect';
-
-// ✅ utility ฟังก์ชัน แก้ปัญหา date format
-function formatDateSafe(date: string | null | undefined) {
-    const d = dayjs(date);
-    return d.isValid() ? d.format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD');
-}
-
-type SaleFormProps = {
-    mode?: 'create' | 'edit';
-    sale?: any;
-    products: any[];
-    customers?: any[];
-    locations?: any[];
-    payments?: any[];
-    onClose: () => void;
-    onSuccess?: () => void;
-};
+import { formatNumber, parseNumber, formatDateSafe } from './utils/formatters';
 
 // ตัวเลือกประเภทการชำระเงิน
 const paymentOptions = [
@@ -41,6 +25,17 @@ const paymentStatusOptions = [
     { value: 'pending', label: 'ค้างชำระ', color: 'text-red-600 bg-red-100' },
 ];
 
+type SaleFormProps = {
+    mode?: 'create' | 'edit';
+    sale?: any;
+    products: any[];
+    customers?: any[];
+    locations?: any[];
+    payments?: any[];
+    onClose: () => void;
+    onSuccess?: () => void;
+};
+
 export default function SaleForm({ mode = 'create', sale, products, customers = [], locations, payments, onClose, onSuccess }: SaleFormProps) {
     const [showPaymentDetails, setShowPaymentDetails] = useState(false);
 
@@ -50,19 +45,19 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
         customer: sale?.customer || '',
         customer_id: sale?.customer_id || '',
         product_id: sale?.product_id || '',
-        quantity: sale?.quantity || 0,
-        price: sale?.price || '',
-        deposit: sale?.deposit || '',
+        quantity: sale?.quantity ? parseNumber(sale.quantity) : '0',
+        price: sale?.price ? parseNumber(sale.price) : '',
+        deposit: sale?.deposit ? parseNumber(sale.deposit) : '',
         status: sale?.status || 'completed',
         store_id: sale?.store_id || '',
-        paid_amount: sale?.paid_amount || 0,
-        total_amount: sale?.total_amount || '',
-        deposit_percent: sale?.deposit_percent || '',
-        shipping_cost: sale?.shipping_cost || 0,
+        paid_amount: sale?.paid_amount ? parseNumber(sale.paid_amount) : '0',
+        total_amount: sale?.total_amount ? parseNumber(sale.total_amount) : '',
+        deposit_percent: sale?.deposit_percent ? parseNumber(sale.deposit_percent) : '',
+        shipping_cost: sale?.shipping_cost ? parseNumber(sale.shipping_cost) : '0',
         method: sale?.method || '',
         payment_slip: null,
         note: sale?.note || '',
-        payment_status: sale?.payment_status || 'completed', // ✅ เพิ่มสถานะการชำระเงิน
+        payment_status: sale?.payment_status || 'completed',
     });
 
     // กรองสินค้าตาม store_id ถ้ามี
@@ -95,10 +90,15 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
             reset({
                 ...sale,
                 sale_date: formatDateSafe(sale.sale_date),
-                paid_amount: sale.paid_amount || 0,
+                quantity: parseNumber(sale.quantity),
+                price: parseNumber(sale.price),
+                paid_amount: parseNumber(sale.paid_amount || '0'),
+                shipping_cost: parseNumber(sale.shipping_cost || '0'),
+                total_amount: parseNumber(sale.total_amount || '0'),
+                deposit: parseNumber(sale.deposit || '0'),
                 payment_status: sale.payment_status || 'completed',
             });
-            // แสดงรายละเอียดการชำระเงินถ้ามีการชำระบางส่วนหรือค้างชำระ
+
             if (sale.payment_status === 'partial' || sale.payment_status === 'pending') {
                 setShowPaymentDetails(true);
             }
@@ -107,11 +107,10 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
 
     // อัพเดทยอดรวมเมื่อข้อมูลเปลี่ยน
     useEffect(() => {
-        setData('total_amount', calculatedTotal.toString());
+        setData('total_amount', formatNumber(calculatedTotal));
 
-        // ถ้าชำระเต็มจำนวน ให้ตั้งค่า paid_amount = total_amount
         if (data.payment_status === 'completed') {
-            setData('paid_amount', calculatedTotal.toString());
+            setData('paid_amount', formatNumber(calculatedTotal));
         }
     }, [calculatedTotal, data.payment_status]);
 
@@ -120,13 +119,12 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
 
         switch (status) {
             case 'completed':
-                setData('paid_amount', calculatedTotal.toString());
+                setData('paid_amount', formatNumber(calculatedTotal));
                 setShowPaymentDetails(false);
                 break;
             case 'partial':
                 setShowPaymentDetails(true);
-                // ถ้ายังไม่มีค่าที่ชำระ ให้ตั้งเป็น 0
-                if (!data.paid_amount || data.paid_amount === calculatedTotal) {
+                if (!data.paid_amount || Number(data.paid_amount) === calculatedTotal) {
                     setData('paid_amount', '0');
                 }
                 break;
@@ -143,7 +141,6 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
 
         setData('paid_amount', value);
 
-        // อัพเดทสถานะอัตโนมัติตามจำนวนที่ชำระ
         if (paid >= total) {
             setData('payment_status', 'completed');
         } else if (paid > 0) {
@@ -153,10 +150,16 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
         }
     };
 
+    const handleNumberChange = (field: string, value: string) => {
+        // อนุญาตให้ใส่ทศนิยมได้
+        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+            setData(field, value);
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // ตรวจสอบว่ามีการเลือกวิธีการชำระเงินหรือไม่
         if (!data.method) {
             Swal.fire({
                 icon: 'warning',
@@ -173,7 +176,6 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
             return;
         }
 
-        // ตรวจสอบจำนวนที่ชำระไม่เกินยอดรวม
         if (Number(data.paid_amount) > calculatedTotal) {
             Swal.fire({
                 icon: 'warning',
@@ -190,8 +192,18 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
             return;
         }
 
+        const submitData = {
+            ...data,
+            quantity: Number(data.quantity) || 0,
+            price: Number(data.price) || 0,
+            paid_amount: Number(data.paid_amount) || 0,
+            shipping_cost: Number(data.shipping_cost) || 0,
+            total_amount: calculatedTotal,
+        };
+
         if (mode === 'create') {
             post('/sales', {
+                data: submitData,
                 onSuccess: () => {
                     Swal.fire({
                         icon: 'success',
@@ -210,25 +222,10 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                     onClose?.();
                     onSuccess?.();
                 },
-                onError: () => {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด',
-                        text: 'กรุณาตรวจสอบข้อมูลอีกครั้ง',
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000,
-                        customClass: {
-                            popup: 'custom-swal font-anuphan',
-                            title: 'font-anuphan text-red-800',
-                            htmlContainer: 'font-anuphan text-red-500',
-                        },
-                    });
-                },
             });
         } else {
             put(`/sales/${sale?.id}`, {
+                data: submitData,
                 onSuccess: () => {
                     Swal.fire({
                         icon: 'success',
@@ -247,51 +244,26 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                     onClose?.();
                     onSuccess?.();
                 },
-                onError: () => {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด',
-                        text: 'กรุณาตรวจสอบข้อมูลอีกครั้ง',
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000,
-                        customClass: {
-                            popup: 'custom-swal font-anuphan',
-                            title: 'font-anuphan text-red-800',
-                            htmlContainer: 'font-anuphan text-red-500',
-                        },
-                    });
-                },
             });
         }
     };
 
     const getPaymentMethodIcon = (method: string) => {
         switch (method) {
-            case '1':
-                return '💵';
-            case '2':
-                return '🏦';
-            case '3':
-                return '💳';
-            case '4':
-                return '📝';
-            default:
-                return '💰';
+            case '1': return '💵';
+            case '2': return '🏦';
+            case '3': return '💳';
+            case '4': return '📝';
+            default: return '💰';
         }
     };
 
     const getPaymentStatusIcon = (status: string) => {
         switch (status) {
-            case 'completed':
-                return '✅';
-            case 'partial':
-                return '🟡';
-            case 'pending':
-                return '❌';
-            default:
-                return '❓';
+            case 'completed': return '✅';
+            case 'partial': return '🟡';
+            case 'pending': return '❌';
+            default: return '❓';
         }
     };
 
@@ -347,7 +319,7 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                             setData('product_id', value);
                             const selected = filteredProducts.find((p) => p.id.toString() === value);
                             if (selected?.price) {
-                                setData('price', selected.price.toString());
+                                setData('price', formatNumber(selected.price));
                             }
                         }}
                         placeholder="เลือกสินค้าเกษตร"
@@ -377,27 +349,26 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                         name="quantity"
                         value={data.quantity}
                         onChange={(e) => {
-                            const value = Number(e.target.value || 0);
+                            const value = e.target.value;
+                            handleNumberChange('quantity', value);
+
                             const selected = filteredProducts.find((p) => p.id.toString() === data.product_id);
                             const maxStock = selected?.stock ?? Infinity;
 
-                            if (value > maxStock) {
+                            if (Number(value) > maxStock) {
                                 Swal.fire({
                                     icon: 'warning',
                                     title: `จำนวนสูงสุดที่มีคือ ${maxStock}`,
                                     customClass: { popup: 'custom-swal' },
                                 });
                                 setData('quantity', maxStock.toString());
-                                return;
                             }
-
-                            setData('quantity', value.toString());
                         }}
                         error={errors.quantity}
                         disabled={processing}
                         type="number"
-                        min={0}
-                        step={0.5}
+                        min="0"
+                        step="0.5"
                         className="font-anuphan"
                     />
                 </div>
@@ -413,12 +384,12 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                         }
                         name="price"
                         value={data.price}
-                        onChange={(e) => setData('price', e.target.value)}
+                        onChange={(e) => handleNumberChange('price', e.target.value)}
                         error={errors.price}
                         disabled={processing}
                         type="number"
-                        min={0}
-                        step={0.5}
+                        min="0"
+                        step="0.5"
                         className="font-anuphan"
                     />
                 </div>
@@ -434,12 +405,12 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                         }
                         name="shipping_cost"
                         value={data.shipping_cost}
-                        onChange={(e) => setData('shipping_cost', e.target.value)}
+                        onChange={(e) => handleNumberChange('shipping_cost', e.target.value)}
                         error={errors.shipping_cost}
                         disabled={processing}
                         type="number"
-                        min={0}
-                        step={0.5}
+                        min="0"
+                        step="0.5"
                         className="font-anuphan"
                     />
                 </div>
@@ -474,12 +445,7 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                                 </option>
                             ))}
                         </select>
-                        {/* Custom dropdown arrow with animation */}
-                        <div
-                            className={`pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 ${
-                                processing ? 'text-gray-400' : 'text-blue-500'
-                            }`}
-                        >
+                        <div className={`pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 ${processing ? 'text-gray-400' : 'text-blue-500'}`}>
                             <div className="rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 p-1">
                                 <svg className="h-4 w-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
@@ -533,7 +499,7 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                 </div>
             </div>
 
-            {/* รายละเอียดการชำระเงิน (แสดงเมื่อไม่ชำระเต็มจำนวน) */}
+            {/* รายละเอียดการชำระเงิน */}
             {shouldShowPaymentDetails && (
                 <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
                     <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold text-orange-800">
@@ -555,9 +521,9 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                                 error={errors.paid_amount}
                                 disabled={processing}
                                 type="number"
-                                min={0}
+                                min="0"
                                 max={calculatedTotal}
-                                step={0.5}
+                                step="0.5"
                                 className="font-anuphan"
                             />
                             <p className="text-xs text-orange-600">จำนวนที่ชำระแล้วต้องไม่เกินยอดรวม {calculatedTotal.toLocaleString()} บาท</p>
@@ -594,7 +560,7 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     <div className="rounded-lg bg-white p-3 shadow-sm">
                         <p className="text-sm text-gray-600">จำนวนสินค้า</p>
-                        <p className="text-lg font-bold text-blue-600">{data.quantity || 0} ต้น</p>
+                        <p className="text-lg font-bold text-blue-600">{data.quantity || 0} หน่วย</p>
                     </div>
                     <div className="rounded-lg bg-white p-3 shadow-sm">
                         <p className="text-sm text-gray-600">ราคารวม</p>
@@ -671,7 +637,7 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                     <span>❌</span>
                     ยกเลิก
                 </Button>
-                <Button type="submit" variant="primary" disabled={processing} className="flex items-center gap-2">
+                <Button type="submit" variant="primary" disabled={processing} className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 border-0">
                     {processing ? (
                         <>
                             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
