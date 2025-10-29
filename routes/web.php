@@ -196,6 +196,7 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
     Route::get('/payment-stats', [SalesAGRController::class, 'paymentStats']);
     Route::get('/top-areas', [SalesAGRController::class, 'topAreas']);
     Route::get('/summary-by-product', [SalesAGRController::class, 'summaryByProduct']);
+    Route::get('/payment-stats/methods', [SalesAGRController::class, 'paymentMethodStats']);
 });
 
 // MUN Routes

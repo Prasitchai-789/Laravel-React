@@ -1,34 +1,106 @@
 import React from 'react';
 
-const PaymentStats = ({ stats }) => {
+interface PaymentStatsData {
+    cash?: number;
+    transfer?: number;
+    credit?: number;
+    other?: number;
+}
+
+interface PaymentStatsProps {
+    stats: PaymentStatsData;
+}
+
+const PaymentStats: React.FC<PaymentStatsProps> = ({ stats }) => {
+    // Mapping ระหว่างค่า method จาก backend กับ key ใน component
+    const methodMapping = {
+        '1': 'cash',      // เงินสด
+        '2': 'transfer',  // โอนเงิน
+        '3': 'credit',    // บัตรเครดิต/เดบิต
+        '4': 'other'      // อื่นๆ
+    };
+
     const paymentMethods = [
-        { key: 'cash', label: 'เงินสด', color: 'bg-green-500' },
-        { key: 'transfer', label: 'เงินโอน', color: 'bg-blue-500' },
-        { key: 'credit', label: 'เครดิต', color: 'bg-yellow-500' },
-        { key: 'other', label: 'อื่นๆ', color: 'bg-gray-500' }
+        { key: 'cash' as keyof PaymentStatsData, label: 'เงินสด', color: 'bg-green-500', gradient: 'from-green-500 to-green-600' },
+        { key: 'transfer' as keyof PaymentStatsData, label: 'เงินโอน', color: 'bg-blue-500', gradient: 'from-blue-500 to-blue-600' },
+        { key: 'credit' as keyof PaymentStatsData, label: 'เครดิต', color: 'bg-yellow-500', gradient: 'from-yellow-500 to-yellow-600' },
+        { key: 'other' as keyof PaymentStatsData, label: 'อื่นๆ', color: 'bg-gray-500', gradient: 'from-gray-500 to-gray-600' }
     ];
 
-    const total = Object.values(stats).reduce((sum, amount) => sum + (amount || 0), 0);
+    // ฟังก์ชันคำนวณ total
+    const calculateTotal = (): number => {
+        return paymentMethods.reduce((sum, method) => {
+            return sum + (stats[method.key] || 0);
+        }, 0);
+    };
+
+    const total = calculateTotal();
+
+    // ฟังก์ชันจัดรูปแบบเงิน (มีทศนิยม 2 ตำแหน่ง)
+    const formatCurrency = (value: number | undefined): string => {
+        if (!value && value !== 0) return '0.00';
+        return value.toLocaleString('th-TH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    };
+
+    // ฟังก์ชันคำนวณ percentage
+    const calculatePercentage = (amount: number): number => {
+        if (total === 0) return 0;
+        return Number(((amount / total) * 100).toFixed(1));
+    };
+
+    // สร้างข้อมูลสำหรับ progress bar
+    const getProgressBarData = () => {
+        const percentages = paymentMethods.map(method => {
+            const amount = stats[method.key] || 0;
+            return calculatePercentage(amount);
+        });
+
+        let currentPosition = 0;
+        const gradientStops = paymentMethods.map((method, index) => {
+            const start = currentPosition;
+            currentPosition += percentages[index];
+            return {
+                color: method.color.replace('bg-', ''),
+                start: start,
+                end: currentPosition
+            };
+        });
+
+        return gradientStops;
+    };
+
+    const gradientStops = getProgressBarData();
 
     return (
-        <div className="bg-white rounded-lg shadow p-6 font-anuphan">
-            <h2 className="text-lg font-semibold mb-4">สถิติการชำระเงิน</h2>
-            <div className="space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm p-6 font-anuphan">
+            <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-800">สถิติการชำระเงิน</h2>
+                {/* <div className="text-sm text-gray-500">
+                    {total > 0 ? `${formatCurrency(total)} บาท` : 'ไม่มีข้อมูล'}
+                </div> */}
+            </div>
+
+            <div className="space-y-4 mb-6">
                 {paymentMethods.map(method => {
                     const amount = stats[method.key] || 0;
-                    const percentage = total > 0 ? (amount / total * 100).toFixed(1) : 0;
+                    const percentage = calculatePercentage(amount);
 
                     return (
-                        <div key={method.key} className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                                <div className={`w-3 h-3 rounded-full ${method.color}`}></div>
-                                <span className="text-sm font-medium text-gray-700">{method.label}</span>
+                        <div key={method.key} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                            <div className="flex items-center space-x-3 flex-1">
+                                <div className={`w-4 h-4 rounded-full ${method.color}`}></div>
+                                <span className="font-medium text-gray-700">{method.label}</span>
                             </div>
                             <div className="text-right">
-                                <p className="text-sm font-semibold text-gray-800">
-                                    {amount.toLocaleString()} บาท
+                                <p className="font-semibold text-gray-800 text-lg">
+                                    {formatCurrency(amount)} บาท
                                 </p>
-                                <p className="text-xs text-gray-500">{percentage}%</p>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {percentage}%
+                                </p>
                             </div>
                         </div>
                     );
@@ -36,21 +108,72 @@ const PaymentStats = ({ stats }) => {
             </div>
 
             {/* Progress Bar */}
-            <div className="mt-4">
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                        className="bg-gradient-to-r from-green-500 via-blue-500 to-yellow-500 h-2 rounded-full"
-                        style={{
-                            width: '100%',
-                            background: `linear-gradient(90deg,
-                                green ${(stats.cash/total*100) || 0}%,
-                                blue ${(stats.cash/total*100) || 0}% ${((stats.cash + stats.transfer)/total*100) || 0}%,
-                                yellow ${((stats.cash + stats.transfer)/total*100) || 0}% ${((stats.cash + stats.transfer + stats.credit)/total*100) || 0}%,
-                                gray ${((stats.cash + stats.transfer + stats.credit)/total*100) || 0}%)`
-                        }}
-                    ></div>
+            {total > 0 && (
+                <div className="mt-6">
+                    <div className="flex justify-between text-sm text-gray-600 mb-2">
+                        <span>สัดส่วนการชำระเงิน</span>
+                        <span>100%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div
+                            className="h-3 rounded-full"
+                            style={{
+                                background: `linear-gradient(90deg, ${gradientStops.map(stop =>
+                                    `${stop.color} ${stop.start}% ${stop.end}%`
+                                ).join(', ')})`
+                            }}
+                        ></div>
+                    </div>
+
+                    {/* Legend */}
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                        {paymentMethods.map((method, index) => {
+                            const amount = stats[method.key] || 0;
+                            const percentage = calculatePercentage(amount);
+
+                            if (percentage === 0) return null;
+
+                            return (
+                                <div key={method.key} className="flex items-center space-x-2 text-xs">
+                                    <div className={`w-3 h-3 rounded ${method.color}`}></div>
+                                    <span className="text-gray-600">{method.label}</span>
+                                    <span className="font-medium text-gray-800">{percentage}%</span>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* Summary */}
+            {total > 0 && (
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <p className="text-gray-600 text-sm">ยอดรวมทั้งหมด</p>
+                            <p className="font-bold text-gray-800 text-lg">{formatCurrency(total)}</p>
+                        </div>
+                        <div>
+                            <p className="text-gray-600 text-sm">วิธีการชำระเงิน</p>
+                            <p className="font-bold text-blue-600 text-lg">
+                                {paymentMethods.filter(method => (stats[method.key] || 0) > 0).length} วิธี
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {total === 0 && (
+                <div className="text-center py-8">
+                    <div className="text-gray-400 mb-2">
+                        <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <p className="text-gray-500 text-lg">ไม่มีข้อมูลการชำระเงิน</p>
+                    <p className="text-gray-400 text-sm mt-1">ไม่พบข้อมูลในช่วงวันที่นี้</p>
+                </div>
+            )}
         </div>
     );
 };

@@ -25,6 +25,7 @@ class AgrSale extends Model
         'product_id',
         'store_id',
         'shipping_cost',
+        'payment_status',
     ];
 
     public function customer()
