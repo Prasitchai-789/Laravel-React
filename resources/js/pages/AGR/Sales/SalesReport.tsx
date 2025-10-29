@@ -139,8 +139,8 @@ const SalesReport = () => {
     };
 
     const totalSales = salesData.reduce((sum, row) => sum + (row.total || 0), 0);
-    const totalRevenue = Object.values(paymentStats).reduce((sum, amount) => sum + (amount || 0), 0);
-
+    // const totalRevenue = Object.values(paymentStats).reduce((sum, amount) => sum + (amount || 0), 0);
+    const totalRevenue = Object.values(summaryByProduct.summary).reduce((sum, item) => sum + (item.amount || 0), 0);
     if (loading) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 font-anuphan backdrop-blur-md">

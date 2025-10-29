@@ -24,7 +24,7 @@ interface Sale {
     total_amount: number;
     deposit: number;
     paid_amount: number;
-    status: string;
+    payment_status: string;
 }
 
 interface SaleTableProps {
@@ -46,11 +46,16 @@ export default function SaleTable({
     onEdit,
     onDelete,
     searchTerm = '',
-    statusFilter = '',
+    statusFilter = 'all',
 }: SaleTableProps) {
     const getCustomerName = (id: number) => {
         const customer = customers.find((c) => c.id.toString() === id.toString());
         return customer ? customer.name : `#${id}`;
+    };
+
+    const getProductName = (id: number) => {
+        const product = products.find((p) => p.id.toString() === id.toString());
+        return product ? product.name : `#${id}`;
     };
 
     const handlePay = (sale: Sale) => {
@@ -70,26 +75,31 @@ export default function SaleTable({
             onDelete(sale);
         }
     };
-    // ฟังก์ชันช่วยหาชื่อสินค้า
-    const getProductName = (id: number) => {
-        const product = products.find((p) => p.id.toString() === id.toString());
-        return product ? product.name : `#${id}`;
-    };
+
+    // ฟังก์ชันกรองข้อมูล
     const filteredSales = sales
         .filter((sale) => {
-            if (statusFilter === 'all') return true;
-
-            if (statusFilter === 'reserved') {
-                return (sale.deposit ?? 0) > 0;
+            // กรองตาม statusFilter
+            if (statusFilter !== 'all') {
+                const paymentStatus = sale.payment_status || 'pending';
+                if (paymentStatus !== statusFilter) return false;
             }
 
-            if (statusFilter === 'completed') {
-                return (sale.deposit ?? 0) <= 0;
+            // กรองตาม searchTerm
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                const invoiceNo = sale.invoice_no?.toLowerCase() || '';
+                const productName = getProductName(sale.product_id).toLowerCase();
+                const customerName = getCustomerName(sale.customer_id).toLowerCase();
+
+                return invoiceNo.includes(term) ||
+                       productName.includes(term) ||
+                       customerName.includes(term);
             }
 
-            return sale.status === statusFilter;
+            return true;
         })
-        .sort((a, b) =>  b.id - a.id);
+        .sort((a, b) => b.id - a.id);
 
     const saleColumns: Column<Sale>[] = [
         {
@@ -102,7 +112,7 @@ export default function SaleTable({
             key: 'invoice_no',
             label: 'เลขที่เอกสาร',
             sortable: true,
-            render: (sale) => (sale.invoice_no),
+            render: (sale) => sale.invoice_no || '-',
         },
         {
             key: 'customer_id',
@@ -116,18 +126,44 @@ export default function SaleTable({
             sortable: true,
             render: (sale) => getProductName(sale.product_id),
         },
-        { key: 'quantity', label: 'จำนวน', align: 'center' },
+        {
+            key: 'quantity',
+            label: 'จำนวน',
+            align: 'center',
+            render: (sale) => Number(sale.quantity || 0).toLocaleString('th-TH'),
+        },
         {
             key: 'price',
             label: 'ราคา (บาท)',
             align: 'center',
-            render: (sale) => Number(sale.price).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            render: (sale) => Number(sale.price || 0).toLocaleString('th-TH', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }),
         },
         {
             key: 'total_amount',
             label: 'ยอดเงิน (บาท)',
             align: 'center',
-            render: (sale) => Number(sale.total_amount).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+            render: (sale) => Number(sale.total_amount || 0).toLocaleString('th-TH', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }),
+        },
+        {
+            key: 'paid_amount',
+            label: 'ชำระแล้ว (บาท)',
+            align: 'center',
+            render: (sale) => (
+                <span className="text-md font-anuphan font-bold text-green-600">
+                    {sale.paid_amount
+                        ? Number(sale.paid_amount).toLocaleString('th-TH', {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                          })
+                        : '-'}
+                </span>
+            ),
         },
         {
             key: 'deposit',
@@ -145,34 +181,30 @@ export default function SaleTable({
             ),
         },
         {
-            key: 'status',
+            key: 'payment_status',
             label: 'สถานะ',
             align: 'center',
             render: (sale) => {
                 const statusMap = {
-                    reserved: {
+                    partial: {
                         className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-                        icon: '⏰',
-                        text: 'จอง',
+                        icon: '⚠️',
+                        text: 'ชำระบางส่วน',
                     },
                     completed: {
                         className: 'bg-green-100 text-green-800 border-green-200',
                         icon: '✅',
-                        text: 'รับแล้ว',
-                    },
-                    cancelled: {
-                        className: 'bg-red-100 text-red-800 border-red-200',
-                        icon: '❌',
-                        text: 'ยกเลิก',
+                        text: 'ชำระแล้ว',
                     },
                     pending: {
-                        className: 'bg-blue-100 text-blue-800 border-blue-200',
-                        icon: '⏳',
-                        text: 'รอดำเนินการ',
+                        className: 'bg-red-100 text-red-800 border-red-200',
+                        icon: '❌',
+                        text: 'ค้างชำระ',
                     },
                 };
 
-                const status = statusMap[sale.status] || {
+                const paymentStatus = sale.payment_status || 'pending';
+                const status = statusMap[paymentStatus] || {
                     className: 'bg-gray-100 text-gray-800 border-gray-200',
                     icon: '❓',
                     text: 'ไม่ระบุ',
@@ -190,7 +222,11 @@ export default function SaleTable({
                 );
             },
         },
-        { key: 'actions', label: 'การดำเนินการ', align: 'center' },
+        {
+            key: 'actions',
+            label: 'การดำเนินการ',
+            align: 'center'
+        },
     ];
 
     return (
@@ -207,13 +243,13 @@ export default function SaleTable({
                         aria-label="รับเงิน"
                     >
                         <div className="relative flex items-center justify-center">
-                            <div className="rounded-lg bg-blue-50 p-1 transition-colors duration-300 group-hover:bg-blue-100">
-                                <Wallet size={18} className="text-blue-600" />
+                            <div className='rounded-lg p-1 transition-colors duration-300 bg-blue-50 group-hover:bg-blue-100'>
+                                <Wallet size={18} className='text-blue-600' />
                             </div>
-                            <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100">
-                                รับเงิน
-                                <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-blue-600"></div>
-                            </span>
+                                <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100">
+                                    รับเงิน
+                                    <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-blue-600"></div>
+                                </span>
                         </div>
                     </button>
 
@@ -226,7 +262,6 @@ export default function SaleTable({
                             <div className="rounded-lg bg-yellow-50 p-1 transition-colors duration-300 group-hover:bg-yellow-100">
                                 <Pencil size={18} className="text-yellow-600" />
                             </div>
-
                             <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-yellow-600 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100">
                                 แก้ไข
                                 <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-yellow-600"></div>
@@ -243,7 +278,6 @@ export default function SaleTable({
                             <div className="rounded-lg bg-red-50 p-1 transition-colors duration-300 group-hover:bg-red-100">
                                 <Trash2 size={18} className="text-red-700" />
                             </div>
-
                             <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-red-600 px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-md transition-opacity duration-300 group-hover:opacity-100">
                                 ลบ
                                 <div className="absolute bottom-[-4px] left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-red-600"></div>
