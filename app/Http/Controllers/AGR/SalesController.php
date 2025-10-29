@@ -228,7 +228,7 @@ class SalesController extends Controller
                 'payment_slip'  => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
                 'payment_status' => 'nullable',
             ]);
-// dd($validated);
+
             $sale = AgrSale::findOrFail($id);
             $oldProductId = $sale->product_id;
             $oldQuantity = $sale->quantity;
@@ -251,17 +251,14 @@ class SalesController extends Controller
 
             // ✅ คำนวณ payment_status อัตโนมัติตามยอดชำระ
             if ($totalPaid >= $totalAmount) {
-                // ชำระครบแล้ว
                 $validated['payment_status'] = 'completed';
                 $validated['paid_amount'] = $totalAmount;
                 $validated['deposit'] = 0;
             } elseif ($totalPaid > 0) {
-                // ชำระบางส่วน
                 $validated['payment_status'] = 'partial';
                 $validated['paid_amount'] = $totalPaid;
                 $validated['deposit'] = $totalAmount - $totalPaid;
             } else {
-                // ยังไม่ได้ชำระ
                 $validated['payment_status'] = 'pending';
                 $validated['paid_amount'] = 0;
                 $validated['deposit'] = $totalAmount;

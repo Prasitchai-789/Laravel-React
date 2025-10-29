@@ -27,12 +27,39 @@ interface Sale {
     deposit: number;
     paid_amount: number;
     sale_date: string;
+    payment_status: string;
+    customer_id: number;
+    product_id: number;
+    invoice_no: string;
 }
 
-export default function Index(props) {
+interface Product {
+    id: number;
+    name: string;
+}
+
+interface Customer {
+    id: number;
+    name: string;
+}
+
+interface Payment {
+    id: number;
+    // เพิ่ม properties อื่นๆ ตามต้องการ
+}
+
+interface IndexProps {
+    sales: Sale[];
+    products: Product[];
+    locations: any[];
+    customers: Customer[];
+    payments: Payment[];
+}
+
+export default function Index(props: IndexProps) {
     const { sales, products, locations, customers, payments } = props;
-    const page = usePage<{ auth: { user: any } }>();
-    const userPermissions = page.props.auth.permissions;
+    const page = usePage<{ auth: { user: any; permissions: string[] } }>();
+    const userPermissions = page.props.auth.permissions || [];
     const [mode, setMode] = useState<'create' | 'edit' | 'pay'>('create');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -68,19 +95,21 @@ export default function Index(props) {
             Swal.fire({
                 icon: 'error',
                 title: 'ไม่สามารถแก้ไขข้อมูลได้',
+                text: 'คุณไม่มีสิทธิ์ในการแก้ไขข้อมูล',
                 customClass: { popup: 'custom-swal' },
             });
         }
     };
 
-    const handleDeleteWithPermission = (id: number) => {
+    const handleDeleteWithPermission = (sale: Sale) => {
         if (userPermissions.includes('Admin.delete')) {
-            openDeleteModal(id);
+            openDeleteModal(sale.id);
         } else {
             Swal.fire({
                 icon: 'error',
                 customClass: { popup: 'custom-swal' },
                 title: 'ไม่สามารถลบข้อมูลได้',
+                text: 'คุณไม่มีสิทธิ์ในการลบข้อมูล',
             });
         }
     };
@@ -117,30 +146,30 @@ export default function Index(props) {
                 onSuccess: () => {
                     Toast.fire({
                         icon: 'success',
-                        title: 'ลบสินค้าเรียบร้อยแล้ว',
+                        title: 'ลบรายการขายเรียบร้อยแล้ว',
                     });
                     closeDeleteModal();
-                    router.reload({ only: ['sales'] });
+                },
+                onError: () => {
+                    Toast.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาดในการลบรายการขาย',
+                    });
                 },
                 preserveScroll: true,
             });
         }
     };
 
-    // useEffect(() => {
-    //     axios.get('/agr-sales/subdistrict').then((res) => {
-    //         setData(res.data.data || []);
-    //         setProductsAPI(res.data.products || []);
-    //     });
-    // }, []);
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
-        { title: 'รายการขายสินค้าเกษตร', href: '/roles' },
+        { title: 'รายการขายสินค้าเกษตร', href: '/sales' },
     ];
 
     const optionStatus = [
         { value: 'all', label: 'ทั้งหมด' },
-        { value: 'reserved', label: 'ค้างชําระเงิน' },
+        { value: 'pending', label: 'ค้างชําระเงิน' },
+        { value: 'partial', label: 'ชําระเงินบางส่วน' },
         { value: 'completed', label: 'ชําระเงินแล้ว' },
     ];
 
@@ -169,11 +198,17 @@ export default function Index(props) {
         .reduce((sum: number, s: Sale) => sum + (s.quantity ?? 0), 0);
 
     // คำนวณยอดค้างชำระ
-    const pendingPayments = sales.filter((s: Sale) => {
-        const paid = Number(s.paid_amount) || 0;
-        const total = Number(s.total_amount) || 0;
-        return paid < total;
+    const pendingPaymentsCount = sales.filter((s: Sale) => {
+        const paymentStatus = s.payment_status || 'pending';
+        return paymentStatus === 'pending' || paymentStatus === 'partial';
     }).length;
+
+    // คำนวณสถิติตาม payment_status
+    const paymentStats = {
+        completed: sales.filter(s => s.payment_status === 'completed').length,
+        partial: sales.filter(s => s.payment_status === 'partial').length,
+        pending: sales.filter(s => s.payment_status === 'pending').length,
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -221,7 +256,6 @@ export default function Index(props) {
                         value={QtyToday ? Number(QtyToday).toLocaleString('th-TH') : '0'}
                         icon={ShoppingCart}
                         color="blue"
-                        // trend={{ value: 12.5, isPositive: true }}
                         description="เทียบกับวันก่อน"
                         className="bg-gradient-to-br from-blue-50 to-blue-100"
                     />
@@ -232,7 +266,6 @@ export default function Index(props) {
                         }
                         icon={DollarSign}
                         color="green"
-                        // trend={{ value: 8.2, isPositive: true }}
                         description="บาท"
                         className="bg-gradient-to-br from-green-50 to-emerald-100"
                     />
@@ -243,7 +276,6 @@ export default function Index(props) {
                         }
                         icon={DollarSign}
                         color="purple"
-                        // trend={{ value: 15.7, isPositive: true }}
                         description="บาท"
                         className="bg-gradient-to-br from-purple-50 to-violet-100"
                     />
@@ -254,7 +286,6 @@ export default function Index(props) {
                         }
                         icon={DollarSign}
                         color="red"
-                        // trend={{ value: -3.2, isPositive: false }}
                         description="บาท"
                         className="bg-gradient-to-br from-orange-50 to-amber-100"
                     />
@@ -263,6 +294,8 @@ export default function Index(props) {
                 {/* Filters and Search Section */}
                 <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        {/* Search Section (สามารถเปิดใช้งานได้เมื่อต้องการ) */}
+                        {/*
                         <div className="flex-1">
                             <div className="relative max-w-md">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-gray-400" />
@@ -275,8 +308,9 @@ export default function Index(props) {
                                 />
                             </div>
                         </div>
+                        */}
 
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        {/* <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                             <div className="flex items-center gap-3">
                                 <Filter className="h-4 w-4 text-gray-500" />
                                 <span className="text-sm font-medium text-gray-700">สถานะ:</span>
@@ -287,19 +321,22 @@ export default function Index(props) {
                                     className="min-w-[180px]"
                                 />
                             </div>
-                        </div>
+                        </div> */}
                     </div>
 
                     {/* Quick Stats */}
-                    <div className="mt-4 flex flex-wrap gap-4">
+                    <div className=" flex flex-wrap gap-4">
                         <div className="rounded-lg bg-blue-50 px-3 py-1">
                             <span className="text-sm font-medium text-blue-700">ทั้งหมด: {sales.length}</span>
                         </div>
                         <div className="rounded-lg bg-green-50 px-3 py-1">
-                            <span className="text-sm font-medium text-green-700">ชำระแล้ว: {sales.filter(s => s.status === 'completed').length}</span>
+                            <span className="text-sm font-medium text-green-700">ชำระแล้ว: {paymentStats.completed}</span>
                         </div>
-                        <div className="rounded-lg bg-orange-50 px-3 py-1">
-                            <span className="text-sm font-medium text-orange-700">ค้างชำระ: {pendingPayments}</span>
+                        <div className="rounded-lg bg-yellow-50 px-3 py-1">
+                            <span className="text-sm font-medium text-yellow-700">ชำระบางส่วน: {paymentStats.partial}</span>
+                        </div>
+                        <div className="rounded-lg bg-red-50 px-3 py-1">
+                            <span className="text-sm font-medium text-red-700">ค้างชำระ: {paymentStats.pending}</span>
                         </div>
                     </div>
                 </div>
@@ -327,7 +364,7 @@ export default function Index(props) {
                     size="max-w-5xl"
                 >
                     <SaleForm
-                        customers={props.customers}
+                        customers={customers}
                         products={products}
                         locations={locations}
                         onClose={() => setIsSaleModalOpen(false)}
@@ -337,15 +374,16 @@ export default function Index(props) {
                     />
                 </ModalForm>
 
+                {/* Pay Form Modal */}
                 <ModalForm
                     isModalOpen={isPayModalOpen}
                     onClose={() => setIsPayModalOpen(false)}
-                    title={mode === 'create' ? 'บันทึกการขายสินค้า' : 'บันทึกการชำระเงิน'}
+                    title="บันทึกการชำระเงิน"
                     description="กรอกข้อมูลการชำระเงิน"
                     size="max-w-3xl"
                 >
                     <PayForm
-                        customers={props.customers}
+                        customers={customers}
                         products={products}
                         locations={locations}
                         payments={payments}
@@ -356,18 +394,14 @@ export default function Index(props) {
                     />
                 </ModalForm>
 
+                {/* Delete Confirmation Modal */}
                 <DeleteModal
                     isModalOpen={isDeleteModalOpen}
                     onClose={closeDeleteModal}
                     title="ยืนยันการลบรายการขาย"
                     onConfirm={handleDelete}
                 >
-                    <div className="text-center">
-                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-                            <svg className="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </div>
+                    <div className="text-center font-anuphan">
                         <h3 className="mb-2 text-lg font-semibold text-gray-800">คุณแน่ใจหรือไม่?</h3>
                         <p className="text-gray-600">การลบรายการขายนี้ไม่สามารถย้อนกลับได้</p>
                     </div>
