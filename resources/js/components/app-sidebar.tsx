@@ -43,6 +43,7 @@ import {
     ScrollText,
     CreditCard,
     BadgeDollarSign,
+    Proportions,
     Truck
 } from 'lucide-react';
 import AppLogo from './app-logo';
@@ -199,6 +200,11 @@ const AGRNavItems: NavItem[] = [
         title: 'ทะเบียนลูกค้า',
         href: '/customers',
         icon: BookUser,
+    },
+    {
+        title: 'รายงานการขายสินค้าต้นกล้า',
+        href: '/sales/report-by-subdistrict',
+        icon: Proportions,
     },
 ];
 

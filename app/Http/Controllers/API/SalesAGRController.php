@@ -268,4 +268,115 @@ class SalesAGRController extends Controller
             ],
         ]);
     }
+
+    public function paymentMethodStats(Request $request)
+    {
+        $startDate = $request->get('start', now()->subMonth()->format('Y-m-d'));
+        $endDate = $request->get('end', now()->format('Y-m-d'));
+
+        try {
+            // สถิติการชำระเงินแบ่งตาม method
+            $methodStats = DB::connection('sqlsrv')
+                ->table('agr_payments as p')
+                ->join('agr_sales as s', 'p.sale_id', '=', 's.id')
+                ->select(
+                    'p.method',
+                    DB::raw('SUM(p.amount) as total_paid'),
+                    DB::raw('COUNT(*) as payment_count'),
+                    DB::raw('AVG(p.amount) as avg_payment'),
+                    DB::raw('MAX(p.amount) as max_payment'),
+                    DB::raw('MIN(p.amount) as min_payment')
+                )
+                ->whereBetween('p.paid_at', [$startDate, $endDate])
+                ->whereNotNull('p.method')
+                ->where('p.method', '!=', '')
+                ->groupBy('p.method')
+                ->get();
+
+            // สถิติรวม
+            $totalStats = DB::connection('sqlsrv')
+                ->table('agr_payments')
+                ->select(
+                    DB::raw('SUM(amount) as total_paid'),
+                    DB::raw('COUNT(*) as total_payments'),
+                    DB::raw('AVG(amount) as avg_payment')
+                )
+                ->whereBetween('paid_at', [$startDate, $endDate])
+                ->first();
+
+            // จัดกลุ่มข้อมูล - ใช้ key เป็น string ตามค่า method ใน database
+            $methodData = [
+                '1' => [ // เงินสด
+                    'total_paid' => 0,
+                    'payment_count' => 0,
+                    'avg_payment' => 0,
+                    'max_payment' => 0,
+                    'min_payment' => 0,
+                    'label' => 'เงินสด'
+                ],
+                '2' => [ // โอนเงิน
+                    'total_paid' => 0,
+                    'payment_count' => 0,
+                    'avg_payment' => 0,
+                    'max_payment' => 0,
+                    'min_payment' => 0,
+                    'label' => 'โอนเงิน'
+                ],
+                '3' => [ // บัตรเครดิต/เดบิต
+                    'total_paid' => 0,
+                    'payment_count' => 0,
+                    'avg_payment' => 0,
+                    'max_payment' => 0,
+                    'min_payment' => 0,
+                    'label' => 'บัตรเครดิต/เดบิต'
+                ],
+                '4' => [ // อื่นๆ
+                    'total_paid' => 0,
+                    'payment_count' => 0,
+                    'avg_payment' => 0,
+                    'max_payment' => 0,
+                    'min_payment' => 0,
+                    'label' => 'อื่นๆ'
+                ]
+            ];
+
+            // แปลงข้อมูลจาก query มาใส่ใน methodData ตามค่า method
+            foreach ($methodStats as $stat) {
+                $methodValue = (string) $stat->method; // แปลงเป็น string เพื่อให้ตรงกับ key
+
+                if (isset($methodData[$methodValue])) {
+                    $methodData[$methodValue]['total_paid'] += (float) ($stat->total_paid ?? 0);
+                    $methodData[$methodValue]['payment_count'] += (int) ($stat->payment_count ?? 0);
+                    $methodData[$methodValue]['avg_payment'] = (float) ($stat->avg_payment ?? 0);
+                    $methodData[$methodValue]['max_payment'] = (float) ($stat->max_payment ?? 0);
+                    $methodData[$methodValue]['min_payment'] = (float) ($stat->min_payment ?? 0);
+                }
+            }
+
+            // คำนวณ percentage
+            $totalPaid = (float) ($totalStats->total_paid ?? 0);
+            foreach ($methodData as $method => &$data) {
+                $data['percentage'] = $totalPaid > 0 ?
+                    round(($data['total_paid'] / $totalPaid) * 100, 2) : 0;
+            }
+
+            return response()->json([
+                'summary' => [
+                    'total_paid' => $totalPaid,
+                    'total_payments' => (int) ($totalStats->total_payments ?? 0),
+                    'avg_payment' => (float) ($totalStats->avg_payment ?? 0)
+                ],
+                'by_method' => $methodData,
+                'period' => [
+                    'start_date' => $startDate,
+                    'end_date' => $endDate
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'เกิดข้อผิดพลาดในการดึงข้อมูล',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

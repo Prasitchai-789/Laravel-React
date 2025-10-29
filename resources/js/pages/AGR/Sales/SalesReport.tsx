@@ -8,20 +8,55 @@ import PaymentStats from './Components/PaymentStats';
 import SalesTable from './Components/SalesTable';
 import TopAreaCard from './Components/TopAreaCard';
 
+// Interface definitions
+interface SalesData {
+    index: number;
+    subdistrict: string;
+    total: number;
+    [key: string]: number | string;
+}
+
+interface PaymentStatsData {
+    cash?: number;
+    transfer?: number;
+    credit?: number;
+    other?: number;
+}
+
+interface AreaData {
+    subdistrict_id: string | number;
+    subdistrict: string;
+    total_orders?: number;
+    total_quantity?: number;
+    total_amount?: number;
+}
+
+interface ProductSummary {
+    summary: {
+        [productName: string]: {
+            quantity: number;
+            amount: number;
+        };
+    };
+}
+
+interface DateRange {
+    start: string;
+    end: string;
+}
+
 const SalesReport = () => {
     const today = new Date().toISOString().split('T')[0];
-    const [salesData, setSalesData] = useState([]);
-    const [paymentStats, setPaymentStats] = useState({});
-    const [products, setProducts] = useState([]);
-    const [topAreas, setTopAreas] = useState([]);
-    const [summaryByProduct, setSummaryByProduct] = useState([]);
+    const [salesData, setSalesData] = useState<SalesData[]>([]);
+    const [paymentStats, setPaymentStats] = useState<PaymentStatsData>({});
+    const [products, setProducts] = useState<string[]>([]);
+    const [topAreas, setTopAreas] = useState<AreaData[]>([]);
+    const [summaryByProduct, setSummaryByProduct] = useState<ProductSummary>({ summary: {} });
     const [loading, setLoading] = useState(true);
 
-    const [dateRange, setDateRange] = useState({
+    const [dateRange, setDateRange] = useState<DateRange>({
         start: today,
         end: today,
-        // start: '2023-01-01',
-        // end: '2025-12-31',
     });
 
     dayjs.locale('th');
@@ -30,9 +65,39 @@ const SalesReport = () => {
         if (!date) return '-';
         return dayjs(date).format('D MMM YYYY'); // เช่น 1 ม.ค. 2025
     };
+
+    // ฟังก์ชันจัดรูปแบบตัวเลข
+    const formatNumber = (value: number | undefined): string => {
+        if (!value && value !== 0) return '0';
+        return value.toLocaleString('th-TH');
+    };
+
+    // ฟังก์ชันจัดรูปแบบจำนวนต้น (ไม่มีทศนิยม)
+    const formatQuantity = (value: number | undefined): string => {
+        if (!value && value !== 0) return '0';
+        return Math.floor(value).toLocaleString('th-TH');
+    };
+
+    // ฟังก์ชันจัดรูปแบบเงิน (มีทศนิยม 2 ตำแหน่ง)
+    const formatCurrency = (value: number | undefined): string => {
+        if (!value && value !== 0) return '0.00';
+        return value.toLocaleString('th-TH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    };
+
+    // ฟังก์ชันจัดรูปแบบจำนวนรายการ (ไม่มีทศนิยม)
+    const formatOrders = (value: number | undefined): string => {
+        if (!value && value !== 0) return '0';
+        return Math.floor(value).toLocaleString('th-TH');
+    };
+
     useEffect(() => {
         fetchAllData();
     }, []);
+
+
 
     const fetchAllData = async () => {
         setLoading(true);
@@ -40,15 +105,23 @@ const SalesReport = () => {
             const [sales, areas, payments, summary] = await Promise.all([
                 axios.get('/report-by-subdistrict', { params: dateRange }),
                 axios.get('/top-areas', { params: dateRange }),
-                axios.get('/payment-stats', { params: dateRange }),
+                axios.get('/payment-stats/methods', { params: dateRange }),
                 axios.get('/summary-by-product', { params: dateRange }),
             ]);
 
+
+            const backendData = payments.data.by_method; // { '1': {...}, '2': {...}, ... }
+                const transformedData: PaymentStatsData = {
+                    cash: backendData['1']?.total_paid || 0,
+                    transfer: backendData['2']?.total_paid || 0,
+                    credit: backendData['3']?.total_paid || 0,
+                    other: backendData['4']?.total_paid || 0,
+                };
             setSalesData(sales.data.data || []);
             setProducts(sales.data.products || []);
             setTopAreas(areas.data || []);
-            setPaymentStats(payments.data || {});
-            setSummaryByProduct(summary.data || {});
+            setPaymentStats(transformedData);
+            setSummaryByProduct(summary.data || { summary: {} });
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -57,14 +130,13 @@ const SalesReport = () => {
     };
 
     // ✅ เมื่อผู้ใช้เลือกวันที่ใหม่
-    const handleDateChange = (e) => {
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setDateRange((prev) => ({
             ...prev,
             [name]: value,
         }));
     };
-
 
     const totalSales = salesData.reduce((sum, row) => sum + (row.total || 0), 0);
     const totalRevenue = Object.values(paymentStats).reduce((sum, amount) => sum + (amount || 0), 0);
@@ -91,54 +163,178 @@ const SalesReport = () => {
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30 p-4 font-anuphan lg:p-4">
                 <div className="mx-auto max-w-7xl">
                     {/* Header */}
-                    <div className="mb-2 text-center">
-                        <div className="inline-flex items-center gap-3 rounded-2xl bg-white/80 px-6 py-4 shadow-sm backdrop-blur-sm">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600">
-                                <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                                    />
-                                </svg>
+                    <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm">
+                        {/* Header Section */}
+                        <div className="mb-6 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                            {/* Title with Icon */}
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
+                                    <svg className="h-7 w-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                        />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-bold text-gray-800 lg:text-3xl">รายงานการขายสินค้าต้นกล้า</h1>
+                                    <p className="mt-1 text-gray-600">สถิติการขายและข้อมูลพื้นที่ลูกค้า</p>
+                                </div>
                             </div>
-                            <div className="text-left">
-                                <h1 className="text-2xl font-bold text-gray-800 lg:text-3xl">รายงานการขายสินค้าต้นกล้า</h1>
-                                <p className="text-gray-600">สถิติการขายและข้อมูลพื้นที่ลูกค้า</p>
+
+                            {/* Current Date Display */}
+                            <div className="min-w-[200px] rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
+                                <div className="text-center">
+                                    <p className="mb-1 text-sm font-medium text-blue-700">ช่วงวันที่ที่แสดง</p>
+                                    <p className="font-semibold text-blue-800">
+                                        {formatDateThai(dateRange.start)} - {formatDateThai(dateRange.end)}
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Date Filter */}
-                    <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm">
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            <div>
-                                <label className="mb-2 block text-sm font-medium text-gray-700">วันที่เริ่มต้น</label>
-                                <input
-                                    type="date"
-                                    name="start"
-                                    value={dateRange.start}
-                                    onChange={handleDateChange}
-                                    className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                                />
+                        {/* Date Filter Section */}
+                        <div className="pt-2">
+                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                                        <div className="flex items-center gap-2">
+                                            <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                                />
+                                            </svg>
+                                            วันที่เริ่มต้น
+                                        </div>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="start"
+                                        value={dateRange.start}
+                                        onChange={handleDateChange}
+                                        className="w-full rounded-xl border border-gray-300 px-4 py-3 transition-all hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                                        <div className="flex items-center gap-2">
+                                            <svg className="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                                />
+                                            </svg>
+                                            วันที่สิ้นสุด
+                                        </div>
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="end"
+                                        value={dateRange.end}
+                                        onChange={handleDateChange}
+                                        className="w-full rounded-xl border border-gray-300 px-4 py-3 transition-all hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                    />
+                                </div>
+                                <div className="sm:col-span-2 lg:col-span-2">
+                                    <label className="mb-2 block text-sm font-medium text-gray-700 opacity-0">Actions</label>
+                                    <div className="flex h-full gap-3">
+                                        <button
+                                            onClick={fetchAllData}
+                                            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 py-3 font-medium text-white shadow-lg transition-all hover:scale-[1.02] hover:from-blue-600 hover:to-blue-700 hover:shadow-xl active:scale-[0.98]"
+                                        >
+                                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                                />
+                                            </svg>
+                                            ค้นหาข้อมูล
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                const today = new Date().toISOString().split('T')[0];
+                                                setDateRange({ start: today, end: today });
+                                                fetchAllData();
+                                            }}
+                                            className="rounded-xl border border-gray-300 bg-white px-4 font-medium text-gray-700 transition-all hover:bg-gray-50 hover:shadow-md active:scale-[0.98]"
+                                        >
+                                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth={2}
+                                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                                />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <label className="mb-2 block text-sm font-medium text-gray-700">วันที่สิ้นสุด</label>
-                                <input
-                                    type="date"
-                                    name="end"
-                                    value={dateRange.end}
-                                    onChange={handleDateChange}
-                                    className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                                />
-                            </div>
-                            <div className="flex items-end gap-3">
+
+                            {/* Quick Date Presets */}
+                            <div className="mt-4 flex flex-wrap gap-2">
                                 <button
-                                    onClick={fetchAllData}
-                                    className="w-1/2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 py-3 font-medium text-white hover:from-blue-600 hover:to-blue-700"
+                                    onClick={() => {
+                                        const end = new Date();
+                                        const start = new Date();
+                                        start.setDate(start.getDate() - 7);
+                                        setDateRange({
+                                            start: start.toISOString().split('T')[0],
+                                            end: end.toISOString().split('T')[0],
+                                        });
+                                    }}
+                                    className="rounded-lg bg-gray-100 px-3 py-1 text-xs text-gray-600 transition-all hover:bg-gray-200 hover:text-gray-800"
                                 >
-                                    ค้นหาข้อมูล
+                                    7 วันย้อนหลัง
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const end = new Date();
+                                        const start = new Date();
+                                        start.setDate(start.getDate() - 30);
+                                        setDateRange({
+                                            start: start.toISOString().split('T')[0],
+                                            end: end.toISOString().split('T')[0],
+                                        });
+                                    }}
+                                    className="rounded-lg bg-gray-100 px-3 py-1 text-xs text-gray-600 transition-all hover:bg-gray-200 hover:text-gray-800"
+                                >
+                                    30 วันย้อนหลัง
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const today = new Date();
+                                        const start = new Date(today.getFullYear(), today.getMonth(), 1);
+                                        setDateRange({
+                                            start: start.toISOString().split('T')[0],
+                                            end: today.toISOString().split('T')[0],
+                                        });
+                                    }}
+                                    className="rounded-lg bg-gray-100 px-3 py-1 text-xs text-gray-600 transition-all hover:bg-gray-200 hover:text-gray-800"
+                                >
+                                    เดือนนี้
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        const today = new Date();
+                                        const start = new Date(today.getFullYear(), 0, 1);
+                                        setDateRange({
+                                            start: start.toISOString().split('T')[0],
+                                            end: today.toISOString().split('T')[0],
+                                        });
+                                    }}
+                                    className="rounded-lg bg-gray-100 px-3 py-1 text-xs text-gray-600 transition-all hover:bg-gray-200 hover:text-gray-800"
+                                >
+                                    ปีนี้
                                 </button>
                             </div>
                         </div>
@@ -151,7 +347,7 @@ const SalesReport = () => {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-blue-100">ยอดขายรวมทั้งหมด</p>
-                                    <p className="mt-2 text-3xl font-bold">{totalSales.toLocaleString()} ต้น</p>
+                                    <p className="mt-2 text-3xl font-bold">{formatQuantity(totalSales)} ต้น</p>
                                     <p className="mt-1 text-blue-100">จำนวนต้นกล้าที่ขายได้</p>
                                 </div>
                                 <div className="rounded-2xl bg-white/20 p-4 backdrop-blur-sm">
@@ -167,7 +363,7 @@ const SalesReport = () => {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-green-100">รายได้รวมทั้งหมด</p>
-                                    <p className="mt-2 text-3xl font-bold">{totalRevenue.toLocaleString()} บาท</p>
+                                    <p className="mt-2 text-3xl font-bold">{formatCurrency(totalRevenue)} บาท</p>
                                     <p className="mt-1 text-green-100">มูลค่าการขายรวม</p>
                                 </div>
                                 <div className="rounded-2xl bg-white/20 p-4 backdrop-blur-sm">
@@ -189,7 +385,7 @@ const SalesReport = () => {
                                 <div>
                                     <p className="text-purple-100">พื้นที่ขายดีอันดับ 1 </p>
                                     <p className="mt-2 text-2xl font-bold">{topAreas[0]?.subdistrict || 'ไม่มีข้อมูล'}</p>
-                                    <p className="mt-1 text-purple-100">{topAreas[0]?.total_quantity?.toLocaleString()} ต้น</p>
+                                    <p className="mt-1 text-purple-100">{formatQuantity(topAreas[0]?.total_quantity)} ต้น</p>
                                 </div>
                                 <div className="rounded-2xl bg-white/20 p-4 backdrop-blur-sm">
                                     <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -210,11 +406,16 @@ const SalesReport = () => {
                     {summaryByProduct?.summary && Object.keys(summaryByProduct.summary).length > 0 && (
                         <div className="mb-6">
                             <div className="mb-4 flex items-center justify-between">
-                                <h2 className="text-xl font-semibold text-gray-800">สรุปยอดขายแยกตามสินค้า</h2>
+                                <h2 className="text-xl font-semibold text-gray-800">
+                                    สรุปยอดขายแยกตามสินค้า{' '}
+                                    <span className="text-sm text-gray-500">
+                                        (ช่วงวันที่ {formatDateThai(dateRange.start)} ถึง {formatDateThai(dateRange.end)})
+                                    </span>
+                                </h2>
                                 <div className="text-sm text-gray-500">{Object.keys(summaryByProduct.summary).length} ประเภทสินค้า</div>
                             </div>
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                {Object.entries(summaryByProduct.summary).map(([productName, data]: any, index) => (
+                                {Object.entries(summaryByProduct.summary).map(([productName, data], index) => (
                                     <div
                                         key={productName}
                                         className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-all hover:shadow-md"
@@ -225,11 +426,11 @@ const SalesReport = () => {
                                                 <div className="space-y-2">
                                                     <div className="flex justify-between">
                                                         <span className="text-gray-600">จำนวนขาย:</span>
-                                                        <span className="font-bold text-blue-600">{data.quantity?.toLocaleString()} ต้น</span>
+                                                        <span className="font-bold text-blue-600">{formatQuantity(data.quantity)} ต้น</span>
                                                     </div>
                                                     <div className="flex justify-between">
                                                         <span className="text-gray-600">มูลค่า:</span>
-                                                        <span className="font-bold text-green-600">{data.amount?.toLocaleString()} บาท</span>
+                                                        <span className="font-bold text-green-600">{formatCurrency(data.amount)} บาท</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -265,8 +466,8 @@ const SalesReport = () => {
                     </div>
 
                     {/* Sales Table */}
-                    <div className="rounded-2xl bg-white p-6 shadow-sm">
-                        <div className="mb-6 flex items-center justify-between">
+                    <div className="">
+                        {/* <div className="mb-6 flex items-center justify-between">
                             <div>
                                 <h2 className="text-xl font-semibold text-gray-800">รายงานปริมาณต้นกล้าแยกตามพื้นที่ </h2>
                                 <span className="text-sm text-gray-500">
@@ -274,7 +475,7 @@ const SalesReport = () => {
                                 </span>
                             </div>
                             <div className="text-sm text-gray-500">{salesData.length} พื้นที่</div>
-                        </div>
+                        </div> */}
                         <SalesTable data={salesData} productsAPI={products} />
                     </div>
 
