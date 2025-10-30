@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatNumberWithCommas } from '../utils/formatters';
 
 interface AreaData {
     subdistrict_id: string | number;
@@ -15,69 +16,67 @@ interface TopAreaCardProps {
     formatOrders: (value: number | undefined) => string;
 }
 
-const TopAreaCard: React.FC<TopAreaCardProps> = ({
-    areas,
-    formatQuantity,
-    formatCurrency,
-    formatOrders
-}) => {
+const TopAreaCard: React.FC<TopAreaCardProps> = ({ areas, formatQuantity, formatCurrency, formatOrders }) => {
     return (
-        <div className="bg-white rounded-2xl shadow-sm p-6 font-anuphan">
-            <div className="flex items-center justify-between mb-6">
+        <div className="rounded-2xl bg-white p-6 font-anuphan shadow-sm">
+            <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-800">พื้นที่ที่มาซื้อมากที่สุด</h2>
-                <div className="text-sm text-gray-500">
-                    {areas.length > 0 ? `${Math.min(areas.length, 5)} พื้นที่` : 'ไม่มีข้อมูล'}
-                </div>
+                <div className="text-sm text-gray-500">{areas.length > 0 ? `${Math.min(areas.length, 5)} พื้นที่` : 'ไม่มีข้อมูล'}</div>
             </div>
 
             <div className="space-y-3">
                 {areas.slice(0, 5).map((area, index) => (
                     <div
                         key={area.subdistrict_id}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                        className="flex items-center justify-between rounded-xl bg-gray-50 p-4 transition-colors hover:bg-gray-100"
                     >
-                        <div className="flex items-center space-x-4 flex-1">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold
-                                ${index === 0 ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
-                                  index === 1 ? 'bg-gradient-to-br from-orange-500 to-red-500' :
-                                  index === 2 ? 'bg-gradient-to-br from-yellow-500 to-orange-500' :
-                                  'bg-gradient-to-br from-gray-500 to-gray-600'}`}>
+                        <div className="flex flex-1 items-center space-x-4">
+                            <div
+                                className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white ${
+                                    index === 0
+                                        ? 'bg-gradient-to-br from-blue-500 to-blue-600'
+                                        : index === 1
+                                          ? 'bg-gradient-to-br from-orange-500 to-red-500'
+                                          : index === 2
+                                            ? 'bg-gradient-to-br from-yellow-500 to-orange-500'
+                                            : 'bg-gradient-to-br from-gray-500 to-gray-600'
+                                }`}
+                            >
                                 {index + 1}
                             </div>
                             <div className="flex-1">
-                                <p className="font-semibold text-gray-800 text-lg">{area.subdistrict}</p>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    {formatOrders(area.total_orders)} รายการ
-                                </p>
+                                <p className="text-lg font-semibold text-gray-800">{area.subdistrict}</p>
+                                <p className="mt-1 text-sm text-gray-500">{formatOrders(area.total_orders)} รายการ</p>
                             </div>
                         </div>
-                        <div className="text-right ml-4">
-                            <p className="font-bold text-gray-800 text-lg">
-                                {formatQuantity(area.total_quantity)} ต้น
-                            </p>
-                            <p className="text-sm text-green-600 font-medium mt-1">
-                                {formatCurrency(area.total_amount)} บาท
-                            </p>
+                        <div className="ml-4 text-right">
+                            <p className="text-lg font-bold text-gray-800">{formatQuantity(area.total_quantity)} ต้น</p>
+                            <p className="mt-1 text-sm font-medium text-green-600">{formatNumberWithCommas(area.total_amount)} บาท</p>
                         </div>
                     </div>
                 ))}
             </div>
 
             {areas.length === 0 && (
-                <div className="text-center py-8">
-                    <div className="text-gray-400 mb-2">
-                        <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <div className="py-8 text-center">
+                    <div className="mb-2 text-gray-400">
+                        <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1}
+                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                            />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </div>
-                    <p className="text-gray-500 text-lg">ไม่มีข้อมูลพื้นที่</p>
-                    <p className="text-gray-400 text-sm mt-1">ไม่พบข้อมูลการขายในช่วงวันที่นี้</p>
+                    <p className="text-lg text-gray-500">ไม่มีข้อมูลพื้นที่</p>
+                    <p className="mt-1 text-sm text-gray-400">ไม่พบข้อมูลการขายในช่วงวันที่นี้</p>
                 </div>
             )}
 
             {/* Summary for top areas */}
-            {areas.length > 0 && (
+            {/* {areas.length > 0 && (
                 <div className="mt-6 pt-4 border-t border-gray-200">
                     <div className="grid grid-cols-3 gap-4 text-center">
                         <div>
@@ -98,7 +97,7 @@ const TopAreaCard: React.FC<TopAreaCardProps> = ({
                         </div>
                     </div>
                 </div>
-            )}
+            )} */}
         </div>
     );
 };
