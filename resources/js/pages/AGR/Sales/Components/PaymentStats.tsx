@@ -127,7 +127,7 @@ const PaymentStats: React.FC<PaymentStatsProps> = ({ stats, formatCurrency }) =>
             )}
 
             {/* Summary */}
-            {total > 0 && (
+            {/* {total > 0 && (
                 <div className="mt-6 pt-4 border-t border-gray-200">
                     <div className="grid grid-cols-2 gap-4 text-center">
                         <div>
@@ -142,7 +142,7 @@ const PaymentStats: React.FC<PaymentStatsProps> = ({ stats, formatCurrency }) =>
                         </div>
                     </div>
                 </div>
-            )}
+            )} */}
 
             {total === 0 && (
                 <div className="text-center py-8">

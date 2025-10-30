@@ -46,3 +46,17 @@ export function formatCurrency(value: number | string): string {
         maximumFractionDigits: 2
     });
 }
+
+
+// ในไฟล์ formatters.ts
+export function formatNumberWithCommas(value: number | string): string {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return '0.00';
+
+    // แยกส่วนจำนวนเต็มและทศนิยม
+    const parts = num.toFixed(2).split('.');
+    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const decimalPart = parts[1];
+
+    return `${integerPart}.${decimalPart}`;
+}
