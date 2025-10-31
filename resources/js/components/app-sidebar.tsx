@@ -42,6 +42,7 @@ import {
     MonitorSmartphone,
     ScrollText,
     CreditCard,
+    ChartLine,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -54,6 +55,13 @@ const mainNavItems: NavItem[] = [
 ];
 
 const StoreNavItems: NavItem[] = [
+
+    {
+        title: 'Dashboard',
+        href: '/StoreOrder/Dashboard',
+        icon: ChartLine,
+        permission: ['PUR.view', 'PUR.Admin'],
+    },
     {
         title: 'StoreOrder',
         href: '/StoreOrder',
@@ -78,6 +86,7 @@ const StoreNavItems: NavItem[] = [
         icon: ClipboardMinus,
         permission: ['PUR.view', 'PUR.Admin'],
     },
+
 ];
 
 const ITNavItem: NavItem[] = [
@@ -375,8 +384,8 @@ export function AppSidebar() {
                 )}
 
             </SidebarContent>
-                {/* <hr className="border-t-[0.5px] border-gray-200 my-0.5 w-3/4 mx-auto" /> */}
-                <hr className="border-t border-gray-200 my-1" />
+            {/* <hr className="border-t-[0.5px] border-gray-200 my-0.5 w-3/4 mx-auto" /> */}
+            <hr className="border-t border-gray-200 my-1" />
 
             {/* ADMIN */}
             <SidebarFooter>
