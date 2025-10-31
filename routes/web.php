@@ -25,6 +25,7 @@ use App\Http\Controllers\AGR\CustomerController;
 use App\Http\Controllers\Api\SalesAGRController;
 use App\Http\Controllers\ChemicalOrderController;
 use App\Http\Controllers\Store\StoreOrderController;
+use App\Http\Controllers\Store\DashboardStoreController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
 use App\Http\Controllers\Store\StoreMovementController;
 use App\Http\Controllers\Api\PurchaseDashboardController;
@@ -210,6 +211,23 @@ Route::prefix('fertilizer')->group(function () {
 
 
 Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrder')->group(function () {
+
+    // Route ใหม่
+    Route::get('/getWithdrawalStats', [DashboardStoreController::class, 'getWithdrawalStats']);
+    Route::get('/Chart', [DashboardStoreController::class, 'Chart']);
+    Route::get('/QuickSummary', [DashboardStoreController::class, 'QuickSummary']);
+    Route::get('/Dashboard', [DashboardStoreController::class, 'Dashboard']);
+    Route::get('/Withdrawal', [DashboardStoreController::class, 'Withdrawal']);
+
+    Route::get('/StockOrder', [DashboardStoreController::class, 'StockOrder']);
+    Route::get('/Departments', [DashboardStoreController::class, 'Departments']);
+    Route::get('/Budget', [DashboardStoreController::class, 'ApprovedBudget']);
+    Route::get('/nameOrder', [DashboardStoreController::class, 'nameOrder']);
+
+    // routes/web.php หรือ routes/api.php
+    Route::get('/RecentApprovals', [DashboardStoreController::class, 'recentApprovals']);
+
+
     Route::get('/search', [StoreOrderController::class, 'searchJson']);
     // หน้าเลือกสินค้า / Index
     Route::get('/', [StoreOrderController::class, 'index'])->name('Store.index');
@@ -302,7 +320,11 @@ Route::fallback(function () {
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 
     Route::get('purchase/dashboard', [PurchaseDashboardController::class, 'index']);
+
+    Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'apiIndex']);
+
     Route::get('/purchase/dashboard/api', [PurchaseDashboardController::class, 'apiPOinvByDept'])->name('purchase.dashboard.api');
+
 });
 
 

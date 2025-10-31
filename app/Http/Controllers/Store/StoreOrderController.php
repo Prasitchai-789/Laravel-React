@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Auth;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 
 class StoreOrderController extends Controller
@@ -460,10 +461,11 @@ class StoreOrderController extends Controller
         return response()->json(['success' => true]);
     }
 
+
+
     public function store(Request $request)
-    {
+{
         try {
-            \Log::info('StoreOrder request received', $request->all());
 
             $data = $request->validate([
                 'items' => 'required|array|min:1',
@@ -473,19 +475,17 @@ class StoreOrderController extends Controller
                 'withdraw_date' => 'required|date',
             ]);
 
-            \Log::info('Validation passed', $data);
-
             $order = null;
 
             DB::transaction(function () use ($data, &$order) {
                 $user = Auth::user();
-                \Log::info('User info', ['user_id' => $user->id, 'employee_id' => $user->employee_id]);
+
 
                 $employeeId = $user->employee_id;
                 $departmentName = 'ไม่ระบุ';
                 $empName = 'ไม่พบข้อมูลพนักงาน';
 
-                // ดึงข้อมูลพนักงาน
+                // ✅ ดึงข้อมูลพนักงานจากฐาน sqlsrv2
                 if (!empty($employeeId)) {
                     try {
                         $employee = DB::connection('sqlsrv2')
@@ -504,18 +504,40 @@ class StoreOrderController extends Controller
                             }
                         }
                     } catch (\Exception $e) {
-                        \Log::error('Error fetching employee data', ['error' => $e->getMessage()]);
-                    }
+                                           }
                 }
 
                 // วันที่เบิก
                 $orderDate = $data['withdraw_date']
-                    ? \Carbon\Carbon::parse($data['withdraw_date'])
+                    ? Carbon::parse($data['withdraw_date'])
                     : now();
 
-                // ✅ สร้าง order ครั้งเดียว
+                // ✅ สร้างเลขที่เอกสาร (ICII + ปีพ.ศ. 2 ตัวท้าย + เดือน + running)
+                $prefix = 'PUR';
+                $year = now()->year + 543; // แปลงเป็น พ.ศ.
+                $yearShort = substr($year, -2); // เอา 2 ตัวท้าย เช่น 68
+                $month = now()->format('m');
+
+                // หาเอกสารล่าสุดในเดือนเดียวกัน
+                $latestOrder = \App\Models\StoreOrder::whereYear('created_at', now()->year)
+                    ->whereMonth('created_at', now()->month)
+                    ->lockForUpdate()
+                    ->orderByDesc('id')
+                    ->first();
+
+                if ($latestOrder) {
+                    $lastNumber = (int) Str::after($latestOrder->document_number, '-');
+                    $nextNumber = $lastNumber + 1;
+                } else {
+                    $nextNumber = 1;
+                }
+
+                $running = str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+                $documentNumber = "{$prefix}{$yearShort}{$month}-{$running}";
+
+                // ✅ สร้าง order
                 $order = new \App\Models\StoreOrder([
-                    'document_number' => 'SO-' . now()->format('YmdHis'),
+                    'document_number' => $documentNumber,
                     'order_date' => $orderDate,
                     'status' => 'pending',
                     'department' => $departmentName,
@@ -527,32 +549,25 @@ class StoreOrderController extends Controller
                 $order->updated_at = $orderDate;
                 $order->save();
 
-                \Log::info('Order created', ['order_id' => $order->id, 'document_number' => $order->document_number]);
-
-                // ✅ ประมวลผล items
+                // ✅ บันทึกรายการสินค้าภายใต้ order เดิม
                 foreach ($data['items'] as $index => $item) {
-                    \Log::info('Processing item', ['index' => $index, 'item' => $item]);
 
                     $storeItem = \App\Models\StoreItem::where('good_id', $item['good_id'])->first();
-
                     if (!$storeItem) {
                         throw new \Exception("ไม่พบสินค้า ID: {$item['good_id']}");
                     }
 
-                    // ✅ เพิ่มรายการสินค้าภายใต้ order เดิม
-                    // เพิ่มรายการสินค้าภายใต้ order เดิม
+                    // เพิ่มรายการสินค้าใน order
                     $orderItem = $order->items()->make([
                         'product_id' => $item['good_id'],
                         'quantity' => $item['qty'],
                     ]);
-
-                    $orderItem->timestamps = false; // ปิด auto timestamps
+                    $orderItem->timestamps = false;
                     $orderItem->created_at = $orderDate;
                     $orderItem->updated_at = $orderDate;
                     $orderItem->save();
 
-
-                    // ✅ สร้าง movement
+                    // ✅ บันทึก movement log
                     $movement = new \App\Models\StoreMovement([
                         'store_item_id' => $storeItem->id,
                         'user_id' => $user->id,
@@ -569,15 +584,8 @@ class StoreOrderController extends Controller
                     $movement->updated_at = $orderDate;
                     $movement->save();
 
-                    \Log::info('Movement created', [
-                        'store_item_id' => $storeItem->id,
-                        'created_at' => $movement->created_at
-                    ]);
                 }
             });
-
-            \Log::info('Transaction completed successfully');
-
             return redirect()->route('Store.index')->with([
                 'success' => true,
                 'message' => '✅ ทำการบันทึกคำสั่งเบิกเรียบร้อย รออนุมัติ',
@@ -585,17 +593,13 @@ class StoreOrderController extends Controller
                 'document_number' => $order->document_number
             ]);
         } catch (\Exception $e) {
-            \Log::error('StoreOrder error', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]);
 
             return back()->withErrors([
                 'error' => 'เกิดข้อผิดพลาดในการบันทึก: ' . $e->getMessage()
             ]);
         }
     }
+
 
     public function confirm($orderId)
     {
@@ -1562,5 +1566,4 @@ class StoreOrderController extends Controller
 
         return response()->json(['goods' => $goods]);
     }
-
 }
