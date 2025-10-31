@@ -42,7 +42,13 @@ import {
     MonitorSmartphone,
     ScrollText,
     CreditCard,
+
     ChartLine,
+
+    BadgeDollarSign,
+    Proportions,
+    Truck
+
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -164,6 +170,11 @@ const DevNavItems: NavItem[] = [
         icon: ChartCandlestick,
     },
     {
+        title: 'รายงานการขาย',
+        href: '/sales/dashboard',
+        icon: Truck,
+    },
+    {
         title: 'รายการใบสั่งซื้อ',
         href: '/purchase/po',
         icon: ScrollText,
@@ -172,6 +183,16 @@ const DevNavItems: NavItem[] = [
         title: 'สรุปค่าใช้จ่าย',
         href: '/purchase/dashboard',
         icon: CreditCard,
+    },
+    {
+        title: 'งบทดลองเบื้องต้น',
+        href: '/accounts',
+        icon: CreditCard,
+    },
+    {
+        title: 'รายงานการขายสินค้า',
+        href: '/sales-order',
+        icon: BadgeDollarSign,
     },
 
 ];
@@ -191,6 +212,11 @@ const AGRNavItems: NavItem[] = [
         title: 'ทะเบียนลูกค้า',
         href: '/customers',
         icon: BookUser,
+    },
+    {
+        title: 'รายงานการขายสินค้าต้นกล้า',
+        href: '/sales/report-by-subdistrict',
+        icon: Proportions,
     },
 ];
 

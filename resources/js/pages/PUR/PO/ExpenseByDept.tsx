@@ -50,14 +50,14 @@ export default function ExpenseByDept() {
                 const byDept = res.data.byDept || [];
 
                 // เรียงข้อมูลจากมากไปน้อย
-                const sortedData = [...byDept].sort((a, b) => Number(b.total) - Number(a.total));
+                const sortedData = [...byDept].sort((a, b) => Number(b.totalNet) - Number(a.totalNet));
                 setData(sortedData);
 
                 // คำนวณข้อมูลสรุป
                 const highest =
-                    sortedData.length > 0 ? { name: sortedData[0].DeptName, amount: Number(sortedData[0].total) } : { name: '', amount: 0 };
+                    sortedData.length > 0 ? { name: sortedData[0].DeptName, amount: Number(sortedData[0].totalNet) } : { name: '', amount: 0 };
 
-                const monthlyTotal = sortedData.reduce((sum, dept) => sum + Number(dept.total), 0);
+                const monthlyTotal = sortedData.reduce((sum, dept) => sum + Number(dept.totalNet), 0);
 
                 setSummaryData({
                     highestDept: highest,
@@ -69,18 +69,58 @@ export default function ExpenseByDept() {
     }, [selectedYear, selectedMonth]);
 
     // เรียงข้อมูลจากมากไปน้อยก่อนสร้าง chart data
-    const sortedData = [...data].sort((a, b) => Number(b.total) - Number(a.total));
+    const sortedData = [...data].sort((a, b) => Number(b.totalNet) - Number(a.totalNet));
+
+    // ฟังก์ชันจัดรูปแบบตัวเลข (แสดงเป็นล้านบาท)
+    const formatCurrency = (amount) => {
+        const numAmount = Number(amount);
+        if (numAmount >= 1000000) {
+            return '฿' + (numAmount / 1000000).toFixed(2) + ' ล้าน';
+        } else if (numAmount >= 1000) {
+            return '฿' + (numAmount / 1000).toFixed(1) + ' พัน';
+        }
+        return '฿' + numAmount.toLocaleString();
+    };
+
+    // ฟังก์ชันจัดรูปแบบตัวเลขสำหรับกราฟ (ล้านบาท)
+    const formatCurrencyForChart = (amount) => {
+        const numAmount = Number(amount);
+        if (numAmount >= 1000000) {
+            return '฿' + (numAmount / 1000000).toFixed(1) + 'M';
+        } else if (numAmount >= 1000) {
+            return '฿' + (numAmount / 1000).toFixed(0) + 'K';
+        }
+        return '฿' + numAmount.toLocaleString();
+    };
+
+    // ฟังก์ชันจัดรูปแบบตัวเลขสำหรับตาราง (ล้านบาท)
+    const formatCurrencyForTable = (amount) => {
+        const numAmount = Number(amount);
+        if (numAmount >= 1000000) {
+            return (numAmount / 1000000).toFixed(2) + ' ล้านบาท';
+        } else if (numAmount >= 1000) {
+            return (numAmount / 1000).toFixed(1) + ' พันบาท';
+        }
+        return numAmount.toLocaleString() + ' บาท';
+    };
 
     const chartData = {
         labels: sortedData.map((d) => d.DeptName),
         datasets: [
             {
-                label: 'ค่าใช้จ่าย',
-                data: sortedData.map((d) => Number(d.total)),
-                backgroundColor: sortedData.map((d, i) => `hsl(${i * 30}, 70%, 60%)`),
-                borderColor: sortedData.map((d, i) => `hsl(${i * 30}, 70%, 45%)`),
+                label: 'ค่าใช้จ่าย (ล้านบาท)',
+                data: sortedData.map((d) => Number(d.totalNet)),
+                backgroundColor: sortedData.map((d, i) => {
+                    // สร้างสีไล่ระดับจากน้ำเงินไปเขียว
+                    const hue = 210 + (i * 30) % 150; // 210-360 (น้ำเงินถึงเขียว)
+                    return `hsla(${hue}, 80%, 60%, 0.8)`;
+                }),
+                borderColor: sortedData.map((d, i) => {
+                    const hue = 210 + (i * 30) % 150;
+                    return `hsl(${hue}, 80%, 45%)`;
+                }),
                 borderWidth: 2,
-                borderRadius: 12,
+                borderRadius: 8,
                 borderSkipped: false,
                 barPercentage: 0.7,
                 categoryPercentage: 0.8,
@@ -115,7 +155,7 @@ export default function ExpenseByDept() {
                 },
                 callbacks: {
                     label: function (context) {
-                        return `ค่าใช้จ่าย: ฿${Number(context.raw).toLocaleString()}`;
+                        return `ค่าใช้จ่าย: ${formatCurrencyForChart(context.raw)}`;
                     },
                     title: function (context) {
                         return context[0].label;
@@ -153,13 +193,7 @@ export default function ExpenseByDept() {
                         size: 11,
                     },
                     callback: function (value) {
-                        const numValue = Number(value);
-                        if (numValue >= 1000000) {
-                            return '฿' + (numValue / 1000000).toFixed(1) + 'M';
-                        } else if (numValue >= 1000) {
-                            return '฿' + (numValue / 1000).toFixed(0) + 'K';
-                        }
-                        return '฿' + numValue.toLocaleString();
+                        return formatCurrencyForChart(value);
                     },
                 },
             },
@@ -172,17 +206,6 @@ export default function ExpenseByDept() {
             duration: 800,
             easing: 'easeOutCubic',
         },
-    };
-
-    // ฟังก์ชันจัดรูปแบบตัวเลข
-    const formatCurrency = (amount) => {
-        const numAmount = Number(amount);
-        if (numAmount >= 1000000) {
-            return '฿' + (numAmount / 1000000).toFixed(1) + 'M';
-        } else if (numAmount >= 1000) {
-            return '฿' + (numAmount / 1000).toFixed(0) + 'K';
-        }
-        return '฿' + numAmount.toLocaleString();
     };
 
     const getAvailableMonths = () => {
@@ -237,7 +260,7 @@ export default function ExpenseByDept() {
             <Head title="รายงานค่าใช้จ่ายแยกตามหน่วยงาน" />
             <div className="space-y-6 p-6 font-anuphan">
                 {/* Header with Dropdowns */}
-                <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-white to-indigo-50/30 p-6 shadow-sm">
                     <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex-1">
                             <h1 className="text-2xl font-bold text-gray-900">รายงานค่าใช้จ่ายแยกตามหน่วยงาน</h1>
@@ -378,7 +401,7 @@ export default function ExpenseByDept() {
                         </div>
                         <div className="flex items-center space-x-2">
                             <div className="h-3 w-3 rounded-full bg-indigo-500"></div>
-                            <span className="text-sm font-medium text-gray-700">ค่าใช้จ่าย (เรียงจากมากไปน้อย)</span>
+                            <span className="text-sm font-medium text-gray-700">ค่าใช้จ่าย (ล้านบาท)</span>
                         </div>
                     </div>
 
@@ -401,6 +424,93 @@ export default function ExpenseByDept() {
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* Data Table Section */}
+                <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                    <div className="mb-6">
+                        <h2 className="text-xl font-bold text-gray-900">สรุปค่าใช้จ่ายตามหน่วยงาน</h2>
+                        <p className="mt-1 text-sm text-gray-600">
+                            {selectedYear} {selectedMonth ? `- ${getMonthName(selectedMonth)}` : '(ทั้งปี)'}
+                        </p>
+                    </div>
+
+                    {sortedData.length > 0 ? (
+                        <div className="overflow-hidden rounded-xl border border-gray-200">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                            ลำดับ
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                            หน่วยงาน
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                                            ค่าใช้จ่าย (ล้านบาท)
+                                        </th>
+                                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                                            สัดส่วน (%)
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 bg-white">
+                                    {sortedData.map((dept, index) => {
+                                        const percentage = ((Number(dept.totalNet) / summaryData.monthlyTotal) * 100).toFixed(1);
+                                        return (
+                                            <tr key={dept.DeptID} className="hover:bg-gray-50 transition-colors duration-150">
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
+                                                    {index + 1}
+                                                </td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
+                                                    {dept.DeptName}
+                                                </td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900 text-right font-medium">
+                                                    {formatCurrencyForTable(dept.totalNet)}
+                                                </td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900 text-right">
+                                                    <div className="flex items-center justify-end">
+                                                        <span className="mr-2">{percentage}%</span>
+                                                        <div className="w-16 bg-gray-200 rounded-full h-2">
+                                                            <div
+                                                                className="bg-indigo-600 h-2 rounded-full"
+                                                                style={{ width: `${Math.min(percentage, 100)}%` }}
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                                <tfoot className="bg-gray-50">
+                                    <tr>
+                                        <th colSpan={2} className="px-6 py-3 text-left text-sm font-bold text-gray-900">
+                                            รวมทั้งหมด
+                                        </th>
+                                        <th className="px-6 py-3 text-right text-sm font-bold text-gray-900">
+                                            {formatCurrencyForTable(summaryData.monthlyTotal)}
+                                        </th>
+                                        <th className="px-6 py-3 text-right text-sm font-bold text-gray-900">
+                                            100%
+                                        </th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="text-center py-12">
+                            <svg className="mx-auto mb-4 h-16 w-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1}
+                                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                            </svg>
+                            <p className="text-lg text-gray-500">ไม่มีข้อมูลสำหรับช่วงเวลาที่เลือก</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </AppLayout>

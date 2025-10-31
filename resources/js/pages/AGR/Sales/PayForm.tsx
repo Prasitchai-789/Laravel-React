@@ -119,20 +119,32 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
         return customer ? customer.name : `#${id}`;
     };
 
+    const formatPhone = (phone: string | null | undefined): string => {
+        // ตรวจสอบค่า null, undefined และ string ว่าง
+        if (!phone || typeof phone !== 'string') return '';
 
-    const formatPhone = (phone: string) => {
-        const digits = phone.replace(/\D/g, ''); // เอาเฉพาะตัวเลข
-        return digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+        // ตรวจสอบว่า string มีอย่างน้อย 1 ตัวเลข
+        const digits = phone.replace(/\D/g, '');
+        if (digits.length === 0) return '';
+
+        // จัดรูปแบบตามความยาว
+        if (digits.length === 10) {
+            return digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+        } else if (digits.length === 9) {
+            return digits.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+        } else {
+            // คืนค่า digits ถ้าไม่สามารถจัดรูปแบบได้
+            return digits;
+        }
     };
 
     const getCustomerPhone = (id: number) => {
-    const customer = customers.find((c) => Number(c.id) === Number(id));
-    console.log('customer found =', customer);
-    if (!customer) return `#${id}`;
+        const customer = customers.find((c) => Number(c.id) === Number(id));
+        // console.log('customer found =', customer);
+        if (!customer) return `#${id}`;
 
-    return formatPhone(customer.phone);
-};
-
+        return formatPhone(customer.phone);
+    };
 
     // ฟังก์ชันช่วยหาชื่อสินค้า
     const getProductName = (id: number) => {
@@ -218,7 +230,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
             <div className="grid grid-cols-1 gap-2">
                 {/* Product Information Section */}
                 <div className="rounded-xl border border-green-200 bg-white px-5 py-4 shadow-sm">
-                    <div className='flex items-center justify-between'>
+                    <div className="flex items-center justify-between">
                         <h3 className="flex items-center text-lg font-semibold text-gray-800">
                             <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
                                 <path

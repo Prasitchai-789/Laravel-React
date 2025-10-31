@@ -5,18 +5,14 @@ import ModalForm from '@/components/ModalForm';
 import SummaryCard from '@/components/SummaryCard';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/react';
-import dayjs from 'dayjs';
-import { DollarSign, Plus, ShoppingCart } from 'lucide-react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { DollarSign, Plus, ShoppingCart, TrendingUp, Users } from 'lucide-react';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 import PayForm from './PayForm';
 import SaleForm from './SaleForm';
 import SaleTable from './SaleTable';
-import { can } from '@/lib/can';
-import { usePage } from '@inertiajs/react';
-
-
+import { useSalesData } from './hooks/useSalesData';
 
 interface Sale {
     id: number;
@@ -30,151 +26,106 @@ interface Sale {
     deposit: number;
     paid_amount: number;
     sale_date: string;
+    payment_status: string;
+    customer_id: number;
+    product_id: number;
+    invoice_no: string;
 }
 
-export default function Index(props) {
+interface Product {
+    id: number;
+    name: string;
+}
+
+interface Customer {
+    id: number;
+    name: string;
+}
+
+interface Payment {
+    id: number;
+}
+
+interface IndexProps {
+    sales: Sale[];
+    products: Product[];
+    locations: any[];
+    customers: Customer[];
+    payments: Payment[];
+}
+
+export default function Index(props: IndexProps) {
     const { sales, products, locations, customers, payments } = props;
-    const page = usePage<{ auth: { user: any } }>();
-    const userPermissions = page.props.auth.permissions;
-    const [mode, setMode] = useState<'create' | 'edit' | 'pay'>('create');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
+    const page = usePage<{ auth: { user: any; permissions: string[] } }>();
+    const userPermissions = page.props.auth.permissions || [];
 
-    const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
-    const [isPayModalOpen, setIsPayModalOpen] = useState(false);
-    const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
-
-    function openCreate() {
-        setMode('create');
-        setSelectedSale(null);
-        setIsSaleModalOpen(true);
-    }
-
-    const handlePay = (sale: Sale) => {
-        setMode('pay');
-        setSelectedSale(sale);
-        setIsPayModalOpen(true);
-    };
-
-    const handleEdit = (sale: Sale) => {
-        setMode('edit');
-        setSelectedSale(sale);
-        setIsSaleModalOpen(true);
-    };
-
-    const handleEditWithPermission = (sale: Sale) => {
-        if (userPermissions.includes('Admin.edit')) {
-            handleEdit(sale); // เรียกฟังก์ชันเดิม
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'ไม่สามารถแก้ไขข้อมูลได้',
-                customClass: { popup: 'custom-swal' },
-            });
-        }
-    };
-
-    const handleDeleteWithPermission = (id: number) => {
-        if (userPermissions.includes('Admin.delete')) {
-            openDeleteModal(id);
-        } else {
-            Swal.fire({
-                icon: 'error',
-                customClass: { popup: 'custom-swal' },
-                title: 'ไม่สามารถลบข้อมูลได้',
-
-            });
-        }
-    };
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
-
-    const openDeleteModal = (id: number) => {
-        setSelectedSaleId(id);
-        setIsDeleteModalOpen(true);
-    };
-
-    const closeDeleteModal = () => {
-        setIsDeleteModalOpen(false);
-        setSelectedSaleId(null);
-    };
-
-    const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-        customClass: { popup: 'custom-swal' },
-        didOpen: (toast) => {
-            toast.onmouseenter = Swal.stopTimer;
-            toast.onmouseleave = Swal.resumeTimer;
-        },
-    });
-    const handleDelete = () => {
-        if (selectedSaleId) {
-            router.delete(route('sales.destroy', selectedSaleId), {
-                onSuccess: () => {
-                    Toast.fire({
-                        icon: 'success',
-                        title: 'ลบสินค้าเรียบร้อยแล้ว',
-                    });
-                    closeDeleteModal();
-                    router.reload({ only: ['sales'] }); // 👈 ปรับตามชื่อ prop จริงที่ใช้ใน Inertia
-                },
-                preserveScroll: true,
-            });
-        }
-    };
+    const {
+        mode,
+        searchTerm,
+        statusFilter,
+        isSaleModalOpen,
+        isPayModalOpen,
+        isDeleteModalOpen,
+        selectedSale,
+        selectedSaleId,
+        setMode,
+        setSearchTerm,
+        setStatusFilter,
+        setIsSaleModalOpen,
+        setIsPayModalOpen,
+        setIsDeleteModalOpen,
+        setSelectedSale,
+        setSelectedSaleId,
+        openCreate,
+        handlePay,
+        handleEditWithPermission,
+        handleDeleteWithPermission,
+        openDeleteModal,
+        closeDeleteModal,
+        handleDelete,
+        stats
+    } = useSalesData({ sales, customers, userPermissions });
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
-        { title: 'รายการขายสินค้าเกษตร', href: '/roles' },
+        { title: 'รายการขายสินค้าเกษตร', href: '/sales' },
     ];
-
-    const optionStatus = [
-        { value: 'all', label: 'ทั้งหมด' },
-        { value: 'reserved', label: 'ค้างชําระเงิน' },
-        { value: 'completed', label: 'ชําระเงินแล้ว' },
-    ];
-
-    // จำนวนผู้ใช้งานทั้งหมด
-    // const totalUsers = customers?.length ?? 0;
-
-    // คำสั่งซื้อวันนี้
-    const today = dayjs().format('YYYY-MM-DD');
-
-    const ordersToday = sales.filter((s: Sale) => {
-        const saleDate = dayjs(s.sale_date).format('YYYY-MM-DD');
-        return saleDate === today;
-    }).length;
-
-    // รายได้รวม (บาท)
-    const totalRevenue = sales.reduce((sum: number, s: Sale) => sum + Number(s.total_amount ?? 0), 0);
-
-    // ✅ ยอดขายรวมเฉพาะวันนี้
-    const revenueToday = sales
-        .filter((s: Sale) => dayjs(s.sale_date).format('YYYY-MM-DD') === today)
-        .reduce((sum: number, s: Sale) => sum + (s.total_amount ?? 0), 0);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="รายการขายสินค้าเกษตร" />
-            <div className="min-h-screen bg-gray-50 p-4 font-anuphan md:p-6">
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/20 p-4 font-anuphan md:p-6">
                 {/* Header Section */}
-                <div className="mb-2 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-800">ระบบการขายสินค้าเกษตร</h1>
-                        <p className="text-sm text-gray-500">จัดการข้อมูลการขายและสินค้าเกษตรของคุณ</p>
-                    </div>
+                <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="flex items-start gap-4">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
+                                <ShoppingCart className="h-7 w-7 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold text-gray-800 lg:text-3xl bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                                    ระบบการขายสินค้าเกษตร
+                                </h1>
+                                <p className="mt-1 text-gray-600">จัดการข้อมูลการขายและสินค้าเกษตรของคุณอย่างมีประสิทธิภาพ</p>
+                                <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
+                                    <div className="flex items-center gap-1">
+                                        <TrendingUp className="h-4 w-4 text-green-500" />
+                                        <span>ทั้งหมด {sales.length} รายการ</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Users className="h-4 w-4 text-blue-500" />
+                                        <span>{stats.totalCustomers} ลูกค้า</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                    <div className="flex w-full flex-nowrap items-center justify-end gap-3 py-1 md:w-auto">
                         <Button
                             onClick={openCreate}
                             icon={<Plus className="h-5 w-5" />}
                             iconPosition="left"
                             variant="success"
-                            className="flex-shrink-0 whitespace-nowrap"
+                            className="flex-shrink-0 whitespace-nowrap shadow-lg transition-all hover:scale-105 hover:shadow-xl bg-gradient-to-r from-green-500 to-emerald-600 border-0"
                         >
                             สร้างรายการขาย
                         </Button>
@@ -182,96 +133,88 @@ export default function Index(props) {
                 </div>
 
                 {/* Summary Cards */}
-                <div className="mb-1 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
                     <SummaryCard
-                        title="คำสั่งซื้อวันนี้"
-                        value={ordersToday}
+                        title="จำนวนการขายวันนี้"
+                        value={stats.qtyToday.toLocaleString('th-TH')}
                         icon={ShoppingCart}
-                        color="green"
-                    // trend={{ value: 8.2, isPositive: true }}
+                        color="blue"
+                        description="เทียบกับวันก่อน"
+                        className="bg-gradient-to-br from-blue-50 to-blue-100 border-0 shadow-sm"
                     />
                     <SummaryCard
-                        title="รายได้วันนี้ (บาท)"
-                        value={
-                            revenueToday ? Number(revenueToday).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
-                        }
-                        icon={DollarSign}
-                        color="yellow"
-                    // trend={{ value: 5.7, isPositive: true }}
-                    // description="เดือนนี้เพิ่มขึ้น 5.7%"
-                    />
-                    <SummaryCard
-                        title="รายได้รวม (บาท)"
-                        value={
-                            totalRevenue ? Number(totalRevenue).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''
-                        }
+                        title="รายได้วันนี้"
+                        value={stats.revenueToday.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         icon={DollarSign}
                         color="green"
-                    // trend={{ value: 5.7, isPositive: true }}
-                    // description="เดือนนี้เพิ่มขึ้น 5.7%"
+                        description="บาท"
+                        className="bg-gradient-to-br from-green-50 to-emerald-100 border-0 shadow-sm"
+                    />
+                    <SummaryCard
+                        title="รายได้รวม"
+                        value={stats.totalRevenue.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        icon={DollarSign}
+                        color="purple"
+                        description="บาท"
+                        className="bg-gradient-to-br from-purple-50 to-violet-100 border-0 shadow-sm"
+                    />
+                    <SummaryCard
+                        title="ยอดค้างชำระ"
+                        value={stats.totalDeposit.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        icon={DollarSign}
+                        color="red"
+                        description="บาท"
+                        className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-sm"
                     />
                 </div>
 
                 {/* Filters and Search Section */}
-                <div className="mb-2">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-end">
-                        {/* <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                            <div className="flex items-center gap-2">
-                                <Calendar size={16} className="text-gray-400" />
-                                <input
-                                    type="date"
-                                    className="flex-1 rounded-lg border border-gray-200 px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
-                                    value={dateRange.start}
-                                    onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
-                                />
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-gray-400">ถึง</span>
-                                <input
-                                    type="date"
-                                    className="flex-1 rounded-lg border border-gray-200 px-3 py-2 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
-                                    value={dateRange.end}
-                                    onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
-                                />
-                            </div>
-                            <button
-                                className="rounded-lg bg-gray-100 px-4 py-2 text-gray-700 hover:bg-gray-200"
-                                onClick={() => setDateRange({ start: '', end: '' })}
-                            >
-                                ล้างช่วงวันที่
-                            </button>
-                        </div> */}
+                <div className="mb-6 rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+                    {/* <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                            <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                                <span className="text-sm font-medium text-gray-700">สถานะ:</span>
                                 <Select
                                     value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    options={optionStatus}
-                                    className="w-64"
-                                ></Select>
+                                    onChange={(value) => setStatusFilter(value)}
+                                    options={[
+                                        { value: 'all', label: 'ทั้งหมด' },
+                                        { value: 'pending', label: 'ค้างชําระเงิน' },
+                                        { value: 'partial', label: 'ชําระเงินบางส่วน' },
+                                        { value: 'completed', label: 'ชําระเงินแล้ว' },
+                                    ]}
+                                    className="min-w-[180px]"
+                                />
                             </div>
                         </div>
-                    </div>
+                    </div> */}
 
-                    {/* {selectedProduct && (
-                        <div className="mt-4 flex items-center justify-between rounded-lg bg-green-50 px-4 py-2">
-                            <p className="text-sm text-green-800">สินค้าเลือก: {products.find((p) => p.id.toString() === selectedProduct)?.name}</p>
-                            <button onClick={() => setSelectedProduct('')} className="text-sm text-green-600 hover:text-green-800">
-                                ล้างการเลือก
-                            </button>
+                    {/* Quick Stats */}
+                    <div className=" flex flex-wrap gap-4">
+                        <div className="rounded-lg bg-blue-50 px-3 py-2 border border-blue-200">
+                            <span className="text-sm font-medium text-blue-700">ทั้งหมด: {sales.length}</span>
                         </div>
-                    )} */}
+                        <div className="rounded-lg bg-green-50 px-3 py-2 border border-green-200">
+                            <span className="text-sm font-medium text-green-700">ชำระแล้ว: {stats.paymentStats.completed}</span>
+                        </div>
+                        <div className="rounded-lg bg-yellow-50 px-3 py-2 border border-yellow-200">
+                            <span className="text-sm font-medium text-yellow-700">ชำระบางส่วน: {stats.paymentStats.partial}</span>
+                        </div>
+                        <div className="rounded-lg bg-red-50 px-3 py-2 border border-red-200">
+                            <span className="text-sm font-medium text-red-700">ค้างชำระ: {stats.paymentStats.pending}</span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Sales Table Section */}
-                <div className="mb-6 overflow-hidden rounded-lg bg-white shadow-sm">
+                <div className="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100">
                     <SaleTable
                         sales={sales}
                         customers={customers}
                         products={products}
                         statusFilter={statusFilter}
                         onPay={handlePay}
-                        onEdit={handleEditWithPermission}      // ✅ ใช้ฟังก์ชัน wrapper
+                        onEdit={handleEditWithPermission}
                         onDelete={handleDeleteWithPermission}
                         searchTerm={searchTerm}
                     />
@@ -282,11 +225,11 @@ export default function Index(props) {
                     isModalOpen={isSaleModalOpen}
                     onClose={() => setIsSaleModalOpen(false)}
                     title={mode === 'create' ? 'บันทึกการขายสินค้า' : 'แก้ไขการขายสินค้า'}
-                    description="กรอกข้อมูลการขายสินค้า"
-                    size="max-w-3xl"
+                    description="กรุณากรอกข้อมูลรายการขายให้ครบถ้วน"
+                    size="max-w-5xl"
                 >
                     <SaleForm
-                        customers={props.customers}
+                        customers={customers}
                         products={products}
                         locations={locations}
                         onClose={() => setIsSaleModalOpen(false)}
@@ -296,15 +239,16 @@ export default function Index(props) {
                     />
                 </ModalForm>
 
+                {/* Pay Form Modal */}
                 <ModalForm
                     isModalOpen={isPayModalOpen}
                     onClose={() => setIsPayModalOpen(false)}
-                    title={mode === 'create' ? 'บันทึกการขายสินค้า' : 'บันทึกการชำระเงิน'}
+                    title="บันทึกการชำระเงิน"
                     description="กรอกข้อมูลการชำระเงิน"
                     size="max-w-3xl"
                 >
                     <PayForm
-                        customers={props.customers}
+                        customers={customers}
                         products={products}
                         locations={locations}
                         payments={payments}
@@ -315,15 +259,17 @@ export default function Index(props) {
                     />
                 </ModalForm>
 
+                {/* Delete Confirmation Modal */}
                 <DeleteModal
                     isModalOpen={isDeleteModalOpen}
                     onClose={closeDeleteModal}
-                    title="ยืนยันการลบ"
+                    title="ยืนยันการลบรายการขาย"
                     onConfirm={handleDelete}
                 >
-                    <p className="font-anuphan text-sm text-gray-500">
-                        คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้
-                    </p>
+                    <div className="text-center font-anuphan">
+                        <h3 className="mb-2 text-lg font-semibold text-gray-800">คุณแน่ใจหรือไม่?</h3>
+                        <p className="text-gray-600">การลบรายการขายนี้ไม่สามารถย้อนกลับได้</p>
+                    </div>
                 </DeleteModal>
             </div>
         </AppLayout>
