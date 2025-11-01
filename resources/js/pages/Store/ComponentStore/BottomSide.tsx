@@ -426,20 +426,15 @@ const BottomSide: React.FC<BottomSideProps> = ({
                             </svg>
                         </div>
                         <div>
-                            <h4 className="text-xl font-bold text-gray-900 dark:text-white">
-                                สัดส่วนการเบิกตามฝ่าย
-                            </h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                กระจายการใช้งานตามแผนก
-                            </p>
+                            <h4 className="text-xl font-bold text-gray-900 dark:text-white">สัดส่วนการเบิกตามฝ่าย</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">กระจายการใช้งานตามแผนก</p>
                         </div>
                     </div>
                     <div className="px-4 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl border border-indigo-200 dark:border-indigo-700 shadow-sm">
                         <span className="text-indigo-700 dark:text-indigo-300 text-sm font-semibold">
                             {loadingDepartments
                                 ? 'กำลังโหลด...'
-                                : `${departmentList.reduce((sum, d) => sum + d.items, 0).toLocaleString()} การเบิก`
-                            }
+                                : `${departmentList.reduce((sum, d) => sum + d.items, 0).toLocaleString()} การเบิก`}
                         </span>
                     </div>
                 </div>
@@ -450,223 +445,200 @@ const BottomSide: React.FC<BottomSideProps> = ({
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
                         <p className="text-gray-500 dark:text-gray-400">กำลังโหลดข้อมูล...</p>
                     </div>
-                ) : (
-                    (() => {
-                        // ชุดสีใหม่ - โทนสีม่วงและสีพาสเทล
-                        const chartColors = [
-                            '#6366f1', // Indigo
-                            '#f59e0b', // Amber
-                            '#10b981', // Emerald
-                            '#ef4444', // Red
-                            '#8b5cf6', // Violet
-                            '#06b6d4', // Cyan
-                            '#f97316', // Orange
-                            '#ec4899', // Pink
-                            '#84cc16', // Lime
-                            '#14b8a6'  // Teal
-                        ];
+                ) : (() => {
+                    const chartColors = [
+                        '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
+                        '#06b6d4', '#f97316', '#ec4899', '#84cc16', '#14b8a6'
+                    ];
 
-                        const displayedDepartments = departmentList.map((dept, index) => ({
-                            name: dept.name,
-                            items: dept.items,
-                            color: chartColors[index % chartColors.length],
-                            code: dept.code || dept.name.substring(0, 3).toUpperCase()
-                        }));
+                    const displayedDepartments = departmentList.map((dept, index) => ({
+                        name: dept.name,
+                        items: dept.items,
+                        color: chartColors[index % chartColors.length],
+                        code: dept.code || dept.name.substring(0, 3).toUpperCase()
+                    }));
 
-                        const totalDeptItems = displayedDepartments.reduce((sum, d) => sum + d.items, 0);
-                        const maxDept = displayedDepartments.length > 0
-                            ? displayedDepartments.reduce((max, dept) => (dept.items > max.items ? dept : max), displayedDepartments[0])
-                            : { name: '-', items: 0 };
+                    const totalDeptItems = displayedDepartments.reduce((sum, d) => sum + d.items, 0);
+                    const maxDept = displayedDepartments.length > 0
+                        ? displayedDepartments.reduce((max, dept) => (dept.items > max.items ? dept : max), displayedDepartments[0])
+                        : { name: '-', items: 0 };
 
-                        if (totalDeptItems === 0) {
-                            return (
-                                <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-                                    <svg className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    <p className="text-lg font-medium">ไม่มีข้อมูลการเบิก</p>
-                                    <p className="text-sm">ยังไม่มีการเบิกสินค้าในระบบ</p>
-                                </div>
-                            );
-                        }
-
+                    if (totalDeptItems === 0) {
                         return (
-                            <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 flex-1">
-                                {/* Chart Section */}
-                                <div className="flex flex-col items-center space-y-6">
-                                    {/* Pie Chart */}
-                                    <div className="relative w-48 h-48">
-                                        <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                                            {displayedDepartments.map((dept, index) => {
-                                                const percentage = totalDeptItems ? (dept.items / totalDeptItems) * 100 : 0;
-                                                const circumference = 2 * Math.PI * 40;
-                                                const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
-                                                const offset = -displayedDepartments
-                                                    .slice(0, index)
-                                                    .reduce((sum, d) => sum + ((d.items / totalDeptItems) * circumference || 0), 0);
+                            <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+                                <svg className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <p className="text-lg font-medium">ไม่มีข้อมูลการเบิก</p>
+                                <p className="text-sm">ยังไม่มีการเบิกสินค้าในระบบ</p>
+                            </div>
+                        );
+                    }
 
-                                                return (
-                                                    <circle
-                                                        key={dept.name}
-                                                        cx="50"
-                                                        cy="50"
-                                                        r="40"
-                                                        fill="none"
-                                                        stroke={dept.color}
-                                                        strokeWidth="12"
-                                                        strokeDasharray={strokeDasharray}
-                                                        strokeDashoffset={offset}
-                                                        className="transition-all duration-700 ease-in-out hover:stroke-width-16"
-                                                    />
-                                                );
-                                            })}
-                                        </svg>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="text-center">
-                                                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                                    {totalDeptItems.toLocaleString()}
-                                                </p>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">การเบิกทั้งหมด</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Quick Stats */}
-                                    <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-                                        {/* แผนกสูงสุด */}
-                                        <div className="text-center p-4 bg-gradient-to-br from-rose-50/80 to-pink-50/80 dark:from-rose-900/20 dark:to-pink-900/20 rounded-xl border border-rose-100 dark:border-rose-800 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 backdrop-blur-sm">
-                                            <div className="w-8 h-8 bg-gradient-to-br from-rose-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg shadow-rose-500/25">
-                                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                                </svg>
-                                            </div>
-                                            <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1">แผนกสูงสุด</p>
-                                            <div className="min-h-[40px] flex items-center justify-center">
-                                                <p className="text-sm font-bold text-gray-900 dark:text-white text-center leading-tight break-words px-1">
-                                                    {maxDept?.name || '-'}
-                                                </p>
-                                            </div>
-                                            <div className="mt-1 text-xs text-rose-500 dark:text-rose-300 font-semibold">
-                                                {maxDept?.items.toLocaleString()} รายการ
-                                            </div>
-                                        </div>
-
-                                        {/* จำนวนแผนก */}
-                                        <div className="text-center p-4 bg-gradient-to-br from-cyan-50/80 to-blue-50/80 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl border border-cyan-100 dark:border-cyan-800 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 backdrop-blur-sm">
-                                            <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg shadow-cyan-500/25">
-                                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                                </svg>
-                                            </div>
-                                            <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 mb-1">จำนวนแผนก</p>
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white">
-                                                {displayedDepartments.length}
-                                            </p>
-                                            <div className="mt-1 text-xs text-cyan-500 dark:text-cyan-300 font-semibold">
-                                                ทั้งหมด
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Legend Section */}
-                                <div className="flex-1 w-full">
-                                    <div className="space-y-3 max-h-80 overflow-y-auto pr-2
-                            [&::-webkit-scrollbar]:w-1.5
-                            [&::-webkit-scrollbar-track]:bg-gray-100/50
-                            [&::-webkit-scrollbar-track]:rounded-full
-                            [&::-webkit-scrollbar-thumb]:bg-gray-300
-                            [&::-webkit-scrollbar-thumb]:rounded-full
-                            dark:[&::-webkit-scrollbar-track]:bg-gray-700/50
-                            dark:[&::-webkit-scrollbar-thumb]:bg-gray-500
-                            hover:[&::-webkit-scrollbar-thumb]:bg-gray-400
-                            dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-400">
-                                        {displayedDepartments.map((dept) => {
-                                            const percentage = totalDeptItems ? Math.round((dept.items / totalDeptItems) * 100) : 0;
-                                            const isMaxDept = dept.name === maxDept.name;
+                    return (
+                        <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8">
+                            {/* Chart Section */}
+                            <div className="flex flex-col items-center space-y-6">
+                                <div className="relative w-48 h-48">
+                                    <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                                        {displayedDepartments.map((dept, index) => {
+                                            const percentage = totalDeptItems ? (dept.items / totalDeptItems) * 100 : 0;
+                                            const circumference = 2 * Math.PI * 40;
+                                            const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
+                                            const offset = -displayedDepartments
+                                                .slice(0, index)
+                                                .reduce((sum, d) => sum + ((d.items / totalDeptItems) * circumference || 0), 0);
 
                                             return (
-                                                <div
+                                                <circle
                                                     key={dept.name}
-                                                    className={`flex items-center space-x-3 p-3 rounded-xl border transition-all duration-300 hover:scale-[1.02] hover:shadow-md ${isMaxDept
-                                                            ? 'bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-900/30 dark:to-purple-900/30 border-indigo-200 dark:border-indigo-600 shadow-sm'
-                                                            : 'bg-white/80 dark:bg-gray-800/80 border-gray-200/50 dark:border-gray-600/50 backdrop-blur-sm'
-                                                        }`}
-                                                >
-                                                    {/* Color Indicator */}
-                                                    <div
-                                                        className="w-3 h-8 rounded-full flex-shrink-0 shadow-sm"
-                                                        style={{ backgroundColor: dept.color }}
-                                                    ></div>
-
-                                                    <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-gray-700 dark:text-gray-200 shadow-sm">
-                                                        {getDeptAbbreviation(dept.name)}
-                                                    </div>
-
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex justify-between items-center mb-1">
-                                                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
-                                                                {dept.name}
-                                                            </p>
-                                                            <span className={`text-sm font-bold ${isMaxDept
-                                                                    ? 'text-indigo-600 dark:text-indigo-400'
-                                                                    : 'text-gray-700 dark:text-gray-300'
-                                                                }`}>
-                                                                {percentage}%
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mr-2">
-                                                                <div
-                                                                    className="h-1.5 rounded-full transition-all duration-500 ease-out"
-                                                                    style={{
-                                                                        width: `${percentage}%`,
-                                                                        backgroundColor: dept.color
-                                                                    }}
-                                                                ></div>
-                                                            </div>
-                                                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                                                                {dept.items.toLocaleString()} รายการ
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                    cx="50"
+                                                    cy="50"
+                                                    r="40"
+                                                    fill="none"
+                                                    stroke={dept.color}
+                                                    strokeWidth="12"
+                                                    strokeDasharray={strokeDasharray}
+                                                    strokeDashoffset={offset}
+                                                    className="transition-all duration-700 ease-in-out hover:stroke-width-16"
+                                                />
                                             );
                                         })}
+                                    </svg>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="text-center">
+                                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalDeptItems.toLocaleString()}</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">การเบิกทั้งหมด</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Quick Stats */}
+                                <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
+                                    {/* สูงสุด */}
+                                    <div className="text-center p-4 bg-gradient-to-br from-rose-50/80 to-pink-50/80 dark:from-rose-900/20 dark:to-pink-900/20 rounded-xl border border-rose-100 dark:border-rose-800 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 backdrop-blur-sm">
+                                        <div className="w-8 h-8 bg-gradient-to-br from-rose-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg shadow-rose-500/25">
+                                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                            </svg>
+                                        </div>
+                                        <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1">แผนกสูงสุด</p>
+                                        <div className="min-h-[40px] flex items-center justify-center">
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white text-center leading-tight break-words px-1">
+                                                {maxDept?.name || '-'}
+                                            </p>
+                                        </div>
+                                        <div className="mt-1 text-xs text-rose-500 dark:text-rose-300 font-semibold">
+                                            {maxDept?.items.toLocaleString()} รายการ
+                                        </div>
                                     </div>
 
-                                    {/* Summary Section */}
-                                    <div className="mt-6 p-4 border-t border-gray-200/50 dark:border-gray-600/50">
-                                        <div className="grid grid-cols-3 gap-3 text-center">
-                                            <div className="p-3 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800">
-                                                <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                                                    {totalDeptItems.toLocaleString()}
-                                                </p>
-                                                <p className="text-xs font-medium text-indigo-500 dark:text-indigo-300">รวมการเบิก</p>
-                                            </div>
-                                            <div className="p-3 bg-gradient-to-br from-rose-50/50 to-pink-50/50 dark:from-rose-900/20 dark:to-pink-900/20 rounded-xl border border-rose-100 dark:border-rose-800">
-                                                <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">
-                                                    {maxDept?.items.toLocaleString() || '0'}
-                                                </p>
-                                                <p className="text-xs font-medium text-rose-500 dark:text-rose-300">รายการสูงสุด</p>
-                                            </div>
-                                            <div className="p-3 bg-gradient-to-br from-cyan-50/50 to-blue-50/50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl border border-cyan-100 dark:border-cyan-800">
-                                                <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
-                                                    {displayedDepartments.length}
-                                                </p>
-                                                <p className="text-xs font-medium text-cyan-500 dark:text-cyan-300">แผนกที่เบิก</p>
-                                            </div>
+                                    {/* จำนวนแผนก */}
+                                    <div className="text-center p-4 bg-gradient-to-br from-cyan-50/80 to-blue-50/80 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl border border-cyan-100 dark:border-cyan-800 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 backdrop-blur-sm">
+                                        <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg shadow-cyan-500/25">
+                                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0z" />
+                                            </svg>
                                         </div>
+                                        <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 mb-1">จำนวนแผนก</p>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">{displayedDepartments.length}</p>
+                                        <div className="mt-1 text-xs text-cyan-500 dark:text-cyan-300 font-semibold">ทั้งหมด</div>
                                     </div>
                                 </div>
                             </div>
-                        );
-                    })()
-                )}
-            </div>
+
+                            {/* Legend Section */}
+                            <div className="flex flex-col w-full flex-1">
+                                <div className="space-y-3 max-h-80 overflow-y-auto pr-2
+                        [&::-webkit-scrollbar]:w-1.5
+                        [&::-webkit-scrollbar-track]:bg-gray-100/50
+                        [&::-webkit-scrollbar-thumb]:bg-gray-300
+                        [&::-webkit-scrollbar-thumb]:rounded-full
+                        dark:[&::-webkit-scrollbar-track]:bg-gray-700/50
+                        dark:[&::-webkit-scrollbar-thumb]:bg-gray-500
+                        hover:[&::-webkit-scrollbar-thumb]:bg-gray-400
+                        dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-400">
+                                    {displayedDepartments.map((dept) => {
+                                        const percentage = totalDeptItems ? Math.round((dept.items / totalDeptItems) * 100) : 0;
+                                        const isMaxDept = dept.name === maxDept.name;
+
+                                        return (
+                                            <div
+                                                key={dept.name}
+                                                className={`flex items-center space-x-3 p-3 rounded-xl border transition-all duration-300 hover:scale-[1.02] hover:shadow-md ${isMaxDept
+                                                    ? 'bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-900/30 dark:to-purple-900/30 border-indigo-200 dark:border-indigo-600 shadow-sm'
+                                                    : 'bg-white/80 dark:bg-gray-800/80 border-gray-200/50 dark:border-gray-600/50 backdrop-blur-sm'
+                                                    }`}
+                                            >
+                                                <div className="w-3 h-8 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: dept.color }}></div>
+                                                <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-gray-700 dark:text-gray-200 shadow-sm">
+                                                    {getDeptAbbreviation(dept.name)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
+                                                            {dept.name}
+                                                        </p>
+                                                        <span className={`text-sm font-bold ${isMaxDept
+                                                            ? 'text-indigo-600 dark:text-indigo-400'
+                                                            : 'text-gray-700 dark:text-gray-300'
+                                                            }`}>
+                                                            {percentage}%
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center">
+                                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mr-2">
+                                                            <div
+                                                                className="h-1.5 rounded-full transition-all duration-500 ease-out"
+                                                                style={{ width: `${percentage}%`, backgroundColor: dept.color }}
+                                                            ></div>
+                                                        </div>
+                                                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                            {dept.items.toLocaleString()} รายการ
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* ✅ Summary Section (fixed to stay inside card) */}
+                                <div className="mt-6 p-4 border-t border-gray-200/50 dark:border-gray-600/50 flex-shrink-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl">
+                                    <div className="grid grid-cols-3 gap-3 text-center">
+
+                                        <div className="p-3 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800">
+                                            <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                                                {totalDeptItems.toLocaleString()}
+                                            </p>
+                                            <p className="text-xs font-medium text-indigo-500 dark:text-indigo-300">รวมการเบิก</p>
+                                        </div>
+                                        <div className="p-3 bg-gradient-to-br from-rose-50/50 to-pink-50/50 dark:from-rose-900/20 dark:to-pink-900/20 rounded-xl border border-rose-100 dark:border-rose-800">
+                                            <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">
+                                                {maxDept?.items.toLocaleString() || '0'}
+                                            </p>
+                                            <p className="text-xs font-medium text-rose-500 dark:text-rose-300">รายการสูงสุด</p>
+                                        </div>
+                                        <div className="p-3 bg-gradient-to-br from-cyan-50/50 to-blue-50/50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl border border-cyan-100 dark:border-cyan-800">
+                                            <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
+                                                {displayedDepartments.length}
+                                            </p>
+                                            <p className="text-xs font-medium text-cyan-500 dark:text-cyan-300">แผนกที่เบิก</p>
+                                        </div>
+
+
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    );
+                })()}
+            </div >
 
             {/* สถานะสินค้าคงคลัง */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 h-full flex flex-col min-h-[600px]">
+            < div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 h-full flex flex-col min-h-[600px]" >
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
@@ -782,10 +754,10 @@ const BottomSide: React.FC<BottomSideProps> = ({
                         </div>
                     </div>
                 </div>
-            </div>
+            </div >
 
             {/* งบประมาณที่ใช้ไป */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+            < div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700" >
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md">
@@ -986,7 +958,7 @@ const BottomSide: React.FC<BottomSideProps> = ({
                         </div>
                     )}
                 </div>
-            </div>
+            </div >
         </>
     );
 };

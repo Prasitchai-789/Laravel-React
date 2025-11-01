@@ -30,6 +30,30 @@ export default function Dashboard() {
     });
     const [loading, setLoading] = useState(true);
 
+    // 🔥 เพิ่มฟังก์ชัน normalizeDate ที่ขาดไป
+    const normalizeDate = (date: Date | string | null): string | null => {
+        if (!date) return null;
+
+        try {
+            const dateObj = date instanceof Date ? date : new Date(date);
+
+            if (isNaN(dateObj.getTime())) {
+                console.error('❌ Invalid date:', date);
+                return null;
+            }
+
+            // แปลงเป็นรูปแบบ YYYY-MM-DD
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+
+            return `${year}-${month}-${day}`;
+        } catch (error) {
+            console.error('❌ Error normalizing date:', error);
+            return null;
+        }
+    };
+
     // ฟังก์ชันดึงข้อมูลตามช่วงเวลา
     const fetchWithdrawalData = async (
         range: TimeRange,
@@ -451,7 +475,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Department Analytics */}
-                <div className="grid grid-cols-3 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <BottomSide
                         timeRange={timeRange}
                         selectedDate={selectedDate}
@@ -459,7 +483,6 @@ export default function Dashboard() {
                         dateMode={dateMode}
                     />
                 </div>
-
             </div>
         </AppLayout>
     );
