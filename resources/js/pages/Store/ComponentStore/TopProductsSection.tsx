@@ -140,10 +140,10 @@ const TopProductsSection: React.FC = () => {
                     </div>
                     <div>
                         <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            สินค้าขายดี
+                            สินค้าที่เบิกมากที่สุด
                         </h4>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {error ? 'เกิดข้อผิดพลาด' : 'เรียงตามจำนวนการสั่งซื้อ'}
+                            {error ? 'เกิดข้อผิดพลาด' : 'เรียงตามจำนวนการเบิกมากที่สุด'}
                         </p>
                     </div>
                 </div>
