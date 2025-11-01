@@ -475,13 +475,15 @@ export default function Dashboard() {
                 </div>
 
                 {/* Department Analytics */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8 w-full h-screen overflow-hidden p-8  dark:bg-gray-900">
+
                     <BottomSide
                         timeRange={timeRange}
                         selectedDate={selectedDate}
                         dateRange={dateRange}
                         dateMode={dateMode}
                     />
+
                 </div>
             </div>
         </AppLayout>

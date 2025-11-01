@@ -463,56 +463,59 @@ class StoreOrderController extends Controller
 
 
 
-    public function store(Request $request)
+  public function store(Request $request)
 {
-        try {
+    try {
+        $data = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.good_id' => 'required',
+            'items.*.qty' => 'required|numeric|min:0',
+            'note' => 'nullable|string',
+            'withdraw_date' => 'required|date',
+        ]);
 
-            $data = $request->validate([
-                'items' => 'required|array|min:1',
-                'items.*.good_id' => 'required',
-                'items.*.qty' => 'required|numeric|min:0',
-                'note' => 'nullable|string',
-                'withdraw_date' => 'required|date',
-            ]);
+        $order = null;
 
-            $order = null;
+        DB::transaction(function () use ($data, &$order) {
+            $user = Auth::user();
 
-            DB::transaction(function () use ($data, &$order) {
-                $user = Auth::user();
+            $employeeId = $user->employee_id;
+            $departmentName = 'ไม่ระบุ';
+            $empName = 'ไม่พบข้อมูลพนักงาน';
 
+            // ✅ ดึงข้อมูลพนักงานจากฐาน sqlsrv2
+            if (!empty($employeeId)) {
+                try {
+                    $employee = DB::connection('sqlsrv2')
+                        ->table('dbo.Webapp_Emp')
+                        ->select('EmpName', 'DeptID')
+                        ->where('EmpID', $employeeId)
+                        ->first();
 
-                $employeeId = $user->employee_id;
-                $departmentName = 'ไม่ระบุ';
-                $empName = 'ไม่พบข้อมูลพนักงาน';
-
-                // ✅ ดึงข้อมูลพนักงานจากฐาน sqlsrv2
-                if (!empty($employeeId)) {
-                    try {
-                        $employee = DB::connection('sqlsrv2')
-                            ->table('dbo.Webapp_Emp')
-                            ->select('EmpName', 'DeptID')
-                            ->where('EmpID', $employeeId)
-                            ->first();
-
-                        if ($employee) {
-                            $empName = $employee->EmpName ?? 'ไม่ระบุชื่อ';
-                            if (!empty($employee->DeptID)) {
-                                $departmentName = DB::connection('sqlsrv2')
-                                    ->table('dbo.Webapp_Dept')
-                                    ->where('DeptID', $employee->DeptID)
-                                    ->value('DeptName') ?? 'ไม่ระบุแผนก';
-                            }
+                    if ($employee) {
+                        $empName = $employee->EmpName ?? 'ไม่ระบุชื่อ';
+                        if (!empty($employee->DeptID)) {
+                            $departmentName = DB::connection('sqlsrv2')
+                                ->table('dbo.Webapp_Dept')
+                                ->where('DeptID', $employee->DeptID)
+                                ->value('DeptName') ?? 'ไม่ระบุแผนก';
                         }
-                    } catch (\Exception $e) {
-                                           }
+                    }
+                } catch (\Exception $e) {
+                    // Log error but continue
                 }
+            }
 
-                // วันที่เบิก
-                $orderDate = $data['withdraw_date']
-                    ? Carbon::parse($data['withdraw_date'])
-                    : now();
+            // วันที่เบิก
+            $orderDate = $data['withdraw_date']
+                ? Carbon::parse($data['withdraw_date'])
+                : now();
 
-                // ✅ สร้างเลขที่เอกสาร (ICII + ปีพ.ศ. 2 ตัวท้าย + เดือน + running)
+            // ✅ สร้างเลขที่เอกสารที่ไม่ซ้ำ
+            $documentNumber = null;
+            $maxAttempts = 10; // จำนวนครั้งสูงสุดที่พยายาม
+
+            for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
                 $prefix = 'PUR';
                 $year = now()->year + 543; // แปลงเป็น พ.ศ.
                 $yearShort = substr($year, -2); // เอา 2 ตัวท้าย เช่น 68
@@ -533,72 +536,92 @@ class StoreOrderController extends Controller
                 }
 
                 $running = str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
-                $documentNumber = "{$prefix}{$yearShort}{$month}-{$running}";
+                $candidateDocumentNumber = "{$prefix}{$yearShort}{$month}-{$running}";
 
-                // ✅ สร้าง order
-                $order = new \App\Models\StoreOrder([
-                    'document_number' => $documentNumber,
-                    'order_date' => $orderDate,
+                // ตรวจสอบว่า document_number นี้มีอยู่แล้วหรือไม่
+                $exists = \App\Models\StoreOrder::where('document_number', $candidateDocumentNumber)->exists();
+
+                if (!$exists) {
+                    $documentNumber = $candidateDocumentNumber;
+                    break;
+                }
+
+                // ถ้ายังพยายามไม่ครบ ให้ลองครั้งต่อไป
+                if ($attempt < $maxAttempts) {
+                    continue;
+                }
+
+                // ถ้าพยายามครบแล้วยังหาที่ว่างไม่ได้
+                throw new \Exception("ไม่สามารถสร้างเลขที่เอกสารที่ไม่ซ้ำได้หลังจากพยายาม {$maxAttempts} ครั้ง");
+            }
+
+            if (!$documentNumber) {
+                throw new \Exception("ไม่สามารถสร้างเลขที่เอกสารได้");
+            }
+
+            // ✅ สร้าง order
+            $order = new \App\Models\StoreOrder([
+                'document_number' => $documentNumber,
+                'order_date' => $orderDate,
+                'status' => 'pending',
+                'department' => $departmentName,
+                'requester' => $empName,
+                'note' => $data['note'] ?? null,
+            ]);
+
+            $order->created_at = $orderDate;
+            $order->updated_at = $orderDate;
+            $order->save();
+
+            // ✅ บันทึกรายการสินค้าภายใต้ order เดิม
+            foreach ($data['items'] as $index => $item) {
+                $storeItem = \App\Models\StoreItem::where('good_id', $item['good_id'])->first();
+                if (!$storeItem) {
+                    throw new \Exception("ไม่พบสินค้า ID: {$item['good_id']}");
+                }
+
+                // เพิ่มรายการสินค้าใน order
+                $orderItem = $order->items()->make([
+                    'product_id' => $item['good_id'],
+                    'quantity' => $item['qty'],
+                ]);
+                $orderItem->timestamps = false;
+                $orderItem->created_at = $orderDate;
+                $orderItem->updated_at = $orderDate;
+                $orderItem->save();
+
+                // ✅ บันทึก movement log
+                $movement = new \App\Models\StoreMovement([
+                    'store_item_id' => $storeItem->id,
+                    'user_id' => $user->id,
+                    'movement_type' => 'issue',
+                    'category' => 'stock',
+                    'type' => 'subtract',
+                    'quantity' => $item['qty'],
+                    'note' => "Order {$order->document_number}" . (!empty($data['note']) ? " - {$data['note']}" : ""),
+                    'store_order_id' => $order->id,
                     'status' => 'pending',
-                    'department' => $departmentName,
-                    'requester' => $empName,
-                    'note' => $data['note'] ?? null,
                 ]);
 
-                $order->created_at = $orderDate;
-                $order->updated_at = $orderDate;
-                $order->save();
+                $movement->created_at = $orderDate;
+                $movement->updated_at = $orderDate;
+                $movement->save();
+            }
+        });
 
-                // ✅ บันทึกรายการสินค้าภายใต้ order เดิม
-                foreach ($data['items'] as $index => $item) {
+        return redirect()->route('Store.index')->with([
+            'success' => true,
+            'message' => '✅ ทำการบันทึกคำสั่งเบิกเรียบร้อย รออนุมัติ',
+            'order_id' => $order->id,
+            'document_number' => $order->document_number
+        ]);
 
-                    $storeItem = \App\Models\StoreItem::where('good_id', $item['good_id'])->first();
-                    if (!$storeItem) {
-                        throw new \Exception("ไม่พบสินค้า ID: {$item['good_id']}");
-                    }
-
-                    // เพิ่มรายการสินค้าใน order
-                    $orderItem = $order->items()->make([
-                        'product_id' => $item['good_id'],
-                        'quantity' => $item['qty'],
-                    ]);
-                    $orderItem->timestamps = false;
-                    $orderItem->created_at = $orderDate;
-                    $orderItem->updated_at = $orderDate;
-                    $orderItem->save();
-
-                    // ✅ บันทึก movement log
-                    $movement = new \App\Models\StoreMovement([
-                        'store_item_id' => $storeItem->id,
-                        'user_id' => $user->id,
-                        'movement_type' => 'issue',
-                        'category' => 'stock',
-                        'type' => 'subtract',
-                        'quantity' => $item['qty'],
-                        'note' => "Order {$order->document_number}" . (!empty($data['note']) ? " - {$data['note']}" : ""),
-                        'store_order_id' => $order->id,
-                        'status' => 'pending',
-                    ]);
-
-                    $movement->created_at = $orderDate;
-                    $movement->updated_at = $orderDate;
-                    $movement->save();
-
-                }
-            });
-            return redirect()->route('Store.index')->with([
-                'success' => true,
-                'message' => '✅ ทำการบันทึกคำสั่งเบิกเรียบร้อย รออนุมัติ',
-                'order_id' => $order->id,
-                'document_number' => $order->document_number
-            ]);
-        } catch (\Exception $e) {
-
-            return back()->withErrors([
-                'error' => 'เกิดข้อผิดพลาดในการบันทึก: ' . $e->getMessage()
-            ]);
-        }
+    } catch (\Exception $e) {
+        return back()->withErrors([
+            'error' => 'เกิดข้อผิดพลาดในการบันทึก: ' . $e->getMessage()
+        ]);
     }
+}
 
 
     public function confirm($orderId)
