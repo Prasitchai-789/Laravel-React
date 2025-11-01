@@ -50,10 +50,6 @@ const BottomSide: React.FC<BottomSideProps> = ({
     const [budget, setBudget] = useState<BudgetItem[]>([]);
     const [totalAmount, setTotalAmount] = useState(0);
 
-
-
-
-
     const goodCodeCategories: Record<string, string> = {
         'ST-EL': 'อุปกรณ์ไฟฟ้า',
         'ST-FP': 'อะไหล่ท่อ',
@@ -82,9 +78,6 @@ const BottomSide: React.FC<BottomSideProps> = ({
 
         throw new Error('Invalid date input');
     };
-
-    // คำนวณยอดรวมจาก budget
-
 
     // ฟังก์ชันสำหรับไอคอนหมวดหมู่สินค้า (ใช้เฉพาะในส่วนสถานะสินค้าคงคลัง)
     const getCategoryIcon = (categoryName?: string) => {
@@ -153,7 +146,6 @@ const BottomSide: React.FC<BottomSideProps> = ({
         return departmentAbbreviations[name] || name.substring(0, 3).toUpperCase();
     };
 
-
     // แปลงวันไทย 'd/m/yyyy' เป็น 'YYYY-MM-DD' ไม่ปรับปี
     const parseThaiDate = (thaiDate: string | undefined | null) => {
         if (!thaiDate || typeof thaiDate !== 'string') return null;
@@ -221,7 +213,6 @@ const BottomSide: React.FC<BottomSideProps> = ({
             .finally(() => setLoadingDepartments(false));
     }, [timeRange, selectedDate, dateRange, dateMode]);
 
-
     useEffect(() => {
         setLoading(true);
         axios.get("/StoreOrder/StockOrder")
@@ -254,9 +245,6 @@ const BottomSide: React.FC<BottomSideProps> = ({
             .catch(err => console.error("Error fetching stock order:", err))
             .finally(() => setLoading(false));
     }, []);
-
-
-    // ฟังก์ชันแปลงวันที่ dd/mm/yyyy (พ.ศ.) → YYYY-MM-DD (ค.ศ.)
 
     useEffect(() => {
         const fetchApprovedBudget = async () => {
@@ -387,578 +375,492 @@ const BottomSide: React.FC<BottomSideProps> = ({
         fetchApprovedBudget();
     }, [selectedDate, dateRange, timeRange]);
 
-
-
-
-
-
-
-
-
-
-
-
     if (loading) {
         return (
-            <>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {[1, 2, 3].map(i => (
-                    <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 h-full flex flex-col min-h-[600px]">
+                    <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 h-full flex flex-col">
                         <div className="animate-pulse flex-1 flex flex-col space-y-4">
                             <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-32 mb-2"></div>
                             <div className="h-48 bg-gray-300 dark:bg-gray-600 rounded"></div>
                         </div>
                     </div>
                 ))}
-            </>
+            </div>
         );
     }
 
+    // Common card container class
+    const cardClass = "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 h-full flex flex-col min-h-0";
+
     return (
         <>
-            {/* สัดส่วนการเบิกตามฝ่าย */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700 h-full flex flex-col min-h-[600px]">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
-                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h4 className="text-xl font-bold text-gray-900 dark:text-white">สัดส่วนการเบิกตามฝ่าย</h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">กระจายการใช้งานตามแผนก</p>
-                        </div>
-                    </div>
-                    <div className="px-4 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl border border-indigo-200 dark:border-indigo-700 shadow-sm">
-                        <span className="text-indigo-700 dark:text-indigo-300 text-sm font-semibold">
-                            {loadingDepartments
-                                ? 'กำลังโหลด...'
-                                : `${departmentList.reduce((sum, d) => sum + d.items, 0).toLocaleString()} การเบิก`}
-                        </span>
-                    </div>
-                </div>
 
-                {/* Content */}
-                {loadingDepartments ? (
-                    <div className="flex flex-col items-center justify-center h-64">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
-                        <p className="text-gray-500 dark:text-gray-400">กำลังโหลดข้อมูล...</p>
-                    </div>
-                ) : (() => {
-                    const chartColors = [
-                        '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
-                        '#06b6d4', '#f97316', '#ec4899', '#84cc16', '#14b8a6'
-                    ];
 
-                    const displayedDepartments = departmentList.map((dept, index) => ({
-                        name: dept.name,
-                        items: dept.items,
-                        color: chartColors[index % chartColors.length],
-                        code: dept.code || dept.name.substring(0, 3).toUpperCase()
-                    }));
-
-                    const totalDeptItems = displayedDepartments.reduce((sum, d) => sum + d.items, 0);
-                    const maxDept = displayedDepartments.length > 0
-                        ? displayedDepartments.reduce((max, dept) => (dept.items > max.items ? dept : max), displayedDepartments[0])
-                        : { name: '-', items: 0 };
-
-                    if (totalDeptItems === 0) {
-                        return (
-                            <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-                                <svg className="w-16 h-16 mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                <p className="text-lg font-medium">ไม่มีข้อมูลการเบิก</p>
-                                <p className="text-sm">ยังไม่มีการเบิกสินค้าในระบบ</p>
-                            </div>
-                        );
-                    }
-
-                    return (
-                        <div className="flex flex-col lg:flex-row items-center lg:items-start gap-8">
-                            {/* Chart Section */}
-                            <div className="flex flex-col items-center space-y-6">
-                                <div className="relative w-48 h-48">
-                                    <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
-                                        {displayedDepartments.map((dept, index) => {
-                                            const percentage = totalDeptItems ? (dept.items / totalDeptItems) * 100 : 0;
-                                            const circumference = 2 * Math.PI * 40;
-                                            const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
-                                            const offset = -displayedDepartments
-                                                .slice(0, index)
-                                                .reduce((sum, d) => sum + ((d.items / totalDeptItems) * circumference || 0), 0);
-
-                                            return (
-                                                <circle
-                                                    key={dept.name}
-                                                    cx="50"
-                                                    cy="50"
-                                                    r="40"
-                                                    fill="none"
-                                                    stroke={dept.color}
-                                                    strokeWidth="12"
-                                                    strokeDasharray={strokeDasharray}
-                                                    strokeDashoffset={offset}
-                                                    className="transition-all duration-700 ease-in-out hover:stroke-width-16"
-                                                />
-                                            );
-                                        })}
+            <div className="w-full h-screen overflow-auto bg-gray-50 dark:bg-gray-900 p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0 auto-rows-fr">
+                    {/* สัดส่วนการเบิกตามฝ่าย */}
+                    <div className={cardClass}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="text-center">
-                                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalDeptItems.toLocaleString()}</p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">การเบิกทั้งหมด</p>
-                                        </div>
-                                    </div>
                                 </div>
-
-                                {/* Quick Stats */}
-                                <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-                                    {/* สูงสุด */}
-                                    <div className="text-center p-4 bg-gradient-to-br from-rose-50/80 to-pink-50/80 dark:from-rose-900/20 dark:to-pink-900/20 rounded-xl border border-rose-100 dark:border-rose-800 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 backdrop-blur-sm">
-                                        <div className="w-8 h-8 bg-gradient-to-br from-rose-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg shadow-rose-500/25">
-                                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                            </svg>
-                                        </div>
-                                        <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1">แผนกสูงสุด</p>
-                                        <div className="min-h-[40px] flex items-center justify-center">
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white text-center leading-tight break-words px-1">
-                                                {maxDept?.name || '-'}
-                                            </p>
-                                        </div>
-                                        <div className="mt-1 text-xs text-rose-500 dark:text-rose-300 font-semibold">
-                                            {maxDept?.items.toLocaleString()} รายการ
-                                        </div>
-                                    </div>
-
-                                    {/* จำนวนแผนก */}
-                                    <div className="text-center p-4 bg-gradient-to-br from-cyan-50/80 to-blue-50/80 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl border border-cyan-100 dark:border-cyan-800 shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 backdrop-blur-sm">
-                                        <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg shadow-cyan-500/25">
-                                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0z" />
-                                            </svg>
-                                        </div>
-                                        <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 mb-1">จำนวนแผนก</p>
-                                        <p className="text-sm font-bold text-gray-900 dark:text-white">{displayedDepartments.length}</p>
-                                        <div className="mt-1 text-xs text-cyan-500 dark:text-cyan-300 font-semibold">ทั้งหมด</div>
-                                    </div>
+                                <div>
+                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white">สัดส่วนการเบิกตามฝ่าย</h4>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">กระจายการใช้งานตามแผนก</p>
                                 </div>
                             </div>
-
-                            {/* Legend Section */}
-                            <div className="flex flex-col w-full flex-1">
-                                <div className="space-y-3 max-h-80 overflow-y-auto pr-2
-                        [&::-webkit-scrollbar]:w-1.5
-                        [&::-webkit-scrollbar-track]:bg-gray-100/50
-                        [&::-webkit-scrollbar-thumb]:bg-gray-300
-                        [&::-webkit-scrollbar-thumb]:rounded-full
-                        dark:[&::-webkit-scrollbar-track]:bg-gray-700/50
-                        dark:[&::-webkit-scrollbar-thumb]:bg-gray-500
-                        hover:[&::-webkit-scrollbar-thumb]:bg-gray-400
-                        dark:hover:[&::-webkit-scrollbar-thumb]:bg-gray-400">
-                                    {displayedDepartments.map((dept) => {
-                                        const percentage = totalDeptItems ? Math.round((dept.items / totalDeptItems) * 100) : 0;
-                                        const isMaxDept = dept.name === maxDept.name;
-
-                                        return (
-                                            <div
-                                                key={dept.name}
-                                                className={`flex items-center space-x-3 p-3 rounded-xl border transition-all duration-300 hover:scale-[1.02] hover:shadow-md ${isMaxDept
-                                                    ? 'bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-900/30 dark:to-purple-900/30 border-indigo-200 dark:border-indigo-600 shadow-sm'
-                                                    : 'bg-white/80 dark:bg-gray-800/80 border-gray-200/50 dark:border-gray-600/50 backdrop-blur-sm'
-                                                    }`}
-                                            >
-                                                <div className="w-3 h-8 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: dept.color }}></div>
-                                                <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold text-gray-700 dark:text-gray-200 shadow-sm">
-                                                    {getDeptAbbreviation(dept.name)}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
-                                                            {dept.name}
-                                                        </p>
-                                                        <span className={`text-sm font-bold ${isMaxDept
-                                                            ? 'text-indigo-600 dark:text-indigo-400'
-                                                            : 'text-gray-700 dark:text-gray-300'
-                                                            }`}>
-                                                            {percentage}%
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center">
-                                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mr-2">
-                                                            <div
-                                                                className="h-1.5 rounded-full transition-all duration-500 ease-out"
-                                                                style={{ width: `${percentage}%`, backgroundColor: dept.color }}
-                                                            ></div>
-                                                        </div>
-                                                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                                                            {dept.items.toLocaleString()} รายการ
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* ✅ Summary Section (fixed to stay inside card) */}
-                                <div className="mt-6 p-4 border-t border-gray-200/50 dark:border-gray-600/50 flex-shrink-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl">
-                                    <div className="grid grid-cols-3 gap-3 text-center">
-
-                                        <div className="p-3 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800">
-                                            <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                                                {totalDeptItems.toLocaleString()}
-                                            </p>
-                                            <p className="text-xs font-medium text-indigo-500 dark:text-indigo-300">รวมการเบิก</p>
-                                        </div>
-                                        <div className="p-3 bg-gradient-to-br from-rose-50/50 to-pink-50/50 dark:from-rose-900/20 dark:to-pink-900/20 rounded-xl border border-rose-100 dark:border-rose-800">
-                                            <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">
-                                                {maxDept?.items.toLocaleString() || '0'}
-                                            </p>
-                                            <p className="text-xs font-medium text-rose-500 dark:text-rose-300">รายการสูงสุด</p>
-                                        </div>
-                                        <div className="p-3 bg-gradient-to-br from-cyan-50/50 to-blue-50/50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl border border-cyan-100 dark:border-cyan-800">
-                                            <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
-                                                {displayedDepartments.length}
-                                            </p>
-                                            <p className="text-xs font-medium text-cyan-500 dark:text-cyan-300">แผนกที่เบิก</p>
-                                        </div>
-
-
-                                    </div>
-
-                                </div>
+                            <div className="px-3 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-200 dark:border-indigo-700">
+                                <span className="text-indigo-700 dark:text-indigo-300 text-sm font-semibold">
+                                    {loadingDepartments
+                                        ? 'กำลังโหลด...'
+                                        : `${departmentList.reduce((sum, d) => sum + d.items, 0).toLocaleString()} การเบิก`}
+                                </span>
                             </div>
                         </div>
 
-                    );
-                })()}
-            </div >
-
-            {/* สถานะสินค้าคงคลัง */}
-            < div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 h-full flex flex-col min-h-[600px]" >
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
-                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                สถานะสินค้าคงคลัง
-                            </h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                สรุปสถานะสินค้าแยกตามประเภท
-                            </p>
-                        </div>
-                    </div>
-                    <div className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
-                        <span className="text-blue-700 dark:text-blue-300 text-sm font-medium">
-                            {categoryStats.length} ประเภท
-                        </span>
-                    </div>
-                </div>
-
-                <div className="space-y-4 max-h-80 overflow-y-auto pr-2 flex-1
-        [&::-webkit-scrollbar]:w-1.5
-        [&::-webkit-scrollbar-track]:bg-gray-100
-        [&::-webkit-scrollbar-track]:rounded-full
-        [&::-webkit-scrollbar-thumb]:bg-gray-300
-        [&::-webkit-scrollbar-thumb]:rounded-full
-        [&::-webkit-scrollbar-thumb]:hover:bg-gray-400
-        dark:[&::-webkit-scrollbar-track]:bg-gray-700
-        dark:[&::-webkit-scrollbar-thumb]:bg-gray-500
-        dark:[&::-webkit-scrollbar-thumb]:hover:bg-gray-400">
-                    {categoryStats.map((category) => {
-                        const totalItems = category.totalItems || 0;
-                        const lowStockCount = category.lowStock || 0;
-                        const outOfStockCount = category.outOfStock || 0;
-                        const normalStockCount = Math.max(totalItems - lowStockCount - outOfStockCount, 0);
-
-                        const normalPercent = totalItems ? (normalStockCount / totalItems) * 100 : 0;
-                        const lowPercent = totalItems ? (lowStockCount / totalItems) * 100 : 0;
-                        const outPercent = totalItems ? (outOfStockCount / totalItems) * 100 : 0;
-
-                        return (
-                            <div key={category.category} className="p-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 hover:border-blue-200 dark:hover:border-blue-700 transition-all duration-200">
-                                <div className="flex justify-between items-center mb-3">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="text-2xl">{getCategoryIcon(category.category)}</div>
-                                        <div>
-                                            <p className="font-medium text-gray-900 dark:text-white text-base">{category.category}</p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">{totalItems} รายการ</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex space-x-2">
-                                        {normalStockCount > 0 && (
-                                            <div className="text-center">
-                                                <div className="text-green-500 text-xl">●</div>
-                                                <p className="text-sm text-gray-500">{normalStockCount}</p>
-                                            </div>
-                                        )}
-                                        {lowStockCount > 0 && (
-                                            <div className="text-center">
-                                                <div className="text-amber-500 text-xl">●</div>
-                                                <p className="text-sm text-gray-500">{lowStockCount}</p>
-                                            </div>
-                                        )}
-                                        {outOfStockCount > 0 && (
-                                            <div className="text-center">
-                                                <div className="text-red-500 text-xl">●</div>
-                                                <p className="text-sm text-gray-500">{outOfStockCount}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700 mb-2 flex overflow-hidden">
-                                    {normalPercent > 0 && <div className="bg-green-500 transition-all duration-500 ease-out" style={{ width: `${normalPercent}%` }} />}
-                                    {lowPercent > 0 && <div className="bg-amber-500 transition-all duration-500 ease-out" style={{ width: `${lowPercent}%` }} />}
-                                    {outPercent > 0 && <div className="bg-red-500 transition-all duration-500 ease-out" style={{ width: `${outPercent}%` }} />}
-                                </div>
+                        {/* Content */}
+                        {loadingDepartments ? (
+                            <div className="flex flex-col items-center justify-center py-8 flex-1">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mb-3"></div>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm">กำลังโหลดข้อมูล...</p>
                             </div>
-                        );
-                    })}
-                </div>
+                        ) : (() => {
+                            const chartColors = [
+                                '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6',
+                                '#06b6d4', '#f97316', '#ec4899', '#84cc16', '#14b8a6'
+                            ];
 
-                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
-                    <div className="grid grid-cols-4 gap-4 text-center">
-                        {/* รวมสินค้าทั้งหมด */}
-                        <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                {categoryStats.reduce((sum, cat) => sum + (cat.totalItems || 0), 0).toLocaleString()}
-                            </p>
-                            <p className="text-sm text-blue-700 dark:text-blue-300">สินค้าทั้งหมด</p>
-                        </div>
+                            const displayedDepartments = departmentList.map((dept, index) => ({
+                                name: dept.name,
+                                items: dept.items,
+                                color: chartColors[index % chartColors.length],
+                                code: dept.code || dept.name.substring(0, 3).toUpperCase()
+                            }));
 
-                        <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                {categoryStats.reduce((sum, cat) => sum + Math.max((cat.totalItems || 0) - (cat.lowStock || 0) - (cat.outOfStock || 0), 0), 0).toLocaleString()}
-                            </p>
-                            <p className="text-sm text-green-700 dark:text-green-300">ปกติ</p>
-                        </div>
-                        <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                                {categoryStats.reduce((sum, cat) => sum + (cat.lowStock || 0), 0).toLocaleString()}
-                            </p>
-                            <p className="text-sm text-amber-700 dark:text-amber-300">ต่ำกว่าจุดสั่ง</p>
-                        </div>
-                        <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                                {categoryStats.reduce((sum, cat) => sum + (cat.outOfStock || 0), 0).toLocaleString()}
-                            </p>
-                            <p className="text-sm text-red-700 dark:text-red-300">หมดสต็อก</p>
-                        </div>
-                    </div>
-                </div>
-            </div >
+                            const totalDeptItems = displayedDepartments.reduce((sum, d) => sum + d.items, 0);
+                            const maxDept = displayedDepartments.length > 0
+                                ? displayedDepartments.reduce((max, dept) => (dept.items > max.items ? dept : max), displayedDepartments[0])
+                                : { name: '-', items: 0 };
 
-            {/* งบประมาณที่ใช้ไป */}
-            < div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-100 dark:border-gray-700" >
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md">
-                            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h4 className="text-lg font-bold text-gray-900 dark:text-white">
-                                งบประมาณที่ใช้ไป
-                            </h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                สรุปค่าใช้จ่ายตามหมวดหมู่
-                            </p>
-                        </div>
-                    </div>
-                    <div className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800">
-                        <span className="text-emerald-700 dark:text-emerald-300 text-sm font-medium">
-                            ฿{totalAmount.toLocaleString()}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Budget Items List */}
-                <div className="space-y-3 max-h-48 overflow-y-auto mb-4
-        [&::-webkit-scrollbar]:w-1.5
-        [&::-webkit-scrollbar-track]:bg-gray-100
-        [&::-webkit-scrollbar-track]:rounded-full
-        [&::-webkit-scrollbar-thumb]:bg-gray-300
-        [&::-webkit-scrollbar-thumb]:rounded-full
-        dark:[&::-webkit-scrollbar-track]:bg-gray-700
-        dark:[&::-webkit-scrollbar-thumb]:bg-gray-500">
-                    {budget
-                        .filter(item => item.amount > 0) // แสดงเฉพาะหมวดหมู่ที่มีการใช้จ่าย
-                        .slice(0, 4) // แสดงสูงสุด 4 รายการ
-                        .map((item, index) => {
-                            const percent = totalAmount ? (item.amount / totalAmount) * 100 : 0;
-                            const categoryIcons = ['📦', '⚡', '🔧', '🛠️', '📊', '💡', '🔩', '📐'];
+                            if (totalDeptItems === 0) {
+                                return (
+                                    <div className="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400 flex-1">
+                                        <svg className="w-16 h-16 mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <p className="text-base font-medium">ไม่มีข้อมูลการเบิก</p>
+                                        <p className="text-sm">ยังไม่มีการเบิกสินค้าในระบบ</p>
+                                    </div>
+                                );
+                            }
 
                             return (
-                                <div key={index} className="group p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-all duration-200">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <div className="flex items-center space-x-3 flex-1">
-                                            <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-emerald-500 rounded-lg flex items-center justify-center shadow-sm">
-                                                <span className="text-sm">{categoryIcons[index] || '📦'}</span>
+                                <div className="flex flex-col items-center space-y-4 flex-1 min-h-0">
+                                    {/* Pie Chart */}
+                                    <div className="relative w-40 h-40">
+                                        <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                                            {displayedDepartments.map((dept, index) => {
+                                                const percentage = totalDeptItems ? (dept.items / totalDeptItems) * 100 : 0;
+                                                const circumference = 2 * Math.PI * 35;
+                                                const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
+                                                const offset = -displayedDepartments
+                                                    .slice(0, index)
+                                                    .reduce((sum, d) => sum + ((d.items / totalDeptItems) * circumference || 0), 0);
+
+                                                return (
+                                                    <circle
+                                                        key={dept.name}
+                                                        cx="50"
+                                                        cy="50"
+                                                        r="35"
+                                                        fill="none"
+                                                        stroke={dept.color}
+                                                        strokeWidth="10"
+                                                        strokeDasharray={strokeDasharray}
+                                                        strokeDashoffset={offset}
+                                                        className="transition-all duration-700 ease-in-out"
+                                                    />
+                                                );
+                                            })}
+                                        </svg>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <div className="text-center">
+                                                <p className="text-xl font-bold text-gray-900 dark:text-white">{totalDeptItems.toLocaleString()}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">การเบิกทั้งหมด</p>
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                                    {item.category}
-                                                </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {item.quantity.toLocaleString()} ชิ้น
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white">
-                                                ฿{item.amount.toLocaleString()}
-                                            </p>
-                                            <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                                                {percent.toFixed(0)}%
-                                            </p>
                                         </div>
                                     </div>
-                                    <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-600">
-                                        <div
-                                            className="h-2 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-700 ease-out"
-                                            style={{ width: `${percent}%` }}
-                                        ></div>
+
+                                    {/* Quick Stats */}
+                                    <div className="grid grid-cols-2 gap-3 w-full">
+                                        <div className="text-center p-3 bg-gradient-to-br from-rose-50/80 to-pink-50/80 dark:from-rose-900/20 dark:to-pink-900/20 rounded-lg border border-rose-100 dark:border-rose-800 shadow-sm">
+                                            <div className="w-6 h-6 bg-gradient-to-br from-rose-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-1 shadow-md shadow-rose-500/25">
+                                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1">แผนกสูงสุด</p>
+                                            <div className="min-h-[32px] flex items-center justify-center">
+                                                <p className="text-xs font-bold text-gray-900 dark:text-white text-center leading-tight break-words px-1">
+                                                    {maxDept?.name || '-'}
+                                                </p>
+                                            </div>
+                                            <div className="mt-1 text-xs text-rose-500 dark:text-rose-300 font-semibold">
+                                                {maxDept?.items.toLocaleString()} รายการ
+                                            </div>
+                                        </div>
+
+                                        <div className="text-center p-3 bg-gradient-to-br from-cyan-50/80 to-blue-50/80 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-lg border border-cyan-100 dark:border-cyan-800 shadow-sm">
+                                            <div className="w-6 h-6 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-1 shadow-md shadow-cyan-500/25">
+                                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 mb-1">จำนวนแผนก</p>
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white">{displayedDepartments.length}</p>
+                                            <div className="mt-1 text-xs text-cyan-500 dark:text-cyan-300 font-semibold">ทั้งหมด</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Legend Section */}
+                                    <div className="w-full space-y-2 max-h-48 overflow-y-auto flex-1 min-h-0">
+                                        {displayedDepartments.map((dept) => {
+                                            const percentage = totalDeptItems ? Math.round((dept.items / totalDeptItems) * 100) : 0;
+                                            const isMaxDept = dept.name === maxDept.name;
+
+                                            return (
+                                                <div
+                                                    key={dept.name}
+                                                    className={`flex items-center space-x-2 p-2 rounded-lg border transition-all duration-200 ${isMaxDept
+                                                        ? 'bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-900/30 dark:to-purple-900/30 border-indigo-200 dark:border-indigo-600 shadow-sm'
+                                                        : 'bg-white/80 dark:bg-gray-800/80 border-gray-200/50 dark:border-gray-600/50'
+                                                        }`}
+                                                >
+                                                    <div className="w-2 h-6 rounded-full flex-shrink-0" style={{ backgroundColor: dept.color }}></div>
+                                                    <div className="w-6 h-6 bg-gray-100 dark:bg-gray-700 rounded-md flex items-center justify-center flex-shrink-0 text-xs font-bold text-gray-700 dark:text-gray-200">
+                                                        {getDeptAbbreviation(dept.name)}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">
+                                                                {dept.name}
+                                                            </p>
+                                                            <span className={`text-xs font-bold ${isMaxDept
+                                                                ? 'text-indigo-600 dark:text-indigo-400'
+                                                                : 'text-gray-700 dark:text-gray-300'
+                                                                }`}>
+                                                                {percentage}%
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 mr-2">
+                                                                <div
+                                                                    className="h-1 rounded-full transition-all duration-500 ease-out"
+                                                                    style={{ width: `${percentage}%`, backgroundColor: dept.color }}
+                                                                ></div>
+                                                            </div>
+                                                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                                                {dept.items.toLocaleString()} รายการ
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             );
-                        })}
-
-                    {/* แสดงข้อความเมื่อมีข้อมูลน้อยกว่า 4 รายการ */}
-                    {budget.filter(item => item.amount > 0).length === 0 && (
-                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                            <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p className="text-sm">ยังไม่มีข้อมูลการใช้จ่าย</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Summary Section */}
-                <div className="space-y-4">
-                    {/* Statistics Overview */}
-                    <div className="grid grid-cols-3 gap-3 text-center">
-                        <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700">
-                            <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                                {budget.filter(item => item.amount > 0).length}
-                            </p>
-                            <p className="text-xs text-blue-700 dark:text-blue-300">หมวดหมู่</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700">
-                            <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                                {budget.reduce((sum, item) => sum + item.quantity, 0).toLocaleString()}
-                            </p>
-                            <p className="text-xs text-green-700 dark:text-green-300">ชิ้นทั้งหมด</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700">
-                            <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                                ฿{totalAmount.toLocaleString()}
-                            </p>
-                            <p className="text-xs text-purple-700 dark:text-purple-300">รวมมูลค่า</p>
-                        </div>
+                        })()}
                     </div>
 
-                    {/* Top Categories & Summary */}
-                    <div className="grid grid-cols-2 gap-3">
-                        {/* Top Category */}
-                        <div className="p-3 rounded-lg bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-700">
-                            <div className="flex items-center space-x-2 mb-2">
-                                <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-md flex items-center justify-center">
-                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    {/* สถานะสินค้าคงคลัง */}
+                    <div className={cardClass}>
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                     </svg>
                                 </div>
-                                <h5 className="text-xs font-semibold text-gray-900 dark:text-white">สูงสุด</h5>
+                                <div>
+                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white">
+                                        สถานะสินค้าคงคลัง
+                                    </h4>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        สรุปสถานะสินค้าแยกตามประเภท
+                                    </p>
+                                </div>
                             </div>
-                            {(() => {
-                                const maxByAmount = budget.reduce((max, item) =>
-                                    item.amount > max.amount ? item : max,
-                                    { category: '-', amount: 0, quantity: 0 }
-                                );
-                                const maxPercent = totalAmount ? (maxByAmount.amount / totalAmount) * 100 : 0;
+                            <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+                                <span className="text-blue-700 dark:text-blue-300 text-sm font-medium">
+                                    {categoryStats.length} ประเภท
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3 max-h-80 overflow-y-auto mb-4 flex-1 min-h-0
+                [&::-webkit-scrollbar]:w-1.5
+                [&::-webkit-scrollbar-track]:bg-gray-100
+                [&::-webkit-scrollbar-track]:rounded-full
+                [&::-webkit-scrollbar-thumb]:bg-gray-300
+                [&::-webkit-scrollbar-thumb]:rounded-full
+                dark:[&::-webkit-scrollbar-track]:bg-gray-700
+                dark:[&::-webkit-scrollbar-thumb]:bg-gray-500">
+                            {categoryStats.map((category) => {
+                                const totalItems = category.totalItems || 0;
+                                const lowStockCount = category.lowStock || 0;
+                                const outOfStockCount = category.outOfStock || 0;
+                                const normalStockCount = Math.max(totalItems - lowStockCount - outOfStockCount, 0);
+
+                                const normalPercent = totalItems ? (normalStockCount / totalItems) * 100 : 0;
+                                const lowPercent = totalItems ? (lowStockCount / totalItems) * 100 : 0;
+                                const outPercent = totalItems ? (outOfStockCount / totalItems) * 100 : 0;
 
                                 return (
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-bold text-purple-600 dark:text-purple-400 truncate">
-                                            {maxByAmount.category}
-                                        </p>
-                                        <div className="flex justify-between items-center text-xs">
-                                            <span className="text-gray-500">฿{maxByAmount.amount.toLocaleString()}</span>
-                                            <span className="font-medium text-purple-500">{maxPercent.toFixed(0)}%</span>
+                                    <div key={category.category} className="p-3 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 hover:border-blue-200 dark:hover:border-blue-700 transition-all duration-200 shadow-sm">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <div className="flex items-center space-x-2">
+                                                <div className="text-xl">{getCategoryIcon(category.category)}</div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{category.category}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{totalItems} รายการ</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex space-x-1">
+                                                {normalStockCount > 0 && (
+                                                    <div className="text-center">
+                                                        <div className="text-green-500 text-lg">●</div>
+                                                        <p className="text-xs text-gray-500">{normalStockCount}</p>
+                                                    </div>
+                                                )}
+                                                {lowStockCount > 0 && (
+                                                    <div className="text-center">
+                                                        <div className="text-amber-500 text-lg">●</div>
+                                                        <p className="text-xs text-gray-500">{lowStockCount}</p>
+                                                    </div>
+                                                )}
+                                                {outOfStockCount > 0 && (
+                                                    <div className="text-center">
+                                                        <div className="text-red-500 text-lg">●</div>
+                                                        <p className="text-xs text-gray-500">{outOfStockCount}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700 mb-1 flex overflow-hidden">
+                                            {normalPercent > 0 && <div className="bg-green-500 transition-all duration-500 ease-out" style={{ width: `${normalPercent}%` }} />}
+                                            {lowPercent > 0 && <div className="bg-amber-500 transition-all duration-500 ease-out" style={{ width: `${lowPercent}%` }} />}
+                                            {outPercent > 0 && <div className="bg-red-500 transition-all duration-500 ease-out" style={{ width: `${outPercent}%` }} />}
                                         </div>
                                     </div>
                                 );
-                            })()}
+                            })}
                         </div>
 
-                        {/* Average per Item */}
-                        <div className="p-3 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700">
-                            <div className="flex items-center space-x-2 mb-2">
-                                <div className="w-6 h-6 bg-gradient-to-br from-amber-500 to-orange-500 rounded-md flex items-center justify-center">
-                                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                    </svg>
+                        <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
+                            <div className="grid grid-cols-4 gap-2 text-center">
+                                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                        {categoryStats.reduce((sum, cat) => sum + (cat.totalItems || 0), 0).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-blue-700 dark:text-blue-300">สินค้าทั้งหมด</p>
                                 </div>
-                                <h5 className="text-xs font-semibold text-gray-900 dark:text-white">เฉลี่ย/ชิ้น</h5>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-sm font-bold text-amber-600 dark:text-amber-400">
-                                    ฿{totalAmount > 0 ? (totalAmount / budget.reduce((sum, item) => sum + item.quantity, 1)).toFixed(2) : '0.00'}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                    ต่อชิ้นสินค้า
-                                </p>
+                                <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                                    <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                                        {categoryStats.reduce((sum, cat) => sum + Math.max((cat.totalItems || 0) - (cat.lowStock || 0) - (cat.outOfStock || 0), 0), 0).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-green-700 dark:text-green-300">ปกติ</p>
+                                </div>
+                                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                    <p className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                                        {categoryStats.reduce((sum, cat) => sum + (cat.lowStock || 0), 0).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-amber-700 dark:text-amber-300">ต่ำกว่าจุดสั่ง</p>
+                                </div>
+                                <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                                    <p className="text-lg font-bold text-red-600 dark:text-red-400">
+                                        {categoryStats.reduce((sum, cat) => sum + (cat.outOfStock || 0), 0).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-red-700 dark:text-red-300">หมดสต็อก</p>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Mini Progress Chart */}
-                    {budget.filter(item => item.amount > 0).length > 0 && (
-                        <div className="pt-3 border-t border-gray-200 dark:border-gray-600">
-                            <h6 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">สัดส่วนงบประมาณ</h6>
-                            <div className="flex h-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
-                                {budget
-                                    .filter(item => item.amount > 0)
-                                    .slice(0, 4)
-                                    .map((item, index) => {
-                                        const percent = totalAmount ? (item.amount / totalAmount) * 100 : 0;
-                                        const colors = [
-                                            'bg-emerald-400',
-                                            'bg-blue-400',
-                                            'bg-amber-400',
-                                            'bg-purple-400'
-                                        ];
-                                        return (
-                                            <div
-                                                key={index}
-                                                className={`${colors[index]} transition-all duration-700 ease-out`}
-                                                style={{ width: `${percent}%` }}
-                                                title={`${item.category}: ${percent.toFixed(1)}%`}
-                                            />
-                                        );
-                                    })}
+                    {/* งบประมาณที่ใช้ไป */}
+                    <div className={cardClass}>
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 className="text-lg font-bold text-gray-900 dark:text-white">
+                                        งบประมาณที่ใช้ไป
+                                    </h4>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        สรุปค่าใช้จ่ายตามหมวดหมู่
+                                    </p>
+                                </div>
                             </div>
-                            <div className="flex justify-between items-center mt-1">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    {budget.filter(item => item.amount > 0).length} หมวดหมู่
-                                </span>
-                                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                            <div className="px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800">
+                                <span className="text-emerald-700 dark:text-emerald-300 text-sm font-medium">
                                     ฿{totalAmount.toLocaleString()}
                                 </span>
                             </div>
                         </div>
-                    )}
+
+                        {/* Budget Items List */}
+                        <div className="space-y-2 max-h-80 overflow-y-auto mb-4 flex-1 min-h-0
+                [&::-webkit-scrollbar]:w-1.5
+                [&::-webkit-scrollbar-track]:bg-gray-100
+                [&::-webkit-scrollbar-track]:rounded-full
+                [&::-webkit-scrollbar-thumb]:bg-gray-300
+                [&::-webkit-scrollbar-thumb]:rounded-full
+                dark:[&::-webkit-scrollbar-track]:bg-gray-700
+                dark:[&::-webkit-scrollbar-thumb]:bg-gray-500">
+                            {budget
+                                .filter(item => item.amount > 0)
+                                .slice(0, 5)
+                                .map((item, index) => {
+                                    const percent = totalAmount ? (item.amount / totalAmount) * 100 : 0;
+                                    const categoryIcons = ['📦', '⚡', '🔧', '🛠️', '📊', '💡', '🔩', '📐'];
+
+                                    return (
+                                        <div key={index} className="group p-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-all duration-200 shadow-sm">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <div className="flex items-center space-x-2 flex-1">
+                                                    <div className="w-6 h-6 bg-gradient-to-br from-emerald-400 to-emerald-500 rounded-md flex items-center justify-center shadow-sm">
+                                                        <span className="text-xs">{categoryIcons[index] || '📦'}</span>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                                                            {item.category}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                            {item.quantity.toLocaleString()} ชิ้น
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-xs font-bold text-gray-900 dark:text-white">
+                                                        ฿{item.amount.toLocaleString()}
+                                                    </p>
+                                                    <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                                        {percent.toFixed(0)}%
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-600">
+                                                <div
+                                                    className="h-1.5 rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all duration-700 ease-out"
+                                                    style={{ width: `${percent}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                            {budget.filter(item => item.amount > 0).length === 0 && (
+                                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p className="text-sm">ยังไม่มีข้อมูลการใช้จ่าย</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Summary Section */}
+                        <div className="space-y-3">
+                            {/* Statistics Overview */}
+                            <div className="grid grid-cols-3 gap-2 text-center">
+                                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700">
+                                    <p className="text-base font-bold text-blue-600 dark:text-blue-400">
+                                        {budget.filter(item => item.amount > 0).length}
+                                    </p>
+                                    <p className="text-xs text-blue-700 dark:text-blue-300">หมวดหมู่</p>
+                                </div>
+                                <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700">
+                                    <p className="text-base font-bold text-green-600 dark:text-green-400">
+                                        {budget.reduce((sum, item) => sum + item.quantity, 0).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-green-700 dark:text-green-300">ชิ้นทั้งหมด</p>
+                                </div>
+                                <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700">
+                                    <p className="text-base font-bold text-purple-600 dark:text-purple-400">
+                                        ฿{totalAmount.toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-purple-700 dark:text-purple-300">รวมมูลค่า</p>
+                                </div>
+                            </div>
+
+                            {/* Top Categories & Summary */}
+                            <div className="grid grid-cols-2 gap-2">
+                                {/* Top Category */}
+                                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-700">
+                                    <div className="flex items-center space-x-1 mb-1">
+                                        <div className="w-5 h-5 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-md flex items-center justify-center">
+                                            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                            </svg>
+                                        </div>
+                                        <h5 className="text-xs font-semibold text-gray-900 dark:text-white">สูงสุด</h5>
+                                    </div>
+                                    {(() => {
+                                        const maxByAmount = budget.reduce((max, item) =>
+                                            item.amount > max.amount ? item : max,
+                                            { category: '-', amount: 0, quantity: 0 }
+                                        );
+                                        const maxPercent = totalAmount ? (maxByAmount.amount / totalAmount) * 100 : 0;
+
+                                        return (
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-bold text-purple-600 dark:text-purple-400 truncate">
+                                                    {maxByAmount.category}
+                                                </p>
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-gray-500">฿{maxByAmount.amount.toLocaleString()}</span>
+                                                    <span className="font-medium text-purple-500">{maxPercent.toFixed(0)}%</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* Average per Item */}
+                                <div className="p-2 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-700">
+                                    <div className="flex items-center space-x-1 mb-1">
+                                        <div className="w-5 h-5 bg-gradient-to-br from-amber-500 to-orange-500 rounded-md flex items-center justify-center">
+                                            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                        <h5 className="text-xs font-semibold text-gray-900 dark:text-white">เฉลี่ย/ชิ้น</h5>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                                            ฿{totalAmount > 0 ? (totalAmount / budget.reduce((sum, item) => sum + item.quantity, 1)).toFixed(2) : '0.00'}
+                                        </p>
+                                        <p className="text-xs text-gray-500">
+                                            ต่อชิ้นสินค้า
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div >
+            </div>
+
         </>
     );
 };
