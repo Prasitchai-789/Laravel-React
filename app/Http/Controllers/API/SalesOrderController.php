@@ -116,34 +116,37 @@ class SalesOrderController extends Controller
                 ->orWhere('coa_number', $lot)
                 ->first();
 
-            $row->coa_sopid     = $coa->SOPID     ?? '';
-            $row->coa_number    = $coa->coa_number ?? '';
-            $row->coa_lot       = $coa->coa_lot    ?? '';
-            $row->coa_tank      = $coa->coa_tank   ?? '';
-            $row->coa_result_ffa = $coa->result_FFA ?? '';
-            $row->coa_result_moisture = $coa->result_moisture ?? '';
-            $row->coa_result_iv  = $coa->result_IV  ?? '';
-            $row->coa_result_dobi = $coa->result_dobi ?? '';
-            $row->coa_result_shell = $coa->result_shell ?? '';
-            $row->coa_result_kn_moisture = $coa->result_kn_moisture ?? '';
+            $row->coa_sopid     = isset($coa->SOPID) ? (int) $coa->SOPID : null;
+            $row->coa_number    = $coa->coa_number ?? null;
+            $row->coa_lot       = $coa->coa_lot ?? null;
+            $row->coa_tank      = isset($coa->coa_tank) ? (int) $coa->coa_tank : null;
+
+            $row->coa_result_ffa        = isset($coa->result_FFA) ? (float) $coa->result_FFA : null;
+            $row->coa_result_moisture   = isset($coa->result_moisture) ? (float) $coa->result_moisture : null;
+            $row->coa_result_iv         = isset($coa->result_IV) ? (float) $coa->result_IV : null;
+            $row->coa_result_dobi       = isset($coa->result_dobi) ? (float) $coa->result_dobi : null;
+
+            $row->coa_result_shell       = isset($coa->result_shell) ? (float) $coa->result_shell : null;
+            $row->coa_result_kn_moisture = isset($coa->result_kn_moisture) ? (float) $coa->result_kn_moisture : null;
+
 
             // ✅ 3) ดึงข้อมูลแผนผลิต SOPlan จาก sqlsrv2
+            $plan = null;
             if (!empty($row->coa_sopid)) {
                 $plan = DB::connection('sqlsrv2')
                     ->table('SOPlan')
                     ->where('SOPID', $row->coa_sopid)
                     ->first();
-            } else {
-                $plan = null;
             }
 
-            $row->plan_no        = $plan->SOPID ?? '';
-            $row->plan_date      = $plan->SOPDate ?? '';
-            $row->plan_number_car       = $plan->NumberCar  ?? '';
-            $row->plan_driver_name    = $plan->DriverName ?? '';
-            $row->plan_recipient_name = $plan->Recipient ?? '';
-            $row->plan_net_weight = $plan->NetWei ?? '';
-            $row->plan_status = $plan->Status ?? '';
+
+            $row->plan_no            = $plan->SOPID ?? null;
+            $row->plan_date          = $plan->SOPDate ?? null;
+            $row->plan_number_car    = $plan->NumberCar ?? null;
+            $row->plan_driver_name   = $plan->DriverName ?? null;
+            $row->plan_recipient_name = $plan->Recipient ?? null;
+            $row->plan_net_weight    = isset($plan->NetWei) ? (float) $plan->NetWei : null;
+            $row->plan_status        = $plan->Status ?? null;
         }
 
         return response()->json($invoice);
