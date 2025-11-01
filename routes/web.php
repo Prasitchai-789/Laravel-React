@@ -24,6 +24,7 @@ use App\Http\Controllers\StoreExportController;
 use App\Http\Controllers\AGR\CustomerController;
 use App\Http\Controllers\Api\SalesAGRController;
 use App\Http\Controllers\ChemicalOrderController;
+use App\Http\Controllers\Api\SalesOrderController;
 use App\Http\Controllers\Store\StoreOrderController;
 use App\Http\Controllers\Store\DashboardStoreController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
@@ -352,6 +353,13 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
     Route::get('/top-customers/api', [SaleMARController::class, 'getTopCustomers']);
 });
 
+
+Route::middleware(['auth', 'permission:developer.view'])->group(function () {
+    Route::get('orders', [MARSalesController::class, 'salesOrder']);
+    Route::get('orders/pending', [SalesOrderController::class, 'getSalesOrder']);
+    Route::get('/sales-order/{docuNo}/invoices', [SalesOrderController::class, 'getSalesOrderInvoice']);
+
+});
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Search } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Search, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import React, { useState } from 'react';
 
 export type Column<T> = {
@@ -357,15 +357,29 @@ export default function GenericTable<T extends Record<string, any>>({
                         </div>
 
                         <div className="flex items-center space-x-2">
+                            {/* First Page Button */}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(1)}
+                                disabled={currentPage === 1}
+                                title="หน้าแรก"
+                            >
+                                <ChevronsLeft size={16} />
+                            </Button>
+
+                            {/* Previous Page Button */}
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                                 disabled={currentPage === 1}
+                                title="หน้าก่อนหน้า"
                             >
                                 <ChevronLeft size={16} />
                             </Button>
 
+                            {/* Page Numbers */}
                             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                                 let pageNum;
                                 if (totalPages <= 5) {
@@ -390,13 +404,26 @@ export default function GenericTable<T extends Record<string, any>>({
                                 );
                             })}
 
+                            {/* Next Page Button */}
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                                 disabled={currentPage === totalPages}
+                                title="หน้าถัดไป"
                             >
                                 <ChevronRight size={16} />
+                            </Button>
+
+                            {/* Last Page Button */}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(totalPages)}
+                                disabled={currentPage === totalPages}
+                                title="หน้าสุดท้าย"
+                            >
+                                <ChevronsRight size={16} />
                             </Button>
                         </div>
                     </div>
