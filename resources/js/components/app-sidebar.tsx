@@ -115,7 +115,7 @@ const ITNavItem: NavItem[] = [
     },
 ];
 
-const PDNavItem: Navitemp[] = [
+const PRONavItem: Navitemp[] = [
 
     {
         title: 'Chemicals',
@@ -158,43 +158,72 @@ const DevNavItems: NavItem[] = [
         title: 'ปริมาณผลปาล์ม',
         href: '/palm/table',
         icon: ShoppingBasket,
+        permission: ['developer.view'],
     },
     {
         title: 'ปริมาณผลปาล์มรายวัน',
         href: '/palm/daily',
         icon: ChartNoAxesCombined,
+        permission: ['developer.view'],
     },
     {
         title: 'ต้นทุนการขาย',
         href: '/cost-analysis/dashboard',
         icon: ChartCandlestick,
+        permission: ['developer.view'],
     },
     {
         title: 'รายงานการขาย',
         href: '/sales/dashboard',
         icon: Truck,
+        permission: ['developer.view'],
     },
     {
         title: 'รายการใบสั่งซื้อ',
         href: '/purchase/po',
         icon: ScrollText,
+        permission: ['developer.view'],
     },
     {
         title: 'สรุปค่าใช้จ่าย',
         href: '/purchase/dashboard',
         icon: CreditCard,
+        permission: ['developer.view'],
     },
     {
         title: 'งบทดลองเบื้องต้น',
         href: '/accounts',
         icon: CreditCard,
+        permission: ['developer.view'],
     },
     {
         title: 'รายงานการขายสินค้า',
         href: '/sales-order',
         icon: BadgeDollarSign,
+        permission: ['developer.view'],
     },
 
+];
+
+const MARNavItems: NavItem[] = [
+     {
+        title: 'รายงานการขาย',
+        href: '/sales/dashboard',
+        icon: Truck,
+        permission: ['mar.edit'],
+    },
+    {
+        title: 'รายงานการขายสินค้า',
+        href: '/sales-order',
+        icon: BadgeDollarSign,
+        permission: ['mar.edit'],
+    },
+    {
+        title: 'จัดการคำสั่งขาย',
+        href: '/orders',
+        icon: Truck,
+        permission: ['mar.view'],
+    },
 ];
 
 const AGRNavItems: NavItem[] = [
@@ -202,29 +231,34 @@ const AGRNavItems: NavItem[] = [
         title: 'รายการขายสินค้า',
         href: '/sales',
         icon: ShoppingBasket,
+        permission: ['agr.view'],
     },
     {
         title: 'สต๊อกสินค้า',
         href: '/stock-agr',
         icon: ChartNoAxesCombined,
+        permission: ['agr.view'],
     },
     {
         title: 'ทะเบียนลูกค้า',
         href: '/customers',
         icon: BookUser,
+        permission: ['agr.view'],
     },
     {
         title: 'รายงานการขายสินค้าต้นกล้า',
         href: '/sales/report-by-subdistrict',
         icon: Proportions,
+        permission: ['agr.edit'],
     },
 ];
 
 const FerNavItems: NavItem[] = [
     {
-        title: 'การผลิต',
+        title: 'การผลิตปุ๋ย',
         href: '/fertilizer/productions',
         icon: Warehouse,
+        permission: ['fer.view'],
     }
 ];
 
@@ -264,9 +298,9 @@ export function AppSidebar() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
-                                <SidebarMenuButton className="flex w-full items-center">
+                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
                                     <LayoutGrid className="h-6 w-6" />
-                                    <span className="flex-1 font-medium">Dashboard Report</span>
+                                    <span className="flex-1 font-medium hover:text-blue-800">Dashboard Report</span>
                                     <ChevronDown className="ml-auto h-4 w-4" />
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -274,7 +308,10 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                                <NavMain items={DevNavItems} />
+                                <NavMain
+                                 items={DevNavItems.filter(
+                                    item => !item.permission || item.permission.some(p => can(p))
+                                )}/>
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -291,9 +328,9 @@ export function AppSidebar() {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuItem>
-                            <SidebarMenuButton className="flex w-full items-center">
+                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
                                 <MonitorSmartphone className="h-6 w-6" /> {/* ไอคอนหลักของกลุ่ม */}
-                                <span className="flex-1 font-anuphan font-medium text-gray-700">
+                                <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
                                     ฝ่ายสารสนเทศและเทคโนโลยี
                                 </span>
                                 <ChevronDown className="ml-auto h-4 w-4" />
@@ -313,13 +350,13 @@ export function AppSidebar() {
                     </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* PD */}
+                {/* PRO */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuItem>
-                            <SidebarMenuButton className="flex w-full items-center">
+                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
                                 <ChartNoAxesCombined className="h-6 w-6" /> {/* ไอคอนหลักของกลุ่ม */}
-                                <span className="flex-1 font-anuphan font-medium text-gray-700">
+                                <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
                                     ฝ่ายผลิต
                                 </span>
                                 <ChevronDown className="ml-auto h-4 w-4" />
@@ -328,10 +365,36 @@ export function AppSidebar() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                         <DropdownMenuGroup>
-                            <SidebarGroupLabel>PD</SidebarGroupLabel>
+                            <SidebarGroupLabel>PRO</SidebarGroupLabel>
                             {/* กรองเมนู Store ตาม permission */}
                             <NavMain
-                                items={PDNavItem.filter(
+                                items={PRONavItem.filter(
+                                    item => !item.permission || item.permission.some(p => can(p))
+                                )}
+                            />
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* MAR */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
+                                <Truck className="h-6 w-6" /> {/* ไอคอนหลักของกลุ่ม */}
+                                <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
+                                    ฝ่ายขายและการตลาด
+                                </span>
+                                <ChevronDown className="ml-auto h-4 w-4" />
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                        <DropdownMenuGroup>
+                            <SidebarGroupLabel>MAR</SidebarGroupLabel>
+                            {/* กรองเมนู Store ตาม permission */}
+                            <NavMain
+                                items={MARNavItems.filter(
                                     item => !item.permission || item.permission.some(p => can(p))
                                 )}
                             />
@@ -343,9 +406,9 @@ export function AppSidebar() {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuItem>
-                            <SidebarMenuButton className="flex w-full items-center">
+                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
                                 <Warehouse className="h-6 w-6" /> {/* ไอคอนหลักของกลุ่ม */}
-                                <span className="flex-1 font-anuphan font-medium text-blue-800">
+                                <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
                                     Store
                                 </span>
                                 <ChevronDown className="ml-auto h-4 w-4" />
@@ -375,7 +438,7 @@ export function AppSidebar() {
                             <SidebarMenuItem>
                                 <SidebarMenuButton className="flex w-full items-center">
                                     <Fence className="h-6 w-6" />
-                                    <span className="flex-1 font-anuphan font-medium text-green-800">ฝ่ายสวนและต้นกล้า</span>
+                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">ฝ่ายสวนและต้นกล้า</span>
                                     <ChevronDown className="ml-auto h-4 w-4" />
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -383,7 +446,10 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                                <NavMain items={AGRNavItems} />
+                                <NavMain
+                                items={AGRNavItems.filter(
+                                    item => !item.permission || item.permission.some(p => can(p))
+                                )}/>
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -393,9 +459,9 @@ export function AppSidebar() {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
-                                <SidebarMenuButton className="flex w-full items-center">
+                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
                                     <Factory className="h-6 w-6" />
-                                    <span className="flex-1 font-anuphan font-medium text-green-800">โรงปุ๋ย</span>
+                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">โรงปุ๋ย</span>
                                     <ChevronDown className="ml-auto h-4 w-4" />
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -403,7 +469,10 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                                <NavMain items={FerNavItems} />
+                                <NavMain
+                                 items={FerNavItems.filter(
+                                    item => !item.permission || item.permission.some(p => can(p))
+                                )} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -418,9 +487,9 @@ export function AppSidebar() {
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuItem>
-                            <SidebarMenuButton className="flex w-full items-center">
+                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
                                 <Shield className="h-6 w-6" />
-                                <span className="flex-1 font-medium">Admin</span>
+                                <span className="flex-1 font-medium hover:text-blue-800">Admin</span>
                                 <ChevronDown className="ml-auto h-4 w-4" />
                             </SidebarMenuButton>
                         </SidebarMenuItem>
