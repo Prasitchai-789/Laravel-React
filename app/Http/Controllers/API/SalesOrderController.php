@@ -64,29 +64,20 @@ class SalesOrderController extends Controller
 
     public function getSalesOrderInvoice($docuNo)
     {
-        // ✅ ดึง Invoice + Remarks จาก sqlsrv2
+        // ✅ 1) ดึง Invoice + Remarks
         $invoice = DB::connection('sqlsrv2')
             ->table('SOInvHD as H')
             ->join('SOInvDT as D', 'H.SOInvID', '=', 'D.SOInvID')
-
-            ->leftJoin('SOInvHDRemark as R3', function ($join) {
-                $join->on('H.SOInvID', '=', 'R3.SOInvID')->where('R3.ListNo', '=', 3);
-            })
-            ->leftJoin('SOInvHDRemark as R4', function ($join) {
-                $join->on('H.SOInvID', '=', 'R4.SOInvID')->where('R4.ListNo', '=', 4);
-            })
-            ->leftJoin('SOInvHDRemark as R5', function ($join) {
-                $join->on('H.SOInvID', '=', 'R5.SOInvID')->where('R5.ListNo', '=', 5);
-            })
-            ->leftJoin('SOInvHDRemark as R6', function ($join) {
-                $join->on('H.SOInvID', '=', 'R6.SOInvID')->where('R6.ListNo', '=', 6);
-            })
-
+            ->leftJoin('SOInvHDRemark as R3', fn($j) => $j->on('H.SOInvID', '=', 'R3.SOInvID')->where('R3.ListNo', 3))
+            ->leftJoin('SOInvHDRemark as R4', fn($j) => $j->on('H.SOInvID', '=', 'R4.SOInvID')->where('R4.ListNo', 4))
+            ->leftJoin('SOInvHDRemark as R5', fn($j) => $j->on('H.SOInvID', '=', 'R5.SOInvID')->where('R5.ListNo', 5))
+            ->leftJoin('SOInvHDRemark as R6', fn($j) => $j->on('H.SOInvID', '=', 'R6.SOInvID')->where('R6.ListNo', 6))
             ->select(
                 'H.SOInvID',
                 'H.SONo',
                 'H.DocuNo as InvoiceNo',
                 'H.DocuDate',
+                'H.CustPONo',
                 'D.GoodID',
                 'D.GoodName',
                 DB::raw('SUM(D.GoodStockQty) as qty'),
@@ -94,7 +85,7 @@ class SalesOrderController extends Controller
                 DB::raw('ISNULL(R3.Remark, \'\') as transport_company'),
                 DB::raw('ISNULL(R4.Remark, \'\') as reference_no'),
                 DB::raw('ISNULL(R5.Remark, \'\') as weight_destination'),
-                DB::raw('ISNULL(R6.Remark, \'\') as coa_sopid')
+                DB::raw('ISNULL(R6.Remark, \'\') as coa_number')
             )
             ->where('H.SONo', $docuNo)
             ->groupBy(
@@ -102,6 +93,7 @@ class SalesOrderController extends Controller
                 'H.SONo',
                 'H.DocuNo',
                 'H.DocuDate',
+                'H.CustPONo',
                 'D.GoodID',
                 'D.GoodName',
                 'R3.Remark',
@@ -112,26 +104,48 @@ class SalesOrderController extends Controller
             ->orderBy('H.DocuDate', 'DESC')
             ->get();
 
-        // ✅ ดึง COA จาก sqlsrv3
-        $coa = DB::connection('sqlsrv3')
-            ->table('certificates')
-            ->get();
-
-        // ✅ ผูกข้อมูล COA กลับไปที่ invoice
+        // ✅ 2) Loop เติมข้อมูล COA & SOPlan
         foreach ($invoice as $row) {
-            $lot = trim($row->coa_sopid); // จริงคือ Lot No เช่น 1048/2568
 
-            $coaData = DB::connection('sqlsrv3')
+            $lot = trim($row->coa_number); // ← Lot/COA number from remark
+
+            // ✅ ดึง COA จาก sqlsrv3
+            $coa = DB::connection('sqlsrv3')
                 ->table('certificates')
-                ->where('coa_number', $lot)
+                ->where('coa_lot', $lot)     // หรือ coa_number ถ้า remark เป็นเลข COA
+                ->orWhere('coa_number', $lot)
                 ->first();
 
-            $row->coa_number = $coaData->coa_number ?? '';
-            $row->coa_lot = $coaData->coa_lot ?? '';
-            $row->coa_tank = $coaData->coa_tank ?? '';
+            $row->coa_sopid     = $coa->SOPID     ?? '';
+            $row->coa_number    = $coa->coa_number ?? '';
+            $row->coa_lot       = $coa->coa_lot    ?? '';
+            $row->coa_tank      = $coa->coa_tank   ?? '';
+            $row->coa_result_ffa = $coa->result_FFA ?? '';
+            $row->coa_result_moisture = $coa->result_moisture ?? '';
+            $row->coa_result_iv  = $coa->result_IV  ?? '';
+            $row->coa_result_dobi = $coa->result_dobi ?? '';
+            $row->coa_result_shell = $coa->result_shell ?? '';
+            $row->coa_result_kn_moisture = $coa->result_kn_moisture ?? '';
+
+            // ✅ 3) ดึงข้อมูลแผนผลิต SOPlan จาก sqlsrv2
+            if (!empty($row->coa_sopid)) {
+                $plan = DB::connection('sqlsrv2')
+                    ->table('SOPlan')
+                    ->where('SOPID', $row->coa_sopid)
+                    ->first();
+            } else {
+                $plan = null;
+            }
+
+            $row->plan_no        = $plan->SOPID ?? '';
+            $row->plan_date      = $plan->SOPDate ?? '';
+            $row->plan_number_car       = $plan->NumberCar  ?? '';
+            $row->plan_driver_name    = $plan->DriverName ?? '';
+            $row->plan_recipient_name = $plan->Recipient ?? '';
+            $row->plan_net_weight = $plan->NetWei ?? '';
+            $row->plan_status = $plan->Status ?? '';
         }
 
-dd($invoice);
         return response()->json($invoice);
     }
 }

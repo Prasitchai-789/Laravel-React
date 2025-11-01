@@ -1,26 +1,33 @@
+import AppLayout from '@/layouts/app-layout';
+import { BreadcrumbItem } from '@/types';
 import {
-    BarChart3,
+    Award,
+    Box,
     Calendar,
     CheckCircle,
     ChevronDown,
     ChevronUp,
+    ClipboardList,
     Clock,
     DollarSign,
     Download,
     Eye,
+    FileBarChart,
+    FileText,
     Filter,
+    FlaskRound,
+    MapPin,
     Package,
     RefreshCw,
-    Search,
-    FileText,
-    User,
     Scale,
-    Info,
+    Search,
+    Shield,
+    ShoppingCart,
     Truck,
-    X
+    User,
+    Zap,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
 export default function SalesOrder() {
     const [orders, setOrders] = useState([]);
     const [selectedSO, setSelectedSO] = useState(null);
@@ -32,6 +39,7 @@ export default function SalesOrder() {
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [expandedRow, setExpandedRow] = useState(null);
     const [openCard, setOpenCard] = useState(null);
+    const [selectedOrder, setSelectedOrder] = useState(null);
 
     // โหลดข้อมูล SO
     useEffect(() => {
@@ -45,9 +53,10 @@ export default function SalesOrder() {
     };
 
     // ดึงข้อมูล invoice ตาม SO
-    const handleDetail = async (docuNo) => {
+    const handleDetail = async (docuNo, order = null) => {
         setLoading(true);
         setSelectedSO(docuNo);
+        setSelectedOrder(order);
 
         try {
             const res = await fetch(`/sales-order/${docuNo}/invoices`);
@@ -62,10 +71,9 @@ export default function SalesOrder() {
     };
 
     // ฟังก์ชันค้นหาและกรอง
-     const filteredOrders = orders.filter((order) => {
+    const filteredOrders = orders.filter((order) => {
         const matchesSearch =
-            order.DocuNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.CustName.toLowerCase().includes(searchTerm.toLowerCase());
+            order.DocuNo.toLowerCase().includes(searchTerm.toLowerCase()) || order.CustName.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesStatus =
             statusFilter === 'all' ||
@@ -99,548 +107,631 @@ export default function SalesOrder() {
         return sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
     };
 
-     // คำนวณสถิติสำหรับ Modal
+    // คำนวณสถิติสำหรับ Modal
     const calculateStats = () => {
-        const totalWeight = invoiceList.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+        const totalWeightOrigin = invoiceList.reduce((sum, item) => sum + Number(item.qty || 0), 0);
+        const totalWeightDestination = invoiceList.reduce((sum, item) => sum + Number(item.weight_destination || item.qty || 0), 0);
         const totalAmount = invoiceList.reduce((sum, item) => sum + Number(item.amount || 0), 0);
         const totalInvoices = invoiceList.length;
+        const totalDiff = totalWeightDestination - totalWeightOrigin;
+        const totalDiffPercent = totalWeightOrigin > 0 ? (totalDiff / totalWeightOrigin) * 100 : 0;
 
-        return { totalWeight, totalAmount, totalInvoices };
+        return {
+            totalWeightOrigin,
+            totalWeightDestination,
+            totalAmount,
+            totalInvoices,
+            totalDiff,
+            totalDiffPercent,
+        };
     };
 
     const stats = calculateStats();
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Dashboard', href: '/dashboard' },
+        { title: 'จัดการคำสั่งขาย', href: '#' },
+    ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-            {/* Header Section */}
-            <div className="mb-8">
-                <div className="mb-6 flex items-center justify-between">
-                    <div>
-                        <h1 className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-3xl font-bold text-transparent">
-                            📦 จัดการคำสั่งขาย
-                        </h1>
-                        <p className="mt-2 text-gray-600">ติดตามและจัดการคำสั่งขายทั้งหมดในระบบ</p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                        <button className="flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 transition-all duration-300 hover:shadow-md">
-                            <Download size={18} className="mr-2" />
-                            ส่งออก
-                        </button>
-                        <button
-                            onClick={loadOrders}
-                            className="flex items-center rounded-lg bg-blue-600 px-4 py-2 text-white shadow-lg transition-all duration-300 hover:bg-blue-700 hover:shadow-xl"
-                        >
-                            <RefreshCw size={18} className="mr-2" />
-                            รีเฟรช
-                        </button>
-                    </div>
-                </div>
-
-                {/* Stats Cards */}
-                <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
-                    <div className="rounded-2xl border-l-4 border-blue-500 bg-white p-4 shadow-lg">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">ทั้งหมด</p>
-                                <p className="text-2xl font-bold text-gray-800">{orders.length}</p>
-                            </div>
-                            <div className="rounded-full bg-blue-100 p-3">
-                                <Package className="text-blue-600" size={24} />
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+                {/* Header Section */}
+                <div className="mb-8">
+                    <div className="mb-6 flex items-center justify-between font-anuphan">
+                        <div>
+                            <div className="flex items-center space-x-3">
+                                <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 p-3 shadow-lg">
+                                    <Package className="text-white" size={32} />
+                                </div>
+                                <div>
+                                    <h1 className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-4xl font-bold text-transparent">
+                                        จัดการคำสั่งขาย
+                                    </h1>
+                                    <p className="mt-2 flex items-center text-gray-600">
+                                        <Shield className="mr-2 text-green-500" size={16} />
+                                        ติดตามและจัดการคำสั่งขายทั้งหมดในระบบ
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div className="rounded-2xl border-l-4 border-green-500 bg-white p-4 shadow-lg">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">อนุมัติแล้ว</p>
-                                <p className="text-2xl font-bold text-gray-800">{orders.filter((o) => o.AppvFlag === 'Y').length}</p>
-                            </div>
-                            <div className="rounded-full bg-green-100 p-3">
-                                <CheckCircle className="text-green-600" size={24} />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="rounded-2xl border-l-4 border-amber-500 bg-white p-4 shadow-lg">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">รออนุมัติ</p>
-                                <p className="text-2xl font-bold text-gray-800">{orders.filter((o) => o.AppvFlag !== 'Y').length}</p>
-                            </div>
-                            <div className="rounded-full bg-amber-100 p-3">
-                                <Clock className="text-amber-600" size={24} />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="rounded-2xl border-l-4 border-purple-500 bg-white p-4 shadow-lg">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-600">มูลค่ารวม</p>
-                                <p className="text-2xl font-bold text-gray-800">
-                                    ฿{orders.reduce((sum, o) => sum + Number(o.amount || 0), 0).toLocaleString()}
-                                </p>
-                            </div>
-                            <div className="rounded-full bg-purple-100 p-3">
-                                <DollarSign className="text-purple-600" size={24} />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Search and Filter Section */}
-                <div className="mb-6 rounded-2xl bg-white p-6 shadow-lg">
-                    <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-                        <div className="w-full flex-1 md:w-auto">
-                            <div className="relative">
-                                <Search className="absolute top-1/2 left-3 -translate-y-1/2 transform text-gray-400" size={20} />
-                                <input
-                                    type="text"
-                                    placeholder="ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full rounded-xl border border-gray-300 py-3 pr-4 pl-10 transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-3">
-                            <select
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                                className="rounded-xl border border-gray-300 px-4 py-3 transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                        <div className="flex items-center space-x-3">
+                            <button className="flex items-center rounded-xl border border-gray-300 bg-white px-5 py-3 transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                                <Download size={18} className="mr-2" />
+                                ส่งออก
+                            </button>
+                            <button
+                                onClick={loadOrders}
+                                className="flex items-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-white shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
                             >
-                                <option value="all">สถานะทั้งหมด</option>
-                                <option value="approved">อนุมัติแล้ว</option>
-                                <option value="pending">รออนุมัติ</option>
-                            </select>
-
-                            <button className="flex items-center rounded-xl bg-gray-100 px-4 py-3 text-gray-700 transition-all duration-300 hover:bg-gray-200">
-                                <Filter size={18} className="mr-2" />
-                                กรองเพิ่มเติม
+                                <RefreshCw size={18} className="mr-2" />
+                                รีเฟรชข้อมูล
                             </button>
                         </div>
                     </div>
+
+                    {/* Stats Cards */}
+                    <div className="mb-6 grid grid-cols-1 gap-6 font-anuphan md:grid-cols-4">
+                        {[
+                            {
+                                label: 'ทั้งหมด',
+                                value: orders.length,
+                                icon: Package,
+                                color: 'blue',
+                                gradient: 'from-blue-500 to-cyan-500',
+                            },
+                            {
+                                label: 'อนุมัติแล้ว',
+                                value: orders.filter((o) => o.AppvFlag === 'Y').length,
+                                icon: CheckCircle,
+                                color: 'green',
+                                gradient: 'from-green-500 to-emerald-500',
+                            },
+                            {
+                                label: 'รออนุมัติ',
+                                value: orders.filter((o) => o.AppvFlag !== 'Y').length,
+                                icon: Clock,
+                                color: 'amber',
+                                gradient: 'from-amber-500 to-orange-500',
+                            },
+                            {
+                                label: 'มูลค่ารวม',
+                                value: `฿${orders.reduce((sum, o) => sum + Number(o.amount || 0), 0).toLocaleString()}`,
+                                icon: DollarSign,
+                                color: 'purple',
+                                gradient: 'from-purple-500 to-pink-500',
+                            },
+                        ].map((stat, index) => (
+                            <div
+                                key={index}
+                                className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-lg transition-all duration-500 hover:scale-105 hover:shadow-2xl"
+                            >
+                                <div className="relative z-10">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                                            <p className="mt-2 text-3xl font-bold text-gray-800">{stat.value}</p>
+                                        </div>
+                                        <div className={`rounded-2xl bg-gradient-to-r ${stat.gradient} p-3 shadow-lg`}>
+                                            <stat.icon className="text-white" size={24} />
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-gray-200">
+                                        <div
+                                            className={`h-full bg-gradient-to-r ${stat.gradient} transition-all duration-1000`}
+                                            style={{
+                                                width: `${Math.min(100, orders.length > 0 ? (typeof stat.value === 'number' ? (stat.value / orders.length) * 100 : 100) : 0)}%`,
+                                            }}
+                                        ></div>
+                                    </div>
+                                </div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-white to-gray-50 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Search and Filter Section */}
+                    <div className="mb-6 rounded-2xl bg-white p-6 font-anuphan shadow-xl">
+                        <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+                            <div className="w-full flex-1 md:w-auto">
+                                <div className="relative">
+                                    <Search className="absolute top-1/2 left-4 -translate-y-1/2 transform text-gray-400" size={20} />
+                                    <input
+                                        type="text"
+                                        placeholder="ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full rounded-2xl border border-gray-300 py-4 pr-6 pl-12 transition-all duration-300 focus:border-blue-500 focus:shadow-lg focus:ring-4 focus:ring-blue-200"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-3">
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    className="rounded-2xl border border-gray-300 bg-white px-5 py-4 transition-all duration-300 focus:border-blue-500 focus:shadow-lg focus:ring-4 focus:ring-blue-200"
+                                >
+                                    <option value="all">สถานะทั้งหมด</option>
+                                    <option value="approved">อนุมัติแล้ว</option>
+                                    <option value="pending">รออนุมัติ</option>
+                                </select>
+
+                                <button className="flex items-center rounded-2xl bg-gradient-to-r from-gray-600 to-gray-700 px-5 py-4 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                                    <Filter size={18} className="mr-2" />
+                                    กรองเพิ่มเติม
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            {/* Orders Table */}
-            <div className="overflow-hidden rounded-2xl bg-white shadow-lg">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-                                <th
-                                    className="cursor-pointer p-4 text-left font-semibold transition-colors hover:bg-blue-600"
-                                    onClick={() => handleSort('DocuNo')}
-                                >
-                                    <div className="flex items-center">
-                                        เลขที่ SO
-                                        {getSortIcon('DocuNo')}
-                                    </div>
-                                </th>
-                                <th
-                                    className="cursor-pointer p-4 text-left font-semibold transition-colors hover:bg-blue-600"
-                                    onClick={() => handleSort('DocuDate')}
-                                >
-                                    <div className="flex items-center">
-                                        วันที่สั่ง
-                                        {getSortIcon('DocuDate')}
-                                    </div>
-                                </th>
-                                <th
-                                    className="cursor-pointer p-4 text-left font-semibold transition-colors hover:bg-blue-600"
-                                    onClick={() => handleSort('CustName')}
-                                >
-                                    <div className="flex items-center">
-                                        ลูกค้า
-                                        {getSortIcon('CustName')}
-                                    </div>
-                                </th>
-                                <th
-                                    className="cursor-pointer p-4 text-right font-semibold transition-colors hover:bg-blue-600"
-                                    onClick={() => handleSort('qty_order')}
-                                >
-                                    <div className="flex items-center justify-end">
-                                        สั่ง (kg)
-                                        {getSortIcon('qty_order')}
-                                    </div>
-                                </th>
-                                <th className="p-4 text-right font-semibold">ออก Inv (kg)</th>
-                                <th className="p-4 text-right font-semibold">คงเหลือ (kg)</th>
-                                <th
-                                    className="cursor-pointer p-4 text-right font-semibold transition-colors hover:bg-blue-600"
-                                    onClick={() => handleSort('amount')}
-                                >
-                                    <div className="flex items-center justify-end">
-                                        มูลค่า
-                                        {getSortIcon('amount')}
-                                    </div>
-                                </th>
-                                <th className="p-4 text-center font-semibold">สถานะ</th>
-                                <th className="p-4 text-center font-semibold">จัดการ</th>
-                            </tr>
-                        </thead>
-
-                        <tbody className="divide-y divide-gray-200">
-                            {sortedOrders.map((o, i) => (
-                                <>
-                                    <tr key={i} className="group transition-all duration-200 hover:bg-blue-50">
-                                        <td className="p-4">
-                                            <button
-                                                className="flex transform items-center font-bold text-blue-600 transition-colors duration-200 group-hover:scale-105 hover:text-blue-800"
-                                                onClick={() => handleDetail(o.DocuNo)}
+                {/* Orders Table */}
+                <div className="overflow-hidden rounded-2xl font-anuphan shadow-2xl">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white">
+                                    {[
+                                        { key: 'DocuNo', label: 'เลขที่ SO', align: 'left' },
+                                        { key: 'DocuDate', label: 'วันที่สั่ง', align: 'left' },
+                                        { key: 'CustName', label: 'ลูกค้า', align: 'left' },
+                                        { key: 'qty_order', label: 'สั่ง (kg)', align: 'right' },
+                                        { key: null, label: 'ออก Inv (kg)', align: 'right' },
+                                        { key: null, label: 'คงเหลือ (kg)', align: 'right' },
+                                        { key: 'amount', label: 'มูลค่า', align: 'right' },
+                                        // { key: null, label: 'สถานะ', align: 'center' },
+                                        { key: null, label: 'จัดการ', align: 'center' },
+                                    ].map((header, index) => (
+                                        <th
+                                            key={index}
+                                            className={`p-5 font-semibold text-${header.align} hover:bg-opacity-20 cursor-pointer transition-colors hover:bg-white`}
+                                            onClick={() => header.key && handleSort(header.key)}
+                                        >
+                                            <div
+                                                className={`flex items-center ${header.align === 'right' ? 'justify-end' : header.align === 'center' ? 'justify-center' : ''}`}
                                             >
-                                                <Package size={16} className="mr-2" />
-                                                {o.DocuNo}
+                                                {header.label}
+                                                {header.key && getSortIcon(header.key)}
+                                            </div>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+
+                            <tbody className="divide-y divide-gray-200">
+                                {sortedOrders.map((o, i) => (
+                                    <tr key={`order-${o.DocuNo}-${i}`} className="group transition-all duration-300 hover:cursor-pointer">
+                                        <td className="p-5">
+                                            <button
+                                                className="flex transform items-center font-bold text-blue-600 transition-all duration-300 group-hover:scale-105 group-hover:text-blue-700"
+                                                onClick={() => handleDetail(o.DocuNo, o)}
+                                            >
+                                                <div className="rounded-xl bg-blue-100 p-2 transition-colors group-hover:bg-blue-200">
+                                                    <Package size={16} className="text-blue-600" />
+                                                </div>
+                                                <span className="ml-3">{o.DocuNo}</span>
                                             </button>
                                         </td>
 
-                                        <td className="flex items-center p-4 text-gray-700">
-                                            <Calendar size={14} className="mr-2 text-gray-400" />
-                                            {o.DocuDate?.substring(0, 10)}
-                                        </td>
-                                        <td className="p-4 text-gray-700">
+                                        <td className="p-5 text-gray-700">
                                             <div className="flex items-center">
-                                                <User size={14} className="mr-2 text-gray-400" />
-                                                <span className="max-w-[150px] truncate">{o.CustName}</span>
+                                                <Calendar size={14} className="mr-3 text-gray-400" />
+                                                {o.DocuDate?.substring(0, 10)}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-right font-medium">{Number(o.qty_order).toLocaleString()}</td>
-                                        <td className="p-4 text-right font-medium text-blue-600">{Number(o.qty_invoice || 0).toLocaleString()}</td>
-                                        <td className={`p-4 text-right font-bold ${o.qty_balance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                                        <td className="p-5 text-gray-700">
+                                            <div className="flex items-center">
+                                                <User size={14} className="mr-3 text-gray-400" />
+                                                <span className="max-w-[150px] truncate font-medium">{o.CustName}</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-5 text-right font-semibold text-gray-800">{Number(o.qty_order).toLocaleString()}</td>
+                                        <td className="p-5 text-right font-semibold text-blue-600">{Number(o.qty_invoice || 0).toLocaleString()}</td>
+                                        <td className={`p-5 text-right text-lg font-bold ${o.qty_balance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
                                             {Number(o.qty_balance).toLocaleString()}
                                         </td>
-                                        <td className="flex items-center justify-end p-4 text-right font-semibold text-green-600">
-                                            <DollarSign size={14} className="mr-1" />
-                                            {Number(o.amount).toLocaleString()}
-                                        </td>
-
-                                        <td className="p-4">
-                                            <div className="flex justify-center">
-                                                {o.AppvFlag === 'Y' ? (
-                                                    <span className="flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 shadow-sm">
-                                                        <CheckCircle size={12} className="mr-1" />
-                                                        อนุมัติ
-                                                    </span>
-                                                ) : (
-                                                    <span className="flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 shadow-sm">
-                                                        <Clock size={12} className="mr-1" />
-                                                        {o.StatusRemark || 'รออนุมัติ'}
-                                                    </span>
-                                                )}
+                                        <td className="p-5 text-right">
+                                            <div className="flex items-center justify-end font-bold text-green-600">
+                                                <DollarSign size={16} className="mr-2" />
+                                                {Number(o.amount).toLocaleString()}
                                             </div>
                                         </td>
 
-                                        <td className="p-4">
+                                        {/* <td className="p-5">
+                                        <div className="flex justify-center">
+                                            {o.AppvFlag === 'Y' ? (
+                                                <span className="flex items-center rounded-full bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 text-xs font-bold text-white shadow-lg">
+                                                    <CheckCircle size={12} className="mr-1" />
+                                                    อนุมัติ
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-xs font-bold text-white shadow-lg">
+                                                    <Clock size={12} className="mr-1" />
+                                                    {o.StatusRemark || 'รออนุมัติ'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td> */}
+
+                                        <td className="p-5">
                                             <div className="flex justify-center space-x-2">
                                                 <button
-                                                    className="transform rounded-lg bg-blue-50 p-2 text-blue-600 transition-all duration-300 hover:scale-110 hover:bg-blue-100 hover:shadow-md"
-                                                    onClick={() => handleDetail(o.DocuNo)}
+                                                    className="transform rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 p-3 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:cursor-pointer hover:shadow-xl"
+                                                    onClick={() => handleDetail(o.DocuNo, o)}
                                                     title="ดูรายละเอียด"
                                                 >
                                                     <Eye size={16} />
                                                 </button>
-                                                <button
-                                                    className="transform rounded-lg bg-green-50 p-2 text-green-600 transition-all duration-300 hover:scale-110 hover:bg-green-100 hover:shadow-md"
-                                                    title="ดูสถิติ"
-                                                >
-                                                    <BarChart3 size={16} />
-                                                </button>
+                                                {/* <button
+                                                className="transform rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 p-3 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl"
+                                                title="ดูสถิติ"
+                                            >
+                                                <BarChart3 size={16} />
+                                            </button> */}
                                             </div>
                                         </td>
                                     </tr>
-                                </>
-                            ))}
-                        </tbody>
-                    </table>
+                                ))}
+                            </tbody>
+                        </table>
 
-                    {sortedOrders.length === 0 && (
-                        <div className="py-12 text-center">
-                            <Package size={48} className="mx-auto mb-4 text-gray-300" />
-                            <p className="text-lg text-gray-500">ไม่พบข้อมูลคำสั่งขาย</p>
-                            <p className="mt-1 text-sm text-gray-400">ลองเปลี่ยนคำค้นหาหรือเงื่อนไขการกรอง</p>
-                        </div>
-                    )}
+                        {sortedOrders.length === 0 && (
+                            <div className="py-20 text-center">
+                                <div className="mx-auto mb-4 inline-block rounded-2xl bg-gray-100 p-6">
+                                    <Package size={48} className="text-gray-400" />
+                                </div>
+                                <p className="text-xl font-semibold text-gray-600">ไม่พบข้อมูลคำสั่งขาย</p>
+                                <p className="mt-2 text-gray-400">ลองเปลี่ยนคำค้นหาหรือเงื่อนไขการกรอง</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
 
-            {/* Modern Modal */}
-            {isModalOpenDetail && (
-                <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4 backdrop-blur-sm">
-                    <div className="animate-scale-in w-full max-w-6xl">
-                        <div className="flex h-[85vh] flex-col rounded-3xl bg-white shadow-2xl">
-                            {/* Header */}
-                            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-4">
-                                        <div className="rounded-2xl bg-white bg-opacity-20 p-3">
-                                            <FileText size={28} className="text-white" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-2xl font-bold text-white">รายงานใบแจ้งหนี้</h2>
-                                            <p className="mt-1 text-blue-100 opacity-90">
-                                                SO: <span className="font-semibold">{selectedSO}</span>
-                                            </p>
+                {/* Enhanced Modern Modal */}
+                {isModalOpenDetail && (
+                    <div className="bg-opacity-20 fixed inset-0 z-50 flex items-center justify-center bg-gray-300 font-anuphan backdrop-blur-md">
+                        <div className="shadow-3xl flex max-h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white">
+                            {/* Enhanced Header - Fixed */}
+                            <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 px-6 py-4">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="bg-opacity-20 rounded-xl bg-white p-2 shadow-lg">
+                                                <FileBarChart className="text-blue-600" size={24} />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-xl font-bold text-white">รายงานใบแจ้งหนี้</h2>
+                                                <div className="mt-2 flex flex-wrap gap-2 text-blue-100">
+                                                    <div className="bg-opacity-10 flex items-center space-x-2 rounded-lg bg-white px-4 py-1 text-sm text-blue-500">
+                                                        <Package size={14} />
+                                                        <span className="font-medium text-blue-500">
+                                                            SO: <span className="font-medium text-blue-500">{selectedSO}</span>
+                                                        </span>
+                                                    </div>
+                                                    <div className="bg-opacity-10 flex items-center space-x-2 rounded-lg bg-white px-4 py-1 text-sm text-blue-500">
+                                                        <Box size={14} />
+                                                        <span>
+                                                            สินค้า: <span className="font-medium text-blue-500">{invoiceList[0]?.GoodName}</span>
+                                                        </span>
+                                                    </div>
+                                                    <div className="bg-opacity-10 flex items-center space-x-2 rounded-lg bg-white px-4 py-1 text-sm text-blue-500">
+                                                        <ShoppingCart size={14} />
+                                                        <span>
+                                                            PO: <span className="font-medium text-blue-500">{invoiceList[0]?.CustPONo || '-'}</span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <button
                                         onClick={() => setIsModalOpenDetail(false)}
-                                        className="rounded-full p-2 transition-all duration-300 hover:bg-white hover:bg-opacity-20 hover:scale-110"
+                                        className="rounded-full bg-transparent p-1.5 text-red-500 transition-colors duration-200 hover:cursor-pointer hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-300 focus:outline-none"
                                     >
-                                        <X size={24} className="text-white" />
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path
+                                                fillRule="evenodd"
+                                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                                clipRule="evenodd"
+                                            />
+                                        </svg>
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Stats Overview */}
-                            <div className="border-b bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4">
-                                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                    <div className="flex items-center space-x-3 rounded-xl bg-white p-3 shadow-sm">
-                                        <div className="rounded-lg bg-blue-100 p-2">
-                                            <Package size={20} className="text-blue-600" />
+                            {/* Enhanced Summary Cards - Compact */}
+                            <div className="flex-shrink-0 border-b bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4">
+                                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                                    {[
+                                        {
+                                            label: 'Invoice',
+                                            value: stats.totalInvoices,
+                                            icon: FileText,
+                                            gradient: 'from-blue-500 to-cyan-500',
+                                        },
+                                        {
+                                            label: 'น้ำหนักต้นทาง',
+                                            value: `${stats.totalWeightOrigin.toLocaleString()} kg`,
+                                            icon: Scale,
+                                            gradient: 'from-green-500 to-emerald-500',
+                                        },
+                                        {
+                                            label: 'น้ำหนักปลายทาง',
+                                            value: `${stats.totalWeightDestination.toLocaleString()} kg`,
+                                            icon: Truck,
+                                            gradient: 'from-purple-500 to-pink-500',
+                                        },
+                                        {
+                                            label: 'มูลค่ารวม',
+                                            value: `฿${stats.totalAmount.toLocaleString()}`,
+                                            icon: DollarSign,
+                                            gradient: 'from-orange-500 to-red-500',
+                                        },
+                                    ].map((stat, index) => (
+                                        <div key={index} className="rounded-xl bg-white p-3 shadow-sm">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-xs font-medium text-gray-600">{stat.label}</p>
+                                                    <p className="mt-1 text-sm font-bold text-gray-800">{stat.value}</p>
+                                                </div>
+                                                <div className={`rounded-lg bg-gradient-to-r ${stat.gradient} p-2`}>
+                                                    <stat.icon className="text-white" size={16} />
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-sm text-gray-600">จำนวน Invoice</p>
-                                            <p className="text-xl font-bold text-gray-800">{stats.totalInvoices} รายการ</p>
+                                    ))}
+                                </div>
+
+                                {/* Overall Weight Difference - Compact */}
+                                <div className="mt-4 rounded-xl bg-gradient-to-r from-slate-800 to-gray-900 p-4 text-white">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-2">
+                                            <Zap className="text-yellow-400" size={18} />
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-300">ผลต่างน้ำหนักรวม</p>
+                                                <p className={`text-lg font-bold ${stats.totalDiff >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                    {stats.totalDiff >= 0 ? '+' : ''}
+                                                    {stats.totalDiff.toLocaleString()} kg
+                                                    <span className="ml-1 text-sm">({stats.totalDiffPercent.toFixed(1)}%)</span>
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center space-x-3 rounded-xl bg-white p-3 shadow-sm">
-                                        <div className="rounded-lg bg-green-100 p-2">
-                                            <Scale size={20} className="text-green-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-600">น้ำหนักรวม</p>
-                                            <p className="text-xl font-bold text-gray-800">{stats.totalWeight.toLocaleString()} kg</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center space-x-3 rounded-xl bg-white p-3 shadow-sm">
-                                        <div className="rounded-lg bg-purple-100 p-2">
-                                            <DollarSign size={20} className="text-purple-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-600">มูลค่ารวม</p>
-                                            <p className="text-xl font-bold text-gray-800">฿{stats.totalAmount.toLocaleString()}</p>
-                                        </div>
+                                        <Award className="text-yellow-400" size={20} />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Content */}
-                            <div className="flex-1 overflow-hidden">
-                                {loading ? (
-                                    <div className="flex h-full flex-col items-center justify-center py-16">
-                                        <div className="border-blue-600 mb-4 h-16 w-16 animate-spin rounded-full border-4 border-t-transparent"></div>
-                                        <p className="text-lg text-gray-600">กำลังโหลดข้อมูล...</p>
-                                        <p className="mt-1 text-sm text-gray-400">กรุณารอสักครู่</p>
-                                    </div>
-                                ) : (
-                                    <div className="flex h-full flex-col">
-                                        {/* Invoice List */}
-                                        <div className="flex-1 overflow-y-auto p-6">
-                                            <div className="space-y-4">
-                                                {invoiceList.map((i, idx) => {
-                                                    const isOpen = openCard === idx;
-                                                    const weightOrigin = Number(i.qty);
-                                                    const weightDestination = Number(i.weight_destination || weightOrigin);
-                                                    const netWeight = weightDestination;
-                                                    const diff = weightDestination - weightOrigin;
-                                                    const diffPercent = weightOrigin > 0 ? (diff / weightOrigin) * 100 : 0;
+                            {/* Enhanced Invoice List - Scrollable */}
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <div className="space-y-4">
+                                    {invoiceList.map((i, idx) => {
+                                        const isOpen = openCard === idx;
+                                        const w1 = Number(i.qty);
+                                        const w2 = Number(i.weight_destination || w1);
+                                        const diff = w2 - w1;
+                                        const diffPct = w1 > 0 ? (diff / w1) * 100 : 0;
+                                        const hasQualityData = i.coa_result_ffa || i.coa_result_shell;
 
-                                                    return (
-                                                        <div
-                                                            key={idx}
-                                                            className={`transform rounded-2xl border transition-all duration-300 ${
-                                                                isOpen
-                                                                    ? 'border-blue-300 bg-blue-50 shadow-lg'
-                                                                    : 'border-gray-200 bg-white shadow-sm hover:shadow-md'
-                                                            }`}
-                                                        >
-                                                            {/* Card Header */}
+                                        return (
+                                            <div
+                                                key={`invoice-${i.InvoiceNo}-${idx}`}
+                                                className={`group cursor-pointer rounded-xl border transition-all duration-300 ${
+                                                    isOpen
+                                                        ? 'border-blue-300 bg-blue-50 shadow-md'
+                                                        : 'border-gray-200 bg-white shadow-sm hover:border-blue-200 hover:shadow-md'
+                                                }`}
+                                            >
+                                                {/* Compact Invoice Header */}
+                                                <div className="p-4" onClick={() => setOpenCard(isOpen ? null : idx)}>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-start space-x-3">
                                                             <div
-                                                                className="cursor-pointer p-5"
-                                                                onClick={() => setOpenCard(isOpen ? null : idx)}
+                                                                className={`rounded-lg p-2 transition-all duration-300 ${
+                                                                    isOpen
+                                                                        ? 'bg-blue-500 text-white shadow-md'
+                                                                        : 'bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600'
+                                                                }`}
                                                             >
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="flex items-center space-x-4">
-                                                                        <div className={`rounded-xl p-2 ${
-                                                                            isOpen ? 'bg-blue-100' : 'bg-gray-100'
-                                                                        }`}>
-                                                                            <FileText size={20} className={
-                                                                                isOpen ? 'text-blue-600' : 'text-gray-600'
-                                                                            } />
-                                                                        </div>
-                                                                        <div>
-                                                                            <h3 className="text-lg font-bold text-gray-800">
-                                                                                {i.InvoiceNo}
-                                                                            </h3>
-                                                                            <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-gray-600">
-                                                                                <span className="flex items-center">
-                                                                                    <Calendar size={14} className="mr-1" />
-                                                                                    {i.DocuDate.substring(0, 10)}
-                                                                                </span>
-                                                                                <span className="flex items-center">
-                                                                                    <Truck size={14} className="mr-1" />
-                                                                                    {i.transport_company || 'ไม่ระบุ'}
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
+                                                                <FileText size={18} />
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <h3 className="truncate text-lg font-bold text-gray-800">{i.InvoiceNo}</h3>
+                                                                <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-600">
+                                                                    <div className="flex items-center space-x-1">
+                                                                        <Calendar size={12} className="text-blue-500" />
+                                                                        <span>{i.DocuDate.substring(0, 10)}</span>
                                                                     </div>
-
-                                                                    <div className="flex items-center space-x-4">
-                                                                        {/* Weight Info */}
-                                                                        <div className="text-right">
-                                                                            <div className="flex items-center space-x-2">
-                                                                                <span className="text-sm text-gray-600">ต้นทาง:</span>
-                                                                                <span className="font-semibold text-gray-700">
-                                                                                    {weightOrigin.toLocaleString()} kg
-                                                                                </span>
-                                                                            </div>
-                                                                            <div className="flex items-center space-x-2">
-                                                                                <span className="text-sm text-gray-600">ปลายทาง:</span>
-                                                                                <span className="font-semibold text-green-600">
-                                                                                    {weightDestination.toLocaleString()} kg
-                                                                                </span>
-                                                                            </div>
-                                                                            <div className={`flex items-center space-x-2 ${
-                                                                                diff < 0 ? 'text-red-600' : 'text-green-600'
-                                                                            }`}>
-                                                                                <span className="text-sm">
-                                                                                    {diff >= 0 ? '+' : ''}{diff.toLocaleString()} kg
-                                                                                </span>
-                                                                                <span className="text-xs">
-                                                                                    ({diffPercent.toFixed(1)}%)
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-
-                                                                        {/* Expand Icon */}
-                                                                        <div className={`transform transition-transform duration-300 ${
-                                                                            isOpen ? 'rotate-180' : ''
-                                                                        }`}>
-                                                                            <ChevronDown size={20} className="text-gray-400" />
-                                                                        </div>
+                                                                    <div className="flex items-center space-x-1">
+                                                                        <Truck size={12} className="text-purple-500" />
+                                                                        <span className="max-w-[120px] truncate">
+                                                                            {i.transport_company || 'ไม่ระบุ'}
+                                                                        </span>
                                                                     </div>
+                                                                    {hasQualityData && (
+                                                                        <div className="flex items-center space-x-1">
+                                                                            <FlaskRound size={12} className="text-green-500" />
+                                                                            <span className="text-green-600">มีผลตรวจคุณภาพ</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="ml-4 text-right">
+                                                            {/* Compact Weight Comparison */}
+                                                            <div className="mb-2 space-y-1 text-sm">
+                                                                <div className="flex items-center justify-end space-x-2">
+                                                                    <span className="text-xs text-gray-500">ต้นทาง:</span>
+                                                                    <span className="font-semibold text-gray-800">{w1.toLocaleString()} kg</span>
+                                                                </div>
+                                                                <div className="flex items-center justify-end space-x-2">
+                                                                    <span className="text-xs text-gray-500">ปลายทาง:</span>
+                                                                    <span className="font-semibold text-green-600">{w2.toLocaleString()} kg</span>
                                                                 </div>
                                                             </div>
 
-                                                            {/* Expandable Content */}
-                                                            {isOpen && (
-                                                                <div className="animate-slide-down border-t border-blue-200 bg-white px-5 pb-5">
-                                                                    <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-2">
-                                                                        {/* Left Column - Basic Info */}
-                                                                        <div className="space-y-3">
-                                                                            <h4 className="font-semibold text-gray-700">ข้อมูลพื้นฐาน</h4>
-                                                                            <div className="space-y-2">
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-gray-600">สินค้า:</span>
-                                                                                    <span className="font-medium">{i.GoodName}</span>
-                                                                                </div>
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-gray-600">เลขอ้างอิง:</span>
-                                                                                    <span className="font-medium">{i.reference_no || '-'}</span>
-                                                                                </div>
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-gray-600">สถานะ:</span>
-                                                                                    <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
-                                                                                        สำเร็จ
-                                                                                    </span>
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
+                                                            {/* Compact Difference Badge */}
+                                                            <div
+                                                                className={`rounded-lg px-3 py-1 text-sm font-semibold ${
+                                                                    diff < 0
+                                                                        ? 'bg-red-100 text-red-700'
+                                                                        : diff > 0
+                                                                          ? 'bg-green-100 text-green-700'
+                                                                          : 'bg-gray-100 text-gray-700'
+                                                                }`}
+                                                            >
+                                                                {diff >= 0 ? '+' : ''}
+                                                                {diff.toLocaleString()} kg ({diffPct.toFixed(1)}%)
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-                                                                        {/* Right Column - Weight Details */}
-                                                                        <div className="space-y-3">
-                                                                            <h4 className="font-semibold text-gray-700">รายละเอียดน้ำหนัก</h4>
-                                                                            <div className="space-y-2">
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-gray-600">น้ำหนักต้นทาง:</span>
-                                                                                    <span className="font-medium">{weightOrigin.toLocaleString()} kg</span>
-                                                                                </div>
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-gray-600">น้ำหนักปลายทาง:</span>
-                                                                                    <span className="font-medium text-green-600">
-                                                                                        {weightDestination.toLocaleString()} kg
-                                                                                    </span>
-                                                                                </div>
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-gray-600">น้ำหนักสุทธิ:</span>
-                                                                                    <span className="font-medium text-blue-600">
-                                                                                        {netWeight.toLocaleString()} kg
-                                                                                    </span>
-                                                                                </div>
-                                                                                <div className="flex justify-between">
-                                                                                    <span className="text-gray-600">มูลค่า:</span>
-                                                                                    <span className="font-bold text-green-600">
-                                                                                        ฿{Number(i.amount).toLocaleString()}
-                                                                                    </span>
-                                                                                </div>
+                                                {/* Expandable Details */}
+                                                {isOpen && (
+                                                    <div className="animate-slide-down border-t border-blue-200 bg-white px-4 pb-4">
+                                                        <div className="grid grid-cols-1 gap-4 pt-4 md:grid-cols-2">
+                                                            {/* Shipping Information */}
+                                                            <div className="space-y-3">
+                                                                <h4 className="flex items-center space-x-2 text-sm font-bold text-gray-800">
+                                                                    <Truck size={16} className="text-blue-600" />
+                                                                    <span>ข้อมูลการขนส่ง</span>
+                                                                </h4>
+                                                                <div className="grid grid-cols-2 gap-3 rounded-lg bg-gray-50 p-3">
+                                                                    {[
+                                                                        { label: 'ทะเบียนรถ', value: i.plan_number_car, icon: Truck },
+                                                                        { label: 'คนขับ', value: i.plan_driver_name, icon: User },
+                                                                        { label: 'ปลายทาง', value: i.plan_recipient_name, icon: MapPin },
+                                                                        { label: 'เลขอ้างอิง', value: i.reference_no, icon: ClipboardList },
+                                                                    ].map((item, index) => (
+                                                                        <div key={index} className="space-y-1">
+                                                                            <div className="flex items-center space-x-1">
+                                                                                <item.icon size={12} className="text-gray-500" />
+                                                                                <p className="text-xs font-medium text-gray-600">{item.label}</p>
                                                                             </div>
+                                                                            <p className="truncate text-sm font-semibold text-gray-800">
+                                                                                {item.value || '-'}
+                                                                            </p>
                                                                         </div>
-                                                                    </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
 
-                                                                    {/* Difference Indicator */}
-                                                                    <div className="mt-4 rounded-lg bg-gray-50 p-3">
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div className="flex items-center space-x-2">
-                                                                                <Info size={16} className="text-blue-500" />
-                                                                                <span className="text-sm text-gray-600">
-                                                                                    ผลต่างน้ำหนักระหว่างต้นทางและปลายทาง
-                                                                                </span>
+                                                            {/* Quality Results */}
+                                                            {hasQualityData && (
+                                                                <div className="space-y-3">
+                                                                    <h4 className="flex items-center space-x-2 text-sm font-bold text-gray-800">
+                                                                        <FlaskRound size={16} className="text-green-600" />
+                                                                        <span>
+                                                                            ผลตรวจคุณภาพ
+                                                                            <span className="ml-1 text-xs text-blue-600">
+                                                                                COA: {i.coa_number || 'N/A'}
+                                                                            </span>
+                                                                        </span>
+                                                                    </h4>
+                                                                    <div className="rounded-lg border border-green-200 bg-green-50 p-3">
+                                                                        {i.GoodID === 2147 && (
+                                                                            <div className="grid grid-cols-2 gap-3">
+                                                                                {[
+                                                                                    { label: 'FFA', value: i.coa_result_ffa },
+                                                                                    { label: 'Moisture', value: i.coa_result_moisture },
+                                                                                    { label: 'IV', value: i.coa_result_iv },
+                                                                                    { label: 'DOBI', value: i.coa_result_dobi },
+                                                                                ].map((param, idx) => (
+                                                                                    <div key={idx} className="text-center">
+                                                                                        <p className="text-xs font-medium text-gray-600">
+                                                                                            {param.label}
+                                                                                        </p>
+                                                                                        <p className="mt-1 text-sm font-bold text-gray-800">
+                                                                                            {param.value || '-'}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                ))}
                                                                             </div>
-                                                                            <div className={`text-sm font-semibold ${
-                                                                                diff < 0 ? 'text-red-600' : 'text-green-600'
-                                                                            }`}>
-                                                                                {diff >= 0 ? '+' : ''}{diff.toLocaleString()} kg ({diffPercent.toFixed(1)}%)
+                                                                        )}
+
+                                                                        {i.GoodID === 2152 && (
+                                                                            <div className="grid grid-cols-2 gap-3">
+                                                                                {[
+                                                                                    { label: 'Shell', value: i.coa_result_shell },
+                                                                                    { label: 'Kernel Moisture', value: i.coa_result_kn_moisture },
+                                                                                ].map((param, idx) => (
+                                                                                    <div key={idx} className="text-center">
+                                                                                        <p className="text-xs font-medium text-gray-600">
+                                                                                            {param.label}
+                                                                                        </p>
+                                                                                        <p className="mt-1 text-sm font-bold text-gray-800">
+                                                                                            {param.value || '-'}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                ))}
                                                                             </div>
-                                                                        </div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    );
-                                                })}
 
-                                                {invoiceList.length === 0 && (
-                                                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                                                        <div className="rounded-2xl bg-gray-100 p-6">
-                                                            <Package size={48} className="mx-auto text-gray-400" />
+                                                        {/* Financial Info */}
+                                                        <div className="mt-4 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 p-3">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center space-x-2">
+                                                                    <DollarSign size={16} className="text-white" />
+                                                                    <span className="text-sm font-bold text-white">มูลค่าสินค้า</span>
+                                                                </div>
+                                                                <div className="text-lg font-bold text-white">
+                                                                    ฿{Number(i.amount || 0).toLocaleString()}
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <p className="mt-4 text-lg font-medium text-gray-600">ไม่มีข้อมูลใบแจ้งหนี้</p>
-                                                        <p className="mt-1 text-gray-400">ยังไม่มีการออกใบแจ้งหนี้สำหรับคำสั่งขายนี้</p>
                                                     </div>
                                                 )}
                                             </div>
-                                        </div>
+                                        );
+                                    })}
 
-                                        {/* Footer */}
-                                        <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                                                    <Calendar size={14} />
-                                                    <span>อัพเดทล่าสุด: {new Date().toLocaleDateString('th-TH')}</span>
-                                                </div>
-                                                <div className="flex space-x-3">
-                                                    <button className="rounded-xl border border-gray-300 bg-white px-6 py-2 font-medium text-gray-700 transition-all duration-300 hover:bg-gray-50">
-                                                        พิมพ์รายงาน
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setIsModalOpenDetail(false)}
-                                                        className="rounded-xl bg-blue-600 px-6 py-2 font-medium text-white shadow-lg transition-all duration-300 hover:bg-blue-700 hover:shadow-xl"
-                                                    >
-                                                        ปิดรายงาน
-                                                    </button>
-                                                </div>
+                                    {invoiceList.length === 0 && (
+                                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                                            <div className="rounded-xl bg-gray-100 p-6">
+                                                <FileText size={40} className="mx-auto text-gray-400" />
                                             </div>
+                                            <p className="mt-4 text-lg font-bold text-gray-600">ไม่มีข้อมูลใบแจ้งหนี้</p>
+                                            <p className="mt-1 text-sm text-gray-500">ยังไม่มีการออกใบแจ้งหนี้สำหรับคำสั่งขายนี้</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Compact Footer */}
+                            <div className="flex-shrink-0 border-t bg-gray-50 px-6 py-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-4 text-xs text-gray-600">
+                                        <div className="flex items-center space-x-1">
+                                            <Calendar size={12} />
+                                            <span>รายงาน: {new Date().toLocaleDateString('th-TH')}</span>
+                                        </div>
+                                        <div className="flex items-center space-x-1">
+                                            <Clock size={12} />
+                                            <span>อัพเดท: {new Date().toLocaleTimeString('th-TH')}</span>
                                         </div>
                                     </div>
-                                )}
+                                    <div className="flex space-x-2">
+                                        <button className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-50">
+                                            พิมพ์รายงาน
+                                        </button>
+                                        <button
+                                            onClick={() => setIsModalOpenDetail(false)}
+                                            className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:shadow-lg"
+                                        >
+                                            ปิดรายงาน
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
+        </AppLayout>
     );
 }
