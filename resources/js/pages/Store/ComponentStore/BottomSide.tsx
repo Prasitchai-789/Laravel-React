@@ -391,14 +391,14 @@ const BottomSide: React.FC<BottomSideProps> = ({
     }
 
     // Common card container class
-    const cardClass = "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 h-full flex flex-col min-h-0";
+    const cardClass = "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700  flex flex-col min-h-0";
 
     return (
         <>
 
 
-            <div className="w-full h-screen overflow-auto bg-gray-50 dark:bg-gray-900 p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full min-h-0 auto-rows-fr">
+            <div className="w-full  overflow-auto  dark:bg-gray-900 p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6  auto-rows-fr">
                     {/* สัดส่วนการเบิกตามฝ่าย */}
                     <div className={cardClass}>
                         {/* Header */}
@@ -720,13 +720,13 @@ const BottomSide: React.FC<BottomSideProps> = ({
 
                         {/* Budget Items List */}
                         <div className="space-y-2 max-h-80 overflow-y-auto mb-4 flex-1 min-h-0
-                [&::-webkit-scrollbar]:w-1.5
-                [&::-webkit-scrollbar-track]:bg-gray-100
-                [&::-webkit-scrollbar-track]:rounded-full
-                [&::-webkit-scrollbar-thumb]:bg-gray-300
-                [&::-webkit-scrollbar-thumb]:rounded-full
-                dark:[&::-webkit-scrollbar-track]:bg-gray-700
-                dark:[&::-webkit-scrollbar-thumb]:bg-gray-500">
+                            [&::-webkit-scrollbar]:w-1.5
+                            [&::-webkit-scrollbar-track]:bg-gray-100
+                            [&::-webkit-scrollbar-track]:rounded-full
+                            [&::-webkit-scrollbar-thumb]:bg-gray-300
+                            [&::-webkit-scrollbar-thumb]:rounded-full
+                            dark:[&::-webkit-scrollbar-track]:bg-gray-700
+                            dark:[&::-webkit-scrollbar-thumb]:bg-gray-500">
                             {budget
                                 .filter(item => item.amount > 0)
                                 .slice(0, 5)
