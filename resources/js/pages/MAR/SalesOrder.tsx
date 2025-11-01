@@ -506,11 +506,31 @@ export default function SalesOrder() {
                                 <div className="space-y-4">
                                     {invoiceList.map((i, idx) => {
                                         const isOpen = openCard === idx;
-                                        const w1 = Number(i.qty);
-                                        const w2 = Number(i.weight_destination || w1);
+                                        const w1 = Number(i.qty) || 0;
+                                        const w2 = Number(i.weight_destination) || w1;
                                         const diff = w2 - w1;
                                         const diffPct = w1 > 0 ? (diff / w1) * 100 : 0;
-                                        const hasQualityData = i.coa_result_ffa || i.coa_result_shell;
+
+                                        // ฟังก์ชันตรวจสอบและจัดรูปแบบข้อมูลผลตรวจคุณภาพ
+                                        const formatQualityValue = (value) => {
+                                            if (value === null || value === undefined || value === '') return '-';
+                                            const numValue = Number(value);
+                                            return isNaN(numValue)
+                                                ? value
+                                                : numValue.toLocaleString('th-TH', {
+                                                      minimumFractionDigits: 2,
+                                                      maximumFractionDigits: 2,
+                                                  });
+                                        };
+
+                                        // ตรวจสอบว่ามีข้อมูลคุณภาพหรือไม่
+                                        const hasQualityData =
+                                            i.coa_result_ffa != null ||
+                                            i.coa_result_moisture != null ||
+                                            i.coa_result_iv != null ||
+                                            i.coa_result_dobi != null ||
+                                            i.coa_result_shell != null ||
+                                            i.coa_result_kn_moisture != null;
 
                                         return (
                                             <div
@@ -539,7 +559,7 @@ export default function SalesOrder() {
                                                                 <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-600">
                                                                     <div className="flex items-center space-x-1">
                                                                         <Calendar size={12} className="text-blue-500" />
-                                                                        <span>{i.DocuDate.substring(0, 10)}</span>
+                                                                        <span>{i.DocuDate?.substring(0, 10) || '-'}</span>
                                                                     </div>
                                                                     <div className="flex items-center space-x-1">
                                                                         <Truck size={12} className="text-purple-500" />
@@ -633,17 +653,34 @@ export default function SalesOrder() {
                                                                         {i.GoodID === 2147 && (
                                                                             <div className="grid grid-cols-2 gap-3">
                                                                                 {[
-                                                                                    { label: 'FFA', value: i.coa_result_ffa },
-                                                                                    { label: 'Moisture', value: i.coa_result_moisture },
-                                                                                    { label: 'IV', value: i.coa_result_iv },
-                                                                                    { label: 'DOBI', value: i.coa_result_dobi },
+                                                                                    {
+                                                                                        label: 'FFA',
+                                                                                        value: formatQualityValue(i.coa_result_ffa),
+                                                                                        unit: '%',
+                                                                                    },
+                                                                                    {
+                                                                                        label: 'Moisture',
+                                                                                        value: formatQualityValue(i.coa_result_moisture),
+                                                                                        unit: '%',
+                                                                                    },
+                                                                                    {
+                                                                                        label: 'IV',
+                                                                                        value: formatQualityValue(i.coa_result_iv),
+                                                                                        unit: '',
+                                                                                    },
+                                                                                    {
+                                                                                        label: 'DOBI',
+                                                                                        value: formatQualityValue(i.coa_result_dobi),
+                                                                                        unit: '',
+                                                                                    },
                                                                                 ].map((param, idx) => (
                                                                                     <div key={idx} className="text-center">
                                                                                         <p className="text-xs font-medium text-gray-600">
                                                                                             {param.label}
                                                                                         </p>
                                                                                         <p className="mt-1 text-sm font-bold text-gray-800">
-                                                                                            {param.value || '-'}
+                                                                                            {param.value}
+                                                                                            {param.unit && param.value !== '-' ? param.unit : ''}
                                                                                         </p>
                                                                                     </div>
                                                                                 ))}
@@ -653,15 +690,24 @@ export default function SalesOrder() {
                                                                         {i.GoodID === 2152 && (
                                                                             <div className="grid grid-cols-2 gap-3">
                                                                                 {[
-                                                                                    { label: 'Shell', value: i.coa_result_shell },
-                                                                                    { label: 'Kernel Moisture', value: i.coa_result_kn_moisture },
+                                                                                    {
+                                                                                        label: 'Shell',
+                                                                                        value: formatQualityValue(i.coa_result_shell),
+                                                                                        unit: '%',
+                                                                                    },
+                                                                                    {
+                                                                                        label: 'Kernel Moisture',
+                                                                                        value: formatQualityValue(i.coa_result_kn_moisture),
+                                                                                        unit: '%',
+                                                                                    },
                                                                                 ].map((param, idx) => (
                                                                                     <div key={idx} className="text-center">
                                                                                         <p className="text-xs font-medium text-gray-600">
                                                                                             {param.label}
                                                                                         </p>
                                                                                         <p className="mt-1 text-sm font-bold text-gray-800">
-                                                                                            {param.value || '-'}
+                                                                                            {param.value}
+                                                                                            {param.unit && param.value !== '-' ? param.unit : ''}
                                                                                         </p>
                                                                                     </div>
                                                                                 ))}
