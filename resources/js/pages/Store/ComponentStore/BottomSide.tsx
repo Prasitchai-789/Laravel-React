@@ -495,38 +495,6 @@ const BottomSide: React.FC<BottomSideProps> = ({
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Quick Stats */}
-                                    <div className="grid grid-cols-2 gap-3 w-full">
-                                        <div className="text-center p-3 bg-gradient-to-br from-rose-50/80 to-pink-50/80 dark:from-rose-900/20 dark:to-pink-900/20 rounded-lg border border-rose-100 dark:border-rose-800 shadow-sm">
-                                            <div className="w-6 h-6 bg-gradient-to-br from-rose-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-1 shadow-md shadow-rose-500/25">
-                                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                                </svg>
-                                            </div>
-                                            <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1">แผนกสูงสุด</p>
-                                            <div className="min-h-[32px] flex items-center justify-center">
-                                                <p className="text-xs font-bold text-gray-900 dark:text-white text-center leading-tight break-words px-1">
-                                                    {maxDept?.name || '-'}
-                                                </p>
-                                            </div>
-                                            <div className="mt-1 text-xs text-rose-500 dark:text-rose-300 font-semibold">
-                                                {maxDept?.items.toLocaleString()} รายการ
-                                            </div>
-                                        </div>
-
-                                        <div className="text-center p-3 bg-gradient-to-br from-cyan-50/80 to-blue-50/80 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-lg border border-cyan-100 dark:border-cyan-800 shadow-sm">
-                                            <div className="w-6 h-6 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-1 shadow-md shadow-cyan-500/25">
-                                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                                </svg>
-                                            </div>
-                                            <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 mb-1">จำนวนแผนก</p>
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white">{displayedDepartments.length}</p>
-                                            <div className="mt-1 text-xs text-cyan-500 dark:text-cyan-300 font-semibold">ทั้งหมด</div>
-                                        </div>
-                                    </div>
-
                                     {/* Legend Section */}
                                     <div className="w-full space-y-2 max-h-48 overflow-y-auto flex-1 min-h-0">
                                         {displayedDepartments.map((dept) => {
@@ -573,6 +541,39 @@ const BottomSide: React.FC<BottomSideProps> = ({
                                             );
                                         })}
                                     </div>
+                                    
+                                    {/* Quick Stats */}
+                                    <div className="grid grid-cols-2 gap-3 w-full">
+                                        <div className="text-center p-3 bg-gradient-to-br from-rose-50/80 to-pink-50/80 dark:from-rose-900/20 dark:to-pink-900/20 rounded-lg border border-rose-100 dark:border-rose-800 shadow-sm">
+                                            <div className="w-6 h-6 bg-gradient-to-br from-rose-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-1 shadow-md shadow-rose-500/25">
+                                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-xs font-semibold text-rose-600 dark:text-rose-400 mb-1">แผนกสูงสุด</p>
+                                            <div className="min-h-[32px] flex items-center justify-center">
+                                                <p className="text-xs font-bold text-gray-900 dark:text-white text-center leading-tight break-words px-1">
+                                                    {maxDept?.name || '-'}
+                                                </p>
+                                            </div>
+                                            <div className="mt-1 text-xs text-rose-500 dark:text-rose-300 font-semibold">
+                                                {maxDept?.items.toLocaleString()} รายการ
+                                            </div>
+                                        </div>
+
+                                        <div className="text-center p-3 bg-gradient-to-br from-cyan-50/80 to-blue-50/80 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-lg border border-cyan-100 dark:border-cyan-800 shadow-sm">
+                                            <div className="w-6 h-6 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-1 shadow-md shadow-cyan-500/25">
+                                                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 mb-1">จำนวนแผนก</p>
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white">{displayedDepartments.length}</p>
+                                            <div className="mt-1 text-xs text-cyan-500 dark:text-cyan-300 font-semibold">ทั้งหมด</div>
+                                        </div>
+                                    </div>
+
+
                                 </div>
                             );
                         })()}

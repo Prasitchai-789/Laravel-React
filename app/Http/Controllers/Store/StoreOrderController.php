@@ -511,19 +511,20 @@ class StoreOrderController extends Controller
                     ? Carbon::parse($data['withdraw_date'])
                     : now();
 
-                // ✅ สร้างเลขที่เอกสารที่ไม่ซ้ำ
+                // ✅ สร้างเลขที่เอกสารที่ไม่ซ้ำ (เลขรันต่อเนื่อง แต่ prefix เดือนเปลี่ยน)
                 $documentNumber = null;
-                $maxAttempts = 10; // จำนวนครั้งสูงสุดที่พยายาม
+                $maxAttempts = 10;
 
                 for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
                     $prefix = 'PUR';
-                    $year = now()->year + 543; // แปลงเป็น พ.ศ.
-                    $yearShort = substr($year, -2); // เอา 2 ตัวท้าย เช่น 68
-                    $month = now()->format('m');
 
-                    // หาเอกสารล่าสุดในเดือนเดียวกัน
+                    // ใช้ปี/เดือนจากวันที่เบิก
+                    $year = $orderDate->year + 543; // พ.ศ.
+                    $yearShort = substr($year, -2); // เช่น 68
+                    $month = str_pad($orderDate->month, 2, '0', STR_PAD_LEFT);
+
+                    // หาเอกสารล่าสุดของ "ปีเดียวกัน" เพื่อให้รันต่อเนื่องตลอดปี
                     $latestOrder = \App\Models\StoreOrder::whereYear('order_date', $orderDate->year)
-                        ->whereMonth('order_date', $orderDate->month)
                         ->lockForUpdate()
                         ->orderByDesc('id')
                         ->first();
@@ -535,10 +536,11 @@ class StoreOrderController extends Controller
                         $nextNumber = 1;
                     }
 
+                    // month เปลี่ยนทุกเดือน แต่เลขรันต่อเนื่อง
                     $running = str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
                     $candidateDocumentNumber = "{$prefix}{$yearShort}{$month}-{$running}";
 
-                    // ตรวจสอบว่า document_number นี้มีอยู่แล้วหรือไม่
+                    // ตรวจสอบว่า document_number นี้ซ้ำไหม
                     $exists = \App\Models\StoreOrder::where('document_number', $candidateDocumentNumber)->exists();
 
                     if (!$exists) {
@@ -546,14 +548,13 @@ class StoreOrderController extends Controller
                         break;
                     }
 
-                    // ถ้ายังพยายามไม่ครบ ให้ลองครั้งต่อไป
                     if ($attempt < $maxAttempts) {
                         continue;
                     }
 
-                    // ถ้าพยายามครบแล้วยังหาที่ว่างไม่ได้
                     throw new \Exception("ไม่สามารถสร้างเลขที่เอกสารที่ไม่ซ้ำได้หลังจากพยายาม {$maxAttempts} ครั้ง");
                 }
+
 
                 if (!$documentNumber) {
                     throw new \Exception("ไม่สามารถสร้างเลขที่เอกสารได้");
@@ -573,14 +574,13 @@ class StoreOrderController extends Controller
                 $order->updated_at = $orderDate;
                 $order->save();
 
-                // ✅ บันทึกรายการสินค้าภายใต้ order เดิม
-                foreach ($data['items'] as $index => $item) {
+                // ✅ เพิ่มรายการสินค้า
+                foreach ($data['items'] as $item) {
                     $storeItem = \App\Models\StoreItem::where('good_id', $item['good_id'])->first();
                     if (!$storeItem) {
                         throw new \Exception("ไม่พบสินค้า ID: {$item['good_id']}");
                     }
 
-                    // เพิ่มรายการสินค้าใน order
                     $orderItem = $order->items()->make([
                         'product_id' => $item['good_id'],
                         'quantity' => $item['qty'],
@@ -590,7 +590,7 @@ class StoreOrderController extends Controller
                     $orderItem->updated_at = $orderDate;
                     $orderItem->save();
 
-                    // ✅ บันทึก movement log
+                    // ✅ สร้าง movement log
                     $movement = new \App\Models\StoreMovement([
                         'store_item_id' => $storeItem->id,
                         'user_id' => $user->id,
@@ -621,6 +621,7 @@ class StoreOrderController extends Controller
             ]);
         }
     }
+
 
 
     public function confirm($orderId)
