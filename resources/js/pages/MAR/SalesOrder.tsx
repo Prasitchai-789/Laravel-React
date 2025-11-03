@@ -650,7 +650,7 @@ export default function SalesOrder() {
                                                                         </span>
                                                                     </h4>
                                                                     <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-                                                                        {i.GoodID === 2147 && (
+                                                                        {Number(i.GoodID) === 2147 && (
                                                                             <div className="grid grid-cols-2 gap-3">
                                                                                 {[
                                                                                     {
@@ -687,7 +687,7 @@ export default function SalesOrder() {
                                                                             </div>
                                                                         )}
 
-                                                                        {i.GoodID === 2152 && (
+                                                                        {Number(i.GoodID) === 2152 && (
                                                                             <div className="grid grid-cols-2 gap-3">
                                                                                 {[
                                                                                     {
