@@ -72,6 +72,7 @@ class SalesOrderController extends Controller
             ->leftJoin('SOInvHDRemark as R4', fn($j) => $j->on('H.SOInvID', '=', 'R4.SOInvID')->where('R4.ListNo', 4))
             ->leftJoin('SOInvHDRemark as R5', fn($j) => $j->on('H.SOInvID', '=', 'R5.SOInvID')->where('R5.ListNo', 5))
             ->leftJoin('SOInvHDRemark as R6', fn($j) => $j->on('H.SOInvID', '=', 'R6.SOInvID')->where('R6.ListNo', 6))
+            ->leftJoin('SOInvHDRemark as R7', fn($j) => $j->on('H.SOInvID', '=', 'R7.SOInvID')->where('R7.ListNo', 7))
             ->select(
                 'H.SOInvID',
                 'H.SONo',
@@ -82,10 +83,11 @@ class SalesOrderController extends Controller
                 'D.GoodName',
                 DB::raw('SUM(D.GoodStockQty) as qty'),
                 DB::raw('SUM(D.GoodAmnt) as amount'),
-                DB::raw('ISNULL(R3.Remark, \'\') as transport_company'),
-                DB::raw('ISNULL(R4.Remark, \'\') as reference_no'),
-                DB::raw('ISNULL(R5.Remark, \'\') as weight_destination'),
-                DB::raw('ISNULL(R6.Remark, \'\') as coa_number')
+                DB::raw('ISNULL(R3.Remark, \'\') as transport_company'), // ← ขนส่ง
+                DB::raw('ISNULL(R4.Remark, \'\') as mar_lot'), // ← MAR Lot
+                DB::raw('ISNULL(R5.Remark, \'\') as reference_no'), // ← Reference No
+                DB::raw('ISNULL(R6.Remark, \'\') as coa_number'), // ← COA Number
+                DB::raw('ISNULL(R7.Remark, \'\') as weight_destination') // ← Weight Destination
             )
             ->where('H.SONo', $docuNo)
             ->groupBy(
@@ -99,7 +101,8 @@ class SalesOrderController extends Controller
                 'R3.Remark',
                 'R4.Remark',
                 'R5.Remark',
-                'R6.Remark'
+                'R6.Remark',
+                'R7.Remark'
             )
             ->orderBy('H.DocuDate', 'DESC')
             ->get();

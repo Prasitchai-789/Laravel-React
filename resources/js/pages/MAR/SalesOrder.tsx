@@ -616,6 +616,7 @@ export default function SalesOrder() {
                                                                 <h4 className="flex items-center space-x-2 text-sm font-bold text-gray-800">
                                                                     <Truck size={16} className="text-blue-600" />
                                                                     <span>ข้อมูลการขนส่ง</span>
+                                                                    <span className="ml-1 text-xs text-blue-600">{i.mar_lot || 'N/A'}</span>
                                                                 </h4>
                                                                 <div className="grid grid-cols-2 gap-3 rounded-lg bg-gray-50 p-3">
                                                                     {[
