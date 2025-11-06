@@ -162,6 +162,7 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
 
         const payload: any = {
             store_item_code: currentGoodCode,
+            price: product.price,
             note: product.note ?? '',
             stock_qty: (editCategory === 'both' || editCategory === 'stock') ? Math.abs(adjustStock) : null,
             stock_type: (editCategory === 'both' || editCategory === 'stock') ? (adjustStock >= 0 ? 'add' : 'subtract') : null,
@@ -244,7 +245,11 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
 
-        if (!product.price || parseFloat(product.price as any) <= 0) newErrors.price = 'กรุณากรอกราคาที่ถูกต้อง';
+        // ✅ อนุญาตทุกค่า (ค่าว่าง, 0, บวก, ลบ) - ไม่ validate ราคา
+        // if (product.price && parseFloat(product.price as any) < 0) {
+        //     newErrors.price = 'ราคาไม่สามารถเป็นลบได้';
+        // }
+
         if (product.stock_qty < 0) newErrors.stock_qty = 'จำนวนสต็อกไม่สามารถเป็นลบได้';
         if (product.safety_stock < 0) newErrors.safety_stock = 'สต็อกปลอดภัยไม่สามารถเป็นลบได้';
 
@@ -294,20 +299,26 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
                             </div>
 
                             {/* ราคา */}
-                            <div className="bg-gray-50 rounded-lg p-4 md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-600 mb-2">
-                                    ราคา
+                            <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm md:col-span-2">
+                                <label className="block text-sm font-semibold text-gray-800 mb-3">
+                                    ราคาสินค้า
                                 </label>
-                                <div className="flex items-center">
-                                    <svg className="h-5 w-5 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                                    </svg>
-                                    <span className="text-gray-800 font-medium">
-                                        {parseFloat(product.price || 0).toLocaleString('th-TH', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2
-                                        })} ฿
-                                    </span>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    {/* ✅ แสดงแบบ read-only เสมอ */}
+                                    <div className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-between">
+                                        <span className="text-gray-800 font-medium">
+                                            {parseFloat(product.price || 0).toLocaleString('th-TH', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2
+                                            })} ฿
+                                        </span>
+                                       
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -628,11 +639,10 @@ const FormEdit: React.FC<FormEditProps> = ({ data, onClose, onSuccess, goodUnits
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className={`px-6 py-3 text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${
-                                isSubmitting
-                                    ? 'bg-blue-300 cursor-not-allowed'
-                                    : 'bg-blue-500 hover:bg-blue-600'
-                            }`}
+                            className={`px-6 py-3 text-white rounded-lg transition-all duration-200 flex items-center justify-center gap-2 ${isSubmitting
+                                ? 'bg-blue-300 cursor-not-allowed'
+                                : 'bg-blue-500 hover:bg-blue-600'
+                                }`}
                         >
                             {isSubmitting ? (
                                 <>
