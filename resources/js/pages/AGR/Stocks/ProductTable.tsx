@@ -1,5 +1,5 @@
 import GenericTable, { Column } from '@/components/Tables/GenericTable';
-import { Pencil, SquarePen, Trash2 } from 'lucide-react';
+import { Pencil, SquarePen, Trash2, Package, MapPin, Tag } from 'lucide-react';
 
 interface Product {
     id: number;
@@ -19,22 +19,80 @@ interface ProductTableProps {
 }
 
 const productsColumns: Column<Product>[] = [
-    { key: 'sku', label: 'รหัสสินค้า', sortable: true },
-    { key: 'name', label: 'ชื่อสินค้า', sortable: true, align: 'center' },
+    {
+        key: 'sku',
+        label: 'รหัสสินค้า',
+        sortable: true,
+        render: (product) => (
+            <div className="flex items-center gap-2 min-w-[120px]">
+                <Tag size={14} className="text-blue-600 flex-shrink-0" />
+                <span className="font-mono text-sm font-medium text-gray-900 bg-blue-50 px-2 py-1 rounded">
+                    {product.sku}
+                </span>
+            </div>
+        )
+    },
+    {
+        key: 'name',
+        label: 'ชื่อสินค้า',
+        sortable: true,
+        align: 'left',
+        render: (product) => (
+            <div className="min-w-[200px]">
+                <div className="font-semibold text-gray-900 line-clamp-2">
+                    {product.name}
+                </div>
+            </div>
+        )
+    },
     {
         key: 'stock',
         label: 'จำนวน',
         sortable: true,
         align: 'center',
-        render: (product) => (product.stock !== undefined && product.stock !== null ? product.stock.toLocaleString('th-TH') : '-'),
+        render: (product) => (
+            <div className="flex flex-col items-center min-w-[80px]">
+                <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
+                    product.stock > 10
+                        ? 'bg-green-100 text-green-800'
+                        : product.stock > 0
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                }`}>
+                    <Package size={14} />
+                    {product.stock !== undefined && product.stock !== null
+                        ? product.stock.toLocaleString('th-TH')
+                        : '-'}
+                </div>
+            </div>
+        ),
     },
-    { key: 'price', label: 'ราคา (บาท)', sortable: true, align: 'center' },
+    {
+        key: 'price',
+        label: 'ราคา (บาท)',
+        sortable: true,
+        align: 'center',
+        render: (product) => (
+            <div className="min-w-[100px]">
+                <div className="text-lg font-bold text-purple-700">
+                    ฿{product.price.toLocaleString('th-TH')}
+                </div>
+            </div>
+        )
+    },
     {
         key: 'store_id',
         label: 'สถานที่',
         sortable: true,
         align: 'center',
-        render: (product: Product) => product.location?.location_name ?? '-',
+        render: (product: Product) => (
+            <div className="flex items-center justify-center gap-2 min-w-[120px]">
+                <MapPin size={14} className="text-gray-600 flex-shrink-0" />
+                <span className="text-sm text-gray-700 bg-gray-100 px-2 py-1 rounded">
+                    {product.location?.location_name ?? '-'}
+                </span>
+            </div>
+        ),
     },
     { key: 'actions', label: 'การดำเนินการ', align: 'center' },
 ];
@@ -58,12 +116,46 @@ export default function ProductTable({ products, onStockEdit, onEdit, onDelete }
     };
 
     return (
-        <>
+        <div className="p-4">
+            {/* <div className="px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <Package className="text-blue-600" size={24} />
+                            รายการสินค้า
+                        </h2>
+                        <p className="text-sm text-gray-600 mt-1">
+                            ทั้งหมด {products.length} รายการ
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
+                            <span>มีสต็อก</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 bg-yellow-100 border border-yellow-300 rounded"></div>
+                            <span>สต็อกน้อย</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
+                            <span>ไม่มีสต็อก</span>
+                        </div>
+                    </div>
+                </div>
+            </div> */}
+
             <GenericTable
-                title="รายการสินค้า"
                 data={products}
                 columns={productsColumns}
                 idField="id"
+                emptyMessage={
+                    <div className="text-center py-12">
+                        <Package size={48} className="mx-auto text-gray-400 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">ไม่มีข้อมูลสินค้า</h3>
+                        <p className="text-gray-500">ยังไม่มีสินค้าในระบบ</p>
+                    </div>
+                }
                 actions={(row) => (
                     <div className="flex justify-center gap-2">
                         <button
@@ -96,7 +188,11 @@ export default function ProductTable({ products, onStockEdit, onEdit, onDelete }
                         </button>
                     </div>
                 )}
+                rowClassName="hover:bg-gray-50 transition-colors duration-150 border-b border-gray-100 last:border-b-0"
+                headerClassName="bg-gray-50/80 backdrop-blur-sm border-b border-gray-200"
+                thClassName="px-4 py-3 font-semibold text-gray-700 text-sm uppercase tracking-wide"
+                tdClassName="px-4 py-4"
             />
-        </>
+        </div>
     );
 }
