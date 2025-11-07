@@ -325,7 +325,6 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
     Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'apiIndex']);
 
     Route::get('/purchase/dashboard/api', [PurchaseDashboardController::class, 'apiPOinvByDept'])->name('purchase.dashboard.api');
-
 });
 
 
@@ -338,10 +337,13 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
     Route::get('/expense-by-dept', [POController::class, 'expenseByDept'])->name('expense-by-dept');
     Route::get('/accounts', [AccountController::class, 'index'])->name('accounts');
     Route::get('/accounts/api', [AccountController::class, 'getAccounts'])->name('accounts.api');
-    
+
+    Route::get('/sales-mar/api', [SaleMARController::class, 'getSalesWeb'])->name('sales.mar.api');
+    Route::get('/sales-mar-win/api', [SaleMARController::class, 'getSalesWin'])->name('sales.mar.win.api');
+
+
     Route::get('/poinv-win-summary/api', [POInvController::class, 'getPOInvSummary'])->name('poinv.win.summary.api');
     Route::get('/poinv-win-monthly/api', [POInvController::class, 'getPOInvMonthly'])->name('poinv.win.monthly.api');
-
 });
 
 
@@ -358,7 +360,6 @@ Route::middleware(['auth', 'permission:developer.view|mar.view'])->group(functio
     Route::get('/conversion/api', [SaleMARController::class, 'getConversion']);
     Route::get('/loss-analysis/api', [SaleMARController::class, 'getLossAnalysis']);
     Route::get('/top-customers/api', [SaleMARController::class, 'getTopCustomers']);
-
 });
 
 require __DIR__ . '/settings.php';

@@ -52,6 +52,15 @@ interface DateRange {
 
 const SalesReport = () => {
     // Function to get today's date in YYYY-MM-DD format
+    const getFirstDayOfMonth = (): string => {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const year = firstDay.getFullYear();
+        const month = String(firstDay.getMonth() + 1).padStart(2, '0');
+        const day = String(firstDay.getDate()).padStart(2, '0');
+
+        return `${year}-${month}-${day}`;
+    };
     const getTodayDate = (): string => {
         const today = new Date();
         const year = today.getFullYear();
@@ -69,7 +78,7 @@ const SalesReport = () => {
     const [error, setError] = useState<string | null>(null);
 
     const [dateRange, setDateRange] = useState<DateRange>({
-        start: getTodayDate(),
+        start: getFirstDayOfMonth(),
         end: getTodayDate(),
     });
 
@@ -136,7 +145,7 @@ const SalesReport = () => {
             // Format dates for API
             const apiDateRange = {
                 start: formatDateForAPI(dateRange.start),
-                end: formatDateForAPI(dateRange.end)
+                end: formatDateForAPI(dateRange.end),
             };
 
             const [sales, areas, payments, summary] = await Promise.all([
@@ -193,10 +202,7 @@ const SalesReport = () => {
                             </div>
                             <h3 className="mt-4 text-lg font-medium text-red-800">เกิดข้อผิดพลาด</h3>
                             <p className="mt-2 text-red-600">{error}</p>
-                            <button
-                                onClick={fetchAllData}
-                                className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-                            >
+                            <button onClick={fetchAllData} className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700">
                                 โหลดข้อมูลอีกครั้ง
                             </button>
                         </div>
