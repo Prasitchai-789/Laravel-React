@@ -4,12 +4,11 @@ import OvertimeRequestForm from "@/components/overtime/overtime-request-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, History, Plus } from "lucide-react";
-import { useRouter } from "next/router";
+import { useNavigate } from "react-router-dom";
 
 export default function CreateOvertimePage() {
-  const router = useRouter();
+  const navigate = useNavigate();
 
-  // ข้อมูลตัวอย่าง (ใน production ควรดึงจาก API)
   const [shifts] = useState([
     {
       id: 1,
@@ -25,7 +24,7 @@ export default function CreateOvertimePage() {
       employees: 24,
       status: "active",
       overtimeAllowed: true,
-      holidays: []
+      holidays: [],
     },
     {
       id: 2,
@@ -41,8 +40,8 @@ export default function CreateOvertimePage() {
       employees: 18,
       status: "active",
       overtimeAllowed: true,
-      holidays: []
-    }
+      holidays: [],
+    },
   ]);
 
   const [employees] = useState([
@@ -51,63 +50,58 @@ export default function CreateOvertimePage() {
       name: "สมชาย ใจดี",
       department: "it",
       departmentName: "ฝ่าย IT",
-      baseSalary: 15000
+      baseSalary: 15000,
     },
     {
       id: "EMP002",
       name: "สุนิสา มาดี",
       department: "store",
       departmentName: "คลังสินค้า",
-      baseSalary: 16000
+      baseSalary: 16000,
     },
     {
       id: "EMP003",
       name: "ประยุทธ ทำงาน",
       department: "production",
       departmentName: "ฝ่ายผลิต",
-      baseSalary: 17000
-    }
+      baseSalary: 17000,
+    },
   ]);
 
-  // ฟังก์ชันส่งคำขอทำโอที
   const handleSubmitRequest = (requestData) => {
     console.log("บันทึกการทำโอที:", requestData);
-
-    // ใน production จะส่งข้อมูลไปยัง API
-    // await api.createOvertimeRequest(requestData);
-
-    // แสดงข้อความสำเร็จ
     alert("บันทึกการทำโอทีเรียบร้อยแล้ว");
-
-    // กลับไปหน้าหลัก
-    router.push('/overtime');
+    navigate("/overtime");
   };
 
   return (
     <AppLayout title="บันทึกการทำโอทีใหม่">
       <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push('/overtime')}
+              onClick={() => navigate("/overtime")}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               กลับ
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">บันทึกการทำโอทีใหม่</h1>
-              <p className="text-gray-600 mt-2">บันทึกการทำงานล่วงเวลาของพนักงาน</p>
+              <h1 className="text-3xl font-bold text-gray-900">
+                บันทึกการทำโอทีใหม่
+              </h1>
+              <p className="text-gray-600 mt-2">
+                บันทึกการทำงานล่วงเวลาของพนักงาน
+              </p>
             </div>
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
               className="flex items-center gap-2"
-              onClick={() => router.push('/overtime/history')}
+              onClick={() => navigate("/overtime/history")}
             >
               <History className="w-4 h-4" />
               ดูประวัติโอที
@@ -115,14 +109,12 @@ export default function CreateOvertimePage() {
           </div>
         </div>
 
-        {/* ฟอร์มบันทึกโอที */}
         <OvertimeRequestForm
           shifts={shifts}
           employees={employees}
           onSubmitRequest={handleSubmitRequest}
         />
 
-        {/* คำแนะนำ */}
         <Card className="border border-blue-100 bg-blue-50">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-semibold text-blue-800 flex items-center gap-2">
@@ -133,8 +125,12 @@ export default function CreateOvertimePage() {
           <CardContent>
             <ul className="space-y-2 text-sm text-blue-700">
               <li>• เลือกพนักงานและกะการทำงานที่ต้องการบันทึกโอที</li>
-              <li>• ระบบจะคำนวณเวลาสิ้นสุดอัตโนมัติจากเวลาเริ่มต้นและจำนวนชั่วโมง</li>
-              <li>• ประเภทโอทีจะถูกคำนวณอัตโนมัติตามวันที่และช่วงเวลา</li>
+              <li>
+                • ระบบจะคำนวณเวลาสิ้นสุดอัตโนมัติจากเวลาเริ่มต้นและจำนวนชั่วโมง
+              </li>
+              <li>
+                • ประเภทโอทีจะถูกคำนวณอัตโนมัติตามวันที่และช่วงเวลา
+              </li>
               <li>• ระบุเหตุผลการทำโอทีให้ชัดเจน</li>
             </ul>
           </CardContent>
