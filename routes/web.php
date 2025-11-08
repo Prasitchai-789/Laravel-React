@@ -39,6 +39,7 @@ use App\Http\Controllers\Dashboard\PalmProductionController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
+use App\Http\Controllers\ERP\ERPController;
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
 
 Route::get('/', function () {
@@ -361,6 +362,18 @@ Route::middleware(['auth', 'permission:developer.view|mar.view'])->group(functio
     Route::get('/loss-analysis/api', [SaleMARController::class, 'getLossAnalysis']);
     Route::get('/top-customers/api', [SaleMARController::class, 'getTopCustomers']);
 });
+
+
+
+Route::middleware(['auth','permission:ERP.view'])->group(function ()  {
+     Route::get('/ERPIndex', [ERPController::class, 'index']);
+     Route::get('/ERPDashboard', [ERPController::class, 'Dashboard']);
+     Route::get('/ERPDetail', [ERPController::class, 'Detail']);
+     Route::get('/ImportExcel', [ERPController::class, 'ImportExcel']);
+     Route::get('/shifts', [ERPController::class, 'shifts']);
+     Route::get('/overtime', [ERPController::class, 'overtime']);
+});
+
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

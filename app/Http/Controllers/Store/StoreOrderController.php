@@ -93,9 +93,11 @@ class StoreOrderController extends Controller
                     'movement_type' => $m->movement_type,
                     'type' => $m->type,
                     'status' => $m->status,
+                    'category' => $m->category, // ✅ เพิ่ม category ใน log
                     'quantity' => $quantity,
                     'before_stock' => $stockQty,
-                    'before_reserved' => $reservedQty
+                    'before_reserved' => $reservedQty,
+                    'before_safety_stock' => $safetyStock // ✅ เพิ่ม safety_stock ใน log
                 ]);
 
                 if ($m->movement_type === 'issue') {
@@ -133,13 +135,59 @@ class StoreOrderController extends Controller
                     $stockQty += $quantity;
                     \Log::info('📥 Added to stock from return', ['new_stock' => $stockQty]);
                 } elseif ($m->movement_type === 'adjustment' && $m->status === 'approved') {
-                    // 📌 adjustment → เพิ่ม/ลด stock ตาม type
-                    if ($m->type === 'add') {
-                        $stockQty += $quantity;
-                        \Log::info('📈 Added to stock from adjustment', ['new_stock' => $stockQty]);
+                    // 📌 adjustment → ตรวจสอบ category ก่อน
+                    if ($m->category === 'safety') {
+                        // ปรับ safety_stock
+                        if ($m->type === 'add') {
+                            $safetyStock += $quantity;
+                            \Log::info('🛡️ Added to safety_stock from adjustment', [
+                                'quantity' => $quantity,
+                                'new_safety_stock' => $safetyStock
+                            ]);
+                        } else {
+                            $safetyStock -= $quantity;
+                            \Log::info('🛡️ Subtracted from safety_stock from adjustment', [
+                                'quantity' => $quantity,
+                                'new_safety_stock' => $safetyStock
+                            ]);
+                        }
+                    } elseif ($m->category === 'stock') {
+                        // ปรับ stock_qty
+                        if ($m->type === 'add') {
+                            $stockQty += $quantity;
+                            \Log::info('📈 Added to stock from adjustment', ['new_stock' => $stockQty]);
+                        } else {
+                            $stockQty -= $quantity;
+                            \Log::info('📉 Subtracted from stock from adjustment', ['new_stock' => $stockQty]);
+                        }
+                    } elseif ($m->category === 'both') {
+                        // ปรับทั้ง stock และ safety (ใช้ quantity เดียวกัน)
+                        if ($m->type === 'add') {
+                            $stockQty += $quantity;
+                            $safetyStock += $quantity;
+                            \Log::info('🔄 Added to both stock and safety_stock from adjustment', [
+                                'quantity' => $quantity,
+                                'new_stock' => $stockQty,
+                                'new_safety_stock' => $safetyStock
+                            ]);
+                        } else {
+                            $stockQty -= $quantity;
+                            $safetyStock -= $quantity;
+                            \Log::info('🔄 Subtracted from both stock and safety_stock from adjustment', [
+                                'quantity' => $quantity,
+                                'new_stock' => $stockQty,
+                                'new_safety_stock' => $safetyStock
+                            ]);
+                        }
                     } else {
-                        $stockQty -= $quantity;
-                        \Log::info('📉 Subtracted from stock from adjustment', ['new_stock' => $stockQty]);
+                        // category อื่น ๆ หรือไม่ได้กำหนด → ปรับ stock_qty (fallback)
+                        if ($m->type === 'add') {
+                            $stockQty += $quantity;
+                            \Log::info('📈 Added to stock from adjustment (fallback)', ['new_stock' => $stockQty]);
+                        } else {
+                            $stockQty -= $quantity;
+                            \Log::info('📉 Subtracted from stock from adjustment (fallback)', ['new_stock' => $stockQty]);
+                        }
                     }
                 } elseif ($m->movement_type === 'receipt' && $m->status === 'approved') {
                     // 📌 receipt → เพิ่ม stock (รับสินค้าเข้า)
@@ -154,6 +202,7 @@ class StoreOrderController extends Controller
                     'movement_id' => $m->id,
                     'after_stock' => $stockQty,
                     'after_reserved' => $reservedQty,
+                    'after_safety_stock' => $safetyStock, // ✅ เพิ่ม safety_stock ใน log
                     'calculated_available' => max($stockQty - $reservedQty, 0)
                 ]);
             }
