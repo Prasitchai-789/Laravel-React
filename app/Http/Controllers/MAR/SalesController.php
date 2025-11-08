@@ -22,8 +22,13 @@ class SalesController extends Controller
         return Inertia::render('MAR/SalesDashboard', [
         ]);
 
+    }
 
-        // return Inertia::render('QAC/ProductionReport', [
-        // ]);
+    public function salesOrder()
+    {
+
+        return Inertia::render('MAR/SalesOrder', [
+        ]);
+
     }
 }

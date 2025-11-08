@@ -77,13 +77,13 @@ class FertilizerProductionController extends Controller
 
             $energy = FertilizerEnergyUsage::create([
                 'production_id'   => $production->id,
-                'number_kwh'      => $validated['number_kwh'],   // ค่าที่ผู้ใช้กรอกใหม่
-                'electricity_kwh' => $validated['number_kwh'] - $oldKwh, // หักออกจากค่าเก่า
+                'number_kwh'      => $validated['number_kwh'],   
+                'electricity_kwh' => $validated['number_kwh'] - $oldKwh,
                 'cost'            => $validated['palm_fiber'],
                 'fuel_litre'      => 0,
             ]);
 
-
+            $electricity_kwh = $validated['number_kwh'] - $oldKwh;
             $Telegram = new TelegramService();
 
             $message = "
@@ -92,11 +92,11 @@ class FertilizerProductionController extends Controller
                 🗓️ วันที่: {$validated['date']}
                 🌔 กะ: {$validated['shift']}
                 🏭 ไลน์ผลิต: ID {$validated['line_id']}
-                ⚙️ ปริมาณผลิตจริง: {$validated['product_qty']} ตัน
-                🎯 เป้าหมาย: {$validated['target_qty']} ตัน
+                ⚙️ ปริมาณผลิตจริง: {$validated['product_qty']} กระสอบ
+                🎯 เป้าหมาย: {$validated['target_qty']} กระสอบ
                 👷‍♂️ พนักงาน: {$validated['workers']} คน
                 ⏱️ ชั่วโมงทำงาน: {$validated['hours']} ชม.
-                💡 พลังงานไฟฟ้า: {$validated['number_kwh']} kWh
+                💡 พลังงานไฟฟ้า: {$electricity_kwh} kWh
                 -----------------------------------
                 ✅ บันทึกข้อมูลสำเร็จโดยระบบ Fertilizer Production
                 ";
