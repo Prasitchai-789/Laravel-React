@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import AppLayout from "@/layouts/app-layout";
-import OvertimeRequestForm from "@/components/overtime/overtime-request-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, History, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-export default function CreateOvertimePage() {
+export default function CreateOT() {
   const navigate = useNavigate();
 
   const [shifts] = useState([
@@ -68,7 +67,7 @@ export default function CreateOvertimePage() {
     },
   ]);
 
-  const handleSubmitRequest = (requestData) => {
+  const handleSubmitRequest = (requestData: any) => {
     console.log("บันทึกการทำโอที:", requestData);
     alert("บันทึกการทำโอทีเรียบร้อยแล้ว");
     navigate("/overtime");
@@ -77,6 +76,7 @@ export default function CreateOvertimePage() {
   return (
     <AppLayout title="บันทึกการทำโอทีใหม่">
       <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
             <Button
@@ -109,12 +109,14 @@ export default function CreateOvertimePage() {
           </div>
         </div>
 
-        <OvertimeRequestForm
+        {/* Form Section */}
+        <OvertimeForm
           shifts={shifts}
           employees={employees}
           onSubmitRequest={handleSubmitRequest}
         />
 
+        {/* Suggestion Section */}
         <Card className="border border-blue-100 bg-blue-50">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-semibold text-blue-800 flex items-center gap-2">
@@ -137,5 +139,92 @@ export default function CreateOvertimePage() {
         </Card>
       </div>
     </AppLayout>
+  );
+}
+
+/* ---------------------------
+   🔹 Subcomponent: Overtime Form
+--------------------------- */
+function OvertimeForm({
+  shifts,
+  employees,
+  onSubmitRequest,
+}: {
+  shifts: any[];
+  employees: any[];
+  onSubmitRequest: (data: any) => void;
+}) {
+  const [employee, setEmployee] = useState("");
+  const [shift, setShift] = useState("");
+  const [hours, setHours] = useState(2);
+  const [reason, setReason] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmitRequest({ employee, shift, hours, reason });
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-gray-100"
+    >
+      <div>
+        <label className="block text-gray-700 mb-1">พนักงาน</label>
+        <select
+          value={employee}
+          onChange={(e) => setEmployee(e.target.value)}
+          className="w-full border rounded-md p-2"
+        >
+          <option value="">-- เลือกพนักงาน --</option>
+          {employees.map((emp) => (
+            <option key={emp.id} value={emp.id}>
+              {emp.name} ({emp.departmentName})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-gray-700 mb-1">กะการทำงาน</label>
+        <select
+          value={shift}
+          onChange={(e) => setShift(e.target.value)}
+          className="w-full border rounded-md p-2"
+        >
+          <option value="">-- เลือกกะ --</option>
+          {shifts.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.shiftName} ({s.timeRange})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-gray-700 mb-1">จำนวนชั่วโมง OT</label>
+        <input
+          type="number"
+          min="1"
+          value={hours}
+          onChange={(e) => setHours(Number(e.target.value))}
+          className="w-full border rounded-md p-2"
+        />
+      </div>
+
+      <div>
+        <label className="block text-gray-700 mb-1">เหตุผลการทำโอที</label>
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          rows={3}
+          className="w-full border rounded-md p-2"
+        ></textarea>
+      </div>
+
+      <Button type="submit" className="w-full">
+        บันทึกโอที
+      </Button>
+    </form>
   );
 }
