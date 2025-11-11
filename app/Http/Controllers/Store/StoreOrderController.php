@@ -85,116 +85,88 @@ class StoreOrderController extends Controller
 
             // 🔹 คำนวณ stock / reserved ตาม approved/pending - แก้ไขให้ถูกต้องแล้ว!
             foreach ($movements as $m) {
-                $quantity = floatval($m->quantity);
+                // 🔍 Normalize ค่าทั้งหมดให้แน่ใจว่าไม่มีช่องว่าง/ตัวพิมพ์ใหญ่
+                $movementType = strtolower(trim($m->movement_type ?? ''));
+                $type = strtolower(trim($m->type ?? ''));
+                $status = strtolower(trim($m->status ?? ''));
+                $category = strtolower(trim($m->category ?? ''));
+                $quantity = floatval($m->quantity ?? 0);
 
                 \Log::info('📊 Processing movement:', [
                     'good_code' => $item->good_code,
                     'movement_id' => $m->id,
-                    'movement_type' => $m->movement_type,
-                    'type' => $m->type,
-                    'status' => $m->status,
-                    'category' => $m->category, // ✅ เพิ่ม category ใน log
+                    'movement_type' => $movementType,
+                    'type' => $type,
+                    'status' => $status,
+                    'category' => $category,
                     'quantity' => $quantity,
                     'before_stock' => $stockQty,
                     'before_reserved' => $reservedQty,
-                    'before_safety_stock' => $safetyStock // ✅ เพิ่ม safety_stock ใน log
+                    'before_safety_stock' => $safetyStock
                 ]);
 
-                if ($m->movement_type === 'issue') {
-                    if ($m->type === 'subtract') {
-                        if ($m->status === 'pending') {
-                            // 📌 pending issue subtract → เพิ่ม reserved (จองสินค้า)
+                if ($movementType === 'issue') {
+                    if ($type === 'subtract') {
+                        if ($status === 'pending') {
                             $reservedQty += $quantity;
                             \Log::info('➕ Added to reserved from pending issue subtract', ['new_reserved' => $reservedQty]);
-                        } elseif ($m->status === 'approved') {
-                            // 📌 approved issue subtract → ลด stock (เบิกสินค้าจริง)
+                        } elseif ($status === 'approved') {
                             $stockQty -= $quantity;
                             \Log::info('➖ Subtracted from stock from approved issue subtract', ['new_stock' => $stockQty]);
                         }
-                        // rejected issue subtract → ไม่ต้องทำอะไร
-                    } elseif ($m->type === 'add') {
-                        if ($m->status === 'pending') {
-                            // 📌 pending issue add → ลด reserved (ยกเลิกการจอง)
+                    } elseif ($type === 'add') {
+                        if ($status === 'pending') {
                             $reservedQty = max(0, $reservedQty - $quantity);
-                            \Log::info('🔻 Reduced reserved from pending issue add', [
-                                'quantity' => $quantity,
-                                'new_reserved' => $reservedQty
-                            ]);
-                        } elseif ($m->status === 'approved') {
-                            // 📌 approved issue add → เพิ่ม stock (คืนสินค้า)
+                            \Log::info('🔻 Reduced reserved from pending issue add', ['quantity' => $quantity, 'new_reserved' => $reservedQty]);
+                        } elseif ($status === 'approved') {
                             $stockQty += $quantity;
-                            \Log::info('📥 Added to stock from approved issue add', [
-                                'quantity' => $quantity,
-                                'new_stock' => $stockQty
-                            ]);
+                            \Log::info('📥 Added to stock from approved issue add', ['quantity' => $quantity, 'new_stock' => $stockQty]);
                         }
-                        // rejected issue add → ไม่ต้องทำอะไร
                     }
-                } elseif ($m->movement_type === 'return' && $m->status === 'approved') {
-                    // 📌 return approved → เพิ่ม stock (คืนสินค้า)
+                } elseif ($movementType === 'return' && $status === 'approved') {
                     $stockQty += $quantity;
                     \Log::info('📥 Added to stock from return', ['new_stock' => $stockQty]);
-                } elseif ($m->movement_type === 'adjustment' && $m->status === 'approved') {
-                    // 📌 adjustment → ตรวจสอบ category ก่อน
-                    if ($m->category === 'safety') {
-                        // ปรับ safety_stock
-                        if ($m->type === 'add') {
+                } elseif ($movementType === 'adjustment' && $status === 'approved') {
+                    // 📌 ตรวจสอบ category ก่อน
+                    if ($category === 'safety') {
+                        if ($type === 'add') {
                             $safetyStock += $quantity;
-                            \Log::info('🛡️ Added to safety_stock from adjustment', [
-                                'quantity' => $quantity,
-                                'new_safety_stock' => $safetyStock
-                            ]);
-                        } else {
+                            \Log::info('🛡️ Added to safety_stock from adjustment', ['quantity' => $quantity, 'new_safety_stock' => $safetyStock]);
+                        } elseif ($type === 'subtract') {
                             $safetyStock -= $quantity;
-                            \Log::info('🛡️ Subtracted from safety_stock from adjustment', [
-                                'quantity' => $quantity,
-                                'new_safety_stock' => $safetyStock
-                            ]);
+                            \Log::info('🛡️ Subtracted from safety_stock from adjustment', ['quantity' => $quantity, 'new_safety_stock' => $safetyStock]);
                         }
-                    } elseif ($m->category === 'stock') {
-                        // ปรับ stock_qty
-                        if ($m->type === 'add') {
+                    } elseif ($category === 'stock') {
+                        if ($type === 'add') {
                             $stockQty += $quantity;
-                            \Log::info('📈 Added to stock from adjustment', ['new_stock' => $stockQty]);
-                        } else {
+                            \Log::info('📈 Added to stock from adjustment', ['quantity' => $quantity, 'new_stock' => $stockQty]);
+                        } elseif ($type === 'subtract') {
                             $stockQty -= $quantity;
-                            \Log::info('📉 Subtracted from stock from adjustment', ['new_stock' => $stockQty]);
+                            \Log::info('📉 Subtracted from stock from adjustment', ['quantity' => $quantity, 'new_stock' => $stockQty]);
                         }
-                    } elseif ($m->category === 'both') {
-                        // ปรับทั้ง stock และ safety (ใช้ quantity เดียวกัน)
-                        if ($m->type === 'add') {
+                    } elseif ($category === 'both') {
+                        if ($type === 'add') {
                             $stockQty += $quantity;
                             $safetyStock += $quantity;
-                            \Log::info('🔄 Added to both stock and safety_stock from adjustment', [
-                                'quantity' => $quantity,
-                                'new_stock' => $stockQty,
-                                'new_safety_stock' => $safetyStock
-                            ]);
-                        } else {
+                            \Log::info('🔄 Added to both stock and safety_stock from adjustment', ['quantity' => $quantity, 'new_stock' => $stockQty, 'new_safety_stock' => $safetyStock]);
+                        } elseif ($type === 'subtract') {
                             $stockQty -= $quantity;
                             $safetyStock -= $quantity;
-                            \Log::info('🔄 Subtracted from both stock and safety_stock from adjustment', [
-                                'quantity' => $quantity,
-                                'new_stock' => $stockQty,
-                                'new_safety_stock' => $safetyStock
-                            ]);
+                            \Log::info('🔄 Subtracted from both stock and safety_stock from adjustment', ['quantity' => $quantity, 'new_stock' => $stockQty, 'new_safety_stock' => $safetyStock]);
                         }
                     } else {
-                        // category อื่น ๆ หรือไม่ได้กำหนด → ปรับ stock_qty (fallback)
-                        if ($m->type === 'add') {
+                        // fallback: ปรับ stock ถ้า category ไม่ระบุ
+                        if ($type === 'add') {
                             $stockQty += $quantity;
-                            \Log::info('📈 Added to stock from adjustment (fallback)', ['new_stock' => $stockQty]);
-                        } else {
+                            \Log::info('📈 Added to stock from adjustment (fallback)', ['quantity' => $quantity, 'new_stock' => $stockQty]);
+                        } elseif ($type === 'subtract') {
                             $stockQty -= $quantity;
-                            \Log::info('📉 Subtracted from stock from adjustment (fallback)', ['new_stock' => $stockQty]);
+                            \Log::info('📉 Subtracted from stock from adjustment (fallback)', ['quantity' => $quantity, 'new_stock' => $stockQty]);
                         }
                     }
-                } elseif ($m->movement_type === 'receipt' && $m->status === 'approved') {
-                    // 📌 receipt → เพิ่ม stock (รับสินค้าเข้า)
-                    if ($m->type === 'add') {
-                        $stockQty += $quantity;
-                        \Log::info('📦 Added to stock from receipt', ['new_stock' => $stockQty]);
-                    }
+                } elseif ($movementType === 'receipt' && $status === 'approved' && $type === 'add') {
+                    $stockQty += $quantity;
+                    \Log::info('📦 Added to stock from receipt', ['quantity' => $quantity, 'new_stock' => $stockQty]);
                 }
 
                 \Log::info('✅ After movement processing:', [
@@ -202,10 +174,11 @@ class StoreOrderController extends Controller
                     'movement_id' => $m->id,
                     'after_stock' => $stockQty,
                     'after_reserved' => $reservedQty,
-                    'after_safety_stock' => $safetyStock, // ✅ เพิ่ม safety_stock ใน log
+                    'after_safety_stock' => $safetyStock,
                     'calculated_available' => max($stockQty - $reservedQty, 0)
                 ]);
             }
+
 
             $reservedQty = max($reservedQty, 0);
             $availableQty = max($stockQty - $reservedQty, 0);
@@ -739,22 +712,65 @@ class StoreOrderController extends Controller
 
                 if ($m->status === 'rejected') continue;
 
-                if ($m->movement_type === 'issue') {
-                    if ($m->type === 'subtract') {
-                        if ($m->status === 'pending') $reservedQty += $quantity;
-                        elseif ($m->status === 'approved') $stockQty -= $quantity;
-                    } elseif ($m->type === 'add') {
-                        if ($m->status === 'pending') $reservedQty = max(0, $reservedQty - $quantity);
-                        elseif ($m->status === 'approved') $stockQty += $quantity;
-                    }
-                } elseif ($m->movement_type === 'return' && $m->status === 'approved') {
-                    $stockQty += $quantity;
-                } elseif ($m->movement_type === 'adjustment' && $m->status === 'approved') {
-                    $stockQty += $m->type === 'add' ? $quantity : -$quantity;
-                } elseif ($m->movement_type === 'receipt' && $m->status === 'approved') {
-                    if ($m->type === 'add') $stockQty += $quantity;
+                switch ($m->movement_type) {
+                    case 'issue':
+                        if ($m->type === 'subtract') {
+                            if ($m->status === 'pending') {
+                                $reservedQty += $quantity;
+                            } elseif ($m->status === 'approved') {
+                                $stockQty -= $quantity;
+                            }
+                        } elseif ($m->type === 'add') {
+                            if ($m->status === 'pending') {
+                                $reservedQty = max(0, $reservedQty - $quantity);
+                            } elseif ($m->status === 'approved') {
+                                $stockQty += $quantity;
+                            }
+                        }
+                        break;
+
+                    case 'return':
+                        if ($m->status === 'approved') {
+                            $stockQty += $quantity;
+                        }
+                        break;
+
+                    case 'adjustment':
+                        if ($m->status === 'approved') {
+                            // ✅ ปรับแยกชัดเจนตาม category
+                            switch ($m->category) {
+                                case 'safety':
+                                    $safetyStock += $m->type === 'add' ? $quantity : -$quantity;
+                                    break;
+
+                                case 'stock':
+                                    $stockQty += $m->type === 'add' ? $quantity : -$quantity;
+                                    break;
+
+                                case 'both':
+                                    $stockQty += $m->type === 'add' ? $quantity : -$quantity;
+                                    $safetyStock += $m->type === 'add' ? $quantity : -$quantity;
+                                    break;
+
+                                default:
+                                    // ❗ ถ้าไม่มี category ให้ข้ามไปเลย ไม่ปรับอะไร
+                                    \Log::warning('⚠️ Unknown adjustment category skipped', [
+                                        'movement_id' => $m->id,
+                                        'category' => $m->category
+                                    ]);
+                                    break;
+                            }
+                        }
+                        break;
+
+                    case 'receipt':
+                        if ($m->status === 'approved' && $m->type === 'add') {
+                            $stockQty += $quantity;
+                        }
+                        break;
                 }
             }
+
 
             $reservedQty = max(0, $reservedQty);
             $availableQty = max($stockQty - $reservedQty, 0);
