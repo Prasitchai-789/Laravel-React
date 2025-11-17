@@ -40,6 +40,7 @@ use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\ERP\ERPController;
+use App\Http\Controllers\ERP\ShiftController;
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
 
 Route::get('/', function () {
@@ -365,13 +366,21 @@ Route::middleware(['auth', 'permission:developer.view|mar.view'])->group(functio
 
 
 
-Route::middleware(['auth','permission:ERP.view'])->group(function ()  {
-     Route::get('/ERPIndex', [ERPController::class, 'index']);
-     Route::get('/ERPDashboard', [ERPController::class, 'Dashboard']);
-     Route::get('/ERPDetail', [ERPController::class, 'Detail']);
-     Route::get('/ImportExcel', [ERPController::class, 'ImportExcel']);
-     Route::get('/shifts', [ERPController::class, 'shifts']);
-     Route::get('/overtime', [ERPController::class, 'overtime']);
+Route::middleware(['auth', 'permission:ERP.view'])->group(function () {
+    Route::get('/ERPIndex', [ERPController::class, 'index']);
+    Route::get('/ERPDashboard', [ERPController::class, 'Dashboard']);
+    Route::get('/ERPDetail', [ERPController::class, 'Detail']);
+    Route::get('/ImportExcel', [ERPController::class, 'ImportExcel']);
+    Route::get('/shifts', [ERPController::class, 'shifts']);
+    Route::get('/overtime', [ERPController::class, 'overtime']);
+    Route::get('/erp', [ERPController::class, 'index'])->name('erp.index');
+
+
+    // Shifts CRUD
+    // Route::get('/shifts', [ShiftController::class, 'shifts'])->name('shifts.index');
+    Route::post('/shifts', [ShiftController::class, 'store'])->name('shifts.store');
+    Route::put('/shifts/{id}', [ShiftController::class, 'update'])->name('shifts.update');
+    Route::delete('/shifts/{id}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
 });
 
 
