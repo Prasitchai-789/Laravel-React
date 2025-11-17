@@ -10,12 +10,15 @@ return new class extends Migration
     {
         Schema::create('shifts', function (Blueprint $table) {
             $table->id();
-            $table->integer('shift_number');
+            $table->string('shift_number')->nullable();
             $table->time('start_time');
             $table->time('end_time');
-            $table->integer('total_hours');
-            $table->string('name');
-            $table->string('description')->nullable();
+            $table->decimal('total_hours', 5, 2)->nullable();
+            $table->string('name')->nullable();
+            $table->text('description')->nullable();
+            $table->unsignedBigInteger('department_id')->nullable(); // FK ไม่ต้อง
+            $table->boolean('overtime_allowed')->default(false);
+            $table->string('status')->default('active');
             $table->timestamps();
         });
     }

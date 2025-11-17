@@ -1,6 +1,6 @@
 import React from 'react';
-import { UploadSummary } from './ImportExcel/Shifts';
-import { SHIFTS } from './components/Shifts/ShiftUtils';
+import { UploadSummary } from '../../Shifts/shift';
+import { SHIFTS } from '../components/Shifts/ShiftUtils';
 
 interface DataSummaryProps {
   summary: UploadSummary;

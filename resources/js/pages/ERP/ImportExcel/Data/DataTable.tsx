@@ -1,7 +1,7 @@
 import React from 'react';
-import { EmployeeRecord } from './ImportExcel/Shifts';
-import { StatusBadge } from './components/UI/StatusBadge';
-import { ShiftBadge } from './components/UI/ShiftBadge';
+import { EmployeeRecord } from '../../Shifts/shift';
+import { StatusBadge } from '../components/UI/StatusBadge';
+import { ShiftBadge } from '../components/UI//ShiftBadge';
 
 interface DataTableProps {
   data: EmployeeRecord[];

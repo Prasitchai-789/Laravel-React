@@ -1,4 +1,4 @@
-import { Shift } from '@/Shifts/ShiftTypes';
+import { Shift } from './components/Shifts/ShiftTypes';
 
 export const SHIFTS: Shift[] = [
   {

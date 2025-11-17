@@ -1,6 +1,6 @@
 import React from 'react';
-import { FilterState, UploadSummary } from './ImportExcel/Shifts';
-import { SHIFTS } from './components/Shifts/ShiftUtils';
+import { FilterState, UploadSummary } from '../Shifts/ShiftTypes';
+import { SHIFTS } from '../components/Shifts/ShiftUtils';
 
 interface DataFiltersProps {
   filters: FilterState;

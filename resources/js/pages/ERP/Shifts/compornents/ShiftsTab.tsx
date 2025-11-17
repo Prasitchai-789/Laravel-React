@@ -8,17 +8,52 @@ import ShiftFilter from "./ShiftFilter";
 import ShiftTable from "./ShiftTable";
 import HolidayManagement from "./HolidayManagement";
 import CommonHolidaysCard from "./CommonHolidaysCard";
-import { shiftData, departments, commonHolidays } from "../data/mockData";
+import { commonHolidays } from "../data/mockData";
 
-const ShiftsTab: React.FC = () => {
-  const [selectedShift, setSelectedShift] = useState<any>(null);
-  const [editingShift, setEditingShift] = useState<any>(null);
+interface Holiday {
+  id: number;
+  name: string;
+  date: string;
+}
+
+interface Shift {
+  id: number;
+  shiftNumber?: string;
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+  breakStart?: string;
+  breakEnd?: string;
+  totalHours: number;
+  department?: string | number;
+  departmentName?: string;
+  employees?: number;
+  holidays?: Holiday[];
+  timeRange?: string;
+  status?: string;
+  overtimeAllowed?: boolean;
+}
+
+interface Department {
+  id: string | number;
+  name: string;
+  color?: string;
+}
+
+interface ShiftsTabProps {
+  shifts: Shift[];
+  departments: Department[];
+}
+
+const ShiftsTab: React.FC<ShiftsTabProps> = ({ shifts, departments }) => {
+  const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
+  const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState("all");
 
   const handleAddShift = () => {
-    const newShift = {
-      id: Math.max(...shiftData.map(s => s.id), 0) + 1,
+    const newShift: Shift = {
+      id: Math.max(...shifts.map(s => s.id), 0) + 1,
       department: "it",
       departmentName: "ฝ่าย IT",
       shiftName: "กะใหม่",
@@ -31,21 +66,22 @@ const ShiftsTab: React.FC = () => {
       employees: 0,
       status: "active",
       overtimeAllowed: true,
-      holidays: []
+      holidays: [],
     };
     setEditingShift(newShift);
     setIsAddingNew(true);
   };
 
-  const handleEditShift = (shift: any) => {
+  const handleEditShift = (shift: Shift) => {
     setEditingShift({ ...shift });
     setIsAddingNew(false);
   };
 
-  const handleSaveShift = (updatedShift: any) => {
+  const handleSaveShift = (updatedShift: Shift) => {
     console.log("บันทึกกะ:", updatedShift);
     setEditingShift(null);
     setIsAddingNew(false);
+    // TODO: ส่งข้อมูลไป backend ผ่าน API หรือ Inertia
   };
 
   const handleCancelEdit = () => {
@@ -54,14 +90,15 @@ const ShiftsTab: React.FC = () => {
   };
 
   const handleDeleteShift = (id: number) => {
-    if (confirm('คุณต้องการลบกะนี้ใช่หรือไม่?')) {
+    if (confirm("คุณต้องการลบกะนี้ใช่หรือไม่?")) {
       console.log("ลบกะ:", id);
+      // TODO: ลบข้อมูลจาก backend
     }
   };
 
   const filteredShifts = selectedDepartment === "all"
-    ? shiftData
-    : shiftData.filter(shift => shift.department === selectedDepartment);
+    ? shifts
+    : shifts.filter(shift => shift.department === selectedDepartment);
 
   return (
     <>
@@ -75,7 +112,7 @@ const ShiftsTab: React.FC = () => {
         </Button>
       </div>
 
-      <StatsCards shiftData={shiftData} />
+      <StatsCards shiftData={shifts} />
 
       {editingShift && (
         <ShiftForm
@@ -85,7 +122,7 @@ const ShiftsTab: React.FC = () => {
           onSave={handleSaveShift}
           onCancel={handleCancelEdit}
           onFieldChange={(field, value) => {
-            setEditingShift((prev: any) => ({ ...prev, [field]: value }));
+            setEditingShift(prev => prev ? { ...prev, [field]: value } : null);
           }}
         />
       )}

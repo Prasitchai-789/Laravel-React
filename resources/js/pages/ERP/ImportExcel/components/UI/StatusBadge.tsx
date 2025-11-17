@@ -1,12 +1,12 @@
-import { EmployeeRecord } from '@/types/shift';
+import React from 'react';
 
 interface StatusBadgeProps {
-  status: EmployeeRecord['status'];
+  status: 'present' | 'late' | 'absent' | 'incomplete';
   color: string;
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, color }) => {
-  const getStatusText = (status: EmployeeRecord['status']): string => {
+  const getStatusText = (status: string): string => {
     switch (status) {
       case 'present': return 'มา work';
       case 'late': return 'สาย';
