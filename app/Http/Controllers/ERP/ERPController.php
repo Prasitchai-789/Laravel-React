@@ -31,20 +31,20 @@ class ERPController extends Controller
 
 
 
-      return Inertia::render('ERP/ImportExcel');
+      return Inertia::render('ERP/ImportExcel/ImportExcel');
  }
  public function shifts(){
 
 
 
-      return Inertia::render('ERP/compornent/Shifts');
+      return Inertia::render('ERP/Shifts/Shifts');
 
  }
  public function overtime(){
 
 
 
-      return Inertia::render('ERP/OT/OT');
+      return Inertia::render('ERP/Overtime/Overtime');
 
  }
 
