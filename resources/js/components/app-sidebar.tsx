@@ -42,11 +42,23 @@ import {
     MonitorSmartphone,
     ScrollText,
     CreditCard,
+
     ChartLine,
     Beaker,
     BadgeDollarSign,
     Proportions,
     Truck,
+
+    Fingerprint,
+    ChartLine,
+    LayoutDashboard,
+    BadgeDollarSign,
+    Proportions,
+    Truck,
+    CalendarDays,
+    CalendarClock,
+    CloudDownload,
+
 
 } from 'lucide-react';
 import AppLogo from './app-logo';
@@ -122,6 +134,44 @@ const PRONavItem: Navitemp[] = [
         icon: FlaskConical,
     },
 ];
+
+
+const ERPItems: NavItem[] = [
+    {
+        title: 'Dashboard',
+        href: '/ERPDashboard',
+        icon: LayoutDashboard,
+    },
+    {
+        title: 'ERP',
+        href: '/ERPIndex',
+        icon: Fingerprint,
+    },
+    {
+        title: 'ERPDetail',
+        href: '/ERPDetail',
+        icon: Fingerprint,
+    },
+    {
+        title: 'ImportExcel',
+        href: '/ImportExcel',
+        icon: CloudDownload,
+    },
+    {
+        title: 'จัดการวันหยุดและกำหนดกะ',
+        href: '/shifts',
+        icon: CalendarDays,
+    },
+
+    {
+        title: 'OT',
+        href: '/overtime',
+        icon: CalendarClock,
+
+    }
+
+];
+
 
 
 const adminNavItems: NavItem[] = [
@@ -502,6 +552,7 @@ export function AppSidebar() {
                     </DropdownMenu>
                 )}
 
+
                  {can('qac.view') && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -524,6 +575,40 @@ export function AppSidebar() {
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
+
+
+                {/* ERP */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton className="flex w-full items-center">
+                                <UsersRound className="h-6 w-6" /> {/* ไอคอนหลักของกลุ่ม */}
+                                <span className="flex-1 font-anuphan font-medium text-blue-800">
+                                    ERP
+                                </span>
+                                <ChevronDown className="ml-auto h-4 w-4" />
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                        <DropdownMenuGroup>
+                            <SidebarGroupLabel>ERP</SidebarGroupLabel>
+                            <NavMain
+                                items={ERPItems.filter(
+                                    (item) => !item.permission || item.permission.some((p) => can(p))
+                                )}
+                            />
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+
+
+
+
+
+
+
 
             </SidebarContent>
             {/* <hr className="border-t-[0.5px] border-gray-200 my-0.5 w-3/4 mx-auto" /> */}
