@@ -24,12 +24,16 @@ use App\Http\Controllers\StoreExportController;
 use App\Http\Controllers\AGR\CustomerController;
 use App\Http\Controllers\Api\SalesAGRController;
 use App\Http\Controllers\ChemicalOrderController;
+use App\Http\Controllers\QAC\CPORecordController;
 use App\Http\Controllers\Api\SalesOrderController;
+use App\Http\Controllers\QAC\SiloRecordController;
+use App\Http\Controllers\QAC\StockReportController;
 use App\Http\Controllers\Store\StoreOrderController;
-use App\Http\Controllers\Store\DashboardStoreController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
 use App\Http\Controllers\Store\StoreMovementController;
+use App\Http\Controllers\Store\DashboardStoreController;
 use App\Http\Controllers\Api\PurchaseDashboardController;
+use App\Http\Controllers\QAC\ByProductionStockController;
 use App\Http\Controllers\Dashboard\CostAnalysisController;
 use App\Http\Controllers\Dashboard\DailyBarCharController;
 use App\Http\Controllers\Dashboard\SaleOrderMarController;
@@ -195,7 +199,8 @@ Route::middleware(['auth', 'permission:developer.view|agr.view'])->group(functio
     Route::delete('/stock-agr/{production}', [ProductController::class, 'destroy'])->name('stock.agr.destroy');
 });
 
-Route::middleware(['auth', 'permission:developer.view'])->group(function () {
+// AGR Reports
+Route::middleware(['auth', 'permission:developer.view|agr.delete'])->group(function () {
     Route::get('/report-by-subdistrict', [SalesAGRController::class, 'reportBySubdistrict']);
     Route::get('/payment-stats', [SalesAGRController::class, 'paymentStats']);
     Route::get('/top-areas', [SalesAGRController::class, 'topAreas']);
@@ -214,8 +219,6 @@ Route::prefix('fertilizer')->group(function () {
 
 
 Route::middleware(['auth', 'permission:users.view|PUR.view'])->prefix('StoreOrder')->group(function () {
-
-    // Route ใหม่
     Route::get('/getWithdrawalStats', [DashboardStoreController::class, 'getWithdrawalStats']);
     Route::get('/Chart', [DashboardStoreController::class, 'Chart']);
     Route::get('/QuickSummary', [DashboardStoreController::class, 'QuickSummary']);
@@ -323,13 +326,12 @@ Route::fallback(function () {
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 
     Route::get('purchase/dashboard', [PurchaseDashboardController::class, 'index']);
-
     Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'apiIndex']);
-
     Route::get('/purchase/dashboard/api', [PurchaseDashboardController::class, 'apiPOinvByDept'])->name('purchase.dashboard.api');
 });
 
 
+// Dash Board
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 
     Route::get('purchase/po', [POController::class, 'index']);
@@ -342,13 +344,11 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 
     Route::get('/sales-mar/api', [SaleMARController::class, 'getSalesWeb'])->name('sales.mar.api');
     Route::get('/sales-mar-win/api', [SaleMARController::class, 'getSalesWin'])->name('sales.mar.win.api');
-
-
     Route::get('/poinv-win-summary/api', [POInvController::class, 'getPOInvSummary'])->name('poinv.win.summary.api');
     Route::get('/poinv-win-monthly/api', [POInvController::class, 'getPOInvMonthly'])->name('poinv.win.monthly.api');
 });
 
-
+// MAR Routes
 Route::middleware(['auth', 'permission:developer.view|mar.view'])->group(function () {
     Route::get('orders', [MARSalesController::class, 'salesOrder']);
     Route::get('orders/pending', [SalesOrderController::class, 'getSalesOrder']);
@@ -363,6 +363,44 @@ Route::middleware(['auth', 'permission:developer.view|mar.view'])->group(functio
     Route::get('/loss-analysis/api', [SaleMARController::class, 'getLossAnalysis']);
     Route::get('/top-customers/api', [SaleMARController::class, 'getTopCustomers']);
 });
+
+
+// QAC Routes
+Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(function () {
+    Route::get('/stock/report', [StockReportController::class, 'index'])->name('stock.report.index');
+    Route::get('/stock/cpo', [StockReportController::class, 'stockCPO'])->name('stock.cpo.index');
+    Route::get('/cpo', [CPORecordController::class, 'index'])->name('cpo.index');
+    Route::post('/cpo', [CPORecordController::class, 'store'])->name('cpo.store');
+    Route::put('/cpo/{id}', [CPORecordController::class, 'update'])->name('cpo.update');
+    Route::delete('/cpo/{id}', [CPORecordController::class, 'destroy'])->name('cpo.destroy');
+    Route::get('/cpo/api', [CPORecordController::class, 'apiRecord'])->name('cpo.api');
+
+    Route::get('/stock/kernel', [SiloRecordController::class, 'index'])->name('stock.kernel.index');
+    Route::post('/stock/kernel', [SiloRecordController::class, 'store']);
+    Route::get('/stock/kernel/api', [SiloRecordController::class, 'apiRecord'])->name('stock.kernel.api');
+    Route::put('/stock/kernel/{siloRecord}', [SiloRecordController::class, 'update']);
+    Route::delete('/stock/kernel/{siloRecord}', [SiloRecordController::class, 'destroy'])->name('stock.kernel.destroy');
+
+    Route::get('/stock/by-products', [ByProductionStockController::class, 'index'])->name('stock.by-products.index');
+    Route::post('/stock/by-products', [ByProductionStockController::class, 'store'])->name('stock.by-products.store');
+    Route::put('/stock/by-products/{id}', [ByProductionStockController::class, 'update'])->name('stock.by-products.update');
+    Route::delete('/stock/by-products/{id}', [ByProductionStockController::class, 'destroy'])->name('stock.by-products.destroy');
+    Route::get('/stock/by-products/api', [ByProductionStockController::class, 'apiByProduction'])->name('stock.by-products.api');
+    Route::get('/stock/productions/api', [ByProductionStockController::class, 'apiGetProduction'])->name('stock.productions.api');
+    Route::get('/productions/by-date', [ByProductionStockController::class, 'getByDate']);
+
+    Route::get('/stock/sales/api', [ByProductionStockController::class, 'apiSumSales'])->name('stock.sales.api');
+});
+
+// Dashboard QAC Routes
+Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(function () {
+    Route::get('/report/sales/api', [StockReportController::class, 'apiSummarySales'])->name('report.sales.api');
+    Route::get('/report/productions/api', [StockReportController::class, 'apiProductions'])->name('report.productions.api');
+    Route::get('/report/stock-cpo/api', [StockReportController::class, 'apiStockCPO'])->name('report.stock-cpo.api');
+    Route::get('/report/stock-cpo/date/{date}', [StockReportController::class, 'getStockCpoByDate']);
+    Route::get('/report/stock-cpo/historical', [StockReportController::class, 'getHistoricalData'])->name('report.stock-cpo.historical');
+});
+
 
 
 
