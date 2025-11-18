@@ -50,11 +50,7 @@ import {
     Truck,
 
     Fingerprint,
-    ChartLine,
     LayoutDashboard,
-    BadgeDollarSign,
-    Proportions,
-    Truck,
     CalendarDays,
     CalendarClock,
     CloudDownload,
