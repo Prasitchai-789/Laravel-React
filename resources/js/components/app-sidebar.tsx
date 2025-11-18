@@ -42,12 +42,11 @@ import {
     MonitorSmartphone,
     ScrollText,
     CreditCard,
-
     ChartLine,
-
+    Beaker,
     BadgeDollarSign,
     Proportions,
-    Truck
+    Truck,
 
 } from 'lucide-react';
 import AppLogo from './app-logo';
@@ -260,6 +259,38 @@ const FerNavItems: NavItem[] = [
         icon: Warehouse,
         permission: ['fer.view'],
     }
+]
+const QACNavItems: NavItem[] = [
+    {
+        title: 'บันทึกข้อมูล Stock CPO',
+        href: '/cpo',
+        icon: Beaker,
+        permission: ['fer.view'],
+    },
+    {
+        title: 'บันทึกข้อมูล Kernel',
+        href: '/stock/kernel',
+        icon: Beaker,
+        permission: ['fer.view'],
+    },
+    {
+        title: 'บันทึกข้อมูล สินค้าอื่น ๆ',
+        href: '/stock/by-products',
+        icon: Beaker,
+        permission: ['fer.view'],
+    },
+    {
+        title: 'Stock CPO',
+        href: '/stock/cpo',
+        icon: Beaker,
+        permission: ['fer.view'],
+    },
+    {
+        title: 'รายงานการผลิต',
+        href: '/stock/report',
+        icon: ScrollText,
+        permission: ['fer.view'],
+    }
 ];
 
 const footerNavItems: NavItem[] = [
@@ -290,8 +321,6 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
 
-
-
             <SidebarContent>
                 <SidebarGroupLabel>Report Present</SidebarGroupLabel>
                 {can('developer.view') && (
@@ -320,9 +349,6 @@ export function AppSidebar() {
 
                 <hr className="border-t border-gray-200 my-1" />
                 {/* <hr className="border-t-[0.5px] border-gray-200 my-0.5 w-3/4 mx-auto" /> */}
-
-
-
                 <SidebarGroupLabel>Menu</SidebarGroupLabel>
                 {/* IT */}
                 <DropdownMenu>
@@ -430,9 +456,7 @@ export function AppSidebar() {
 
 
                 {/* PALM */}
-
                 {can('agr.view') && (
-
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -478,6 +502,29 @@ export function AppSidebar() {
                     </DropdownMenu>
                 )}
 
+                 {can('qac.view') && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
+                                    <FlaskConical className="h-6 w-6" />
+                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">ฝ่ายควบคุมคุณภาพ</span>
+                                    <ChevronDown className="ml-auto h-4 w-4" />
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                            <DropdownMenuGroup>
+                                <SidebarGroupLabel>QAC</SidebarGroupLabel>
+                                <NavMain
+                                 items={QACNavItems.filter(
+                                    item => !item.permission || item.permission.some(p => can(p))
+                                )} />
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
+
             </SidebarContent>
             {/* <hr className="border-t-[0.5px] border-gray-200 my-0.5 w-3/4 mx-auto" /> */}
             <hr className="border-t border-gray-200 my-1" />
@@ -508,8 +555,6 @@ export function AppSidebar() {
                 {/* <NavFooter items={footerNavItems} className="mt-auto" /> */}
                 <NavUser />
             </SidebarFooter>
-
-
 
         </Sidebar>
     );

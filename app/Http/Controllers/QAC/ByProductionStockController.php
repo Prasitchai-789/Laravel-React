@@ -1,0 +1,406 @@
+<?php
+
+namespace App\Http\Controllers\QAC;
+
+use Inertia\Inertia;
+use App\Models\MAR\SOPlan;
+use Illuminate\Http\Request;
+use App\Models\PRO\Production;
+use App\Models\QAC\StockProduct;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use App\Models\QAC\ByProductionStock;
+
+class ByProductionStockController extends Controller
+{
+
+
+    public function index()
+    {
+        return Inertia::render('QAC/ByProductionForm', []);
+    }
+    public function apiByProduction()
+    {
+        try {
+            $records = ByProductionStock::all();
+            return response()->json([
+                'success' => true,
+                'records' => $records,
+                'message' => 'โหลดข้อมูลเรียบร้อยแล้ว',
+                'count' => $records->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
+                'records' => []
+            ], 500);
+        }
+    }
+
+    public function apiGetProduction()
+    {
+        try {
+            $productions = Production::select('Date', 'id', 'FFBPurchase', 'FFBGoodQty')->orderBy('Date', 'desc')->get();
+            return response()->json([
+                'success' => true,
+                'productions' => $productions,
+                'message' => 'โหลดข้อมูลเรียบร้อยแล้ว',
+                'count' => $productions->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
+                'records' => []
+            ], 500);
+        }
+    }
+
+    public function getByDate(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|string'
+        ]);
+
+        $date = $this->strictDateParser($request->date);
+
+        if (!$date) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid date format'
+            ], 400);
+        }
+
+        // ⭐ เปลี่ยนชื่อ table/field ให้ตรง database ของคุณ
+        $production = DB::connection('sqlsrv3')
+            ->table('productions') // ← เปลี่ยนตรงนี้
+            ->whereDate('Date', $date)
+            ->select('FFBGoodQty')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'date' => $date,
+            'FFBGoodQty' => $production->FFBGoodQty ?? 0,
+        ]);
+    }
+
+
+
+    public function apiSumSales()
+    {
+        try {
+            $sales = SOPlan::select(
+                'SOPDate',
+                'GoodID',
+                DB::raw('SUM(NetWei) AS total_netwei')
+            )
+                ->groupBy('SOPDate', 'GoodID')
+                ->orderBy('SOPDate', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'sales' => $sales,
+                'message' => 'โหลดข้อมูลเรียบร้อยแล้ว',
+                'count' => $sales->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
+                'records' => []
+            ], 500);
+        }
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'production_date' => 'required|date',
+            'initial_palm_quantity' => 'required|numeric|min:0',
+            'efb_fiber_percentage' => 'required|numeric|min:0|max:100',
+            'efb_percentage' => 'required|numeric|min:0|max:100',
+            'shell_percentage' => 'required|numeric|min:0|max:100',
+            'efb_fiber_previous_balance' => 'required|numeric|min:0',
+            'efb_previous_balance' => 'required|numeric|min:0',
+            'shell_previous_balance' => 'required|numeric|min:0',
+            'efb_fiber_sold' => 'required|numeric|min:0',
+            'efb_sold' => 'required|numeric|min:0',
+            'shell_sold' => 'required|numeric|min:0',
+            'efb_fiber_other' => 'nullable|numeric|min:0',
+            'efb_other' => 'nullable|numeric|min:0',
+            'shell_other' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string'
+        ]);
+
+        /* -------------------------------------------------------
+        ✔ 1) หาข้อมูลการผลิตของวันที่นี้ (กันซ้ำ)
+    ------------------------------------------------------- */
+        $existing = ByProductionStock::where('production_date', $validated['production_date'])->first();
+
+        if ($existing) {
+            // ใช้ข้อมูลเก่ามาอัพเดท
+            $existing->fill($validated);
+
+            $existing->calculateProducedQuantities();
+            $existing->calculateBalances();
+
+            $existing->save();
+
+            $stock = $existing; // ใช้ตัวเดิม
+        } else {
+            // บันทึกใหม่
+            $stock = new ByProductionStock($validated);
+
+            $stock->calculateProducedQuantities();
+            $stock->calculateBalances();
+
+            $stock->save();
+        }
+
+        /* -------------------------------------------------------
+        ✔ 2) อัพเดท StockProduct ด้วยยอดคงเหลือ
+    ------------------------------------------------------- */
+        $productStock = StockProduct::where('record_date', $validated['production_date'])->first();
+
+        if ($productStock) {
+            $productStock->update([
+                'efb_fiber' => $stock->efb_fiber_balance,
+                'efb'       => $stock->efb_balance,
+                'shell'     => $stock->shell_balance,
+            ]);
+        } else {
+            StockProduct::create([
+                'record_date' => $validated['production_date'],
+                'efb_fiber'   => $stock->efb_fiber_balance,
+                'efb'         => $stock->efb_balance,
+                'shell'       => $stock->shell_balance,
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'บันทึกข้อมูลสำเร็จ',
+            'data' => $stock
+        ], 201);
+    }
+
+
+
+    public function show(ByProductionStock $palmProductionStock)
+    {
+        return response()->json($palmProductionStock);
+    }
+
+    private function strictDateParser($input)
+    {
+        if (!$input) return null;
+
+        // If already YYYY-MM-DD
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $input)) {
+            return $input;
+        }
+
+        // Handle: "Nov 15 2025 12:00:00:AM"
+        $parts = explode(' ', $input);
+
+        if (count($parts) >= 3) {
+            $monthShort = $parts[0];
+            $day        = preg_replace('/\D/', '', $parts[1]);
+            $year       = preg_replace('/\D/', '', $parts[2]);
+
+            $monthMap = [
+                'Jan' => '01',
+                'Feb' => '02',
+                'Mar' => '03',
+                'Apr' => '04',
+                'May' => '05',
+                'Jun' => '06',
+                'Jul' => '07',
+                'Aug' => '08',
+                'Sep' => '09',
+                'Oct' => '10',
+                'Nov' => '11',
+                'Dec' => '12',
+            ];
+
+            if (isset($monthMap[$monthShort])) {
+                return "{$year}-{$monthMap[$monthShort]}-" . str_pad($day, 2, '0', STR_PAD_LEFT);
+            }
+        }
+
+        // fallback
+        $ts = strtotime($input);
+        return $ts ? date('Y-m-d', $ts) : null;
+    }
+
+
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'production_date' => 'required|date',
+            'initial_palm_quantity' => 'required|numeric|min:0',
+            'efb_fiber_percentage' => 'required|numeric|min:0|max:100',
+            'efb_percentage' => 'required|numeric|min:0|max:100',
+            'shell_percentage' => 'required|numeric|min:0|max:100',
+            'efb_fiber_previous_balance' => 'required|numeric|min:0',
+            'efb_previous_balance' => 'required|numeric|min:0',
+            'shell_previous_balance' => 'required|numeric|min:0',
+            'efb_fiber_sold' => 'required|numeric|min:0',
+            'efb_sold' => 'required|numeric|min:0',
+            'shell_sold' => 'required|numeric|min:0',
+            'efb_fiber_other' => 'nullable|numeric|min:0',
+            'efb_other' => 'nullable|numeric|min:0',
+            'shell_other' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string'
+        ]);
+
+        /* -------------------------------------------------------
+        ✔ 1) ดึงข้อมูลเดิมเพื่อเปรียบเทียบ
+    ------------------------------------------------------- */
+        $stock = ByProductionStock::findOrFail($id);
+        $oldDate = $stock->production_date;
+        $newDate = $validated['production_date'];
+
+        /* -------------------------------------------------------
+        ✔ 2) เช็คว่ามีวันที่ซ้ำกับ ID อื่นหรือไม่
+    ------------------------------------------------------- */
+        $duplicate = ByProductionStock::where('production_date', $newDate)
+            ->where('id', '!=', $id)
+            ->first();
+
+        if ($duplicate) {
+            return response()->json([
+                'message' => "มีข้อมูลวันที่ {$newDate} อยู่แล้ว ไม่สามารถใช้วันที่ซ้ำได้"
+            ], 422);
+        }
+
+        /* -------------------------------------------------------
+        ✔ 3) UPDATE ข้อมูล ByProductionStock
+    ------------------------------------------------------- */
+        $stock->fill($validated);
+
+        $stock->calculateProducedQuantities();
+        $stock->calculateBalances();
+
+        $stock->save();
+
+        /* -------------------------------------------------------
+        ✔ 4) UPDATE หรือ CREATE StockProduct ตามวันใหม่
+    ------------------------------------------------------- */
+        $oldDate = $this->strictDateParser($stock->production_date);
+        $newDate = $this->strictDateParser($request->production_date);
+
+        // ยอดคงเหลือใหม่
+        $efb_fiber = $stock->efb_fiber_balance;
+        $efb       = $stock->efb_balance;
+        $shell     = $stock->shell_balance;
+
+        if ($oldDate !== $newDate) {
+            // ถ้าผู้ใช้เปลี่ยนวันที่ ต้องย้ายยอดสต็อก
+
+            // ลบข้อมูลสต็อกวันเก่า (ถ้ามี)
+            StockProduct::where('record_date', $oldDate)->delete();
+
+            // อัปเดต/เพิ่มของวันใหม่
+            StockProduct::updateOrCreate(
+                ['record_date' => $newDate],
+                [
+                    'efb_fiber' => $efb_fiber,
+                    'efb'       => $efb,
+                    'shell'     => $shell,
+                ]
+            );
+        } else {
+            // ถ้าวันเดิม → แค่ update ผลรวม
+            StockProduct::updateOrCreate(
+                ['record_date' => $newDate],
+                [
+                    'efb_fiber' => $efb_fiber,
+                    'efb'       => $efb,
+                    'shell'     => $shell,
+                ]
+            );
+        }
+
+        return response()->json([
+            'message' => 'อัปเดตข้อมูลสำเร็จ',
+            'data' => $stock
+        ], 200);
+    }
+
+
+    public function destroy($id)
+    {
+        try {
+            // --- 1) Load record ---
+            $record = ByProductionStock::findOrFail($id);
+
+            // Raw date เช่น "Nov 13 2025 12:00:00:AM"
+            $rawDate = $record->production_date;
+
+            // --- 2) Clean / Normalize Date ---
+            // แก้ ":" หน้า AM/PM เช่น "12:00:00:AM" → "12:00:00 AM"
+            $clean = str_replace([':AM', ':PM'], [' AM', ' PM'], $rawDate);
+
+            // แปลงเป็น YYYY-MM-DD ด้วย strtotime
+            $formattedDate = date('Y-m-d', strtotime($clean));
+
+            // --- 3) ลบข้อมูลปัจจุบัน ---
+            $record->delete();
+
+            // --- 4) ตรวจว่ามีข้อมูลวันเดียวกันเหลืออยู่ไหม ---
+            $remaining = ByProductionStock::where('production_date', $clean)->count();
+
+            // --- 5) โหลด stock ของวันนั้น ---
+            $stockProduct = StockProduct::where('record_date', $clean)->first();
+
+            if ($remaining === 0) {
+// dd($stockProduct);
+                // --- กรณีลบตัวสุดท้ายของวัน ---
+                if ($stockProduct) {
+                    $stockProduct->update([
+                        'efb_fiber' => 0,
+                        'efb'       => 0,
+                        'shell'     => 0,
+                    ]);
+                }
+            } else {
+
+                // --- 6) ยังมีข้อมูลวันนั้น → คำนวณยอดรวมใหม่ ---
+                $items = ByProductionStock::where('production_date', $clean)->get();
+
+                $total_efb_fiber_balance = $items->sum('efb_fiber_balance');
+                $total_efb_balance       = $items->sum('efb_balance');
+                $total_shell_balance     = $items->sum('shell_balance');
+
+                if ($stockProduct) {
+                    // อัปเดตค่าใหม่ใน StockProduct
+                    $stockProduct->update([
+                        'efb_fiber' => $total_efb_fiber_balance,
+                        'efb'       => $total_efb_balance,
+                        'shell'     => $total_shell_balance,
+                    ]);
+                } else {
+
+                    // ถ้าไม่มี stock ให้สร้างใหม่
+                    StockProduct::create([
+                        'record_date'        => $formattedDate,
+                        'efb_fiber'  => $total_efb_fiber_balance,
+                        'efb'        => $total_efb_balance,
+                        'shell'      => $total_shell_balance,
+                    ]);
+                }
+            }
+
+             return redirect()->route('stock.by-products.index')->with('success', 'ลบข้อมูลสำเร็จ');
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการลบข้อมูล: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+}
