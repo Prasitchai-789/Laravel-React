@@ -1074,11 +1074,7 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
                                                             {(
                                                                 parseFloat(
                                                                     totalCPODetails.totalVolume,
-                                                                ) +
-                                                                parseFloat(
-                                                                    formData.oil_room
-                                                                        .skim || '0',
-                                                                )
+                                                                ) 
                                                             ).toFixed(3)}{' '}
                                                             ตัน
                                                         </p>
@@ -1086,24 +1082,8 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
                                                             รวมจาก{' '}
                                                             {
                                                                 totalCPODetails.tankCount
-                                                            }{' '}
-                                                            แทงค์
-                                                            {parseFloat(
-                                                                formData.oil_room
-                                                                    .skim || '0',
-                                                            ) > 0 && (
-                                                                <span>
-                                                                    {' '}
-                                                                    + Skim:{' '}
-                                                                    {parseFloat(
-                                                                        formData
-                                                                            .oil_room
-                                                                            .skim ||
-                                                                            '0',
-                                                                    ).toFixed(3)}{' '}
-                                                                    ตัน
-                                                                </span>
-                                                            )}
+                                                            }{' '}แทงค์
+                                                            
                                                         </p>
                                                     </div>
                                                 </div>
@@ -1126,22 +1106,6 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
                                                                 </p>
                                                             </div>
                                                         ),
-                                                    )}
-                                                    {parseFloat(
-                                                        formData.oil_room.skim || '0',
-                                                    ) > 0 && (
-                                                        <div className="rounded-lg border border-red-50 bg-gradient-to-br from-red-50 to-pink-50 p-2 text-center">
-                                                            <p className="font-medium text-red-700">
-                                                                Skim
-                                                            </p>
-                                                            <p className="font-bold text-red-600">
-                                                                {parseFloat(
-                                                                    formData.oil_room
-                                                                        .skim || '0',
-                                                                ).toFixed(3)}{' '}
-                                                                ตัน
-                                                            </p>
-                                                        </div>
                                                     )}
                                                 </div>
                                             </motion.div>

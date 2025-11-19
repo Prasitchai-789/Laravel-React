@@ -91,10 +91,11 @@ class StockReportController extends Controller
         try {
             $dateInput = $request->route('date');
 
+            // แปลงทุกอย่างเป็น YYYY-MM-DD
             $formatted = $this->parseDateString($dateInput);
 
             $data = DB::table('cpo_data')
-                ->whereDate('date', $formatted)
+                ->where('date', 'LIKE', "%{$formatted}%")
                 ->orderBy('id', 'desc')
                 ->first();
 
@@ -116,6 +117,7 @@ class StockReportController extends Controller
             ], 500);
         }
     }
+
 
 
     /* ================================
@@ -265,4 +267,3 @@ class StockReportController extends Controller
         }
     }
 }
-

@@ -21,25 +21,16 @@ const breadcrumbs: BreadcrumbItem[] = [
 const strictDateParser = (input: string): string => {
     if (!input) return '';
 
-    // ถ้าเป็น YYYY-MM-DD อยู่แล้ว
-    if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
-        return input;
+    // ถ้าเป็น YYYY-MM-DD หรือ YYYY-MM-DD HH:mm:ss
+    if (/^\d{4}-\d{2}-\d{2}/.test(input)) {
+        return input.slice(0, 10); // ตัดให้เหลือ YYYY-MM-DD
     }
 
-    // รูปแบบ "Nov 13 2025 12:00:00:AM"
+    // แปลง "Nov 13 2025 12:00:00 AM"
     const monthNames: Record<string, string> = {
-        Jan: '01',
-        Feb: '02',
-        Mar: '03',
-        Apr: '04',
-        May: '05',
-        Jun: '06',
-        Jul: '07',
-        Aug: '08',
-        Sep: '09',
-        Oct: '10',
-        Nov: '11',
-        Dec: '12',
+        Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05',
+        Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10',
+        Nov: '11', Dec: '12'
     };
 
     const parts = input.split(' ');
@@ -50,7 +41,7 @@ const strictDateParser = (input: string): string => {
         return `${year}-${month}-${day}`;
     }
 
-    // fallback: ลองให้ new Date จัดการ
+    // fallback: use new Date
     const d = new Date(input);
     if (!isNaN(d.getTime())) {
         return d.toISOString().split('T')[0];
@@ -58,6 +49,7 @@ const strictDateParser = (input: string): string => {
 
     return '';
 };
+
 
 /* ---------------------------------------------------
     Types
@@ -263,7 +255,7 @@ const ByProductionForm: React.FC = () => {
         production_date: getYesterdayDate(),
         initial_palm_quantity: 0,
 
-        efb_fiber_percentage: 16,
+        efb_fiber_percentage: 9,
         efb_percentage: 19,
         shell_percentage: 5,
 
@@ -307,7 +299,6 @@ const ByProductionForm: React.FC = () => {
         : Array.isArray(page.props.auth?.user?.permissions)
           ? page.props.auth.user.permissions
           : [];
-
     /* ---------------------------------------------------
         FORMAT DATE FOR API
     --------------------------------------------------- */
@@ -503,6 +494,7 @@ const ByProductionForm: React.FC = () => {
 
             return result;
         },
+       
         [sales],
     );
 
@@ -627,52 +619,60 @@ const ByProductionForm: React.FC = () => {
         },
         [stocks, findSalesByDate, getPreviousDayBalances],
     );
-
     /* ---------------------------------------------------
         LOAD DATA ON MOUNT
     --------------------------------------------------- */
 
-    const loadInitialData = async () => {
+const loadInitialData = async () => {
     try {
-        // โหลด Stocks
         const stocksRes = await axios.get('/stock/by-products/api');
         const stocksData = stocksRes.data.records || [];
-        setStocks(stocksData);
 
-        // โหลด Productions
         const productionsRes = await axios.get('/stock/productions/api');
         const productionsData = productionsRes.data.productions || [];
-        setProductions(productionsData);
 
-        // โหลด Sales
         const salesRes = await axios.get('/stock/sales/api');
         const salesData = salesRes.data.sales || [];
+
+        // อัปเดต state ทั้ง 3 อันก่อน
+        setStocks(stocksData);
+        setProductions(productionsData);
         setSales(salesData);
 
-        // หลังโหลดทั้ง 3 อย่างเสร็จ → โหลดข้อมูลของวันใน input
-        const dateParsed = strictDateParser(formData.production_date);
-
-        const ffbQty = await fetchFFBByDate(dateParsed);
-        const salesDay = findSalesByDate(dateParsed);
-        const prevBal = getPreviousDayBalances(stocksData, dateParsed);
-
-        setFormData((prev) => ({
-            ...prev,
-            initial_palm_quantity: ffbQty,
-            efb_fiber_sold: salesDay.efb_fiber_sold,
-            efb_sold: salesDay.efb_sold,
-            shell_sold: salesDay.shell_sold,
-            ...prevBal,
-        }));
-
+        // ห้ามคำนวณทันที ❌ เพราะ state ยังไม่อัปเดต
+        // ให้ useEffect ข้างบนคำนวณแทน ✔
     } catch (error) {
         console.error('Initial load error:', error);
     }
 };
 
+
     useEffect(() => {
     loadInitialData();
 }, []);
+
+useEffect(() => {
+    if (!stocks.length || !sales.length || !productions.length) return;
+
+    const dateParsed = strictDateParser(formData.production_date);
+
+    const salesDay = findSalesByDate(dateParsed);
+    const prevBal = getPreviousDayBalances(stocks, dateParsed);
+
+    fetchFFBByDate(dateParsed).then((ffbQty) => {
+        setFormData(prev => ({
+            ...prev,
+            initial_palm_quantity: ffbQty,
+
+            efb_fiber_sold: salesDay.efb_fiber_sold,
+            efb_sold: salesDay.efb_sold,
+            shell_sold: salesDay.shell_sold,
+
+            ...prevBal,
+        }));
+    });
+
+}, [stocks, sales, productions]);
 
     // เพิ่ม state สำหรับเลือกเดือน
     const [selectedMonth, setSelectedMonth] = useState('');

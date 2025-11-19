@@ -78,8 +78,12 @@ class SiloRecordController extends Controller
         $silo_sale_big = $silo->silo_sale_big_quantity;
         $silo_sale_small = $silo->silo_sale_small_quantity;
 
-        $kernel_total = ($silo_sale_big + $silo_sale_small) > 0
-            ? (($silo_sale_big + $silo_sale_small) / 2) + 12
+        $big = floatval($silo_sale_big ?? 0);
+        $small = floatval($silo_sale_small ?? 0);
+        $sum = $big + $small;
+
+        $kernel_total = $sum > 0
+            ? round(($sum / 2) + 12, 3)
             : 0;
 
         // ✅ เช็คก่อน insert (update ถ้ามี)
@@ -142,8 +146,12 @@ class SiloRecordController extends Controller
         $silo_sale_big = $silo->silo_sale_big_quantity;
         $silo_sale_small = $silo->silo_sale_small_quantity;
 
-        $kernel_total = ($silo_sale_big + $silo_sale_small) > 0
-            ? (($silo_sale_big + $silo_sale_small) / 2) + 12
+        $big = floatval($silo_sale_big ?? 0);
+        $small = floatval($silo_sale_small ?? 0);
+        $sum = $big + $small;
+
+        $kernel_total = $sum > 0
+            ? round(($sum / 2) + 12, 3)
             : 0;
 
         $stock = StockProduct::where('record_date', $validated['record_date'])->first();

@@ -92,7 +92,6 @@ export default function StockCPO() {
             const previousDay = new Date(current);
             previousDay.setDate(previousDay.getDate() - 1);
             const previousDateStr = previousDay.toISOString().split('T')[0];
-
             const response = await fetch(`/report/stock-cpo/date/${previousDateStr}`);
             const result = await response.json();
 
@@ -518,19 +517,15 @@ export default function StockCPO() {
                             <div className="absolute bottom-0 left-0 h-16 w-16 -translate-x-8 translate-y-8 rounded-full bg-white/10"></div>
 
                             <div className="relative z-10">
-                                <h2 className="text-lg font-semibold">Total CPO + Skim</h2>
+                                <h2 className="text-lg font-semibold">Total CPO</h2>
                                 <p className="mt-2 text-5xl font-bold">
                                     {(
-                                        parseFloat(data.totalCPO || 0) +
-                                        parseFloat(data.skim || 0)
+                                        parseFloat(data.totalCPO || 0)
                                     ).toFixed(3)}
                                 </p>
                                 <p className="mt-1 text-sm opacity-90">Tons</p>
                                 <div className="mt-2 text-xs opacity-80">
                                     %FFA: {data.ffa_cpo} | DOBI: {data.dobi_cpo}
-                                </div>
-                                <div className="mt-1 text-xs opacity-70">
-                                    CPO: {data.totalCPO} + Skim: {data.skim}
                                 </div>
                             </div>
                         </motion.div>
