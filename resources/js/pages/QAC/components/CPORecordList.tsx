@@ -112,6 +112,7 @@ interface DensityData {
 interface TankTotals {
     totalVolume: string;
     tankCount: number;
+    skim: string;
     tankDetails: {
         tank_no: number;
         volume: number;
@@ -212,19 +213,14 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
     };
 
     // ฟังก์ชันคำนวณปริมาณ CPO ตามสูตรจาก PHP
+    // คำนวณปริมาตร (ตัน)
     const calculateCPOVolume = useCallback(
         (tankData: any[]) => {
-            // สร้าง keyBy สำหรับ tankInfo
             const tankInfoMap = new Map();
-            tankInfo.forEach((tank) => {
-                tankInfoMap.set(tank.tank_no, tank);
-            });
+            tankInfo.forEach((t) => tankInfoMap.set(t.tank_no, t));
 
-            // สร้าง keyBy สำหรับ densityRef
             const densityRefMap = new Map();
-            densityRef.forEach((density) => {
-                densityRefMap.set(density.temperature_c, density);
-            });
+            densityRef.forEach((d) => densityRefMap.set(d.temperature_c, d.density));
 
             let totalCPO = 0;
             const calculatedVolumes: { [key: number]: number } = {};
@@ -232,36 +228,32 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
             tankData.forEach((tank) => {
                 const tankNo = tank.tank_no;
 
-                // ตรวจสอบว่ามีข้อมูลระดับน้ำมันและอุณหภูมิหรือไม่
-                if (!tank.oil_level || !tank.temperature || tank.oil_level === null || tank.temperature === null) {
+                // ไม่มีข้อมูล → 0
+                if (tank.oil_level == null || tank.temperature == null || tank.oil_level === '' || tank.temperature === '') {
                     calculatedVolumes[tankNo] = 0;
                     return;
                 }
 
-                const oilLevel = safeParseFloat(tank.oil_level); // ระดับน้ำมัน (cm)
-                const temperature = Math.round(safeParseFloat(tank.temperature)); // อุณหภูมิ (°C) - ปัดเศษ
+                const oilLevel = safeParseFloat(tank.oil_level); // cm
+                const temp = Math.round(safeParseFloat(tank.temperature)); // °C
 
-                // ดึงข้อมูลถัง
-                const tankInfo = tankInfoMap.get(tankNo);
-                if (!tankInfo) {
+                const info = tankInfoMap.get(tankNo);
+                if (!info) {
                     calculatedVolumes[tankNo] = 0;
                     return;
                 }
 
-                // หาความหนาแน่นจากอุณหภูมิ
-                const densityData = densityRefMap.get(temperature);
-                const density = densityData ? densityData.density : 0.8841; // ค่า default
+                // density (ton/m³)
+                const density = densityRefMap.get(temp) ?? 0.8841;
 
-                // คำนวณปริมาณต่อ cm
-                // สูตร: (volume_m3 * density) / (height_m * 100)
-                const volumePerCm = (tankInfo.volume_m3 * density) / (tankInfo.height_m * 100);
+                // ปริมาตร 1 cm = (Volume/Height) / 100
+                const volumePerCm_m3 = info.volume_m3 / info.height_m / 100;
 
-                // คำนวณปริมาณทั้งหมด
-                // สูตร: ระดับน้ำมัน (cm) * ปริมาณต่อ cm
-                const totalVolume = oilLevel * volumePerCm;
+                // น้ำหนักตัน = m³ * density
+                const weightTon = oilLevel * volumePerCm_m3 * density;
 
-                calculatedVolumes[tankNo] = totalVolume;
-                totalCPO += totalVolume;
+                calculatedVolumes[tankNo] = weightTon;
+                totalCPO += weightTon;
             });
 
             return {
@@ -371,28 +363,37 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
     };
 
     // คำนวณ Total CPO และรายละเอียดแทงค์
-    const calculateTankTotals = (record: CPORecord): TankTotals => {
-        const transformed = transformRecordData(record);
-        const volumeResult = calculateCPOVolume(transformed.tanks);
+    const sumVolumes = (volumesObj: { [key: number]: number }): number => {
+    const volumesArray = Object.values(volumesObj);  // แปลง object → array
 
-        const tankDetails = transformed.tanks
-            .filter((tank) => tank.oil_level && tank.temperature)
-            .map((tank) => ({
-                tank_no: tank.tank_no,
-                volume: volumeResult.volumes[tank.tank_no] || 0,
-                oil_level: tank.oil_level,
-                temperature: tank.temperature,
-            }));
+    return (
+        volumesArray.reduce((total, v) => {
+            return total + Math.round((v || 0) * 1000);
+        }, 0) / 1000
+    );
+};
 
-        // คำนวณ totalVolume โดยรวม skim ด้วย
-        const totalVolume = (volumeResult.total_cpo + safeParseFloat(transformed.oil_room.skim || 0)).toFixed(3);
+const calculateTankTotals = (record: CPORecord): TankTotals => {
+    const transformed = transformRecordData(record);
+    const volumeResult = calculateCPOVolume(transformed.tanks);
 
-        return {
-            tankDetails,
-            totalVolume: totalVolume,
-            tankCount: tankDetails.length,
-        };
+    const tankDetails = transformed.tanks.map((tank, index) => ({
+        tank_no: tank.tank_no ?? index + 1,
+        volume: volumeResult.volumes[tank.tank_no] ?? 0,
+        oil_level: tank.oil_level ?? 0,
+        temperature: tank.temperature ?? 0,
+    }));
+
+    const totalVolume = sumVolumes(volumeResult.volumes).toFixed(3);
+
+    return {
+        tankDetails,
+        totalVolume,
+        tankCount: tankDetails.length,
+        skim: safeParseFloat(transformed.oil_room.skim || 0).toFixed(3),
     };
+};
+
 
     // คำนวณค่าเฉลี่ยคุณภาพน้ำมัน
     const calculateQualityAverages = (record: CPORecord) => {
@@ -606,19 +607,10 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                     <div className="rounded-3xl bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-white shadow-2xl">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-amber-100">ยอด CPO + Skim ล่าสุด</p>
+                                <p className="text-sm text-amber-100">ยอด CPO</p>
                                 <p className="mt-1 text-xl font-bold">
                                     {sortedRecords[0] ? calculateTankTotals(sortedRecords[0]).totalVolume : '0.000'} ตัน
                                 </p>
-                                <div className="mt-1 flex space-x-2 text-xs text-amber-200">
-                                    <span>คำนวณจากสูตร</span>
-                                </div>
-                                {sortedRecords[0] && (
-                                    <div className="mt-1 text-xs text-amber-200">
-                                        CPO: {calculateCPOVolume(transformRecordData(sortedRecords[0]).tanks).total_cpo.toFixed(3)} + Skim:{' '}
-                                        {safeParseFloat(transformRecordData(sortedRecords[0]).oil_room.skim || 0).toFixed(3)} ตัน
-                                    </div>
-                                )}
                             </div>
                             <div className="rounded-2xl bg-white/20 p-3">
                                 <FlaskConical className="h-6 w-6" />
@@ -630,13 +622,8 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                     <div className="rounded-3xl bg-gradient-to-br from-red-500 to-pink-600 p-6 text-white shadow-2xl">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-red-100">%FFA เฉลี่ย</p>
-                                <p className="mt-1 text-xl font-bold">
-                                    {sortedRecords[0] ? calculateQualityAverages(sortedRecords[0]).avgFFA : '0.00'} %
-                                </p>
-                                <div className="mt-1 flex space-x-2 text-xs text-red-200">
-                                    <span>คุณภาพน้ำมัน</span>
-                                </div>
+                                <p className="text-sm text-red-100">Skim</p>
+                                <p className="mt-1 text-xl font-bold">{sortedRecords[0] ? calculateTankTotals(sortedRecords[0]).skim : '0.00'} ตัน</p>
                             </div>
                             <div className="rounded-2xl bg-white/20 p-3">
                                 <Filter className="h-6 w-6" />
@@ -916,7 +903,11 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                                                             { label: 'Setting', value: transformed.oil_room.setting, color: 'text-amber-700' },
                                                             { label: 'Clean Oil', value: transformed.oil_room.clean_oil, color: 'text-green-700' },
                                                             { label: 'Mix (Ton)', value: transformed.oil_room.mix, color: 'text-red-700' },
-                                                            { label: 'Loop Back (Ton)', value: transformed.oil_room.loop_back, color: 'text-red-700' },
+                                                            {
+                                                                label: 'Loop Back (Ton)',
+                                                                value: transformed.oil_room.loop_back,
+                                                                color: 'text-red-700',
+                                                            },
                                                         ]
                                                             .filter((item) => item.value)
                                                             .map((item, idx) => (
@@ -940,9 +931,11 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                                             <td className="px-2 py-2 align-top">
                                                 <div className="space-y-2">
                                                     <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-3">
-                                                        <div className="mb-2 text-xs font-medium text-amber-600">สรุปปริมาณ (คำนวณ) : <span className="font-bold text-amber-700">{tankTotals.tankCount} แทงค์</span></div>
+                                                        <div className="mb-2 text-xs font-medium text-amber-600">
+                                                            สรุปปริมาณ (คำนวณ) :{' '}
+                                                            <span className="font-bold text-amber-700">{tankTotals.tankCount} แทงค์</span>
+                                                        </div>
                                                         <div className="space-y-2 text-xs">
-
                                                             {tankTotals.tankDetails.map((tank) => (
                                                                 <div key={tank.tank_no} className="flex justify-between text-xs">
                                                                     <span className="text-gray-500">Tank {tank.tank_no}:</span>
@@ -950,23 +943,10 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                                                                 </div>
                                                             ))}
 
-                                                            <div className="flex justify-between">
-                                                                <span className="text-gray-600">Total CPO:</span>
-                                                                <span className="font-bold text-amber-700">
-                                                                    {volumeResult.total_cpo.toFixed(3)} ตัน
-                                                                </span>
-                                                            </div>
-                                                            {transformed.oil_room.skim && (
-                                                                <div className="flex justify-between">
-                                                                    <span className="text-gray-600">Skim:</span>
-                                                                    <span className="font-bold text-amber-600">{transformed.oil_room.skim} ตัน</span>
-                                                                </div>
-                                                            )}
                                                             <div className="flex justify-between border-t border-amber-200 pt-1">
                                                                 <span className="font-medium text-gray-700">Total ทั้งหมด:</span>
                                                                 <span className="font-bold text-amber-800">{tankTotals.totalVolume} ตัน</span>
                                                             </div>
-
                                                         </div>
                                                     </div>
                                                 </div>

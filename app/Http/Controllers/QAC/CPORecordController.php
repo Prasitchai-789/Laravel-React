@@ -28,23 +28,17 @@ class CPORecordController extends Controller
     }
     private function calculateCPOVolume($tankData)
     {
-        // ดึงข้อมูลถังจากฐานข้อมูล
-        $cpoTankInfo = CpoTankInfo::select('tank_no', 'height_m', 'diameter_m', 'volume_m3')
-            ->get()
-            ->keyBy('tank_no');
-
-        // ดึงข้อมูลความหนาแน่นจากฐานข้อมูล
-        $cpoDensityRef = CpoDensityRef::select('temperature_c', 'density')
-            ->get()
-            ->keyBy('temperature_c');
+        $cpoTankInfo = CpoTankInfo::select('tank_no', 'height_m', 'volume_m3')->get()->keyBy('tank_no');
+        $cpoDensityRef = CpoDensityRef::select('temperature_c', 'density')->get();
 
         $totalCPO = 0;
         $calculatedVolumes = [];
 
         foreach ($tankData as $tankIndex => $tank) {
-            $tankNo = $tankIndex + 1; // 0 => Tank 1, 1 => Tank 2, etc.
 
-            // ตรวจสอบว่ามีข้อมูลระดับน้ำมันและอุณหภูมิหรือไม่
+            // ใช้ tank_no จริง
+            $tankNo = intval($tank['tank_no'] ?? ($tankIndex + 1));
+
             if (
                 !isset($tank['oil_level']) || !isset($tank['temperature']) ||
                 $tank['oil_level'] === null || $tank['temperature'] === null
@@ -53,37 +47,39 @@ class CPORecordController extends Controller
                 continue;
             }
 
-            $oilLevel = $tank['oil_level']; // ระดับน้ำมัน (cm)
-            $temperature = $tank['temperature']; // อุณหภูมิ (°C)
+            $oilLevel = floatval($tank['oil_level']); // cm
+            $temperature = floatval($tank['temperature']);
 
-            // ดึงข้อมูลถัง
             $tankInfo = $cpoTankInfo->get($tankNo);
             if (!$tankInfo) {
                 $calculatedVolumes[$tankNo] = 0;
                 continue;
             }
 
-            // หาความหนาแน่นจากอุณหภูมิ
-            $densityData = $cpoDensityRef->get($temperature);
-            $density = $densityData ? $densityData->density : 0.8841; // ค่า default
+            // หา density ที่ใกล้ที่สุด
+            $densityRow = $cpoDensityRef->sortBy(fn($d) => abs($d->temperature_c - $temperature))->first();
+            $density = $densityRow->density ?? 0.8841;
 
-            // คำนวณปริมาณต่อ cm
-            // สูตร: (volume_m3 * density) / (height_m * 100)
-            $volumePerCm = ($tankInfo->volume_m3 * $density) / ($tankInfo->height_m * 100);
+            // ปริมาตร 1 cm (m³)
+            $volumePerCmM3 = ($tankInfo->volume_m3 / $tankInfo->height_m) / 100;
 
-            // คำนวณปริมาณทั้งหมด
-            // สูตร: ระดับน้ำมัน (cm) * ปริมาณต่อ cm
-            $totalVolume = $oilLevel * $volumePerCm;
+            // น้ำหนักตัน
+            $totalVolume = $oilLevel * $volumePerCmM3 * $density;
+            $volumeRounded = round($totalVolume, 3);
 
-            $calculatedVolumes[$tankNo] = $totalVolume;
-            $totalCPO += $totalVolume;
+            $calculatedVolumes[$tankNo] = $volumeRounded;
+
+            // รวมแบบค่าปัดแล้วเท่านั้น
+            $totalCPO += $volumeRounded;
         }
 
         return [
             'volumes' => $calculatedVolumes,
-            'total_cpo' => $totalCPO
+            'total_cpo' => round($totalCPO, 3),
         ];
     }
+
+
 
     public function store(Request $request)
     {
@@ -151,13 +147,13 @@ class CPORecordController extends Controller
         // ตรวจสอบว่ามีข้อมูลวันที่เดียวกันหรือไม่
         $existingRecord = CPOData::where('date', $validated['date'])->first();
 
-        // คำนวณปริมาณ CPO
+        // คำนวณ total_cpo  สำหรับ StockProduct
         $calculatedData = $this->calculateCPOVolume($validated['tanks']);
 
-        // คำนวณ total_cpo + skim สำหรับ StockProduct
-        $totalCPO = $calculatedData['total_cpo'] ?? $validated['oil_room']['total_cpo'] ?? 0;
-        $skim = $validated['oil_room']['skim'] ?? 0;
-        $totalStock = $totalCPO + $skim;
+        $calculatedCPO = $calculatedData['total_cpo'];
+        $skim = floatval($validated['oil_room']['skim'] ?? 0);
+
+        $totalStock = round($calculatedCPO, 3);
 
         if ($existingRecord) {
             // Update ข้อมูลที่มีอยู่
@@ -390,14 +386,13 @@ class CPORecordController extends Controller
         $oldDate = $cpoData->date;
         $newDate = $validated['date'];
 
-        // คำนวณปริมาณ CPO
+        // คำนวณ total_cpo  สำหรับ StockProduct
         $calculatedData = $this->calculateCPOVolume($validated['tanks']);
 
-        // คำนวณ total_cpo + skim สำหรับ StockProduct
-        $totalCPO = $calculatedData['total_cpo'] ?? $validated['oil_room']['total_cpo'] ?? 0;
-        $skim = $validated['oil_room']['skim'] ?? 0;
-        $totalStock = $totalCPO + $skim;
+        $calculatedCPO = $calculatedData['total_cpo'];
+        $skim = floatval($validated['oil_room']['skim'] ?? 0);
 
+        $totalStock = round($calculatedCPO, 3);
         // อัพเดทข้อมูล CPOData
         $cpoData->update([
             'date' => $newDate,
