@@ -4,6 +4,19 @@ import { motion } from 'framer-motion';
 import { Calendar, FlaskConical, Info, RefreshCw, Thermometer, TrendingUp } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+// =========================
+// Safe Number Helpers
+// =========================
+const safeNum = (value: any) => {
+    const n = parseFloat(value);
+    return isNaN(n) ? 0 : n;
+};
+
+const safeFixed = (value: any, digits: number = 3) => {
+    const n = safeNum(value);
+    return n.toFixed(digits);
+};
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Dashbaord Stock CPO', href: '#' },
@@ -20,7 +33,6 @@ export default function StockCPO() {
     const [usingSampleData, setUsingSampleData] = useState(false);
     const [salesData, setSalesData] = useState<any | null>(null);
     const [previousDayData, setPreviousDayData] = useState<any | null>(null);
-
 
     const normalizeDate = (input: any): string | null => {
         if (!input) return null;
@@ -244,12 +256,7 @@ export default function StockCPO() {
     // ============================
     // Transform Data (คำนวณและ map field UI)
     // ============================
-    const transformData = (
-        apiData: any,
-        ffbGoodQty: number = 0,
-        salesInTons: number = 0,
-        previousDayCPO: number = 0
-    ) => {
+    const transformData = (apiData: any, ffbGoodQty: number = 0, salesInTons: number = 0, previousDayCPO: number = 0) => {
         // apiData.date อาจเป็น Non-ISO → normalize ก่อน
         const normalized = normalizeDate(apiData.date);
         const validDate = normalized ? safeDate(normalized) : safeDate(apiData.date);
@@ -438,7 +445,6 @@ export default function StockCPO() {
                 return;
             }
 
-
             // ตั้ง selectedDate ให้เป็น YYYY-MM-DD
             setSelectedDate(latestDateNorm);
 
@@ -480,8 +486,8 @@ export default function StockCPO() {
     // ============================
     useEffect(() => {
         const init = async () => {
-            await fetchLatestData();       // ให้ฐานข้อมูลเป็นตัวกำหนดวันที่ล่าสุด
-            await fetchHistoricalData();   // กราฟย้อนหลัง
+            await fetchLatestData(); // ให้ฐานข้อมูลเป็นตัวกำหนดวันที่ล่าสุด
+            await fetchHistoricalData(); // กราฟย้อนหลัง
         };
         void init();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -493,9 +499,7 @@ export default function StockCPO() {
     const chartData = useMemo(() => {
         if (!historicalData || historicalData.length === 0) return [];
 
-        const sorted = [...historicalData].sort(
-            (a, b) => (safeDate(a.date)?.getTime() || 0) - (safeDate(b.date)?.getTime() || 0)
-        );
+        const sorted = [...historicalData].sort((a, b) => (safeDate(a.date)?.getTime() || 0) - (safeDate(b.date)?.getTime() || 0));
 
         const maxValue = Math.max(...sorted.map((d) => d.total_cpo || 0));
 
@@ -539,10 +543,7 @@ export default function StockCPO() {
             <AppLayout breadcrumbs={breadcrumbs}>
                 <div className="flex h-64 flex-col items-center justify-center space-y-4">
                     <div className="text-lg text-red-500">{error}</div>
-                    <button
-                        onClick={handleRefresh}
-                        className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-                    >
+                    <button onClick={handleRefresh} className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
                         ลองใหม่
                     </button>
                 </div>
@@ -587,9 +588,7 @@ export default function StockCPO() {
                                 )}
                             </p>
                             {data.ffbGoodQty > 0 && (
-                                <p className="mt-1 text-sm text-green-600">
-                                    ปาล์มเข้าผลิต: {data.ffbGoodQty.toFixed(2)} Tons
-                                </p>
+                                <p className="mt-1 text-sm text-green-600">ปาล์มเข้าผลิต: {safeFixed(data.ffbGoodQty, 2)} Tons</p>
                             )}
                         </div>
 
@@ -633,12 +632,11 @@ export default function StockCPO() {
 
                             <div className="relative z-10">
                                 <h2 className="text-lg font-semibold">Total CPO</h2>
-                                <p className="mt-2 text-5xl font-bold">
-                                    {parseFloat(data.totalCPO || 0).toFixed(3)}
-                                </p>
+                                <p className="mt-2 text-5xl font-bold">{safeFixed(data.totalCPO, 3)}</p>
+
                                 <p className="mt-1 text-sm opacity-90">Tons</p>
                                 <div className="mt-2 text-xs opacity-80">
-                                    %FFA: {data.ffa_cpo} | DOBI: {data.dobi_cpo}
+                                   %FFA: {safeFixed(data.ffa_cpo, 2)} | DOBI: {safeFixed(data.dobi_cpo, 2)}
                                 </div>
                             </div>
                         </motion.div>
@@ -656,19 +654,14 @@ export default function StockCPO() {
                                 <h2 className="text-lg font-semibold">% Yield</h2>
                                 <div className="mt-3 flex items-center justify-center space-x-3">
                                     <TrendingUp className="h-8 w-8 text-white" />
-                                    <p className="text-4xl font-bold">
-                                        {data.yield !== undefined ? data.yield.toFixed(2) : '0.000'}
-                                    </p>
+                                    <p className="text-4xl font-bold">{data.yield !== undefined ? safeFixed(data.yield, 2) : '0.00'}</p>
                                 </div>
                                 <div className="mt-4 h-2 w-full rounded-full bg-white/20">
                                     <motion.div
                                         className="h-2 rounded-full bg-white"
                                         initial={{ width: 0 }}
                                         animate={{
-                                            width: `${Math.min(
-                                                data.yield !== undefined ? data.yield : 0,
-                                                18
-                                            )}%`,
+                                            width: `${Math.min(data.yield !== undefined ? data.yield : 0, 18)}%`,
                                         }}
                                         transition={{ delay: 0.5, duration: 1 }}
                                     ></motion.div>
@@ -688,9 +681,7 @@ export default function StockCPO() {
                             className="rounded-2xl border border-gray-100 bg-white p-2 shadow-lg"
                         >
                             <div className="mb-4 flex items-center justify-between">
-                                <h2 className="text-lg font-semibold text-gray-700">
-                                    ปริมาณน้ำมันปาล์มดิบ 7 วันย้อนหลัง
-                                </h2>
+                                <h2 className="text-lg font-semibold text-gray-700">ปริมาณน้ำมันปาล์มดิบ 7 วันย้อนหลัง</h2>
 
                                 {usingSampleData && (
                                     <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
@@ -707,21 +698,14 @@ export default function StockCPO() {
                                                 const barHeight = Math.max(item.percentage * 0.8, 12);
 
                                                 const isToday = i === chartData.length - 1;
-                                                const maxVal = Math.max(
-                                                    ...chartData.map((d: any) => d.value)
-                                                );
-                                                const minVal = Math.min(
-                                                    ...chartData.map((d: any) => d.value)
-                                                );
+                                                const maxVal = Math.max(...chartData.map((d: any) => d.value));
+                                                const minVal = Math.min(...chartData.map((d: any) => d.value));
 
                                                 const isHighest = item.value === maxVal;
                                                 const isLowest = item.value === minVal;
 
                                                 return (
-                                                    <div
-                                                        key={i}
-                                                        className="flex flex-1 flex-col items-center"
-                                                    >
+                                                    <div key={i} className="flex flex-1 flex-col items-center">
                                                         <div className="group relative flex h-32 w-full items-end">
                                                             <motion.div
                                                                 initial={{ height: 0 }}
@@ -744,21 +728,17 @@ export default function StockCPO() {
                                                             >
                                                                 <div
                                                                     className={`absolute -top-6 left-1/2 -translate-x-1/2 transform text-xs font-bold ${
-                                                                        isToday ||
-                                                                        isHighest ||
-                                                                        isLowest
+                                                                        isToday || isHighest || isLowest
                                                                             ? 'text-gray-800 opacity-100'
                                                                             : 'text-gray-600 opacity-0 group-hover:opacity-100'
                                                                     } whitespace-nowrap transition-opacity duration-200`}
                                                                 >
-                                                                    {item.value.toFixed(1)}T
+                                                                    {safeFixed(item.value, 1)}T
                                                                 </div>
                                                             </motion.div>
                                                         </div>
 
-                                                        <p className="mt-1 text-xs text-gray-600">
-                                                            {item.date}
-                                                        </p>
+                                                        <p className="mt-1 text-xs text-gray-600">{item.date}</p>
                                                     </div>
                                                 );
                                             })}
@@ -791,9 +771,7 @@ export default function StockCPO() {
                                         <div className="rounded-lg bg-blue-100 p-2">
                                             <FlaskConical className="h-5 w-5 text-blue-600" />
                                         </div>
-                                        <span className="font-semibold text-gray-800">
-                                            TANK {tank.id}
-                                        </span>
+                                        <span className="font-semibold text-gray-800">TANK {tank.id}</span>
                                     </div>
                                     <div className="flex items-center space-x-1 text-sm text-gray-500">
                                         <Thermometer className="h-4 w-4 text-red-500" />
@@ -801,9 +779,7 @@ export default function StockCPO() {
                                     </div>
                                 </div>
 
-                                <p className="mt-3 text-3xl font-bold text-blue-700">
-                                    {tank.tons > 0 ? tank.tons.toFixed(3) : '0.000'}
-                                </p>
+                                <p className="mt-3 text-3xl font-bold text-blue-700">{tank.tons > 0 ? safeFixed(tank.tons, 3) : '0.000'}</p>
                                 <p className="mb-2 text-xs text-gray-500">Tons</p>
 
                                 {/* Quality Data - Tank 1 */}
@@ -811,21 +787,15 @@ export default function StockCPO() {
                                     <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs font-medium">
                                         <div className="rounded-lg bg-red-50 p-2">
                                             <p className="text-gray-500">%FFA</p>
-                                            <p className="font-bold text-red-600">
-                                                {tank.ffa ?? '-'}
-                                            </p>
+                                            <p className="font-bold text-red-600">{tank.ffa ?? '-'}</p>
                                         </div>
                                         <div className="rounded-lg bg-blue-50 p-2">
                                             <p className="text-gray-500">%Moist</p>
-                                            <p className="font-bold text-blue-600">
-                                                {tank.moisture ?? '-'}
-                                            </p>
+                                            <p className="font-bold text-blue-600">{tank.moisture ?? '-'}</p>
                                         </div>
                                         <div className="rounded-lg bg-green-50 p-2">
                                             <p className="text-gray-500">DOBI</p>
-                                            <p className="font-bold text-green-600">
-                                                {tank.dobi ?? '-'}
-                                            </p>
+                                            <p className="font-bold text-green-600">{tank.dobi ?? '-'}</p>
                                         </div>
                                     </div>
                                 )}
@@ -846,15 +816,9 @@ export default function StockCPO() {
                                                 <div className="mr-2 h-2 w-2 rounded-full bg-blue-500"></div>
                                                 บน
                                             </div>
-                                            <div className="rounded bg-red-50 p-1 text-center">
-                                                {tank.ffa_top ?? '-'}
-                                            </div>
-                                            <div className="rounded bg-blue-50 p-1 text-center">
-                                                {tank.moisture_top ?? '-'}
-                                            </div>
-                                            <div className="rounded bg-green-50 p-1 text-center">
-                                                {tank.dobi_top ?? '-'}
-                                            </div>
+                                            <div className="rounded bg-red-50 p-1 text-center">{tank.ffa_top ?? '-'}</div>
+                                            <div className="rounded bg-blue-50 p-1 text-center">{tank.moisture_top ?? '-'}</div>
+                                            <div className="rounded bg-green-50 p-1 text-center">{tank.dobi_top ?? '-'}</div>
                                         </div>
 
                                         {/* Bottom */}
@@ -863,15 +827,9 @@ export default function StockCPO() {
                                                 <div className="mr-2 h-2 w-2 rounded-full bg-amber-500"></div>
                                                 ล่าง
                                             </div>
-                                            <div className="rounded bg-red-50 p-1 text-center">
-                                                {tank.ffa_bottom ?? '-'}
-                                            </div>
-                                            <div className="rounded bg-blue-50 p-1 text-center">
-                                                {tank.moisture_bottom ?? '-'}
-                                            </div>
-                                            <div className="rounded bg-green-50 p-1 text-center">
-                                                {tank.dobi_bottom ?? '-'}
-                                            </div>
+                                            <div className="rounded bg-red-50 p-1 text-center">{tank.ffa_bottom ?? '-'}</div>
+                                            <div className="rounded bg-blue-50 p-1 text-center">{tank.moisture_bottom ?? '-'}</div>
+                                            <div className="rounded bg-green-50 p-1 text-center">{tank.dobi_bottom ?? '-'}</div>
                                         </div>
                                     </div>
                                 )}
@@ -896,11 +854,7 @@ export default function StockCPO() {
                                 </div>
                                 <div className="rounded p-1 text-center">
                                     <span className="font-bold text-blue-700">
-                                        {data.undilute_1 || '0'}{' '}
-                                        <span className="text-xs font-normal text-gray-500">
-                                            {' '}
-                                            แผ่น
-                                        </span>
+                                        {safeFixed(data.undilute_1, 0)} <span className="text-xs font-normal text-gray-500"> แผ่น</span>
                                     </span>
                                 </div>
                             </div>
@@ -911,11 +865,8 @@ export default function StockCPO() {
                                 </div>
                                 <div className="rounded p-1 text-center">
                                     <span className="font-bold text-blue-700">
-                                        {data.undilute_2 || '0'}{' '}
-                                        <span className="text-xs font-normal text-gray-500">
-                                            {' '}
-                                            แผ่น
-                                        </span>
+                                        {safeFixed(data.undilute_2, 0)}
+ <span className="text-xs font-normal text-gray-500"> แผ่น</span>
                                     </span>
                                 </div>
                             </div>
@@ -926,11 +877,8 @@ export default function StockCPO() {
                                 </div>
                                 <div className="rounded p-1 text-center">
                                     <span className="font-bold text-blue-700">
-                                        {data.setting || '0'}{' '}
-                                        <span className="text-xs font-normal text-gray-500">
-                                            {' '}
-                                            แผ่น
-                                        </span>
+                                        {safeFixed(data.setting, 0)}
+ <span className="text-xs font-normal text-gray-500"> แผ่น</span>
                                     </span>
                                 </div>
                             </div>
@@ -941,11 +889,8 @@ export default function StockCPO() {
                                 </div>
                                 <div className="rounded p-1 text-center">
                                     <span className="font-bold text-blue-700">
-                                        {data.cleanOil || '0'}{' '}
-                                        <span className="text-xs font-normal text-gray-500">
-                                            {' '}
-                                            แผ่น
-                                        </span>
+                                        {safeFixed(data.cleanOil, 0)}
+ <span className="text-xs font-normal text-gray-500"> แผ่น</span>
                                     </span>
                                 </div>
                             </div>
@@ -963,9 +908,8 @@ export default function StockCPO() {
                                 <p className="font-semibold text-gray-700">Skim</p>
                                 <Info className="h-4 w-4 text-blue-500" />
                             </div>
-                            <p className="text-3xl font-bold text-blue-700">
-                                {data.skim.toFixed(3)}
-                            </p>
+                            <p className="text-3xl font-bold text-blue-700">{safeFixed(data.skim, 3)}</p>
+
                             <p className="mt-1 text-xs text-gray-500">Skim CS → CPO T1</p>
                         </motion.div>
 
@@ -981,9 +925,8 @@ export default function StockCPO() {
                                 <p className="font-semibold text-gray-700">Mix</p>
                                 <Info className="h-4 w-4 text-amber-500" />
                             </div>
-                            <p className="text-3xl font-bold text-amber-700">
-                                {data.mix.toFixed(3)}
-                            </p>
+                            <p className="text-3xl font-bold text-amber-700">{safeFixed(data.mix, 3)}</p>
+
                             <p className="mt-1 text-xs text-gray-500">Mix T1 → T2</p>
                         </motion.div>
 
@@ -999,12 +942,9 @@ export default function StockCPO() {
                                 <p className="font-semibold text-gray-700">Loop Back</p>
                                 <Info className="h-4 w-4 text-rose-500" />
                             </div>
-                            <p className="text-3xl font-bold text-rose-700">
-                                {data.loopBack.toFixed(3)}
-                            </p>
-                            <p className="mt-1 text-xs text-rose-600">
-                                CPO T1,2 → Crude Oil
-                            </p>
+                            <p className="text-3xl font-bold text-rose-700">{safeFixed(data.loopBack, 3)}</p>
+
+                            <p className="mt-1 text-xs text-rose-600">CPO T1,2 → Crude Oil</p>
                         </motion.div>
                     </div>
                 </motion.div>

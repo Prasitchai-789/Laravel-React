@@ -311,31 +311,31 @@ const QACNavItems: NavItem[] = [
         title: 'บันทึกข้อมูล Stock CPO',
         href: '/cpo',
         icon: Beaker,
-        permission: ['fer.view'],
+        permission: ['qac.view'],
     },
     {
         title: 'บันทึกข้อมูล Kernel',
         href: '/stock/kernel',
         icon: Beaker,
-        permission: ['fer.view'],
+        permission: ['qac.view'],
     },
     {
         title: 'บันทึกข้อมูล สินค้าอื่น ๆ',
         href: '/stock/by-products',
         icon: Beaker,
-        permission: ['fer.view'],
+        permission: ['qac.view'],
     },
     {
         title: 'Stock CPO',
         href: '/stock/cpo',
         icon: Beaker,
-        permission: ['fer.view'],
+        permission: ['qac.view'],
     },
     {
         title: 'รายงานการผลิต',
         href: '/stock/report',
         icon: ScrollText,
-        permission: ['fer.view'],
+        permission: ['qac.view'],
     }
 ];
 
