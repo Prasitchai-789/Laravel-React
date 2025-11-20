@@ -24,7 +24,7 @@ import CPORecordForm from './CPORecordForm';
 type Flash = { success?: string; error?: string };
 
 // Interface definitions
-interface CPORecord {
+export interface CPORecord {
     id: number;
     date: string;
     // Tank 1
@@ -127,6 +127,101 @@ interface CPORecordListProps {
     cpoDensityRef?: DensityData[];
 }
 
+/** ทำให้ค่าตัวเลขปลอดภัย 100% (ใช้ได้ทั้ง number, string, null) */
+const safeNumber = (value: any, defaultValue: number = 0): number => {
+    if (value === null || value === undefined || value === '') return defaultValue;
+
+    const num = Number(value);
+    return isNaN(num) ? defaultValue : num;
+};
+
+/** แสดงผลเลขแบบปลอดภัย (ไม่ทำให้ .toFixed พัง) */
+const safeFixed = (value: any, digits: number = 3): string => {
+    return safeNumber(value).toFixed(digits);
+};
+
+/** แปลงทุก field ตัวเลขใน record ให้พร้อมคำนวณ */
+const normalizeRecordNumbers = (record: CPORecord): CPORecord => {
+    const numericFields: (keyof CPORecord)[] = [
+        // Tank 1
+        'tank1_oil_level',
+        'tank1_temperature',
+        'tank1_cpo_volume',
+        'tank1_ffa',
+        'tank1_moisture',
+        'tank1_dobi',
+        'tank1_top_ffa',
+        'tank1_top_moisture',
+        'tank1_top_dobi',
+        'tank1_bottom_ffa',
+        'tank1_bottom_moisture',
+        'tank1_bottom_dobi',
+
+        // Tank 2
+        'tank2_oil_level',
+        'tank2_temperature',
+        'tank2_cpo_volume',
+        'tank2_ffa',
+        'tank2_moisture',
+        'tank2_dobi',
+        'tank2_top_ffa',
+        'tank2_top_moisture',
+        'tank2_top_dobi',
+        'tank2_bottom_ffa',
+        'tank2_bottom_moisture',
+        'tank2_bottom_dobi',
+
+        // Tank 3
+        'tank3_oil_level',
+        'tank3_temperature',
+        'tank3_cpo_volume',
+        'tank3_ffa',
+        'tank3_moisture',
+        'tank3_dobi',
+        'tank3_top_ffa',
+        'tank3_top_moisture',
+        'tank3_top_dobi',
+        'tank3_bottom_ffa',
+        'tank3_bottom_moisture',
+        'tank3_bottom_dobi',
+
+        // Tank 4
+        'tank4_oil_level',
+        'tank4_temperature',
+        'tank4_cpo_volume',
+        'tank4_ffa',
+        'tank4_moisture',
+        'tank4_dobi',
+        'tank4_top_ffa',
+        'tank4_top_moisture',
+        'tank4_top_dobi',
+        'tank4_bottom_ffa',
+        'tank4_bottom_moisture',
+        'tank4_bottom_dobi',
+
+        // Oil Room
+        'total_cpo',
+        'ffa_cpo',
+        'dobi_cpo',
+        'cs1_cm',
+        'undilute_1',
+        'undilute_2',
+        'setting',
+        'clean_oil',
+        'skim',
+        'mix',
+        'loop_back',
+    ];
+
+    const updated: CPORecord = { ...record };
+
+    numericFields.forEach((field) => {
+        updated[field] = safeNumber(record[field] as any);
+    });
+
+    return updated;
+};
+
 const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecordListProps) => {
     const {
         records: pageRecords,
@@ -202,16 +297,13 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
     };
 
     const safeParseFloat = (value: any): number => {
-        if (value === null || value === undefined || value === '') return 0;
-        const num = typeof value === 'string' ? parseFloat(value) : value;
-        return isNaN(num) ? 0 : num;
+        return safeNumber(value);
     };
 
     const formatDisplayNumber = (value: any, decimalPlaces: number = 3): string => {
         const num = safeParseFloat(value);
         return num.toFixed(decimalPlaces);
     };
-
     // ฟังก์ชันคำนวณปริมาณ CPO ตามสูตรจาก PHP
     // คำนวณปริมาตร (ตัน)
     const calculateCPOVolume = useCallback(
@@ -266,7 +358,7 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
 
     // ฟังก์ชันแปลงข้อมูลจาก API ให้เป็นโครงสร้างที่ใช้ใน component
     const transformRecordData = (record: CPORecord) => {
-        const tanks = [];
+        const tanks: any[] = [];
 
         // Tank 1
         if (record.tank1_oil_level || record.tank1_temperature) {
@@ -364,48 +456,57 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
 
     // คำนวณ Total CPO และรายละเอียดแทงค์
     const sumVolumes = (volumesObj: { [key: number]: number }): number => {
-    const volumesArray = Object.values(volumesObj);  // แปลง object → array
+        const volumesArray = Object.values(volumesObj); // แปลง object → array
 
-    return (
-        volumesArray.reduce((total, v) => {
-            return total + Math.round((v || 0) * 1000);
-        }, 0) / 1000
-    );
-};
-
-const calculateTankTotals = (record: CPORecord): TankTotals => {
-    const transformed = transformRecordData(record);
-    const volumeResult = calculateCPOVolume(transformed.tanks);
-
-    const tankDetails = transformed.tanks.map((tank, index) => ({
-        tank_no: tank.tank_no ?? index + 1,
-        volume: volumeResult.volumes[tank.tank_no] ?? 0,
-        oil_level: tank.oil_level ?? 0,
-        temperature: tank.temperature ?? 0,
-    }));
-
-    const totalVolume = sumVolumes(volumeResult.volumes).toFixed(3);
-
-    return {
-        tankDetails,
-        totalVolume,
-        tankCount: tankDetails.length,
-        skim: safeParseFloat(transformed.oil_room.skim || 0).toFixed(3),
+        return (
+            volumesArray.reduce((total, v) => {
+                return total + Math.round(safeNumber(v) * 1000);
+            }, 0) / 1000
+        );
     };
-};
 
+    const calculateTankTotals = (record: CPORecord): TankTotals => {
+        const normalized = normalizeRecordNumbers(record);
+        const transformed = transformRecordData(normalized);
+        const volumeResult = calculateCPOVolume(transformed.tanks);
+
+        const tankDetails = transformed.tanks.map((tank, index) => ({
+            tank_no: tank.tank_no ?? index + 1,
+            volume: volumeResult.volumes[tank.tank_no] ?? 0,
+            oil_level: tank.oil_level ?? 0,
+            temperature: tank.temperature ?? 0,
+        }));
+
+        const totalVolume = safeFixed(sumVolumes(volumeResult.volumes), 3);
+
+        return {
+            tankDetails,
+            totalVolume,
+            tankCount: tankDetails.length,
+            skim: safeFixed(transformed.oil_room.skim || 0, 3),
+        };
+    };
 
     // คำนวณค่าเฉลี่ยคุณภาพน้ำมัน
     const calculateQualityAverages = (record: CPORecord) => {
-        const transformed = transformRecordData(record);
+        const normalized = normalizeRecordNumbers(record);
+        const transformed = transformRecordData(normalized);
         const tanksWithData = transformed.tanks.filter((tank) => tank.ffa || tank.moisture || tank.dobi);
 
-        const avgFFA = tanksWithData.length > 0 ? tanksWithData.reduce((sum, tank) => sum + safeParseFloat(tank.ffa), 0) / tanksWithData.length : 0;
+        const avgFFA =
+            tanksWithData.length > 0
+                ? tanksWithData.reduce((sum, tank) => sum + safeParseFloat(tank.ffa), 0) / tanksWithData.length
+                : 0;
 
         const avgMoisture =
-            tanksWithData.length > 0 ? tanksWithData.reduce((sum, tank) => sum + safeParseFloat(tank.moisture), 0) / tanksWithData.length : 0;
+            tanksWithData.length > 0
+                ? tanksWithData.reduce((sum, tank) => sum + safeParseFloat(tank.moisture), 0) / tanksWithData.length
+                : 0;
 
-        const avgDobi = tanksWithData.length > 0 ? tanksWithData.reduce((sum, tank) => sum + safeParseFloat(tank.dobi), 0) / tanksWithData.length : 0;
+        const avgDobi =
+            tanksWithData.length > 0
+                ? tanksWithData.reduce((sum, tank) => sum + safeParseFloat(tank.dobi), 0) / tanksWithData.length
+                : 0;
 
         return {
             avgFFA: avgFFA.toFixed(2),
@@ -490,7 +591,9 @@ const calculateTankTotals = (record: CPORecord): TankTotals => {
         }
     };
 
-    const filteredRecords = records.filter((record) => new Date(record.date).toLocaleDateString('th-TH').includes(searchTerm));
+    const filteredRecords = records.filter((record) =>
+        new Date(record.date).toLocaleDateString('th-TH').includes(searchTerm),
+    );
 
     const sortedRecords = [...filteredRecords].sort((a, b) => {
         const aValue = a[sortField as keyof CPORecord];
@@ -545,7 +648,6 @@ const calculateTankTotals = (record: CPORecord): TankTotals => {
             />
         );
     }
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-purple-50/20 p-6 font-anuphan">
             <div className="mx-auto max-w-7xl space-y-4">
@@ -618,12 +720,14 @@ const calculateTankTotals = (record: CPORecord): TankTotals => {
                         </div>
                     </div>
 
-                    {/* %FFA เฉลี่ย */}
+                    {/* Skim */}
                     <div className="rounded-3xl bg-gradient-to-br from-red-500 to-pink-600 p-6 text-white shadow-2xl">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-red-100">Skim</p>
-                                <p className="mt-1 text-xl font-bold">{sortedRecords[0] ? calculateTankTotals(sortedRecords[0]).skim : '0.00'} ตัน</p>
+                                <p className="mt-1 text-xl font-bold">
+                                    {sortedRecords[0] ? calculateTankTotals(sortedRecords[0]).skim : '0.000'} ตัน
+                                </p>
                             </div>
                             <div className="rounded-2xl bg-white/20 p-3">
                                 <Filter className="h-6 w-6" />
@@ -636,7 +740,9 @@ const calculateTankTotals = (record: CPORecord): TankTotals => {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-green-100">แทงค์ที่ใช้งาน</p>
-                                <p className="mt-1 text-2xl font-bold">{sortedRecords[0] ? calculateTankTotals(sortedRecords[0]).tankCount : '0'}</p>
+                                <p className="mt-1 text-2xl font-bold">
+                                    {sortedRecords[0] ? calculateTankTotals(sortedRecords[0]).tankCount : '0'}
+                                </p>
                                 <div className="mt-1 text-xs text-green-200">แทงค์</div>
                             </div>
                             <div className="rounded-2xl bg-white/20 p-3">
@@ -758,7 +864,9 @@ const calculateTankTotals = (record: CPORecord): TankTotals => {
                                                         .map((tank) => {
                                                             const tankVolume = volumeResult.volumes[tank.tank_no] || 0;
                                                             const temperature = Math.round(safeParseFloat(tank.temperature));
-                                                            const densityData = densityRef.find((d) => d.temperature_c === temperature);
+                                                            const densityData = densityRef.find(
+                                                                (d) => d.temperature_c === temperature,
+                                                            );
 
                                                             return (
                                                                 <div
@@ -766,7 +874,9 @@ const calculateTankTotals = (record: CPORecord): TankTotals => {
                                                                     className="rounded-2xl border border-amber-100 bg-amber-50/50 p-3"
                                                                 >
                                                                     <div className="mb-2 flex items-center justify-between">
-                                                                        <div className="text-xs font-medium text-amber-600">Tank {tank.tank_no}</div>
+                                                                        <div className="text-xs font-medium text-amber-600">
+                                                                            Tank {tank.tank_no}
+                                                                        </div>
                                                                         <div className="flex items-center space-x-1 text-xs text-amber-500">
                                                                             <Thermometer className="h-3 w-3" />
                                                                             <span>{tank.temperature}°C</span>
@@ -774,9 +884,13 @@ const calculateTankTotals = (record: CPORecord): TankTotals => {
                                                                     </div>
                                                                     <div className="grid grid-cols-2 gap-1 text-xs">
                                                                         <div className="text-gray-600">ระดับ:</div>
-                                                                        <div className="font-medium text-gray-700">{tank.oil_level} cm</div>
+                                                                        <div className="font-medium text-gray-700">
+                                                                            {tank.oil_level} cm
+                                                                        </div>
                                                                         <div className="text-gray-600">ปริมาณ:</div>
-                                                                        <div className="font-bold text-amber-700">{tankVolume.toFixed(3)} ตัน</div>
+                                                                        <div className="font-bold text-amber-700">
+                                                                            {safeFixed(tankVolume, 3)} ตัน
+                                                                        </div>
                                                                     </div>
                                                                     {densityData && (
                                                                         <div className="mt-1 text-xs text-gray-500">
@@ -939,13 +1053,17 @@ const calculateTankTotals = (record: CPORecord): TankTotals => {
                                                             {tankTotals.tankDetails.map((tank) => (
                                                                 <div key={tank.tank_no} className="flex justify-between text-xs">
                                                                     <span className="text-gray-500">Tank {tank.tank_no}:</span>
-                                                                    <span className="text-amber-600">{tank.volume.toFixed(3)} ตัน</span>
+                                                                    <span className="text-amber-600">
+                                                                        {safeFixed(tank.volume, 3)} ตัน
+                                                                    </span>
                                                                 </div>
                                                             ))}
 
                                                             <div className="flex justify-between border-t border-amber-200 pt-1">
                                                                 <span className="font-medium text-gray-700">Total ทั้งหมด:</span>
-                                                                <span className="font-bold text-amber-800">{tankTotals.totalVolume} ตัน</span>
+                                                                <span className="font-bold text-amber-800">
+                                                                    {tankTotals.totalVolume} ตัน
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -998,8 +1116,15 @@ const calculateTankTotals = (record: CPORecord): TankTotals => {
             </div>
 
             {/* Delete Modal */}
-            <DeleteModal isModalOpen={isDeleteModalOpen} onClose={closeDeleteModal} title="ยืนยันการลบ" onConfirm={handleDelete}>
-                <p className="font-anuphan text-sm text-gray-500">คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+            <DeleteModal
+                isModalOpen={isDeleteModalOpen}
+                onClose={closeDeleteModal}
+                title="ยืนยันการลบ"
+                onConfirm={handleDelete}
+            >
+                <p className="font-anuphan text-sm text-gray-500">
+                    คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การกระทำนี้ไม่สามารถย้อนกลับได้
+                </p>
             </DeleteModal>
         </div>
     );
