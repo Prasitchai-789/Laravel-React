@@ -54,39 +54,45 @@ class SiloRecordController extends Controller
             'kernel_silo_2_level' => 'required|numeric',
             'silo_sale_big_level' => 'required|numeric',
             'silo_sale_small_level' => 'required|numeric',
-            'kernel_outside_pile' => 'required|numeric',
-            'moisture_percent' => 'required|numeric',
-            'shell_percent' => 'required|numeric',
-            'outside_nut' => 'required|numeric',
+            'kernel_outside_pile' => 'nullable|numeric',
+            'moisture_percent' => 'nullable|numeric',
+            'shell_percent' => 'nullable|numeric',
+            'outside_nut' => 'nullable|numeric',
         ]);
 
-        // ✅ ตรวจสอบ SiloRecord ก่อน
+        // ⭐ Fallback แก้ปัญหา NULL
+        $validated['kernel_outside_pile'] = $validated['kernel_outside_pile'] ?? 0;
+        $validated['moisture_percent'] = $validated['moisture_percent'] ?? 0;
+        $validated['shell_percent'] = $validated['shell_percent'] ?? 0;
+        $validated['outside_nut'] = $validated['outside_nut'] ?? 0;
+
+        // ตรวจสอบว่ามี record ซ้ำหรือไม่
         if (SiloRecord::where('record_date', $validated['record_date'])->exists()) {
             return back()->with('error', 'มีข้อมูลสำหรับวันที่นี้แล้ว');
         }
 
-        // ✅ สร้าง SiloRecord
+        // บันทึก SiloRecord
         $silo = new SiloRecord($validated);
         $silo->save();
 
-        // ✅ คำนวณค่าต่าง ๆ
+        // คำนวณค่าปริมาณ
         $nut_silo_1 = $silo->nut_silo_1_quantity;
         $nut_silo_2 = $silo->nut_silo_2_quantity;
         $nut_silo_3 = $silo->nut_silo_3_quantity;
+
         $kernel_silo_1 = $silo->kernel_silo_1_quantity;
         $kernel_silo_2 = $silo->kernel_silo_2_quantity;
-        $silo_sale_big = $silo->silo_sale_big_quantity;
-        $silo_sale_small = $silo->silo_sale_small_quantity;
 
-        $big = floatval($silo_sale_big ?? 0);
-        $small = floatval($silo_sale_small ?? 0);
+        $big = floatval($silo->silo_sale_big_quantity);
+        $small = floatval($silo->silo_sale_small_quantity);
+
         $sum = $big + $small;
 
         $kernel_total = $sum > 0
             ? round(($sum / 2) + 12, 3)
             : 0;
 
-        // ✅ เช็คก่อน insert (update ถ้ามี)
+        // อัปเดตหรือสร้าง StockProduct
         $stock = StockProduct::where('record_date', $validated['record_date'])->first();
 
         if ($stock) {
@@ -113,6 +119,7 @@ class SiloRecordController extends Controller
         return redirect()->route('stock.kernel.index')->with('success', 'บันทึกข้อมูลสำเร็จ');
     }
 
+
     public function show(SiloRecord $siloRecord)
     {
         return response()->json($siloRecord);
@@ -129,31 +136,42 @@ class SiloRecordController extends Controller
             'kernel_silo_2_level' => 'required|numeric',
             'silo_sale_big_level' => 'required|numeric',
             'silo_sale_small_level' => 'required|numeric',
-            'kernel_outside_pile' => 'required|numeric',
-            'moisture_percent' => 'required|numeric',
-            'shell_percent' => 'required|numeric',
-            'outside_nut' => 'required|numeric',
+
+            // ⭐ เดิม required → อันตราย ถ้า "" จะ error
+            'kernel_outside_pile' => 'nullable|numeric',
+            'moisture_percent' => 'nullable|numeric',
+            'shell_percent' => 'nullable|numeric',
+            'outside_nut' => 'nullable|numeric',
         ]);
 
+        // ⭐ Fallback ป้องกัน NULL
+        $validated['kernel_outside_pile'] = $validated['kernel_outside_pile'] ?? 0;
+        $validated['moisture_percent'] = $validated['moisture_percent'] ?? 0;
+        $validated['shell_percent'] = $validated['shell_percent'] ?? 0;
+        $validated['outside_nut'] = $validated['outside_nut'] ?? 0;
+
+        // อัปเดต SiloRecord
         $siloRecord->update($validated);
 
+        // โหลดค่าใหม่หลัง update
         $silo = $siloRecord->fresh();
+
         $nut_silo_1 = $silo->nut_silo_1_quantity;
         $nut_silo_2 = $silo->nut_silo_2_quantity;
         $nut_silo_3 = $silo->nut_silo_3_quantity;
         $kernel_silo_1 = $silo->kernel_silo_1_quantity;
         $kernel_silo_2 = $silo->kernel_silo_2_quantity;
-        $silo_sale_big = $silo->silo_sale_big_quantity;
-        $silo_sale_small = $silo->silo_sale_small_quantity;
+        $silo_sale_big = floatval($silo->silo_sale_big_quantity);
+        $silo_sale_small = floatval($silo->silo_sale_small_quantity);
 
-        $big = floatval($silo_sale_big ?? 0);
-        $small = floatval($silo_sale_small ?? 0);
-        $sum = $big + $small;
+        $sum = $silo_sale_big + $silo_sale_small;
 
+        // คำนวณ kernel total
         $kernel_total = $sum > 0
             ? round(($sum / 2) + 12, 3)
             : 0;
 
+        // update / create StockProduct
         $stock = StockProduct::where('record_date', $validated['record_date'])->first();
 
         if ($stock) {
@@ -179,6 +197,7 @@ class SiloRecordController extends Controller
 
         return redirect()->route('stock.kernel.index')->with('success', 'อัพเดทข้อมูลสำเร็จ');
     }
+
 
 
     public function destroy(SiloRecord $siloRecord)

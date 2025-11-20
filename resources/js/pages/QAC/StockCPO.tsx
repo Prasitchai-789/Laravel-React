@@ -6,17 +6,13 @@ import { useEffect, useMemo, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
-    { title: 'Fertilizer Productions', href: '/fertilizer/productions' },
+    { title: 'Dashbaord Stock CPO', href: '#' },
 ];
 
 export default function StockCPO() {
     const [data, setData] = useState<any | null>(null);
     const [historicalData, setHistoricalData] = useState<any[]>([]);
-    const [selectedDate, setSelectedDate] = useState(() => {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        return yesterday.toISOString().split('T')[0];
-    });
+    const [selectedDate, setSelectedDate] = useState<string>(''); // จะให้ fetchLatestData เป็นคนกำหนดให้
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -25,12 +21,83 @@ export default function StockCPO() {
     const [salesData, setSalesData] = useState<any | null>(null);
     const [previousDayData, setPreviousDayData] = useState<any | null>(null);
 
-    // Format date for API (YYYY-MM-DD)
+    // ============================
+    // Date Helpers (รองรับ Non-ISO + ISO)
+    // ============================
+
+    /**
+     * แปลงรูปแบบวันที่ทุกแบบให้เป็น 'YYYY-MM-DD' (local) หรือ null ถ้าแปลงไม่ได้
+     * รองรับ:
+     *  - '2025-11-15'
+     *  - '2025-11-15T00:00:00.000Z'
+     *  - 'Nov 15 2025 12:00:00:AM'
+     *  - 'Nov 15 2025'
+     */
+    const normalizeDate = (input: any): string | null => {
+        if (!input) return null;
+
+        // ถ้าเป็น Date object
+        if (input instanceof Date) {
+            if (isNaN(input.getTime())) return null;
+            // ใช้ local date -> en-CA = YYYY-MM-DD
+            return input.toLocaleDateString('en-CA');
+        }
+
+        if (typeof input === 'string') {
+            const raw = input.trim();
+            if (!raw) return null;
+
+            // กรณีเป็น ISO หรือขึ้นต้นด้วย YYYY-MM-DD
+            const isoMatch = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+            if (isoMatch) {
+                return isoMatch[1]; // ตัดแค่ส่วน YYYY-MM-DD
+            }
+
+            // กรณี Non-ISO จาก WinSpeed เช่น "Nov 15 2025 12:00:00:AM"
+            // แก้ :AM / :PM ให้เป็น format ที่ JS อ่านง่ายขึ้น
+            const cleaned = raw.replace(':AM', ' AM').replace(':PM', ' PM');
+            const d = new Date(cleaned);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString('en-CA'); // YYYY-MM-DD ตาม local
+            }
+        }
+
+        return null;
+    };
+
+    /**
+     * รับค่าทุกแบบ แล้วคืน Date object (local) หรือ null
+     * ใช้กับการแสดงผลแบบ locale (th-TH)
+     */
+    const safeDate = (value: any): Date | null => {
+        const norm = normalizeDate(value);
+        if (!norm) return null;
+        const [y, m, d] = norm.split('-').map((v) => parseInt(v, 10));
+        if (!y || !m || !d) return null;
+        // new Date(year, monthIndex, day) = local time, ไม่มี timezone shift
+        const dt = new Date(y, m - 1, d);
+        return isNaN(dt.getTime()) ? null : dt;
+    };
+
+    const safeParse = (value: any) => {
+        if (value === null || value === undefined || value === '' || value === ' ') return null;
+        const n = parseFloat(value);
+        return isNaN(n) ? null : n;
+    };
+
+    const safeTon = (value: any) => {
+        const n = safeParse(value);
+        return n === null ? 0 : parseFloat(n.toFixed(3));
+    };
+
     const formatDateForAPI = (dateString: string) => {
+        // ตอนนี้เราใช้ 'YYYY-MM-DD' อยู่แล้วจาก normalizeDate
         return dateString;
     };
 
-    // Fetch production data for yield calculation (หาแถวตามวันที่จากทั้งหมด)
+    // ============================
+    // Fetch Production Data
+    // ============================
     const fetchProductionData = async (date: string) => {
         try {
             const formattedDate = formatDateForAPI(date);
@@ -38,76 +105,82 @@ export default function StockCPO() {
             const response = await fetch(`/report/productions/api`);
             const result = await response.json();
 
-            if (result.success && result.productions && result.productions.length > 0) {
-                // หา record ตามวันที่
+            if (result.success && Array.isArray(result.productions)) {
                 const target = result.productions.find((p: any) => {
-                    if (!p.Date) return false;
-                    const prodDate = new Date(p.Date).toISOString().split('T')[0];
-                    return prodDate === formattedDate;
+                    const prodDate = safeDate(p.Date);
+                    if (!prodDate) return false;
+                    const prodNorm = normalizeDate(prodDate);
+                    return prodNorm === formattedDate;
                 });
 
                 if (target) {
                     setProductionData(target);
-                    const qty = parseFloat(target.FFBGoodQty ?? 0);
-                    return parseFloat(qty.toFixed(3));
+                    return safeTon(target.FFBGoodQty ?? 0);
                 }
             }
-
-            return parseFloat((0).toFixed(3));
+            return 0;
         } catch (err) {
             console.error('Error fetching production data:', err);
-            return parseFloat((0).toFixed(3));
+            return 0;
         }
     };
 
-    // Fetch sales data for GoodID=2147
+    // ============================
+    // Fetch Sales Data
+    // ============================
     const fetchSalesData = async (date: string) => {
         try {
             const formattedDate = formatDateForAPI(date);
             const response = await fetch(`/report/sales/api?date=${formattedDate}&goodid=2147`);
             const result = await response.json();
 
-            console.log('Sales API Response:', result);
-
-            if (result.success && result.sales && result.sales.length > 0) {
-                // สมมติใช้ตัวแรกของวันนั้น (หรือจะ sum อีกชั้นก็ได้)
+            if (result.success && Array.isArray(result.sales) && result.sales.length > 0) {
                 setSalesData(result.sales[0]);
-
-                const net = parseFloat(result.sales[0].total_netwei ?? 0);
-                const salesInTons = net / 1000; // kg → tons
-                return parseFloat(salesInTons.toFixed(3));
+                const net = safeParse(result.sales[0].total_netwei ?? 0) ?? 0;
+                return safeTon(net / 1000);
             }
 
-            return parseFloat((0).toFixed(3));
+            return 0;
         } catch (err) {
             console.error('Error fetching sales data:', err);
-            return parseFloat((0).toFixed(3));
+            return 0;
         }
     };
 
-    // Fetch previous day stock CPO data
+    // ============================
+    // Fetch Previous Day Stock
+    // ============================
+    const formatDateLocal = (date: Date) => {
+        return date.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    };
+
     const fetchPreviousDayData = async (currentDate: string) => {
         try {
-            const current = new Date(currentDate);
-            const previousDay = new Date(current);
-            previousDay.setDate(previousDay.getDate() - 1);
-            const previousDateStr = previousDay.toISOString().split('T')[0];
+            const d = safeDate(currentDate);
+            if (!d) return 0;
+
+            const prev = new Date(d);
+            prev.setDate(prev.getDate() - 1);
+
+            const previousDateStr = formatDateLocal(prev);
             const response = await fetch(`/report/stock-cpo/date/${previousDateStr}`);
             const result = await response.json();
 
-            if (result.success && result.stockCPO && result.stockCPO.length > 0) {
+            if (result.success && Array.isArray(result.stockCPO) && result.stockCPO.length > 0) {
                 setPreviousDayData(result.stockCPO[0]);
-                return parseFloat(result.stockCPO[0].total_cpo ?? 0);
+                return safeTon(result.stockCPO[0].total_cpo ?? 0);
             }
 
-            return parseFloat((0).toFixed(3));
+            return 0;
         } catch (err) {
             console.error('Error fetching previous day data:', err);
-            return parseFloat((0).toFixed(3));
+            return 0;
         }
     };
 
-    // Fetch historical data for chart
+    // ============================
+    // Fetch Historical Chart Data
+    // ============================
     const fetchHistoricalData = async () => {
         try {
             const response = await fetch('/report/stock-cpo/historical?days=7');
@@ -115,46 +188,213 @@ export default function StockCPO() {
 
             if (result.success) {
                 setHistoricalData(result.data || []);
-                if (result.message && String(result.message).includes('sample data')) {
+                if (String(result.message).includes('sample data')) {
                     setUsingSampleData(true);
                 }
             } else {
-                console.error('Error fetching historical data:', result.message);
                 setUsingSampleData(true);
             }
         } catch (err) {
-            console.error('Error fetching historical data:', err);
+            console.error('Error fetch historical:', err);
             setUsingSampleData(true);
         }
     };
 
-    // Fetch data for specific date
-    const fetchDataByDate = async (date: string = selectedDate) => {
+    // ============================
+    // Summary & Yield
+    // ============================
+    const computeYield = (summary: any) => {
+        const currentCPO = parseFloat(summary.total_cpo ?? 0);
+        const previousDayCPO = parseFloat(summary.previous_total_cpo ?? 0);
+        const salesTons = parseFloat(summary.sales_tons ?? 0);
+        const ffbGoodQty = parseFloat(summary.ffb_good_qty ?? 0);
+
+        if (ffbGoodQty <= 0) return 0;
+
+        const numerator = currentCPO - (previousDayCPO - salesTons);
+        const yieldPercent = (numerator / ffbGoodQty) * 100;
+
+        return parseFloat(yieldPercent.toFixed(3));
+    };
+
+    const fetchSummary = async (date: string) => {
+        try {
+            const formattedDate = formatDateForAPI(date);
+
+            const res = await fetch(`/report/stock-cpo/summary?date=${formattedDate}`);
+            const result = await res.json();
+
+            if (!result.success) {
+                console.warn('⚠ Summary API returned no success:', result.message);
+                return null;
+            }
+
+            // คำนวณ Yield
+            const yieldPercent = computeYield(result);
+
+            // ⭐ ไม่แตะ field `date` เพื่อไม่ให้ทับค่าแสดงผลแบบ th-TH
+            const summaryData = {
+                summaryDate: result.date, // เก็บแยกหากจะใช้ตรวจสอบ
+                totalCPO: result.total_cpo ?? 0,
+                previousDayCPO: result.previous_total_cpo ?? 0,
+                salesInTons: result.sales_tons ?? 0,
+                ffbGoodQty: result.ffb_good_qty ?? 0,
+                yield: yieldPercent,
+            };
+
+            setData((prev: any) => (prev ? { ...prev, ...summaryData } : prev));
+
+            return summaryData;
+        } catch (err) {
+            console.error('❌ Error in fetchSummary:', err);
+            return null;
+        }
+    };
+
+    // ============================
+    // Transform Data (คำนวณและ map field UI)
+    // ============================
+    const transformData = (
+        apiData: any,
+        ffbGoodQty: number = 0,
+        salesInTons: number = 0,
+        previousDayCPO: number = 0
+    ) => {
+        // apiData.date อาจเป็น Non-ISO → normalize ก่อน
+        const normalized = normalizeDate(apiData.date);
+        const validDate = normalized ? safeDate(normalized) : safeDate(apiData.date);
+
+        const t1 = safeTon(apiData.tank1_cpo_volume);
+        const t2 = safeTon(apiData.tank2_cpo_volume);
+        const t3 = safeTon(apiData.tank3_cpo_volume);
+        const t4 = safeTon(apiData.tank4_cpo_volume);
+
+        const totalTankVolume = safeTon(t1 + t2 + t3 + t4);
+        const currentCPO = safeTon(apiData.total_cpo);
+
+        // ใช้ค่า yield จาก state ถ้ามี (จะถูกอัพเดตจาก fetchSummary ตามหลัง)
+        const yieldValue = data?.yield !== undefined ? data.yield : 0;
+
+        const tankData = [
+            {
+                id: 1,
+                temp: apiData.tank1_temperature,
+                tons: t1,
+                ffa: safeParse(apiData.tank1_ffa),
+                moisture: safeParse(apiData.tank1_moisture),
+                dobi: safeParse(apiData.tank1_dobi),
+            },
+            {
+                id: 2,
+                temp: apiData.tank2_temperature,
+                tons: t2,
+                ffa_top: safeParse(apiData.tank2_top_ffa),
+                ffa_bottom: safeParse(apiData.tank2_bottom_ffa),
+                moisture_top: safeParse(apiData.tank2_top_moisture),
+                moisture_bottom: safeParse(apiData.tank2_bottom_moisture),
+                dobi_top: safeParse(apiData.tank2_top_dobi),
+                dobi_bottom: safeParse(apiData.tank2_bottom_dobi),
+            },
+            {
+                id: 3,
+                temp: apiData.tank3_temperature,
+                tons: t3,
+                ffa_top: safeParse(apiData.tank3_top_ffa),
+                ffa_bottom: safeParse(apiData.tank3_bottom_ffa),
+                moisture_top: safeParse(apiData.tank3_top_moisture),
+                moisture_bottom: safeParse(apiData.tank3_bottom_moisture),
+                dobi_top: safeParse(apiData.tank3_top_dobi),
+                dobi_bottom: safeParse(apiData.tank3_bottom_dobi),
+            },
+            {
+                id: 4,
+                temp: apiData.tank4_temperature,
+                tons: t4,
+                ffa_top: safeParse(apiData.tank4_top_ffa),
+                ffa_bottom: safeParse(apiData.tank4_bottom_ffa),
+                moisture_top: safeParse(apiData.tank4_top_moisture),
+                moisture_bottom: safeParse(apiData.tank4_bottom_moisture),
+                dobi_top: safeParse(apiData.tank4_top_dobi),
+                dobi_bottom: safeParse(apiData.tank4_bottom_dobi),
+            },
+        ];
+
+        setData({
+            date: validDate
+                ? validDate.toLocaleDateString('th-TH', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                  })
+                : '-',
+            originalDate: apiData.date,
+            normalizedDate: normalized || null, // เก็บไว้เผื่อ debug
+            totalCPO: currentCPO,
+            yield: yieldValue,
+            totalTankVolume,
+            ffbGoodQty,
+            salesInTons,
+            previousDayCPO,
+            currentCPO,
+            tanks: tankData,
+            skim: safeTon(apiData.skim),
+            mix: safeTon(apiData.mix),
+            loopBack: safeTon(apiData.loop_back),
+            undilute_1: safeTon(apiData.undilute_1),
+            undilute_2: safeTon(apiData.undilute_2),
+            setting: safeTon(apiData.setting),
+            cleanOil: safeTon(apiData.clean_oil),
+            ffa_cpo: safeTon(apiData.ffa_cpo),
+            dobi_cpo: safeTon(apiData.dobi_cpo),
+        });
+    };
+
+    // ============================
+    // Fetch Main Data by Date
+    // ============================
+    const fetchDataByDate = async (rawDate?: string) => {
         try {
             setIsRefreshing(true);
             setError(null);
             setUsingSampleData(false);
 
-            const formattedDate = formatDateForAPI(date);
+            let date = rawDate ?? selectedDate;
 
-            // ดึงข้อมูล CPO ตามวันที่
+            if (!date || date.trim() === '') {
+                console.warn('⚠ fetchDataByDate: date is EMPTY → เรียก fetchLatestData()');
+                await fetchLatestData();
+                return;
+            }
+
+            const normalized = normalizeDate(date);
+            if (!normalized) {
+                console.warn('🚫 fetchDataByDate: IGNORE call because date invalid:', date);
+                return;
+            }
+
+            const formattedDate = formatDateForAPI(normalized);
             const response = await fetch(`/report/stock-cpo/date/${formattedDate}`);
             const result = await response.json();
 
-            if (result.success && result.stockCPO && result.stockCPO.length > 0) {
+            if (result.success && Array.isArray(result.stockCPO) && result.stockCPO.length > 0) {
                 const apiData = result.stockCPO[0];
 
-                if (result.message && String(result.message).includes('sample data')) {
+                if (String(result.message).includes('sample data')) {
                     setUsingSampleData(true);
                 }
 
-                const productionDate = new Date(apiData.date).toISOString().split('T')[0];
+                const productionDate = normalizeDate(apiData.date) ?? formattedDate;
+                console.log('📌 fetchDataByDate() ใช้ productionDate =', productionDate);
 
-                const ffbGoodQty = await fetchProductionData(productionDate);
-                const salesInTons = await fetchSalesData(productionDate);
-                const previousDayCPO = await fetchPreviousDayData(productionDate);
+                const ffbGood = await fetchProductionData(productionDate);
+                const salesTons = await fetchSalesData(productionDate);
+                const prevCPO = await fetchPreviousDayData(productionDate);
 
-                transformData(apiData, ffbGoodQty, salesInTons, previousDayCPO);
+                // แปลงข้อมูลหลัก
+                transformData(apiData, ffbGood, salesTons, prevCPO);
+
+                // สรุปค่า + yield
+                await fetchSummary(productionDate);
             } else {
                 await fetchLatestData();
             }
@@ -168,247 +408,132 @@ export default function StockCPO() {
         }
     };
 
-    // Fetch latest data as fallback
+    // ============================
+    // Fetch Latest
+    // ============================
     const fetchLatestData = async () => {
         try {
+            setLoading(true);
+            setError(null);
+
             const response = await fetch('/report/stock-cpo/api');
             const result = await response.json();
 
-            if (result.success && result.stockCPO && result.stockCPO.length > 0) {
-                const list = result.stockCPO;
-
-                // เลือก record ล่าสุดจาก field date
-                const apiData = list.reduce((latest: any | null, item: any) => {
-                    if (!latest) return item;
-                    const d1 = new Date(item.date);
-                    const d2 = new Date(latest.date);
-                    return d1 > d2 ? item : latest;
-                }, null as any);
-
-                if (result.message && String(result.message).includes('sample data')) {
-                    setUsingSampleData(true);
-                }
-
-                const productionDate = new Date(apiData.date).toISOString().split('T')[0];
-                const ffbGoodQty = await fetchProductionData(productionDate);
-                const salesInTons = await fetchSalesData(productionDate);
-                const previousDayCPO = await fetchPreviousDayData(productionDate);
-
-                transformData(apiData, ffbGoodQty, salesInTons, previousDayCPO);
-
-                const latestDate = new Date(apiData.date).toISOString().split('T')[0];
-                setSelectedDate(latestDate);
-            } else {
-                setError(result.message || 'No data available');
+            if (!result.success || !Array.isArray(result.stockCPO) || result.stockCPO.length === 0) {
+                setError('ไม่พบข้อมูลล่าสุด');
+                return;
             }
+
+            const list = result.stockCPO;
+
+            // เลือกวันที่ล่าสุดจากฐานข้อมูล (รองรับ Non-ISO)
+            const latest = list.reduce((acc: any | null, cur: any) => {
+                if (!acc) return cur;
+                const dCur = safeDate(cur.date);
+                const dAcc = safeDate(acc.date);
+                if (!dAcc) return cur;
+                if (!dCur) return acc;
+                return dCur > dAcc ? cur : acc;
+            }, null as any);
+
+            if (!latest) {
+                setError('ไม่สามารถเลือกวันที่ล่าสุดได้');
+                return;
+            }
+
+            const latestDateNorm = normalizeDate(latest.date);
+            if (!latestDateNorm) {
+                console.error('❌ latest.date แปลง normalizeDate ไม่ได้:', latest.date);
+                setError('รูปแบบวันที่ล่าสุดไม่ถูกต้อง');
+                return;
+            }
+
+
+            // ตั้ง selectedDate ให้เป็น YYYY-MM-DD
+            setSelectedDate(latestDateNorm);
+
+            // โหลดข้อมูลประกอบ
+            const ffb = await fetchProductionData(latestDateNorm);
+            const sales = await fetchSalesData(latestDateNorm);
+            const prev = await fetchPreviousDayData(latestDateNorm);
+
+            // แปลงข้อมูลหลัก
+            transformData(latest, ffb, sales, prev);
+
+            // Summary + Yield
+            await fetchSummary(latestDateNorm);
         } catch (err: any) {
             console.error(err);
             setError('Error fetching latest data: ' + err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const transformData = (
-        apiData: any,
-        ffbGoodQty: number = 0,
-        salesInTons: number = 0,
-        previousDayCPO: number = 0,
-    ) => {
-        const tank1Vol = parseFloat(apiData.tank1_cpo_volume ?? 0) || 0;
-        const tank2Vol = parseFloat(apiData.tank2_cpo_volume ?? 0) || 0;
-        const tank3Vol = parseFloat(apiData.tank3_cpo_volume ?? 0) || 0;
-        const tank4Vol = parseFloat(apiData.tank4_cpo_volume ?? 0) || 0;
-
-        const totalTankVolume = parseFloat((tank1Vol + tank2Vol + tank3Vol + tank4Vol).toFixed(3));
-
-        const currentCPO = parseFloat(apiData.total_cpo ?? 0) || 0;
-
-        // Calculate yield: ((total_cpo ล่าสุด - (total_cpo วันก่อน - ยอดขาย)) / ปาล์มเข้าผลิต) * 100
-        let yieldValue = 0;
-        const safeFFB = parseFloat(String(ffbGoodQty)) || 0;
-
-        if (safeFFB > 0) {
-            const numerator = currentCPO - (previousDayCPO - salesInTons);
-            yieldValue = parseFloat(((numerator / safeFFB) * 100).toFixed(3));
-        }
-
-        const transformed = {
-            date: new Date(apiData.date).toLocaleDateString('th-TH', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-            }),
-            originalDate: apiData.date,
-            totalCPO: parseFloat(parseFloat(apiData.total_cpo ?? 0).toFixed(3)),
-            yield: yieldValue,
-            totalTankVolume: totalTankVolume,
-            ffbGoodQty: parseFloat(safeFFB.toFixed(3)),
-            salesInTons: parseFloat(salesInTons.toFixed(3)),
-            previousDayCPO: parseFloat(previousDayCPO.toFixed(3)),
-            currentCPO: parseFloat(currentCPO.toFixed(3)),
-            tanks: [
-                {
-                    id: 1,
-                    temp: apiData.tank1_temperature,
-                    tons: parseFloat((tank1Vol || 0).toFixed(3)),
-                    ffa: apiData.tank1_ffa != null ? parseFloat(parseFloat(apiData.tank1_ffa).toFixed(3)) : null,
-                    moisture:
-                        apiData.tank1_moisture != null
-                            ? parseFloat(parseFloat(apiData.tank1_moisture).toFixed(3))
-                            : null,
-                    dobi: apiData.tank1_dobi != null ? parseFloat(parseFloat(apiData.tank1_dobi).toFixed(3)) : null,
-                },
-                {
-                    id: 2,
-                    temp: apiData.tank2_temperature,
-                    tons: parseFloat((tank2Vol || 0).toFixed(3)),
-                    ffa_top:
-                        apiData.tank2_top_ffa != null
-                            ? parseFloat(parseFloat(apiData.tank2_top_ffa).toFixed(3))
-                            : null,
-                    ffa_bottom:
-                        apiData.tank2_bottom_ffa != null
-                            ? parseFloat(parseFloat(apiData.tank2_bottom_ffa).toFixed(3))
-                            : null,
-                    moisture_top:
-                        apiData.tank2_top_moisture != null
-                            ? parseFloat(parseFloat(apiData.tank2_top_moisture).toFixed(3))
-                            : null,
-                    moisture_bottom:
-                        apiData.tank2_bottom_moisture != null
-                            ? parseFloat(parseFloat(apiData.tank2_bottom_moisture).toFixed(3))
-                            : null,
-                    dobi_top:
-                        apiData.tank2_top_dobi != null
-                            ? parseFloat(parseFloat(apiData.tank2_top_dobi).toFixed(3))
-                            : null,
-                    dobi_bottom:
-                        apiData.tank2_bottom_dobi != null
-                            ? parseFloat(parseFloat(apiData.tank2_bottom_dobi).toFixed(3))
-                            : null,
-                },
-                {
-                    id: 3,
-                    temp: apiData.tank3_temperature,
-                    tons: parseFloat((tank3Vol || 0).toFixed(3)),
-                    ffa_top:
-                        apiData.tank3_top_ffa != null
-                            ? parseFloat(parseFloat(apiData.tank3_top_ffa).toFixed(3))
-                            : null,
-                    ffa_bottom:
-                        apiData.tank3_bottom_ffa != null
-                            ? parseFloat(parseFloat(apiData.tank3_bottom_ffa).toFixed(3))
-                            : null,
-                    moisture_top:
-                        apiData.tank3_top_moisture != null
-                            ? parseFloat(parseFloat(apiData.tank3_top_moisture).toFixed(3))
-                            : null,
-                    moisture_bottom:
-                        apiData.tank3_bottom_moisture != null
-                            ? parseFloat(parseFloat(apiData.tank3_bottom_moisture).toFixed(3))
-                            : null,
-                    dobi_top:
-                        apiData.tank3_top_dobi != null
-                            ? parseFloat(parseFloat(apiData.tank3_top_dobi).toFixed(3))
-                            : null,
-                    dobi_bottom:
-                        apiData.tank3_bottom_dobi != null
-                            ? parseFloat(parseFloat(apiData.tank3_bottom_dobi).toFixed(3))
-                            : null,
-                },
-                {
-                    id: 4,
-                    temp: apiData.tank4_temperature,
-                    tons: parseFloat((tank4Vol || 0).toFixed(3)),
-                    ffa_top:
-                        apiData.tank4_top_ffa != null
-                            ? parseFloat(parseFloat(apiData.tank4_top_ffa).toFixed(3))
-                            : null,
-                    ffa_bottom:
-                        apiData.tank4_bottom_ffa != null
-                            ? parseFloat(parseFloat(apiData.tank4_bottom_ffa).toFixed(3))
-                            : null,
-                    moisture_top:
-                        apiData.tank4_top_moisture != null
-                            ? parseFloat(parseFloat(apiData.tank4_top_moisture).toFixed(3))
-                            : null,
-                    moisture_bottom:
-                        apiData.tank4_bottom_moisture != null
-                            ? parseFloat(parseFloat(apiData.tank4_bottom_moisture).toFixed(3))
-                            : null,
-                    dobi_top:
-                        apiData.tank4_top_dobi != null
-                            ? parseFloat(parseFloat(apiData.tank4_top_dobi).toFixed(3))
-                            : null,
-                    dobi_bottom:
-                        apiData.tank4_bottom_dobi != null
-                            ? parseFloat(parseFloat(apiData.tank4_bottom_dobi).toFixed(3))
-                            : null,
-                },
-            ],
-            skim: parseFloat(parseFloat(apiData.skim ?? 0).toFixed(3)),
-            mix: parseFloat(parseFloat(apiData.mix ?? 0).toFixed(3)),
-            loopBack: parseFloat(parseFloat(apiData.loop_back ?? 0).toFixed(3)),
-            undilute_1: parseFloat(parseFloat(apiData.undilute_1 ?? 0).toFixed(3)),
-            undilute_2: parseFloat(parseFloat(apiData.undilute_2 ?? 0).toFixed(3)),
-            setting: parseFloat(parseFloat(apiData.setting ?? 0).toFixed(3)),
-            cleanOil: parseFloat(parseFloat(apiData.clean_oil ?? 0).toFixed(3)),
-            ffa_cpo: parseFloat(parseFloat(apiData.ffa_cpo ?? 0).toFixed(3)),
-            dobi_cpo: parseFloat(parseFloat(apiData.dobi_cpo ?? 0).toFixed(3)),
-        };
-
-        setData(transformed);
-    };
-
-    // Handle date change
+    // ============================
+    // Handlers
+    // ============================
     const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const newDate = event.target.value;
+        const newDate = event.target.value; // YYYY-MM-DD จาก date input
         setSelectedDate(newDate);
+        console.log('📅 DatePicker changed →', newDate);
         void fetchDataByDate(newDate);
     };
 
-    // Handle refresh
     const handleRefresh = () => {
-        void fetchDataByDate();
+        void fetchDataByDate(selectedDate);
         void fetchHistoricalData();
     };
 
-    // Fetch data on component mount
+    // ============================
+    // Init Effect
+    // ============================
     useEffect(() => {
-        void fetchDataByDate();
-        void fetchHistoricalData();
+        const init = async () => {
+            await fetchLatestData();       // ให้ฐานข้อมูลเป็นตัวกำหนดวันที่ล่าสุด
+            await fetchHistoricalData();   // กราฟย้อนหลัง
+        };
+        void init();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Calculate chart data
+    // ============================
+    // Chart processing
+    // ============================
     const chartData = useMemo(() => {
         if (!historicalData || historicalData.length === 0) return [];
 
-        const sortedData = [...historicalData].sort(
-            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        const sorted = [...historicalData].sort(
+            (a, b) => (safeDate(a.date)?.getTime() || 0) - (safeDate(b.date)?.getTime() || 0)
         );
-        const maxValue = Math.max(...sortedData.map((d) => d.total_cpo || 0));
 
-        return sortedData.map((item, index) => {
+        const maxValue = Math.max(...sorted.map((d) => d.total_cpo || 0));
+
+        return sorted.map((item: any, index: number) => {
             const value = item.total_cpo || 0;
             const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
 
+            const d = safeDate(item.date);
+
             return {
-                date: new Date(item.date).toLocaleDateString('th-TH', {
-                    day: 'numeric',
-                    month: 'short',
-                }),
-                fullDate: new Date(item.date).toLocaleDateString('th-TH', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                }),
-                value: value,
-                percentage: percentage,
-                isToday: index === sortedData.length - 1,
+                date: d ? d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) : '-',
+                fullDate: d
+                    ? d.toLocaleDateString('th-TH', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                      })
+                    : '-',
+                value,
+                percentage,
+                isToday: index === sorted.length - 1,
             };
         });
     }, [historicalData]);
 
+    // ============================
+    // Render
+    // ============================
     if (loading) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
@@ -496,7 +621,7 @@ export default function StockCPO() {
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleRefresh}
                                 disabled={isRefreshing}
-                                className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 shadow-sm transition-shadow hover:shadow-md disabled:opacity-50"
+                                className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm shadow-sm transition-shadow hover:shadow-md disabled:opacity-50"
                             >
                                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                                 <span>{isRefreshing ? 'กำลังอัพเดต...' : 'รีเฟรชข้อมูล'}</span>
@@ -519,9 +644,7 @@ export default function StockCPO() {
                             <div className="relative z-10">
                                 <h2 className="text-lg font-semibold">Total CPO</h2>
                                 <p className="mt-2 text-5xl font-bold">
-                                    {(
-                                        parseFloat(data.totalCPO || 0)
-                                    ).toFixed(3)}
+                                    {parseFloat(data.totalCPO || 0).toFixed(3)}
                                 </p>
                                 <p className="mt-1 text-sm opacity-90">Tons</p>
                                 <div className="mt-2 text-xs opacity-80">
@@ -543,13 +666,20 @@ export default function StockCPO() {
                                 <h2 className="text-lg font-semibold">% Yield</h2>
                                 <div className="mt-3 flex items-center justify-center space-x-3">
                                     <TrendingUp className="h-8 w-8 text-white" />
-                                    <p className="text-4xl font-bold">{data.yield.toFixed(3)}</p>
+                                    <p className="text-4xl font-bold">
+                                        {data.yield !== undefined ? data.yield.toFixed(3) : '0.000'}
+                                    </p>
                                 </div>
                                 <div className="mt-4 h-2 w-full rounded-full bg-white/20">
                                     <motion.div
                                         className="h-2 rounded-full bg-white"
                                         initial={{ width: 0 }}
-                                        animate={{ width: `${Math.min(data.yield, 25)}%` }}
+                                        animate={{
+                                            width: `${Math.min(
+                                                data.yield !== undefined ? data.yield : 0,
+                                                25
+                                            )}%`,
+                                        }}
                                         transition={{ delay: 0.5, duration: 1 }}
                                     ></motion.div>
                                 </div>
@@ -565,12 +695,13 @@ export default function StockCPO() {
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.3 }}
-                            className="rounded-2xl border border-gray-100 bg-white p-6 shadow-lg"
+                            className="rounded-2xl border border-gray-100 bg-white p-2 shadow-lg"
                         >
                             <div className="mb-4 flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-gray-700">
                                     ปริมาณน้ำมันปาล์มดิบ 7 วันย้อนหลัง
                                 </h2>
+
                                 {usingSampleData && (
                                     <span className="inline-flex items-center rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
                                         ข้อมูลตัวอย่าง
@@ -584,18 +715,23 @@ export default function StockCPO() {
                                         <div className="flex h-32 items-end justify-between">
                                             {chartData.map((item: any, i: number) => {
                                                 const barHeight = Math.max(item.percentage * 0.8, 12);
+
                                                 const isToday = i === chartData.length - 1;
                                                 const maxVal = Math.max(
-                                                    ...chartData.map((d: any) => d.value),
+                                                    ...chartData.map((d: any) => d.value)
                                                 );
                                                 const minVal = Math.min(
-                                                    ...chartData.map((d: any) => d.value),
+                                                    ...chartData.map((d: any) => d.value)
                                                 );
+
                                                 const isHighest = item.value === maxVal;
                                                 const isLowest = item.value === minVal;
 
                                                 return (
-                                                    <div key={i} className="flex flex-1 flex-col items-center">
+                                                    <div
+                                                        key={i}
+                                                        className="flex flex-1 flex-col items-center"
+                                                    >
                                                         <div className="group relative flex h-32 w-full items-end">
                                                             <motion.div
                                                                 initial={{ height: 0 }}
@@ -606,20 +742,21 @@ export default function StockCPO() {
                                                                     type: 'spring',
                                                                     stiffness: 60,
                                                                 }}
-                                                                className={`relative w-full max-w-10 rounded-t-lg transition-all duration-300 ${
+                                                                className={`relative w-full rounded-t-lg transition-all duration-300 ${
                                                                     isToday
-                                                                        ? 'bg-gradient-to-t from-blue-600 to-blue-500 shadow-lg'
+                                                                        ? 'bg-gradient-to-t from-blue-600 to-blue-400 shadow-lg'
                                                                         : isHighest
-                                                                          ? 'bg-gradient-to-t from-green-500 to-green-400 shadow-md'
+                                                                          ? 'bg-gradient-to-t from-green-500 to-green-300 shadow-lg'
                                                                           : isLowest
-                                                                            ? 'bg-gradient-to-t from-red-500 to-red-400 shadow-md'
-                                                                            : 'bg-gradient-to-t from-blue-400 to-blue-300'
+                                                                            ? 'bg-gradient-to-t from-red-500 to-red-300 shadow-md'
+                                                                            : 'bg-gradient-to-t from-blue-300 to-blue-200'
                                                                 } group-hover:shadow-xl group-hover:brightness-110`}
-                                                                style={{ height: `${barHeight}%` }}
                                                             >
                                                                 <div
                                                                     className={`absolute -top-6 left-1/2 -translate-x-1/2 transform text-xs font-bold ${
-                                                                        isToday || isHighest || isLowest
+                                                                        isToday ||
+                                                                        isHighest ||
+                                                                        isLowest
                                                                             ? 'text-gray-800 opacity-100'
                                                                             : 'text-gray-600 opacity-0 group-hover:opacity-100'
                                                                     } whitespace-nowrap transition-opacity duration-200`}
@@ -628,6 +765,10 @@ export default function StockCPO() {
                                                                 </div>
                                                             </motion.div>
                                                         </div>
+
+                                                        <p className="mt-1 text-xs text-gray-600">
+                                                            {item.date}
+                                                        </p>
                                                     </div>
                                                 );
                                             })}
@@ -676,84 +817,70 @@ export default function StockCPO() {
                                 <p className="mb-2 text-xs text-gray-500">Tons</p>
 
                                 {/* Quality Data - Tank 1 */}
-                                {tank.id === 1 && tank.ffa != null && (
-                                    <div className="mt-2">
-                                        <div className="grid grid-cols-3 gap-2 text-center text-xs font-medium">
-                                            <div className="rounded-lg bg-red-50 p-2">
-                                                <p className="text-gray-500">%FFA</p>
-                                                <p className="font-bold text-red-600">
-                                                    {tank.ffa ?? '-'}
-                                                </p>
-                                            </div>
-                                            <div className="rounded-lg bg-blue-50 p-2">
-                                                <p className="text-gray-500">%Moist</p>
-                                                <p className="font-bold text-blue-600">
-                                                    {tank.moisture ?? '-'}
-                                                </p>
-                                            </div>
-                                            <div className="rounded-lg bg-green-50 p-2">
-                                                <p className="text-gray-500">DOBI</p>
-                                                <p className="font-bold text-green-600">
-                                                    {tank.dobi ?? '-'}
-                                                </p>
-                                            </div>
+                                {tank.id === 1 && (
+                                    <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs font-medium">
+                                        <div className="rounded-lg bg-red-50 p-2">
+                                            <p className="text-gray-500">%FFA</p>
+                                            <p className="font-bold text-red-600">
+                                                {tank.ffa ?? '-'}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg bg-blue-50 p-2">
+                                            <p className="text-gray-500">%Moist</p>
+                                            <p className="font-bold text-blue-600">
+                                                {tank.moisture ?? '-'}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg bg-green-50 p-2">
+                                            <p className="text-gray-500">DOBI</p>
+                                            <p className="font-bold text-green-600">
+                                                {tank.dobi ?? '-'}
+                                            </p>
                                         </div>
                                     </div>
                                 )}
 
                                 {/* Quality Data - Tanks 2,3,4 */}
-                                {(tank.id === 2 || tank.id === 3 || tank.id === 4) && (
-                                    <div className="rounded-lg bg-gray-50 p-3">
-                                        <div className="mb-1 grid grid-cols-4 gap-2 text-xs font-medium text-gray-600">
+                                {tank.id !== 1 && (
+                                    <div className="rounded-lg bg-gray-50 p-3 text-xs font-medium">
+                                        <div className="mb-1 grid grid-cols-4 gap-2 text-gray-600">
                                             <div></div>
                                             <div className="text-center">%FFA</div>
                                             <div className="text-center">%Moist</div>
                                             <div className="text-center">DOBI</div>
                                         </div>
 
-                                        {/* Top Row */}
-                                        <div className="mb-1 grid grid-cols-4 gap-2 text-xs">
-                                            <div className="flex items-center font-medium text-gray-500">
+                                        {/* Top */}
+                                        <div className="mb-1 grid grid-cols-4 gap-2">
+                                            <div className="flex items-center text-gray-500">
                                                 <div className="mr-2 h-2 w-2 rounded-full bg-blue-500"></div>
                                                 บน
                                             </div>
                                             <div className="rounded bg-red-50 p-1 text-center">
-                                                <span className="font-bold text-blue-700">
-                                                    {tank.ffa_top ?? '-'}
-                                                </span>
+                                                {tank.ffa_top ?? '-'}
                                             </div>
                                             <div className="rounded bg-blue-50 p-1 text-center">
-                                                <span className="font-bold text-blue-700">
-                                                    {tank.moisture_top ?? '-'}
-                                                </span>
+                                                {tank.moisture_top ?? '-'}
                                             </div>
                                             <div className="rounded bg-green-50 p-1 text-center">
-                                                <span className="font-bold text-blue-700">
-                                                    {tank.dobi_top ?? '-'}
-                                                </span>
+                                                {tank.dobi_top ?? '-'}
                                             </div>
                                         </div>
 
-                                        {/* Bottom Row */}
-                                        <div className="grid grid-cols-4 gap-2 text-xs">
-                                            <div className="flex items-center font-medium text-gray-500">
+                                        {/* Bottom */}
+                                        <div className="grid grid-cols-4 gap-2">
+                                            <div className="flex items-center text-gray-500">
                                                 <div className="mr-2 h-2 w-2 rounded-full bg-amber-500"></div>
                                                 ล่าง
                                             </div>
                                             <div className="rounded bg-red-50 p-1 text-center">
-                                                <span className="font-bold text-amber-700">
-                                                    {tank.ffa_bottom ?? '-'}
-                                                </span>
+                                                {tank.ffa_bottom ?? '-'}
                                             </div>
                                             <div className="rounded bg-blue-50 p-1 text-center">
-                                                <span className="font-bold text-amber-700">
-                                                    {tank.moisture_bottom ?? '-'}
-                                                </span>
+                                                {tank.moisture_bottom ?? '-'}
                                             </div>
                                             <div className="rounded bg-green-50 p-1 text-center">
-                                                <span className="font-bold text-amber-700">
-                                                    {tank.dobi_bottom ?? '-'}
-                                                </span>
+                                                {tank.dobi_bottom ?? '-'}
                                             </div>
                                         </div>
                                     </div>
@@ -885,7 +1012,9 @@ export default function StockCPO() {
                             <p className="text-3xl font-bold text-rose-700">
                                 {data.loopBack.toFixed(3)}
                             </p>
-                            <p className="mt-1 text-xs text-rose-600">CPO T1,2 → Crude Oil</p>
+                            <p className="mt-1 text-xs text-rose-600">
+                                CPO T1,2 → Crude Oil
+                            </p>
                         </motion.div>
                     </div>
                 </motion.div>

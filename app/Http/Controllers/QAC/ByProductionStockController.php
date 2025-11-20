@@ -116,75 +116,88 @@ class ByProductionStockController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'production_date' => 'required|date',
-            'initial_palm_quantity' => 'required|numeric|min:0',
-            'efb_fiber_percentage' => 'required|numeric|min:0|max:100',
-            'efb_percentage' => 'required|numeric|min:0|max:100',
-            'shell_percentage' => 'required|numeric|min:0|max:100',
-            'efb_fiber_previous_balance' => 'required|numeric|min:0',
-            'efb_previous_balance' => 'required|numeric|min:0',
-            'shell_previous_balance' => 'required|numeric|min:0',
-            'efb_fiber_sold' => 'required|numeric|min:0',
-            'efb_sold' => 'required|numeric|min:0',
-            'shell_sold' => 'required|numeric|min:0',
-            'efb_fiber_other' => 'nullable|numeric|min:0',
-            'efb_other' => 'nullable|numeric|min:0',
-            'shell_other' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string'
-        ]);
+{
+    $validated = $request->validate([
+        'production_date' => 'required|date',
+        'initial_palm_quantity' => 'required|numeric|min:0',
+        'efb_fiber_percentage' => 'required|numeric|min:0|max:100',
+        'efb_percentage' => 'nullable|numeric|min:0|max:100',
+        'shell_percentage' => 'required|numeric|min:0|max:100',
+        'efb_fiber_previous_balance' => 'nullable|numeric|min:0',
+        'efb_previous_balance' => 'nullable|numeric|min:0',
+        'shell_previous_balance' => 'nullable|numeric|min:0',
+        'efb_fiber_sold' => 'nullable|numeric|min:0',
+        'efb_sold' => 'nullable|numeric|min:0',
+        'shell_sold' => 'nullable|numeric|min:0',
+        'efb_fiber_other' => 'nullable|numeric|min:0',
+        'efb_other' => 'nullable|numeric|min:0',
+        'shell_other' => 'nullable|numeric|min:0',
+        'notes' => 'nullable|string'
+    ]);
 
-        /* -------------------------------------------------------
-        ✔ 1) หาข้อมูลการผลิตของวันที่นี้ (กันซ้ำ)
-    ------------------------------------------------------- */
-        $existing = ByProductionStock::where('production_date', $validated['production_date'])->first();
+    // ⭐ ป้องกัน NULL → ใส่ fallback 0 ให้ทุก field
+    $validated = array_merge($validated, [
+        'efb_percentage' => $validated['efb_percentage'] ?? 0,
+        'efb_fiber_previous_balance' => $validated['efb_fiber_previous_balance'] ?? 0,
+        'efb_previous_balance' => $validated['efb_previous_balance'] ?? 0,
+        'shell_previous_balance' => $validated['shell_previous_balance'] ?? 0,
+        'efb_fiber_sold' => $validated['efb_fiber_sold'] ?? 0,
+        'efb_sold' => $validated['efb_sold'] ?? 0,
+        'shell_sold' => $validated['shell_sold'] ?? 0,
+        'efb_fiber_other' => $validated['efb_fiber_other'] ?? 0,
+        'efb_other' => $validated['efb_other'] ?? 0,
+        'shell_other' => $validated['shell_other'] ?? 0,
+    ]);
 
-        if ($existing) {
-            // ใช้ข้อมูลเก่ามาอัพเดท
-            $existing->fill($validated);
+    // -------------------------------------------------------
+    // ✔ 1) กันข้อมูลซ้ำ
+    // -------------------------------------------------------
+    $existing = ByProductionStock::where('production_date', $validated['production_date'])->first();
 
-            $existing->calculateProducedQuantities();
-            $existing->calculateBalances();
+    if ($existing) {
+        $existing->fill($validated);
 
-            $existing->save();
+        $existing->calculateProducedQuantities();
+        $existing->calculateBalances();
 
-            $stock = $existing; // ใช้ตัวเดิม
-        } else {
-            // บันทึกใหม่
-            $stock = new ByProductionStock($validated);
+        $existing->save();
 
-            $stock->calculateProducedQuantities();
-            $stock->calculateBalances();
+        $stock = $existing;
+    } else {
+        $stock = new ByProductionStock($validated);
 
-            $stock->save();
-        }
+        $stock->calculateProducedQuantities();
+        $stock->calculateBalances();
 
-        /* -------------------------------------------------------
-        ✔ 2) อัพเดท StockProduct ด้วยยอดคงเหลือ
-    ------------------------------------------------------- */
-        $productStock = StockProduct::where('record_date', $validated['production_date'])->first();
-
-        if ($productStock) {
-            $productStock->update([
-                'efb_fiber' => $stock->efb_fiber_balance,
-                'efb'       => $stock->efb_balance,
-                'shell'     => $stock->shell_balance,
-            ]);
-        } else {
-            StockProduct::create([
-                'record_date' => $validated['production_date'],
-                'efb_fiber'   => $stock->efb_fiber_balance,
-                'efb'         => $stock->efb_balance,
-                'shell'       => $stock->shell_balance,
-            ]);
-        }
-
-        return response()->json([
-            'message' => 'บันทึกข้อมูลสำเร็จ',
-            'data' => $stock
-        ], 201);
+        $stock->save();
     }
+
+    // -------------------------------------------------------
+    // ✔ 2) Update StockProduct
+    // -------------------------------------------------------
+    $productStock = StockProduct::where('record_date', $validated['production_date'])->first();
+
+    if ($productStock) {
+        $productStock->update([
+            'efb_fiber' => $stock->efb_fiber_balance,
+            'efb'       => $stock->efb_balance,
+            'shell'     => $stock->shell_balance,
+        ]);
+    } else {
+        StockProduct::create([
+            'record_date' => $validated['production_date'],
+            'efb_fiber'   => $stock->efb_fiber_balance,
+            'efb'         => $stock->efb_balance,
+            'shell'       => $stock->shell_balance,
+        ]);
+    }
+
+    return response()->json([
+        'message' => 'บันทึกข้อมูลสำเร็จ',
+        'data' => $stock
+    ], 201);
+}
+
 
 
 
@@ -237,98 +250,98 @@ class ByProductionStockController extends Controller
 
 
     public function update(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'production_date' => 'required|date',
-            'initial_palm_quantity' => 'required|numeric|min:0',
-            'efb_fiber_percentage' => 'required|numeric|min:0|max:100',
-            'efb_percentage' => 'required|numeric|min:0|max:100',
-            'shell_percentage' => 'required|numeric|min:0|max:100',
-            'efb_fiber_previous_balance' => 'required|numeric|min:0',
-            'efb_previous_balance' => 'required|numeric|min:0',
-            'shell_previous_balance' => 'required|numeric|min:0',
-            'efb_fiber_sold' => 'required|numeric|min:0',
-            'efb_sold' => 'required|numeric|min:0',
-            'shell_sold' => 'required|numeric|min:0',
-            'efb_fiber_other' => 'nullable|numeric|min:0',
-            'efb_other' => 'nullable|numeric|min:0',
-            'shell_other' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string'
-        ]);
+{
+    $validated = $request->validate([
+        'production_date' => 'required|date',
+        'initial_palm_quantity' => 'required|numeric|min:0',
+        'efb_fiber_percentage' => 'required|numeric|min:0|max:100',
+        'efb_percentage' => 'nullable|numeric|min:0|max:100',
+        'shell_percentage' => 'required|numeric|min:0|max:100',
+        'efb_fiber_previous_balance' => 'nullable|numeric|min:0',
+        'efb_previous_balance' => 'nullable|numeric|min:0',
+        'shell_previous_balance' => 'nullable|numeric|min:0',
+        'efb_fiber_sold' => 'nullable|numeric|min:0',
+        'efb_sold' => 'nullable|numeric|min:0',
+        'shell_sold' => 'nullable|numeric|min:0',
+        'efb_fiber_other' => 'nullable|numeric|min:0',
+        'efb_other' => 'nullable|numeric|min:0',
+        'shell_other' => 'nullable|numeric|min:0',
+        'notes' => 'nullable|string'
+    ]);
 
-        /* -------------------------------------------------------
-        ✔ 1) ดึงข้อมูลเดิมเพื่อเปรียบเทียบ
+    // ⭐ ป้องกัน NULL → ใส่ fallback ค่า 0 ให้ทุก field ที่เป็น nullable
+    $validated = array_merge($validated, [
+        'efb_percentage' => $validated['efb_percentage'] ?? 0,
+        'efb_fiber_previous_balance' => $validated['efb_fiber_previous_balance'] ?? 0,
+        'efb_previous_balance' => $validated['efb_previous_balance'] ?? 0,
+        'shell_previous_balance' => $validated['shell_previous_balance'] ?? 0,
+        'efb_fiber_sold' => $validated['efb_fiber_sold'] ?? 0,
+        'efb_sold' => $validated['efb_sold'] ?? 0,
+        'shell_sold' => $validated['shell_sold'] ?? 0,
+        'efb_fiber_other' => $validated['efb_fiber_other'] ?? 0,
+        'efb_other' => $validated['efb_other'] ?? 0,
+        'shell_other' => $validated['shell_other'] ?? 0,
+    ]);
+
+    /* -------------------------------------------------------
+    ✔ 1) ดึงข้อมูลเดิมเพื่อเปรียบเทียบ
     ------------------------------------------------------- */
-        $stock = ByProductionStock::findOrFail($id);
-        $oldDate = $stock->production_date;
-        $newDate = $validated['production_date'];
+    $stock = ByProductionStock::findOrFail($id);
+    $oldDate = $this->strictDateParser($stock->production_date);
+    $newDate = $this->strictDateParser($validated['production_date']);
 
-        /* -------------------------------------------------------
-        ✔ 2) เช็คว่ามีวันที่ซ้ำกับ ID อื่นหรือไม่
+    /* -------------------------------------------------------
+    ✔ 2) ตรวจสอบวันที่ซ้ำ
     ------------------------------------------------------- */
-        $duplicate = ByProductionStock::where('production_date', $newDate)
-            ->where('id', '!=', $id)
-            ->first();
+    $duplicate = ByProductionStock::where('production_date', $newDate)
+        ->where('id', '!=', $id)
+        ->first();
 
-        if ($duplicate) {
-            return response()->json([
-                'message' => "มีข้อมูลวันที่ {$newDate} อยู่แล้ว ไม่สามารถใช้วันที่ซ้ำได้"
-            ], 422);
-        }
-
-        /* -------------------------------------------------------
-        ✔ 3) UPDATE ข้อมูล ByProductionStock
-    ------------------------------------------------------- */
-        $stock->fill($validated);
-
-        $stock->calculateProducedQuantities();
-        $stock->calculateBalances();
-
-        $stock->save();
-
-        /* -------------------------------------------------------
-        ✔ 4) UPDATE หรือ CREATE StockProduct ตามวันใหม่
-    ------------------------------------------------------- */
-        $oldDate = $this->strictDateParser($stock->production_date);
-        $newDate = $this->strictDateParser($request->production_date);
-
-        // ยอดคงเหลือใหม่
-        $efb_fiber = $stock->efb_fiber_balance;
-        $efb       = $stock->efb_balance;
-        $shell     = $stock->shell_balance;
-
-        if ($oldDate !== $newDate) {
-            // ถ้าผู้ใช้เปลี่ยนวันที่ ต้องย้ายยอดสต็อก
-
-            // ลบข้อมูลสต็อกวันเก่า (ถ้ามี)
-            StockProduct::where('record_date', $oldDate)->delete();
-
-            // อัปเดต/เพิ่มของวันใหม่
-            StockProduct::updateOrCreate(
-                ['record_date' => $newDate],
-                [
-                    'efb_fiber' => $efb_fiber,
-                    'efb'       => $efb,
-                    'shell'     => $shell,
-                ]
-            );
-        } else {
-            // ถ้าวันเดิม → แค่ update ผลรวม
-            StockProduct::updateOrCreate(
-                ['record_date' => $newDate],
-                [
-                    'efb_fiber' => $efb_fiber,
-                    'efb'       => $efb,
-                    'shell'     => $shell,
-                ]
-            );
-        }
-
+    if ($duplicate) {
         return response()->json([
-            'message' => 'อัปเดตข้อมูลสำเร็จ',
-            'data' => $stock
-        ], 200);
+            'message' => "มีข้อมูลวันที่ {$newDate} อยู่แล้ว ไม่สามารถใช้วันที่ซ้ำได้"
+        ], 422);
     }
+
+    /* -------------------------------------------------------
+    ✔ 3) UPDATE ข้อมูล ByProductionStock
+    ------------------------------------------------------- */
+    $stock->fill($validated);
+
+    // คำนวณปริมาณ
+    $stock->calculateProducedQuantities();
+    $stock->calculateBalances();
+
+    $stock->save();
+
+    /* -------------------------------------------------------
+    ✔ 4) UPDATE หรือ CREATE StockProduct
+    ------------------------------------------------------- */
+
+    $efb_fiber = $stock->efb_fiber_balance;
+    $efb       = $stock->efb_balance;
+    $shell     = $stock->shell_balance;
+
+    if ($oldDate !== $newDate) {
+        // ถ้าเปลี่ยนวันที่ → ลบยอดเก่า
+        StockProduct::where('record_date', $oldDate)->delete();
+    }
+
+    StockProduct::updateOrCreate(
+        ['record_date' => $newDate],
+        [
+            'efb_fiber' => $efb_fiber,
+            'efb'       => $efb,
+            'shell'     => $shell,
+        ]
+    );
+
+    return response()->json([
+        'message' => 'อัปเดตข้อมูลสำเร็จ',
+        'data' => $stock
+    ], 200);
+}
+
 
 
     public function destroy($id)

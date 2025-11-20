@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { BarChart3, Calendar, CheckCircle, FileText, Leaf, Nut, Package, Plus, RefreshCw, Save, Trash2, Trees, TrendingUp } from 'lucide-react';
+import { BarChart3, Calendar, CheckCircle, FileText, Leaf, Nut, Package, Plus, RefreshCw, Save, Trash2, Trees, TrendingUp ,Edit} from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
@@ -256,7 +256,7 @@ const ByProductionForm: React.FC = () => {
         initial_palm_quantity: 0,
 
         efb_fiber_percentage: 9,
-        efb_percentage: 19,
+        efb_percentage: 0,
         shell_percentage: 5,
 
         efb_fiber_previous_balance: 0,
@@ -1279,8 +1279,192 @@ useEffect(() => {
                             </div>
                         )}
 
-                        {/* History Tab - เนื้อหาเดิมไม่เปลี่ยนแปลง */}
-                        {activeTab === 'history' && <div className="p-6">{/* ... History Tab Content (เหมือนเดิม) ... */}</div>}
+                         {/* History Tab */}
+                        {activeTab === 'history' && (
+                            <div className="p-6">
+                                <SectionHeader
+                                    title="ประวัติการบันทึก"
+                                    description="รายการบันทึกข้อมูลการผลิตทั้งหมด"
+                                    icon={BarChart3}
+                                    color="blue"
+                                />
+
+                                {loading ? (
+                                    <div className="flex flex-col items-center justify-center py-12">
+                                        <RefreshCw className="h-12 w-12 animate-spin text-blue-600" />
+                                        <p className="mt-4 text-gray-600">กำลังโหลดข้อมูล...</p>
+                                    </div>
+                                ) : stocks.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center rounded-xl bg-gray-50 py-12 text-center">
+                                        <BarChart3 className="mb-4 h-16 w-16 text-gray-300" />
+                                        <h3 className="mb-2 text-xl font-bold text-gray-600">ไม่มีข้อมูลการบันทึก</h3>
+                                        <p className="mb-6 text-gray-500">เริ่มต้นบันทึกข้อมูลการผลิตแรกของคุณ</p>
+                                        <button
+                                            onClick={handleNewRecord}
+                                            className="flex items-center gap-2 rounded-lg bg-blue-500 px-6 py-3 font-semibold text-white transition-all duration-200 hover:scale-105 hover:shadow-md"
+                                        >
+                                            <FileText size={16} />
+                                            บันทึกข้อมูลแรก
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full divide-y divide-gray-200">
+                                                <thead className="bg-gray-50">
+                                                    <tr>
+                                                        {[
+                                                            'วันที่ผลิต',
+                                                            'ผลปาล์มตั้งต้น',
+                                                            'EFB Fiber (%)',
+                                                            'EFB Fiber ผลิตได้',
+                                                            'EFB Fiber คงเหลือ',
+                                                            'EFB (%)',
+                                                            'EFB ผลิตได้',
+                                                            'EFB คงเหลือ',
+                                                            'Shell (%)',
+                                                            'Shell ผลิตได้',
+                                                            'Shell คงเหลือ',
+                                                            'การจัดการ',
+                                                        ].map((header) => (
+                                                            <th
+                                                                key={header}
+                                                                className="px-3 py-3 text-left text-xs font-bold tracking-wider text-gray-700 uppercase"
+                                                            >
+                                                                {header}
+                                                            </th>
+                                                        ))}
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100 bg-white">
+                                                    {stocks.map((stock) => (
+                                                        <tr key={stock.id} className="transition-colors duration-150 hover:bg-gray-50">
+                                                            <td className="px-3 py-3 whitespace-nowrap">
+                                                                <div className="text-sm font-semibold text-gray-900">
+                                                                    {new Date(stock.production_date).toLocaleDateString('th-TH')}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-3 whitespace-nowrap">
+                                                                <div className="text-sm font-bold text-gray-900">
+                                                                    {parseFloat(stock.initial_palm_quantity).toLocaleString('th-TH', {
+                                                                        minimumFractionDigits: 2,
+                                                                        maximumFractionDigits: 2,
+                                                                    })}{' '}
+                                                                    ตัน
+                                                                </div>
+                                                            </td>
+                                                            {/* EFB Fiber Data */}
+                                                            <td className="px-3 py-3 whitespace-nowrap">
+                                                                <div className="text-sm text-blue-600">
+                                                                    {parseFloat(stock.efb_fiber_percentage || 0).toLocaleString('th-TH', {
+                                                                        minimumFractionDigits: 1,
+                                                                        maximumFractionDigits: 1,
+                                                                    })}
+                                                                    %
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-3 whitespace-nowrap">
+                                                                <div className="text-sm font-bold text-green-600">
+                                                                    {parseFloat(stock.efb_fiber_produced || 0).toLocaleString('th-TH', {
+                                                                        minimumFractionDigits: 2,
+                                                                        maximumFractionDigits: 2,
+                                                                    })}{' '}
+                                                                    ตัน
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-3 whitespace-nowrap">
+                                                                <div className="text-sm font-bold text-blue-600">
+                                                                    {parseFloat(stock.efb_fiber_balance || 0).toLocaleString('th-TH', {
+                                                                        minimumFractionDigits: 2,
+                                                                        maximumFractionDigits: 2,
+                                                                    })}{' '}
+                                                                    ตัน
+                                                                </div>
+                                                            </td>
+                                                            {/* EFB Data */}
+                                                            <td className="px-3 py-3 whitespace-nowrap">
+                                                                <div className="text-sm text-green-600">
+                                                                    {parseFloat(stock.efb_percentage || 0).toLocaleString('th-TH', {
+                                                                        minimumFractionDigits: 1,
+                                                                        maximumFractionDigits: 1,
+                                                                    })}
+                                                                    %
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-3 whitespace-nowrap">
+                                                                <div className="text-sm font-bold text-green-600">
+                                                                    {parseFloat(stock.efb_produced || 0).toLocaleString('th-TH', {
+                                                                        minimumFractionDigits: 2,
+                                                                        maximumFractionDigits: 2,
+                                                                    })}{' '}
+                                                                    ตัน
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-3 whitespace-nowrap">
+                                                                <div className="text-sm font-bold text-green-600">
+                                                                    {parseFloat(stock.efb_balance || 0).toLocaleString('th-TH', {
+                                                                        minimumFractionDigits: 2,
+                                                                        maximumFractionDigits: 2,
+                                                                    })}{' '}
+                                                                    ตัน
+                                                                </div>
+                                                            </td>
+                                                            {/* Shell Data */}
+                                                            <td className="px-3 py-3 whitespace-nowrap">
+                                                                <div className="text-sm text-orange-600">
+                                                                    {parseFloat(stock.shell_percentage || 0).toLocaleString('th-TH', {
+                                                                        minimumFractionDigits: 1,
+                                                                        maximumFractionDigits: 1,
+                                                                    })}
+                                                                    %
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-3 whitespace-nowrap">
+                                                                <div className="text-sm font-bold text-orange-600">
+                                                                    {parseFloat(stock.shell_produced || 0).toLocaleString('th-TH', {
+                                                                        minimumFractionDigits: 2,
+                                                                        maximumFractionDigits: 2,
+                                                                    })}{' '}
+                                                                    ตัน
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-3 py-3 whitespace-nowrap">
+                                                                <div className="text-sm font-bold text-orange-600">
+                                                                    {parseFloat(stock.shell_balance || 0).toLocaleString('th-TH', {
+                                                                        minimumFractionDigits: 2,
+                                                                        maximumFractionDigits: 2,
+                                                                    })}{' '}
+                                                                    ตัน
+                                                                </div>
+                                                            </td>
+                                                            {/* Actions */}
+                                                            <td className="px-3 py-3 whitespace-nowrap">
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        onClick={() => handleEdit(stock)}
+                                                                        className="rounded-lg bg-blue-500 p-2 text-white transition-colors duration-200 hover:bg-blue-600"
+                                                                        title="แก้ไข"
+                                                                    >
+                                                                        <Edit size={16} />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeleteWithPermission(stock.id)}
+                                                                        className="rounded-lg bg-red-500 p-2 text-white transition-colors duration-200 hover:bg-red-600"
+                                                                        title="ลบ"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
