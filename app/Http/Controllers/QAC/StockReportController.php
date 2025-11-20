@@ -42,7 +42,7 @@ class StockReportController extends Controller
             return response()->json([
                 'success' => true,
                 'productions' => $productions,
-                'message' => 'โหลดข้อมูลเรียบร้อยแล้ว',
+                'message' => 'โหลดข้อมูล Production เรียบร้อยแล้ว',
                 'count' => $productions->count(),
             ]);
         } catch (\Exception $e) {
@@ -209,7 +209,7 @@ class StockReportController extends Controller
             return response()->json([
                 'success' => true,
                 'sales' => $sales,
-                'message' => 'โหลดข้อมูลเรียบร้อยแล้ว',
+                'message' => 'โหลดข้อมูล Summary Sales เรียบร้อยแล้ว',
                 'count' => $sales->count(),
             ]);
         } catch (\Exception $e) {
@@ -233,7 +233,7 @@ class StockReportController extends Controller
             return response()->json([
                 'success' => true,
                 'stockCPO' => $stockCPO,
-                'message' => 'โหลดข้อมูลเรียบร้อยแล้ว',
+                'message' => 'โหลดข้อมูล Stock CPO เรียบร้อยแล้ว',
                 'count' => $stockCPO->count(),
             ]);
         } catch (\Exception $e) {
@@ -256,7 +256,7 @@ class StockReportController extends Controller
             return response()->json([
                 'success' => true,
                 'byProducts' => $byProducts,
-                'message' => 'โหลดข้อมูลเรียบร้อยแล้ว',
+                'message' => 'โหลดข้อมูล Stock By Products เรียบร้อยแล้ว',
                 'count' => $byProducts->count(),
             ]);
         } catch (\Exception $e) {
@@ -266,4 +266,85 @@ class StockReportController extends Controller
             ], 500);
         }
     }
+
+    public function summary(Request $request)
+    {
+        $date = $request->query('date');
+        if (!$date) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Missing date'
+            ]);
+        }
+
+        // -------------------
+        // 1) Stock CPO วันที่เลือก
+        // -------------------
+        $current = DB::table('cpo_data')
+            ->whereDate('date', $date)
+            ->first();
+
+        if (!$current) {
+            return response()->json([
+                'success' => false,
+                'message' => "No stock data for date {$date}"
+            ]);
+        }
+
+        $currentCPO = (float) $current->total_cpo;
+
+        // -------------------
+        // 2) Stock CPO วันก่อนหน้า
+        // -------------------
+        $previous = DB::table('cpo_data')
+            ->whereDate('date', '<', $date)
+            ->orderBy('date', 'desc')
+            ->first();
+
+        $previousCPO = $previous ? (float) $previous->total_cpo : 0;
+
+        // -------------------
+        // 3) ยอดขาย GoodID 2147
+        // -------------------
+        $sales = DB::connection('sqlsrv2')
+            ->table('SOPlan')
+            ->selectRaw('SUM(NetWei) AS total_netwei')
+            ->whereDate('SOPDate', $date)
+            ->where('GoodID', 2147)
+            ->first();
+
+        $salesTons = $sales ? ((float) $sales->total_netwei / 1000) : 0;
+
+        // -------------------
+        // 4) ปาล์มเข้าผลิต
+        // -------------------
+        $prod = DB::connection('sqlsrv3')
+            ->table('productions')
+            ->whereDate('Date', $date)
+            ->first();
+
+        $ffbGoodQty = $prod ? (float) $prod->FFBGoodQty : 0;
+
+        // -------------------
+        // 5) สูตร Yield
+        // -------------------
+        $yield = 0;
+        if ($ffbGoodQty > 0) {
+            $numerator = $currentCPO - ($previousCPO - $salesTons);
+            $yield = ($numerator / $ffbGoodQty) * 100;
+        }
+
+        return response()->json([
+            'success' => true,
+            'date' => $date,
+            'total_cpo' => round($currentCPO, 3),
+            'previous_total_cpo' => round($previousCPO, 3),
+            'sales_tons' => round($salesTons, 3),
+            'ffb_good_qty' => round($ffbGoodQty, 3),
+            'yield_percent' => round($yield, 3),
+        ]);
+    }
+
+
+
 }

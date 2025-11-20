@@ -122,7 +122,8 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
         const q = {
             nut_silo_1: calculateQuantity(data.nut_silo_1_level, multipliers.nut_silo_1, constants.nut_silo_1),
             nut_silo_2: calculateQuantity(data.nut_silo_2_level, multipliers.nut_silo_2, constants.nut_silo_2),
-            nut_silo_3: calculateQuantity(data.nut_silo_3_level, multipliers.nut_silo_3, constants.nut_silo_3, 2.19),
+            // nut_silo_3: calculateQuantity(data.nut_silo_3_level, multipliers.nut_silo_3, constants.nut_silo_3, 2.19),
+            nut_silo_3: calculateQuantity(data.nut_silo_3_level, multipliers.nut_silo_3, constants.nut_silo_3),
             kernel_silo_1: calculateQuantity(data.kernel_silo_1_level, multipliers.kernel_silo_1, constants.kernel_silo_1),
             kernel_silo_2: calculateQuantity(data.kernel_silo_2_level, multipliers.kernel_silo_2, constants.kernel_silo_2),
             silo_sale_big: calculateQuantity(data.silo_sale_big_level, multipliers.silo_sale_big, constants.silo_sale_big),
@@ -181,7 +182,8 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
             label: 'Nut Silo 3',
             icon: Nut,
             type: 'nut',
-            formula: '(614 - ระดับ) × 0.0538 + 2.19',
+            // formula: '(614 - ระดับ) × 0.0538 + 2.19',
+            formula: '(614 - ระดับ) × 0.0538',
             description: 'Silo ถั่วเปลือกแข็งหมายเลข 3'
         },
         {
