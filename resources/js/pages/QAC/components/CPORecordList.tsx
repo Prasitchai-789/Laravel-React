@@ -116,111 +116,70 @@ interface TankTotals {
     tankDetails: {
         tank_no: number;
         volume: number;
-        oil_level: string | number;
-        temperature: string | number;
+        oil_level: number;
+        temperature: number;
     }[];
 }
 
 interface CPORecordListProps {
     flash?: Flash;
-    cpoTankInfo?: TankInfo[];
-    cpoDensityRef?: DensityData[];
+    cpoTankInfo?: any[];
+    cpoDensityRef?: any[];
 }
 
-/** ทำให้ค่าตัวเลขปลอดภัย 100% (ใช้ได้ทั้ง number, string, null) */
-const safeNumber = (value: any, defaultValue: number = 0): number => {
-    if (value === null || value === undefined || value === '') return defaultValue;
+/* -----------------------------
+   Number Utils (ปลอดภัย 100%)
+------------------------------*/
 
-    const num = Number(value);
+/** ทำให้ค่าที่มาจาก API เป็นตัวเลขแน่นอน */
+const toNumber = (value: any, defaultValue: number = 0): number => {
+    if (value === null || value === undefined) return defaultValue;
+    if (value === '') return defaultValue;
+
+    const num = typeof value === 'number' ? value : parseFloat(String(value));
     return isNaN(num) ? defaultValue : num;
 };
 
-/** แสดงผลเลขแบบปลอดภัย (ไม่ทำให้ .toFixed พัง) */
-const safeFixed = (value: any, digits: number = 3): string => {
-    return safeNumber(value).toFixed(digits);
+/** ใช้สำหรับแสดงผลตัวเลข */
+const toFixed = (value: any, digits: number = 3): string => {
+    return toNumber(value).toFixed(digits);
 };
 
-/** แปลงทุก field ตัวเลขใน record ให้พร้อมคำนวณ */
-const normalizeRecordNumbers = (record: CPORecord): CPORecord => {
-    const numericFields: (keyof CPORecord)[] = [
-        // Tank 1
-        'tank1_oil_level',
-        'tank1_temperature',
-        'tank1_cpo_volume',
-        'tank1_ffa',
-        'tank1_moisture',
-        'tank1_dobi',
-        'tank1_top_ffa',
-        'tank1_top_moisture',
-        'tank1_top_dobi',
-        'tank1_bottom_ffa',
-        'tank1_bottom_moisture',
-        'tank1_bottom_dobi',
+/** Normalize ทุก field ของ CPORecord ที่เป็นตัวเลข */
+const normalizeRecord = (record: CPORecord): CPORecord => {
+    const normalized: any = { ...record };
 
-        // Tank 2
-        'tank2_oil_level',
-        'tank2_temperature',
-        'tank2_cpo_volume',
-        'tank2_ffa',
-        'tank2_moisture',
-        'tank2_dobi',
-        'tank2_top_ffa',
-        'tank2_top_moisture',
-        'tank2_top_dobi',
-        'tank2_bottom_ffa',
-        'tank2_bottom_moisture',
-        'tank2_bottom_dobi',
-
-        // Tank 3
-        'tank3_oil_level',
-        'tank3_temperature',
-        'tank3_cpo_volume',
-        'tank3_ffa',
-        'tank3_moisture',
-        'tank3_dobi',
-        'tank3_top_ffa',
-        'tank3_top_moisture',
-        'tank3_top_dobi',
-        'tank3_bottom_ffa',
-        'tank3_bottom_moisture',
-        'tank3_bottom_dobi',
-
-        // Tank 4
-        'tank4_oil_level',
-        'tank4_temperature',
-        'tank4_cpo_volume',
-        'tank4_ffa',
-        'tank4_moisture',
-        'tank4_dobi',
-        'tank4_top_ffa',
-        'tank4_top_moisture',
-        'tank4_top_dobi',
-        'tank4_bottom_ffa',
-        'tank4_bottom_moisture',
-        'tank4_bottom_dobi',
-
-        // Oil Room
-        'total_cpo',
-        'ffa_cpo',
-        'dobi_cpo',
-        'cs1_cm',
-        'undilute_1',
-        'undilute_2',
-        'setting',
-        'clean_oil',
-        'skim',
-        'mix',
-        'loop_back',
-    ];
-
-    const updated: CPORecord = { ...record };
-
-    numericFields.forEach((field) => {
-        updated[field] = safeNumber(record[field] as any);
+    Object.keys(record).forEach((key) => {
+        const value = record[key as keyof CPORecord];
+        if (typeof value === 'string' || typeof value === 'number') {
+            normalized[key] = toNumber(value);
+        } else {
+            normalized[key] = value;
+        }
     });
 
-    return updated;
+    return normalized;
 };
+
+/** Normalize TankInfo จาก API (string → number) */
+const normalizeTankInfoArray = (arr: any[]): TankInfo[] =>
+    (arr || []).map((t) => ({
+        tank_no: toNumber(t.tank_no),
+        height_m: toNumber(t.height_m),
+        diameter_m: t.diameter_m !== undefined ? toNumber(t.diameter_m) : undefined,
+        volume_m3: toNumber(t.volume_m3),
+    }));
+
+/** Normalize DensityRef จาก API (string → number) */
+const normalizeDensityArray = (arr: any[]): DensityData[] =>
+    (arr || []).map((d) => ({
+        temperature_c: toNumber(d.temperature_c),
+        density: toNumber(d.density),
+    }));
+
+/* ------------------------------------
+   Component หลัก CPORecordList
+-------------------------------------*/
 
 const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecordListProps) => {
     const {
@@ -229,13 +188,17 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
         cpoDensityRef: pageDensityRef,
     } = usePage().props as {
         records: CPORecord[];
-        cpoTankInfo?: TankInfo[];
-        cpoDensityRef?: DensityData[];
+        cpoTankInfo?: any[];
+        cpoDensityRef?: any[];
     };
 
     const [records, setRecords] = useState<CPORecord[]>(pageRecords || []);
-    const [tankInfo, setTankInfo] = useState<TankInfo[]>(pageTankInfo || cpoTankInfo || []);
-    const [densityRef, setDensityRef] = useState<DensityData[]>(pageDensityRef || cpoDensityRef || []);
+    const [tankInfo, setTankInfo] = useState<TankInfo[]>(
+        normalizeTankInfoArray(pageTankInfo || cpoTankInfo || []),
+    );
+    const [densityRef, setDensityRef] = useState<DensityData[]>(
+        normalizeDensityArray(pageDensityRef || cpoDensityRef || []),
+    );
     const [loading, setLoading] = useState<boolean>(false);
     const [editingRecord, setEditingRecord] = useState<CPORecord | null>(null);
     const [showForm, setShowForm] = useState<boolean>(false);
@@ -265,16 +228,22 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
 
     useEffect(() => {
         fetchApiData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchApiData = async (): Promise<void> => {
         try {
             setLoading(true);
             const response = await axios.get(route('cpo.api'));
+
             if (response.data.success) {
                 setRecords(response.data.records || []);
-                setTankInfo(response.data.cpoTankInfo || []);
-                setDensityRef(response.data.cpoDensityRef || []);
+
+                const apiTankInfo = normalizeTankInfoArray(response.data.cpoTankInfo || []);
+                const apiDensityRef = normalizeDensityArray(response.data.cpoDensityRef || []);
+
+                setTankInfo(apiTankInfo);
+                setDensityRef(apiDensityRef);
             } else {
                 throw new Error(response.data.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
             }
@@ -296,62 +265,57 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
         await fetchApiData();
     };
 
-    const safeParseFloat = (value: any): number => {
-        return safeNumber(value);
-    };
-
-    const formatDisplayNumber = (value: any, decimalPlaces: number = 3): string => {
-        const num = safeParseFloat(value);
-        return num.toFixed(decimalPlaces);
-    };
-    // ฟังก์ชันคำนวณปริมาณ CPO ตามสูตรจาก PHP
-    // คำนวณปริมาตร (ตัน)
+    /* ------------------------------
+        คำนวณปริมาตร CPO (ตัน)
+    -------------------------------*/
     const calculateCPOVolume = useCallback(
         (tankData: any[]) => {
-            const tankInfoMap = new Map();
-            tankInfo.forEach((t) => tankInfoMap.set(t.tank_no, t));
+            if (!tankInfo.length || !densityRef.length) {
+                return { volumes: {} as Record<number, number>, total_cpo: 0 };
+            }
 
-            const densityRefMap = new Map();
-            densityRef.forEach((d) => densityRefMap.set(d.temperature_c, d.density));
+            const tankMap = new Map<number, TankInfo>();
+            tankInfo.forEach((t) => tankMap.set(t.tank_no, t));
 
-            let totalCPO = 0;
-            const calculatedVolumes: { [key: number]: number } = {};
+            const densityMap = new Map<number, number>();
+            densityRef.forEach((d) => densityMap.set(d.temperature_c, d.density));
+
+            let total = 0;
+            const volumes: Record<number, number> = {};
 
             tankData.forEach((tank) => {
-                const tankNo = tank.tank_no;
+                const tankNo = toNumber(tank.tank_no);
+                const oilLevel = toNumber(tank.oil_level); // cm
+                const temp = Math.round(toNumber(tank.temperature)); // °C
 
-                // ไม่มีข้อมูล → 0
-                if (tank.oil_level == null || tank.temperature == null || tank.oil_level === '' || tank.temperature === '') {
-                    calculatedVolumes[tankNo] = 0;
+                if (!tankNo || !oilLevel || !temp) {
+                    volumes[tankNo] = 0;
                     return;
                 }
 
-                const oilLevel = safeParseFloat(tank.oil_level); // cm
-                const temp = Math.round(safeParseFloat(tank.temperature)); // °C
-
-                const info = tankInfoMap.get(tankNo);
-                if (!info) {
-                    calculatedVolumes[tankNo] = 0;
+                const info = tankMap.get(tankNo);
+                if (!info || !info.height_m || !info.volume_m3) {
+                    volumes[tankNo] = 0;
                     return;
                 }
 
-                // density (ton/m³)
-                const density = densityRefMap.get(temp) ?? 0.8841;
+                // หา density (ถ้าไม่เจอตรงตัว ให้ลอง temp-1, temp+1 ก่อน fallback ไปค่า default)
+                const density =
+                    densityMap.get(temp) ??
+                    densityMap.get(temp - 1) ??
+                    densityMap.get(temp + 1) ??
+                    0.8841;
 
-                // ปริมาตร 1 cm = (Volume/Height) / 100
+                // ปริมาตรต่อ 1 cm (m3/cm)
                 const volumePerCm_m3 = info.volume_m3 / info.height_m / 100;
 
-                // น้ำหนักตัน = m³ * density
                 const weightTon = oilLevel * volumePerCm_m3 * density;
 
-                calculatedVolumes[tankNo] = weightTon;
-                totalCPO += weightTon;
+                volumes[tankNo] = weightTon;
+                total += weightTon;
             });
 
-            return {
-                volumes: calculatedVolumes,
-                total_cpo: totalCPO,
-            };
+            return { volumes, total_cpo: total };
         },
         [tankInfo, densityRef],
     );
@@ -360,152 +324,152 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
     const transformRecordData = (record: CPORecord) => {
         const tanks: any[] = [];
 
+        const r = record as any;
+
         // Tank 1
-        if (record.tank1_oil_level || record.tank1_temperature) {
+        if (r.tank1_oil_level || r.tank1_temperature) {
             tanks.push({
                 tank_no: 1,
-                oil_level: record.tank1_oil_level || '',
-                temperature: record.tank1_temperature || '',
-                cpo_volume: record.tank1_cpo_volume || '',
-                ffa: record.tank1_ffa || '',
-                moisture: record.tank1_moisture || '',
-                dobi: record.tank1_dobi || '',
-                top_ffa: record.tank1_top_ffa || '',
-                top_moisture: record.tank1_top_moisture || '',
-                top_dobi: record.tank1_top_dobi || '',
-                bottom_ffa: record.tank1_bottom_ffa || '',
-                bottom_moisture: record.tank1_bottom_moisture || '',
-                bottom_dobi: record.tank1_bottom_dobi || '',
+                oil_level: r.tank1_oil_level ?? '',
+                temperature: r.tank1_temperature ?? '',
+                cpo_volume: r.tank1_cpo_volume ?? '',
+                ffa: r.tank1_ffa ?? '',
+                moisture: r.tank1_moisture ?? '',
+                dobi: r.tank1_dobi ?? '',
+                top_ffa: r.tank1_top_ffa ?? '',
+                top_moisture: r.tank1_top_moisture ?? '',
+                top_dobi: r.tank1_top_dobi ?? '',
+                bottom_ffa: r.tank1_bottom_ffa ?? '',
+                bottom_moisture: r.tank1_bottom_moisture ?? '',
+                bottom_dobi: r.tank1_bottom_dobi ?? '',
             });
         }
 
         // Tank 2
-        if (record.tank2_oil_level || record.tank2_temperature) {
+        if (r.tank2_oil_level || r.tank2_temperature) {
             tanks.push({
                 tank_no: 2,
-                oil_level: record.tank2_oil_level || '',
-                temperature: record.tank2_temperature || '',
-                cpo_volume: record.tank2_cpo_volume || '',
-                ffa: record.tank2_ffa || '',
-                moisture: record.tank2_moisture || '',
-                dobi: record.tank2_dobi || '',
-                top_ffa: record.tank2_top_ffa || '',
-                top_moisture: record.tank2_top_moisture || '',
-                top_dobi: record.tank2_top_dobi || '',
-                bottom_ffa: record.tank2_bottom_ffa || '',
-                bottom_moisture: record.tank2_bottom_moisture || '',
-                bottom_dobi: record.tank2_bottom_dobi || '',
+                oil_level: r.tank2_oil_level ?? '',
+                temperature: r.tank2_temperature ?? '',
+                cpo_volume: r.tank2_cpo_volume ?? '',
+                ffa: r.tank2_ffa ?? '',
+                moisture: r.tank2_moisture ?? '',
+                dobi: r.tank2_dobi ?? '',
+                top_ffa: r.tank2_top_ffa ?? '',
+                top_moisture: r.tank2_top_moisture ?? '',
+                top_dobi: r.tank2_top_dobi ?? '',
+                bottom_ffa: r.tank2_bottom_ffa ?? '',
+                bottom_moisture: r.tank2_bottom_moisture ?? '',
+                bottom_dobi: r.tank2_bottom_dobi ?? '',
             });
         }
 
         // Tank 3
-        if (record.tank3_oil_level || record.tank3_temperature) {
+        if (r.tank3_oil_level || r.tank3_temperature) {
             tanks.push({
                 tank_no: 3,
-                oil_level: record.tank3_oil_level || '',
-                temperature: record.tank3_temperature || '',
-                cpo_volume: record.tank3_cpo_volume || '',
-                ffa: record.tank3_ffa || '',
-                moisture: record.tank3_moisture || '',
-                dobi: record.tank3_dobi || '',
-                top_ffa: record.tank3_top_ffa || '',
-                top_moisture: record.tank3_top_moisture || '',
-                top_dobi: record.tank3_top_dobi || '',
-                bottom_ffa: record.tank3_bottom_ffa || '',
-                bottom_moisture: record.tank3_bottom_moisture || '',
-                bottom_dobi: record.tank3_bottom_dobi || '',
+                oil_level: r.tank3_oil_level ?? '',
+                temperature: r.tank3_temperature ?? '',
+                cpo_volume: r.tank3_cpo_volume ?? '',
+                ffa: r.tank3_ffa ?? '',
+                moisture: r.tank3_moisture ?? '',
+                dobi: r.tank3_dobi ?? '',
+                top_ffa: r.tank3_top_ffa ?? '',
+                top_moisture: r.tank3_top_moisture ?? '',
+                top_dobi: r.tank3_top_dobi ?? '',
+                bottom_ffa: r.tank3_bottom_ffa ?? '',
+                bottom_moisture: r.tank3_bottom_moisture ?? '',
+                bottom_dobi: r.tank3_bottom_dobi ?? '',
             });
         }
 
         // Tank 4
-        if (record.tank4_oil_level || record.tank4_temperature) {
+        if (r.tank4_oil_level || r.tank4_temperature) {
             tanks.push({
                 tank_no: 4,
-                oil_level: record.tank4_oil_level || '',
-                temperature: record.tank4_temperature || '',
-                cpo_volume: record.tank4_cpo_volume || '',
-                ffa: record.tank4_ffa || '',
-                moisture: record.tank4_moisture || '',
-                dobi: record.tank4_dobi || '',
-                top_ffa: record.tank4_top_ffa || '',
-                top_moisture: record.tank4_top_moisture || '',
-                top_dobi: record.tank4_top_dobi || '',
-                bottom_ffa: record.tank4_bottom_ffa || '',
-                bottom_moisture: record.tank4_bottom_moisture || '',
-                bottom_dobi: record.tank4_bottom_dobi || '',
+                oil_level: r.tank4_oil_level ?? '',
+                temperature: r.tank4_temperature ?? '',
+                cpo_volume: r.tank4_cpo_volume ?? '',
+                ffa: r.tank4_ffa ?? '',
+                moisture: r.tank4_moisture ?? '',
+                dobi: r.tank4_dobi ?? '',
+                top_ffa: r.tank4_top_ffa ?? '',
+                top_moisture: r.tank4_top_moisture ?? '',
+                top_dobi: r.tank4_top_dobi ?? '',
+                bottom_ffa: r.tank4_bottom_ffa ?? '',
+                bottom_moisture: r.tank4_bottom_moisture ?? '',
+                bottom_dobi: r.tank4_bottom_dobi ?? '',
             });
         }
 
         return {
             tanks,
             oil_room: {
-                total_cpo: record.total_cpo || '',
-                ffa_cpo: record.ffa_cpo || '',
-                dobi_cpo: record.dobi_cpo || '',
-                cs1_cm: record.cs1_cm || '',
-                undilute_1: record.undilute_1 || '',
-                undilute_2: record.undilute_2 || '',
-                setting: record.setting || '',
-                clean_oil: record.clean_oil || '',
-                skim: record.skim || '',
-                mix: record.mix || '',
-                loop_back: record.loop_back || '',
+                total_cpo: r.total_cpo ?? '',
+                ffa_cpo: r.ffa_cpo ?? '',
+                dobi_cpo: r.dobi_cpo ?? '',
+                cs1_cm: r.cs1_cm ?? '',
+                undilute_1: r.undilute_1 ?? '',
+                undilute_2: r.undilute_2 ?? '',
+                setting: r.setting ?? '',
+                clean_oil: r.clean_oil ?? '',
+                skim: r.skim ?? '',
+                mix: r.mix ?? '',
+                loop_back: r.loop_back ?? '',
             },
         };
     };
 
     // คำนวณ Total CPO และรายละเอียดแทงค์
-    const sumVolumes = (volumesObj: { [key: number]: number }): number => {
-        const volumesArray = Object.values(volumesObj); // แปลง object → array
-
-        return (
-            volumesArray.reduce((total, v) => {
-                return total + Math.round(safeNumber(v) * 1000);
-            }, 0) / 1000
-        );
-    };
-
     const calculateTankTotals = (record: CPORecord): TankTotals => {
-        const normalized = normalizeRecordNumbers(record);
+        const normalized = normalizeRecord(record);
         const transformed = transformRecordData(normalized);
         const volumeResult = calculateCPOVolume(transformed.tanks);
 
-        const tankDetails = transformed.tanks.map((tank, index) => ({
-            tank_no: tank.tank_no ?? index + 1,
-            volume: volumeResult.volumes[tank.tank_no] ?? 0,
-            oil_level: tank.oil_level ?? 0,
-            temperature: tank.temperature ?? 0,
+        const tankDetails = transformed.tanks.map((tank: any) => ({
+            tank_no: tank.tank_no,
+            volume: toNumber(volumeResult.volumes[tank.tank_no]),
+            oil_level: toNumber(tank.oil_level),
+            temperature: toNumber(tank.temperature),
         }));
 
-        const totalVolume = safeFixed(sumVolumes(volumeResult.volumes), 3);
+        const totalVolume = toFixed(volumeResult.total_cpo, 3);
 
         return {
             tankDetails,
             totalVolume,
             tankCount: tankDetails.length,
-            skim: safeFixed(transformed.oil_room.skim || 0, 3),
+            skim: toFixed(normalized.skim || 0, 3),
         };
     };
 
     // คำนวณค่าเฉลี่ยคุณภาพน้ำมัน
     const calculateQualityAverages = (record: CPORecord) => {
-        const normalized = normalizeRecordNumbers(record);
+        const normalized = normalizeRecord(record);
         const transformed = transformRecordData(normalized);
-        const tanksWithData = transformed.tanks.filter((tank) => tank.ffa || tank.moisture || tank.dobi);
+
+        const tanksWithData = transformed.tanks.filter(
+            (tank: any) => tank.ffa || tank.moisture || tank.dobi,
+        );
 
         const avgFFA =
             tanksWithData.length > 0
-                ? tanksWithData.reduce((sum, tank) => sum + safeParseFloat(tank.ffa), 0) / tanksWithData.length
+                ? tanksWithData.reduce((sum: number, tank: any) => sum + toNumber(tank.ffa), 0) /
+                  tanksWithData.length
                 : 0;
 
         const avgMoisture =
             tanksWithData.length > 0
-                ? tanksWithData.reduce((sum, tank) => sum + safeParseFloat(tank.moisture), 0) / tanksWithData.length
+                ? tanksWithData.reduce(
+                      (sum: number, tank: any) => sum + toNumber(tank.moisture),
+                      0,
+                  ) / tanksWithData.length
                 : 0;
 
         const avgDobi =
             tanksWithData.length > 0
-                ? tanksWithData.reduce((sum, tank) => sum + safeParseFloat(tank.dobi), 0) / tanksWithData.length
+                ? tanksWithData.reduce((sum: number, tank: any) => sum + toNumber(tank.dobi), 0) /
+                  tanksWithData.length
                 : 0;
 
         return {
@@ -527,7 +491,6 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
     };
 
     const handleSave = async (formData: any): Promise<void> => {
-        console.log(formData);
         try {
             if (editingRecord) {
                 await router.put(`/cpo/${editingRecord.id}`, formData);
@@ -578,7 +541,6 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
     };
 
     const handleDelete = (): void => {
-        console.log(selectedId);
         if (selectedId) {
             router.delete(route('cpo.destroy', selectedId), {
                 onSuccess: () => {
@@ -605,9 +567,9 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
             return sortDirection === 'asc' ? aDate - bDate : bDate - aDate;
         }
 
-        // ถ้าเป็น field อื่นให้ sort ตาม total_cpo
-        const aTotal = safeParseFloat(a.total_cpo);
-        const bTotal = safeParseFloat(b.total_cpo);
+        // field อื่นเอา default เป็น total_cpo
+        const aTotal = toNumber(a.total_cpo);
+        const bTotal = toNumber(b.total_cpo);
         return sortDirection === 'asc' ? aTotal - bTotal : bTotal - aTotal;
     });
 
@@ -648,6 +610,7 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
             />
         );
     }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-purple-50/20 p-6 font-anuphan">
             <div className="mx-auto max-w-7xl space-y-4">
@@ -860,10 +823,12 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                                             <td className="px-2 py-2 align-top">
                                                 <div className="space-y-2">
                                                     {transformed.tanks
-                                                        .filter((tank) => tank.oil_level && tank.temperature)
-                                                        .map((tank) => {
+                                                        .filter((tank: any) => tank.oil_level && tank.temperature)
+                                                        .map((tank: any) => {
                                                             const tankVolume = volumeResult.volumes[tank.tank_no] || 0;
-                                                            const temperature = Math.round(safeParseFloat(tank.temperature));
+                                                            const temperature = Math.round(
+                                                                toNumber(tank.temperature),
+                                                            );
                                                             const densityData = densityRef.find(
                                                                 (d) => d.temperature_c === temperature,
                                                             );
@@ -889,7 +854,7 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                                                                         </div>
                                                                         <div className="text-gray-600">ปริมาณ:</div>
                                                                         <div className="font-bold text-amber-700">
-                                                                            {safeFixed(tankVolume, 3)} ตัน
+                                                                            {toFixed(tankVolume, 3)} ตัน
                                                                         </div>
                                                                     </div>
                                                                     {densityData && (
@@ -912,9 +877,8 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                                             <td className="px-2 py-2 align-top">
                                                 <div className="space-y-2">
                                                     {transformed.tanks
-                                                        .filter((tank) => tank.oil_level && tank.temperature)
-                                                        .map((tank) => {
-                                                            // ตรวจสอบว่าเป็น Tank 1 หรือไม่ (Tank 1 ใช้ค่าเดียว, Tank อื่นใช้ top/bottom)
+                                                        .filter((tank: any) => tank.oil_level && tank.temperature)
+                                                        .map((tank: any) => {
                                                             const isTank1 = tank.tank_no === 1;
 
                                                             return (
@@ -943,7 +907,6 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                                                                     </div>
 
                                                                     {isTank1 ? (
-                                                                        // Tank 1 - แสดงค่าเดียวในรูปแบบตาราง
                                                                         <div className="text-xs">
                                                                             <div className="mb-1 grid grid-cols-3 gap-2 font-medium text-gray-600">
                                                                                 <div>%FFA</div>
@@ -957,9 +920,8 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                                                                             </div>
                                                                         </div>
                                                                     ) : (
-                                                                        // Tank 2,3,4 - แสดงค่า Top/Bottom ในรูปแบบตารางกะทัดรัด
                                                                         <div className="space-y-2 text-xs">
-                                                                            {/* Top Section */}
+                                                                            {/* Top */}
                                                                             <div>
                                                                                 <div className="mb-1 grid grid-cols-4 gap-2 text-gray-600">
                                                                                     <span></span>
@@ -978,7 +940,7 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                                                                                 </div>
                                                                             </div>
 
-                                                                            {/* Bottom Section */}
+                                                                            {/* Bottom */}
                                                                             <div>
                                                                                 <div className="grid grid-cols-4 gap-2 font-bold text-orange-700">
                                                                                     <div className="mb-1 flex items-center space-x-1 font-medium text-orange-600">
@@ -996,8 +958,8 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                                                             );
                                                         })}
 
-                                                    {/* แสดงข้อความเมื่อไม่มีข้อมูลคุณภาพ */}
-                                                    {transformed.tanks.filter((tank) => tank.oil_level && tank.temperature).length === 0 && (
+                                                    {transformed.tanks.filter((tank: any) => tank.oil_level && tank.temperature).length ===
+                                                        0 && (
                                                         <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-3 text-center">
                                                             <div className="text-xs text-gray-500">ไม่มีข้อมูลคุณภาพน้ำมัน</div>
                                                         </div>
@@ -1011,19 +973,43 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                                                     <div className="grid grid-cols-2 gap-2">
                                                         {[
                                                             { label: 'Skim (Ton)', value: transformed.oil_room.skim, color: 'text-red-700' },
-                                                            { label: 'CS1 (cm.)', value: transformed.oil_room.cs1_cm, color: 'text-blue-700' },
-                                                            { label: 'Undilute 1', value: transformed.oil_room.undilute_1, color: 'text-purple-700' },
-                                                            { label: 'Undilute 2', value: transformed.oil_room.undilute_2, color: 'text-purple-700' },
-                                                            { label: 'Setting', value: transformed.oil_room.setting, color: 'text-amber-700' },
-                                                            { label: 'Clean Oil', value: transformed.oil_room.clean_oil, color: 'text-green-700' },
-                                                            { label: 'Mix (Ton)', value: transformed.oil_room.mix, color: 'text-red-700' },
+                                                            {
+                                                                label: 'CS1 (cm.)',
+                                                                value: transformed.oil_room.cs1_cm,
+                                                                color: 'text-blue-700',
+                                                            },
+                                                            {
+                                                                label: 'Undilute 1',
+                                                                value: transformed.oil_room.undilute_1,
+                                                                color: 'text-purple-700',
+                                                            },
+                                                            {
+                                                                label: 'Undilute 2',
+                                                                value: transformed.oil_room.undilute_2,
+                                                                color: 'text-purple-700',
+                                                            },
+                                                            {
+                                                                label: 'Setting',
+                                                                value: transformed.oil_room.setting,
+                                                                color: 'text-amber-700',
+                                                            },
+                                                            {
+                                                                label: 'Clean Oil',
+                                                                value: transformed.oil_room.clean_oil,
+                                                                color: 'text-green-700',
+                                                            },
+                                                            {
+                                                                label: 'Mix (Ton)',
+                                                                value: transformed.oil_room.mix,
+                                                                color: 'text-red-700',
+                                                            },
                                                             {
                                                                 label: 'Loop Back (Ton)',
                                                                 value: transformed.oil_room.loop_back,
                                                                 color: 'text-red-700',
                                                             },
                                                         ]
-                                                            .filter((item) => item.value)
+                                                            .filter((item) => item.value !== null && item.value !== undefined && item.value !== '')
                                                             .map((item, idx) => (
                                                                 <div key={idx} className="rounded-xl border border-gray-100 bg-gray-50/50 p-2">
                                                                     <div className="text-xs text-gray-600">{item.label}</div>
@@ -1047,20 +1033,29 @@ const CPORecordList = ({ flash, cpoTankInfo = [], cpoDensityRef = [] }: CPORecor
                                                     <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-3">
                                                         <div className="mb-2 text-xs font-medium text-amber-600">
                                                             สรุปปริมาณ (คำนวณ) :{' '}
-                                                            <span className="font-bold text-amber-700">{tankTotals.tankCount} แทงค์</span>
+                                                            <span className="font-bold text-amber-700">
+                                                                {tankTotals.tankCount} แทงค์
+                                                            </span>
                                                         </div>
                                                         <div className="space-y-2 text-xs">
                                                             {tankTotals.tankDetails.map((tank) => (
-                                                                <div key={tank.tank_no} className="flex justify-between text-xs">
-                                                                    <span className="text-gray-500">Tank {tank.tank_no}:</span>
+                                                                <div
+                                                                    key={tank.tank_no}
+                                                                    className="flex justify-between text-xs"
+                                                                >
+                                                                    <span className="text-gray-500">
+                                                                        Tank {tank.tank_no}:
+                                                                    </span>
                                                                     <span className="text-amber-600">
-                                                                        {safeFixed(tank.volume, 3)} ตัน
+                                                                        {toFixed(tank.volume, 3)} ตัน
                                                                     </span>
                                                                 </div>
                                                             ))}
 
                                                             <div className="flex justify-between border-t border-amber-200 pt-1">
-                                                                <span className="font-medium text-gray-700">Total ทั้งหมด:</span>
+                                                                <span className="font-medium text-gray-700">
+                                                                    Total ทั้งหมด:
+                                                                </span>
                                                                 <span className="font-bold text-amber-800">
                                                                     {tankTotals.totalVolume} ตัน
                                                                 </span>
