@@ -21,18 +21,7 @@ export default function StockCPO() {
     const [salesData, setSalesData] = useState<any | null>(null);
     const [previousDayData, setPreviousDayData] = useState<any | null>(null);
 
-    // ============================
-    // Date Helpers (รองรับ Non-ISO + ISO)
-    // ============================
 
-    /**
-     * แปลงรูปแบบวันที่ทุกแบบให้เป็น 'YYYY-MM-DD' (local) หรือ null ถ้าแปลงไม่ได้
-     * รองรับ:
-     *  - '2025-11-15'
-     *  - '2025-11-15T00:00:00.000Z'
-     *  - 'Nov 15 2025 12:00:00:AM'
-     *  - 'Nov 15 2025'
-     */
     const normalizeDate = (input: any): string | null => {
         if (!input) return null;
 
@@ -208,11 +197,12 @@ export default function StockCPO() {
         const previousDayCPO = parseFloat(summary.previous_total_cpo ?? 0);
         const salesTons = parseFloat(summary.sales_tons ?? 0);
         const ffbGoodQty = parseFloat(summary.ffb_good_qty ?? 0);
+        const skim = parseFloat(summary.skim ?? 0);
 
         if (ffbGoodQty <= 0) return 0;
 
         const numerator = currentCPO - (previousDayCPO - salesTons);
-        const yieldPercent = (numerator / ffbGoodQty) * 100;
+        const yieldPercent = ((numerator - skim) / ffbGoodQty) * 100;
 
         return parseFloat(yieldPercent.toFixed(3));
     };
@@ -667,7 +657,7 @@ export default function StockCPO() {
                                 <div className="mt-3 flex items-center justify-center space-x-3">
                                     <TrendingUp className="h-8 w-8 text-white" />
                                     <p className="text-4xl font-bold">
-                                        {data.yield !== undefined ? data.yield.toFixed(3) : '0.000'}
+                                        {data.yield !== undefined ? data.yield.toFixed(2) : '0.000'}
                                     </p>
                                 </div>
                                 <div className="mt-4 h-2 w-full rounded-full bg-white/20">
@@ -677,16 +667,16 @@ export default function StockCPO() {
                                         animate={{
                                             width: `${Math.min(
                                                 data.yield !== undefined ? data.yield : 0,
-                                                25
+                                                18
                                             )}%`,
                                         }}
                                         transition={{ delay: 0.5, duration: 1 }}
                                     ></motion.div>
                                 </div>
-                                <div className="mt-1 text-center text-xs opacity-70">
+                                {/* <div className="mt-1 text-center text-xs opacity-70">
                                     ({data.currentCPO.toFixed(3)} - ({data.previousDayCPO.toFixed(3)} -{' '}
                                     {data.salesInTons.toFixed(3)})) ÷ {data.ffbGoodQty.toFixed(3)} × 100
-                                </div>
+                                </div> */}
                             </div>
                         </motion.div>
 

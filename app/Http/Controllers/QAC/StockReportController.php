@@ -325,13 +325,15 @@ class StockReportController extends Controller
 
         $ffbGoodQty = $prod ? (float) $prod->FFBGoodQty : 0;
 
+
+        $skim =  $current->skim ?? 0;
         // -------------------
         // 5) สูตร Yield
         // -------------------
         $yield = 0;
         if ($ffbGoodQty > 0) {
             $numerator = $currentCPO - ($previousCPO - $salesTons);
-            $yield = ($numerator / $ffbGoodQty) * 100;
+            $yield = (($numerator - $skim) / $ffbGoodQty) * 100;
         }
 
         return response()->json([
@@ -342,6 +344,7 @@ class StockReportController extends Controller
             'sales_tons' => round($salesTons, 3),
             'ffb_good_qty' => round($ffbGoodQty, 3),
             'yield_percent' => round($yield, 3),
+            'skim' => round($skim, 3),
         ]);
     }
 
