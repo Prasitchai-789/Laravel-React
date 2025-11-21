@@ -7,11 +7,13 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PUR\POController;
+use App\Http\Controllers\ERP\ERPController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ChemicalController;
 use App\Http\Controllers\AGR\SalesController;
 use App\Http\Controllers\AGR\StockController;
 use App\Http\Controllers\Api\POInvController;
+use App\Http\Controllers\ERP\ShiftController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\StockOrderController;
@@ -28,6 +30,7 @@ use App\Http\Controllers\QAC\CPORecordController;
 use App\Http\Controllers\Api\SalesOrderController;
 use App\Http\Controllers\QAC\SiloRecordController;
 use App\Http\Controllers\QAC\StockReportController;
+use App\Http\Controllers\QAC\StockProductController;
 use App\Http\Controllers\Store\StoreOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
 use App\Http\Controllers\Store\StoreMovementController;
@@ -43,8 +46,6 @@ use App\Http\Controllers\Dashboard\PalmProductionController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
-use App\Http\Controllers\ERP\ERPController;
-use App\Http\Controllers\ERP\ShiftController;
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
 
 Route::get('/', function () {
@@ -400,8 +401,8 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
     Route::get('/report/stock-cpo/summary', [StockReportController::class, 'summary']);
     Route::get('/report/stock-cpo/date/{date}', [StockReportController::class, 'getStockCpoByDate']);
     Route::get('/report/stock-cpo/historical', [StockReportController::class, 'getHistoricalData'])->name('report.stock-cpo.historical');
+    Route::get('/report/productions/summary', [StockProductController::class, 'apiProduction']);
 });
-
 
 
 
