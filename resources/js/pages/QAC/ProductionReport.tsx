@@ -1,7 +1,3 @@
-// -------------------------------------------------------------
-// ProductionReport.tsx — PART 1 / 4
-// Responsive Layout (Mobile → Tablet → Desktop)
-// -------------------------------------------------------------
 
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
@@ -599,7 +595,7 @@ export default function ProductionReport() {
                                     value: fmt(prod?.cpo_data_tank?.summary?.total_cpo),
                                     ffa: fmt(prod?.cpo_data_tank?.summary?.ffa_cpo, 2),
                                     dobi: fmt(prod?.cpo_data_tank?.summary?.dobi_cpo, 2),
-                                    className: 'bg-amber-200/70 font-bold text-amber-900',
+                                    className: 'bg-amber-200/70 font-bold text-red-500 text-lg',
                                     ffaColor: getQualityColor('ffa', prod?.cpo_data_tank?.summary?.ffa_cpo),
                                     dobiColor: getQualityColor('dobi', prod?.cpo_data_tank?.summary?.dobi_cpo),
                                 },
@@ -681,7 +677,7 @@ function CardNumberVertical({ title, value, tone = 'emerald' }: { title: string;
     return (
         <div className={`bg-gradient-to-br ${map.wrap} flex flex-col justify-center rounded-lg border p-1 text-center shadow-sm`}>
             <p className={`font-bold ${map.text} mb-1 text-[11px] sm:text-xs`}>{title}</p>
-            <p className={`rounded-md bg-white/70 py-2 text-lg font-black sm:text-xl ${map.value} `}>{value}</p>
+            <p className={`rounded-md  py-2 text-lg font-black sm:text-xl ${map.value} `}>{value}</p>
         </div>
     );
 }
@@ -754,7 +750,7 @@ function SectionCardA({
                 <p className="text-sm font-bold text-gray-800">{title}</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-1">
+            <div className="grid grid-cols-1">
                 {rows.map((r) => (
                     <div
                         key={r.label}
@@ -796,11 +792,11 @@ function SectionCardB({
                 <p className="text-sm font-bold text-gray-800">{title}</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-1">
+            <div className="grid grid-cols-1 gap-1.5">
                 {rows.map((r) => (
                     <div
                         key={r.label}
-                        className={`grid grid-cols-4 gap-2 rounded-lg border border-white/60 p-2 text-xs ${r.className ?? 'bg-white/70'} `}
+                        className={`grid grid-cols-4 gap-2 rounded-lg border border-white/60 p-2.5 text-xs ${r.className ?? 'bg-white/70'} `}
                     >
                         <span className="text-xs font-medium text-gray-700">{r.label}</span>
 
@@ -898,7 +894,7 @@ function MobileSectionCardA({
     wrapperTone: string;
 }) {
     return (
-        <div className={`bg-gradient-to-br ${wrapperTone} rounded-xl border p-3 shadow-sm`}>
+        <div className={`bg-gradient-to-br ${wrapperTone} rounded-xl border p-1 shadow-sm`}>
             <div className="mb-1 flex items-center space-x-1">
                 {icon}
                 <p className="text-[13px] font-bold text-gray-800">{title}</p>
