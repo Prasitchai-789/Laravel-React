@@ -30,7 +30,7 @@ const CommunityPage = ({ provinces: initialProvinces }) => {
                 setLoading(true);
                 setError(null);
 
-                const apiUrl = `/api/get-locations?province=${encodeURIComponent(province)}`;
+                const apiUrl = `/get-locations?province=${encodeURIComponent(province)}`;
                 setDebugInfo(`API URL: ${apiUrl}`);
 
                 const response = await fetch(apiUrl);
@@ -86,7 +86,7 @@ const CommunityPage = ({ provinces: initialProvinces }) => {
                 setLoading(true);
                 setError(null);
 
-                const apiUrl = `/api/get-locations?province=${encodeURIComponent(province)}&district=${encodeURIComponent(district)}`;
+                const apiUrl = `/get-locations?province=${encodeURIComponent(province)}&district=${encodeURIComponent(district)}`;
                 setDebugInfo(`API URL สำหรับตำบล: ${apiUrl}`);
 
                 const response = await fetch(apiUrl);
@@ -133,7 +133,7 @@ const CommunityPage = ({ provinces: initialProvinces }) => {
             setLoading(true);
             setError(null);
 
-            const apiUrl = `/api/get-villages?subdistrict=${encodeURIComponent(subdistrict)}`;
+            const apiUrl = `/get-villages?subdistrict=${encodeURIComponent(subdistrict)}`;
             setDebugInfo(`API URL สำหรับหมู่บ้าน: ${apiUrl}`);
 
             const response = await fetch(apiUrl);

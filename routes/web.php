@@ -46,6 +46,11 @@ use App\Http\Controllers\Dashboard\PalmProductionController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
+
+use App\Http\Controllers\ERP\ERPController;
+use App\Http\Controllers\WO\WorkOrderController;
+use App\Http\Controllers\ERP\ShiftController;
+
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
 
 Route::get('/', function () {
@@ -167,8 +172,14 @@ Route::middleware(['permission:users.view'])->group(function () {
 });
 
 // Citizens / API Routes
-Route::get('/citizens', [CitizenController::class, 'index']);
-Route::get('/citizens/communitypage', [CitizenController::class, 'community']);
+Route::middleware(['auth'])->group(function () {
+    Route::get('/citizens', [CitizenController::class, 'index'])->name('citizens.index');
+    Route::get('/community', [CitizenController::class, 'community'])->name('community');
+
+    Route::post('/upload-citizens', [CitizenController::class, 'upload'])->name('citizens.upload');
+    Route::post('/citizens/bulk', [CitizenController::class, 'bulkUpload'])->name('citizens.bulk');
+    Route::post('/citizens/clear', [CitizenController::class, 'clearAll'])->name('citizens.clear');
+});
 
 
 // Dashboard Routes
@@ -423,6 +434,12 @@ Route::middleware(['auth', 'permission:ERP.view'])->group(function () {
     Route::delete('/shifts/{id}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
 });
 
+
+
+Route::middleware(['auth', 'permission:users.view'])->group(function () {
+    Route::get('/WOIndex', [WorkOrderController::class, 'index']);
+    Route::get('/OrderIndex', [WorkOrderController::class, 'Order']);
+});
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

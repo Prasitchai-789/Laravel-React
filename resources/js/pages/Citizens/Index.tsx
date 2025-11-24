@@ -3,26 +3,26 @@ import * as XLSX from 'xlsx';
 
 interface Citizen {
   citizen_id: string;
-  title: string | null;
+  title?: string;
   first_name: string;
   last_name: string;
-  birth_date: string | null;
-  gender: string | null;
-  phone: string | null;
-  village_name: string | null;
-  house_no: string | null;
-  moo: string | null;
-  alley: string | null;
-  soi: string | null;
-  road: string | null;
-  subdistrict: string | null;
-  district: string | null;
-  province: string | null;
-  card_issue_date: string | null;
-  card_expire_date: string | null;
-  religion: string | null;
-  age: string | null;
-  photo: string | null;
+  birth_date?: string;
+  gender?: string;
+  phone?: string;
+  village_name?: string;
+  house_no?: string;
+  moo?: string;
+  alley?: string;
+  soi?: string;
+  road?: string;
+  subdistrict?: string;
+  district?: string;
+  province?: string;
+  card_issue_date?: string;
+  card_expire_date?: string;
+  religion?: string;
+  age?: string;
+  photo?: string;
 }
 
 const UploadCitizen: React.FC = () => {
@@ -33,7 +33,7 @@ const UploadCitizen: React.FC = () => {
   const [failRows, setFailRows] = useState<any[]>([]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
+    if (e.target.files?.length) {
       setFile(e.target.files[0]);
       setMessage('');
       setFailRows([]);
@@ -44,10 +44,9 @@ const UploadCitizen: React.FC = () => {
     if (!thaiDate) return null;
 
     let dateObj: Date;
-
     if (typeof thaiDate === 'number') {
-      dateObj = XLSX.SSF.parse_date_code(thaiDate);
-      dateObj = new Date(dateObj.y, dateObj.m - 1, dateObj.d);
+      const parsed = XLSX.SSF.parse_date_code(thaiDate);
+      dateObj = new Date(parsed.y, parsed.m - 1, parsed.d);
     } else if (thaiDate instanceof Date) {
       dateObj = thaiDate;
     } else if (typeof thaiDate === 'string') {
@@ -58,9 +57,7 @@ const UploadCitizen: React.FC = () => {
         return `${year}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
       }
       return thaiDate;
-    } else {
-      return null;
-    }
+    } else return null;
 
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -83,31 +80,31 @@ const UploadCitizen: React.FC = () => {
       const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: null });
 
       const citizensData: Citizen[] = jsonData.map((row: any) => ({
-        citizen_id: row['เลขบัตรประชาชน'] || '',
-        title: row['คำนำหน้า'] || null,
+        // citizen_id: row['เลขบัตรประชาชน'] || '',
+        title: row['คำนำหน้า'] || undefined,
         first_name: row['ชื่อ'] || '',
         last_name: row['นามสกุล'] || '',
         birth_date: convertThaiDate(row['วันเกิด']),
-        gender: row['เพศ'] || null,
-        phone: row['เบอร์โทร'] || null,
-        village_name: row['ชื่อหมู่บ้าน'] || null,
-        house_no: row['บ้านเลขที่'] || null,
-        moo: row['หมู่ที่'] || null,
-        alley: row['ตรอก'] || null,
-        soi: row['ซอย'] || null,
-        road: row['ถนน'] || null,
-        subdistrict: row['ตำบล'] || null,
-        district: row['อำเภอ'] || null,
-        province: row['จังหวัด'] || null,
+        gender: row['เพศ'] || undefined,
+        phone: row['เบอร์โทร'] || undefined,
+        village_name: row['ชื่อหมู่บ้าน'] || undefined,
+        house_no: row['บ้านเลขที่'] || undefined,
+        moo: row['หมู่ที่'] || undefined,
+        alley: row['ตรอก'] || undefined,
+        soi: row['ซอย'] || undefined,
+        road: row['ถนน'] || undefined,
+        subdistrict: row['ตำบล'] || undefined,
+        district: row['อำเภอ'] || undefined,
+        province: row['จังหวัด'] || undefined,
         card_issue_date: convertThaiDate(row['วันทำบัตร']),
         card_expire_date: convertThaiDate(row['วันหมดอายุ']),
-        religion: row['ศาสนา'] || null,
-        age: row['อายุ'] || null,
-        photo: row['รูป'] || null,
+        religion: row['ศาสนา'] || undefined,
+        age: row['อายุ'] || undefined,
+        photo: row['รูป'] || undefined,
       }));
 
       // --- ตรวจ duplicate ในไฟล์เดียวกัน ---
-      const seenIds: Set<string> = new Set();
+      const seenIds = new Set<string>();
       const filteredData: Citizen[] = [];
       const localFailRows: any[] = [];
 
@@ -123,7 +120,7 @@ const UploadCitizen: React.FC = () => {
         }
       });
 
-      if (filteredData.length === 0) {
+      if (!filteredData.length) {
         setMessage('❌ ไม่มีข้อมูลถูกต้องในไฟล์');
         setMessageType('error');
         setFailRows(localFailRows);
@@ -131,10 +128,8 @@ const UploadCitizen: React.FC = () => {
         return;
       }
 
-      console.log('Sending citizensData:', filteredData);
-
       // --- ส่งไป backend ---
-      const res = await fetch('/api/citizens/bulk', {
+      const res = await fetch('/citizens/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({ citizens: filteredData }),
@@ -144,12 +139,11 @@ const UploadCitizen: React.FC = () => {
       try {
         result = await res.json();
       } catch (err) {
-        console.error('Invalid JSON response', err);
+        console.error(err);
         result.fail = filteredData.length;
         result.fail_rows = [{ row_index: 0, error: 'Invalid JSON response from server' }];
       }
 
-      // รวม fail rows จาก duplicate ในไฟล์กับ backend
       const allFailRows = [...localFailRows, ...(result.fail_rows || [])];
 
       if (!res.ok || result.fail > 0 || allFailRows.length > 0) {
@@ -177,12 +171,12 @@ const UploadCitizen: React.FC = () => {
 
     try {
       setLoading(true);
-      const res = await fetch('/api/citizens/clear', {
+      const res = await fetch('/citizens/clear', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       });
       const result = await res.json();
-      setMessage(result.message);
+      setMessage(result.message || 'ลบข้อมูลเรียบร้อย');
       setMessageType('info');
       setFailRows([]);
     } catch (err) {
@@ -244,7 +238,7 @@ const UploadCitizen: React.FC = () => {
       {failRows.length > 0 && (
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-red-600 mb-2">รายการที่ล้มเหลว</h3>
-          <ul className="space-y-2">
+          <ul className="space-y-2 max-h-60 overflow-auto">
             {failRows.map((row, i) => (
               <li key={i} className="p-3 bg-red-50 border border-red-200 rounded-md text-sm">
                 <strong>Row {row.row_index + 1}:</strong> {row.error}

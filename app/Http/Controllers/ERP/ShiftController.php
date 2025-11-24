@@ -30,13 +30,15 @@ class ShiftController extends Controller
 
     public function update(Request $request, $id)
     {
+
+        // dd($request);
         $shift = Shift::findOrFail($id);
 
         $validated = $request->validate([
             'shift_number' => 'required|integer',
             'start_time'   => 'required|date_format:H:i',
             'end_time'     => 'required|date_format:H:i',
-            'total_hours'  => 'required|integer',
+            // 'total_hours'  => 'required|integer',
             'name'         => 'required|string|max:255',
             'description'  => 'nullable|string|max:255',
         ]);

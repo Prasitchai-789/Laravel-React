@@ -17,22 +17,13 @@ Route::prefix('projects')->group(function () {
 
 
 
-
-Route::post('/upload-citizens', [CitizenController::class, 'upload']);
-
-// Route::post('/citizens/bulk', [CitizenController::class, 'bulkUpload']);
-Route::get('/community', [CitizenController::class, 'community']);
-Route::get('/get-locations', [CitizenController::class, 'getLocations']);
-Route::get('/get-villages', [CitizenController::class, 'getVillages']);
-Route::post('/citizens/bulk', [CitizenController::class, 'bulkUpload']);
-
-
 // Route::middleware(['auth', ''])->group(function () {
     // Route::apiResource('purchase/dashboard', PurchaseDashboardController::class)->only(['index']);
 // });
-
-
 Route::post('/citizens/clear', function () {
     Citizen::truncate();
     return response()->json(['message' => 'ลบข้อมูลทั้งหมดเรียบร้อย']);
 });
+
+
+
