@@ -108,7 +108,7 @@ const ITNavItem: NavItem[] = [
     // React Menu
     {
         title: 'Community',
-        href: '/citizens/communitypage',
+        href: '/community', // ต้องตรงกับ Route Laravel
         icon: Handshake,
     },
     {
@@ -247,7 +247,7 @@ const DevNavItems: NavItem[] = [
 ];
 
 const MARNavItems: NavItem[] = [
-     {
+    {
         title: 'รายงานการขาย',
         href: '/sales/dashboard',
         icon: Truck,
@@ -350,9 +350,9 @@ export function AppSidebar() {
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
                                 <NavMain
-                                 items={DevNavItems.filter(
-                                    item => !item.permission || item.permission.some(p => can(p))
-                                )}/>
+                                    items={DevNavItems.filter(
+                                        item => !item.permission || item.permission.some(p => can(p))
+                                    )} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -488,9 +488,9 @@ export function AppSidebar() {
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
                                 <NavMain
-                                items={AGRNavItems.filter(
-                                    item => !item.permission || item.permission.some(p => can(p))
-                                )}/>
+                                    items={AGRNavItems.filter(
+                                        item => !item.permission || item.permission.some(p => can(p))
+                                    )} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -511,9 +511,9 @@ export function AppSidebar() {
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
                                 <NavMain
-                                 items={FerNavItems.filter(
-                                    item => !item.permission || item.permission.some(p => can(p))
-                                )} />
+                                    items={FerNavItems.filter(
+                                        item => !item.permission || item.permission.some(p => can(p))
+                                    )} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
