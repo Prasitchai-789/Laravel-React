@@ -14,7 +14,6 @@ import {
     Eye,
     FileBarChart,
     FileText,
-    Filter,
     FlaskRound,
     MapPin,
     Package,
@@ -25,35 +24,162 @@ import {
     ShoppingCart,
     Truck,
     User,
+    X,
     Zap,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+// Interface definitions
+interface DateRange {
+    startDate: string;
+    endDate: string;
+}
+
+interface Order {
+    DocuNo: string;
+    DocuDate: string;
+    CustName: string;
+    qty_order: number;
+    qty_invoice: number;
+    qty_balance: number;
+    amount: number;
+    AppvFlag: string;
+    GoodID?: number;
+}
+
+interface Invoice {
+    InvoiceNo: string;
+    DocuDate: string;
+    GoodName: string;
+    CustPONo: string;
+    qty: number;
+    weight_destination: number;
+    amount: number;
+    transport_company: string;
+    mar_lot: string;
+    plan_number_car: string;
+    plan_driver_name: string;
+    plan_recipient_name: string;
+    reference_no: string;
+    coa_number: string;
+    coa_result_ffa: number | string;
+    coa_result_moisture: number | string;
+    coa_result_iv: number | string;
+    coa_result_dobi: number | string;
+    coa_result_shell: number | string;
+    coa_result_kn_moisture: number | string;
+    GoodID: number;
+}
+
+interface Product {
+    code: number;
+    label: string;
+    tabName: string;
+}
+
+interface SortConfig {
+    key: string | null;
+    direction: string;
+}
+
 export default function SalesOrder() {
-    const [orders, setOrders] = useState([]);
-    const [selectedSO, setSelectedSO] = useState(null);
-    const [invoiceList, setInvoiceList] = useState([]);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [selectedSO, setSelectedSO] = useState<string | null>(null);
+    const [invoiceList, setInvoiceList] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpenDetail, setIsModalOpenDetail] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-    const [expandedRow, setExpandedRow] = useState(null);
-    const [openCard, setOpenCard] = useState(null);
-    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
+    const [expandedRow, setExpandedRow] = useState<number | null>(null);
+    const [openCard, setOpenCard] = useState<number | null>(null);
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const [activeTab, setActiveTab] = useState('cpo');
+    const [selectedCode, setSelectedCode] = useState<number>(2147);
 
-    // โหลดข้อมูล SO
-    useEffect(() => {
-        loadOrders();
-    }, []);
+    const products: Product[] = [
+        { code: 2147, label: 'น้ำมันปาล์มดิบ', tabName: 'cpo' },
+        { code: 2152, label: 'เมล็ดในปาล์ม', tabName: 'palm_kernel' },
+    ];
 
-    const loadOrders = () => {
-        fetch('/orders/pending')
-            .then((res) => res.json())
-            .then((data) => setOrders(data));
+    // Utility functions
+    const getFirstDayOfMonth = (): string => {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const year = firstDay.getFullYear();
+        const month = String(firstDay.getMonth() + 1).padStart(2, '0');
+        const day = String(firstDay.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
-    // ดึงข้อมูล invoice ตาม SO
-    const handleDetail = async (docuNo, order = null) => {
+    const getTodayDate = (): string => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const formatDateForDisplay = (dateString: string): string => {
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
+    // State initialization
+    const [dateRange, setDateRange] = useState<DateRange>({
+        startDate: getFirstDayOfMonth(),
+        endDate: getTodayDate(),
+    });
+
+    // API functions - ใช้ GET ตาม Route ที่มี
+    const loadOrders = (code?: number, tabName?: string) => {
+        setLoading(true);
+
+        const params = new URLSearchParams({
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate,
+        });
+
+        // เพิ่ม products ถ้ามีการเลือก
+        if (code) {
+            params.append('products', code.toString());
+        }
+
+        // เพิ่ม tabName ถ้ามี
+        if (tabName) {
+            params.append('tabName', tabName);
+        }
+
+        // console.log('Fetching orders with params:', params.toString());
+
+        fetch(`/orders/pending?${params}`)
+            .then((res) => {
+                if (!res.ok) throw new Error('Network response was not ok');
+                return res.json();
+            })
+            .then((data) => {
+                setOrders(data.orders || data);
+                // console.log('Data received:', data);
+            })
+            .catch((error) => {
+                console.error('Error loading orders:', error);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    };
+
+    // Event handlers
+    const handleSelectProduct = (code: number, tabName: string) => {
+        setActiveTab(tabName);
+        setSelectedCode(code);
+        loadOrders(code, tabName);
+    };
+
+    const handleDetail = async (docuNo: string, order: Order | null = null) => {
         setLoading(true);
         setSelectedSO(docuNo);
         setSelectedOrder(order);
@@ -70,10 +196,34 @@ export default function SalesOrder() {
         }
     };
 
-    // ฟังก์ชันค้นหาและกรอง
+    const handleSort = (key: string) => {
+        setSortConfig({
+            key,
+            direction: sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc',
+        });
+    };
+
+    const getSortIcon = (key: string) => {
+        if (sortConfig.key !== key) return <ChevronDown size={14} className="opacity-30" />;
+        return sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
+    };
+
+    // Effects
+    useEffect(() => {
+        // Load initial data when component mounts
+        loadOrders(selectedCode, activeTab);
+    }, []);
+
+    useEffect(() => {
+        // Load data when dateRange changes
+        loadOrders(selectedCode, activeTab);
+    }, [dateRange]);
+
+    // Data processing
     const filteredOrders = orders.filter((order) => {
         const matchesSearch =
-            order.DocuNo.toLowerCase().includes(searchTerm.toLowerCase()) || order.CustName.toLowerCase().includes(searchTerm.toLowerCase());
+            order.DocuNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            order.CustName.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesStatus =
             statusFilter === 'all' ||
@@ -83,31 +233,18 @@ export default function SalesOrder() {
         return matchesSearch && matchesStatus;
     });
 
-    // ฟังก์ชันเรียงลำดับ
     const sortedOrders = [...filteredOrders].sort((a, b) => {
         if (!sortConfig.key) return 0;
 
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
+        const aValue = a[sortConfig.key as keyof Order];
+        const bValue = b[sortConfig.key as keyof Order];
 
         if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
     });
 
-    const handleSort = (key) => {
-        setSortConfig({
-            key,
-            direction: sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc',
-        });
-    };
-
-    const getSortIcon = (key) => {
-        if (sortConfig.key !== key) return <ChevronDown size={14} className="opacity-30" />;
-        return sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />;
-    };
-
-    // คำนวณสถิติสำหรับ Modal
+    // Statistics calculation
     const calculateStats = () => {
         const totalWeightOrigin = invoiceList.reduce((sum, item) => sum + Number(item.qty || 0), 0);
         const totalWeightDestination = invoiceList.reduce((sum, item) => sum + Number(item.weight_destination || item.qty || 0), 0);
@@ -127,6 +264,7 @@ export default function SalesOrder() {
     };
 
     const stats = calculateStats();
+console.log('stats =', stats);
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'จัดการคำสั่งขาย', href: '#' },
@@ -154,23 +292,23 @@ export default function SalesOrder() {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex items-center space-x-3">
+                        {/* <div className="flex items-center space-x-3">
                             <button className="flex items-center rounded-xl border border-gray-300 bg-white px-5 py-3 transition-all duration-300 hover:scale-105 hover:shadow-lg">
                                 <Download size={18} className="mr-2" />
                                 ส่งออก
                             </button>
                             <button
-                                onClick={loadOrders}
+                                onClick={() => loadOrders(selectedCode, activeTab)}
                                 className="flex items-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-white shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl"
                             >
                                 <RefreshCw size={18} className="mr-2" />
                                 รีเฟรชข้อมูล
                             </button>
-                        </div>
+                        </div> */}
                     </div>
 
                     {/* Stats Cards */}
-                    <div className="mb-6 grid grid-cols-1 gap-6 font-anuphan md:grid-cols-4">
+                    <div className="mb-4 grid grid-cols-1 gap-4 font-anuphan md:grid-cols-3">
                         {[
                             {
                                 label: 'ทั้งหมด',
@@ -180,18 +318,11 @@ export default function SalesOrder() {
                                 gradient: 'from-blue-500 to-cyan-500',
                             },
                             {
-                                label: 'อนุมัติแล้ว',
-                                value: orders.filter((o) => o.AppvFlag === 'Y').length,
+                                label: 'น้ำหนัก',
+                                value: `${orders.reduce((sum, o) => sum + Number(o.qty_invoice || 0), 0).toLocaleString()} Kg.`,
                                 icon: CheckCircle,
                                 color: 'green',
                                 gradient: 'from-green-500 to-emerald-500',
-                            },
-                            {
-                                label: 'รออนุมัติ',
-                                value: orders.filter((o) => o.AppvFlag !== 'Y').length,
-                                icon: Clock,
-                                color: 'amber',
-                                gradient: 'from-amber-500 to-orange-500',
                             },
                             {
                                 label: 'มูลค่ารวม',
@@ -230,162 +361,443 @@ export default function SalesOrder() {
                     </div>
 
                     {/* Search and Filter Section */}
-                    <div className="mb-6 rounded-2xl bg-white p-6 font-anuphan shadow-xl">
-                        <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-                            <div className="w-full flex-1 md:w-auto">
-                                <div className="relative">
-                                    <Search className="absolute top-1/2 left-4 -translate-y-1/2 transform text-gray-400" size={20} />
-                                    <input
-                                        type="text"
-                                        placeholder="ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full rounded-2xl border border-gray-300 py-4 pr-6 pl-12 transition-all duration-300 focus:border-blue-500 focus:shadow-lg focus:ring-4 focus:ring-blue-200"
-                                    />
+                    <div className="mb-4 rounded-2xl border border-gray-100/80 bg-gradient-to-br from-white to-gray-50/80 p-4 font-anuphan shadow-xl backdrop-blur-sm">
+                        {/* Single Row Layout */}
+                        <div className="flex flex-col items-stretch gap-4 lg:flex-row">
+                            {/* Tabs - Left Side */}
+                            <div className="flex-1">
+                                <div className="flex w-fit space-x-1 rounded-2xl border border-gray-200/60 bg-gray-100/80 p-1.5">
+                                    {products.map((product) => (
+                                        <button
+                                            key={product.code}
+                                            onClick={() => handleSelectProduct(product.code, product.tabName)}
+                                            className={`flex items-center gap-3 rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-300 ${
+                                                activeTab === product.tabName
+                                                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
+                                                    : 'text-gray-600 hover:bg-white/80 hover:text-gray-800'
+                                            }`}
+                                        >
+                                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                {product.tabName === 'cpo' ? (
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                                    />
+                                                ) : (
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                                                    />
+                                                )}
+                                            </svg>
+                                            {product.label}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap gap-3">
-                                <select
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                    className="rounded-2xl border border-gray-300 bg-white px-5 py-4 transition-all duration-300 focus:border-blue-500 focus:shadow-lg focus:ring-4 focus:ring-blue-200"
-                                >
-                                    <option value="all">สถานะทั้งหมด</option>
-                                    <option value="approved">อนุมัติแล้ว</option>
-                                    <option value="pending">รออนุมัติ</option>
-                                </select>
+                            {/* Search and Filters - Right Side */}
+                            <div className="flex flex-1 items-center gap-3">
+                                {/* Date Range Picker */}
+                                <div className="flex min-w-[280px] items-center gap-2">
+                                    <div className="group relative flex-1">
+                                        <input
+                                            type="date"
+                                            value={dateRange.startDate}
+                                            onChange={(e) => setDateRange((prev) => ({ ...prev, startDate: e.target.value }))}
+                                            className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 transition-all duration-300 group-hover:border-gray-400 focus:border-blue-500 focus:shadow-lg focus:ring-2 focus:shadow-blue-500/20 focus:ring-blue-200/50"
+                                        />
+                                    </div>
+                                    <span className="mx-1 text-gray-400">ถึง</span>
+                                    <div className="group relative flex-1">
+                                        <input
+                                            type="date"
+                                            value={dateRange.endDate}
+                                            onChange={(e) => setDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
+                                            className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 transition-all duration-300 group-hover:border-gray-400 focus:border-blue-500 focus:shadow-lg focus:ring-2 focus:shadow-blue-500/20 focus:ring-blue-200/50"
+                                        />
+                                    </div>
+                                </div>
 
-                                <button className="flex items-center rounded-2xl bg-gradient-to-r from-gray-600 to-gray-700 px-5 py-4 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl">
-                                    <Filter size={18} className="mr-2" />
-                                    กรองเพิ่มเติม
-                                </button>
+                                {/* Search Input */}
+                                <div className="min-w-0 flex-1">
+                                    <div className="group relative">
+                                        <Search
+                                            className="absolute top-1/2 left-4 -translate-y-1/2 transform text-gray-400 transition-colors duration-300 group-focus-within:text-blue-500"
+                                            size={20}
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="ค้นหาด้วยเลขที่ SO หรือชื่อลูกค้า..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full rounded-2xl border border-gray-300 bg-white py-3 pr-6 pl-12 transition-all duration-300 group-hover:border-gray-400 focus:border-blue-500 focus:shadow-lg focus:ring-2 focus:shadow-blue-500/20 focus:ring-blue-200/50"
+                                        />
+                                        {searchTerm && (
+                                            <button
+                                                onClick={() => setSearchTerm('')}
+                                                className="absolute top-1/2 right-3 -translate-y-1/2 transform text-gray-400 transition-colors duration-200 hover:text-gray-600"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                {/* Orders Table */}
-                <div className="overflow-hidden rounded-2xl font-anuphan shadow-2xl">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white">
-                                    {[
-                                        { key: 'DocuNo', label: 'เลขที่ SO', align: 'left' },
-                                        { key: 'DocuDate', label: 'วันที่สั่ง', align: 'left' },
-                                        { key: 'CustName', label: 'ลูกค้า', align: 'left' },
-                                        { key: 'qty_order', label: 'สั่ง (kg)', align: 'right' },
-                                        { key: null, label: 'ออก Inv (kg)', align: 'right' },
-                                        { key: null, label: 'คงเหลือ (kg)', align: 'right' },
-                                        { key: 'amount', label: 'มูลค่า', align: 'right' },
-                                        // { key: null, label: 'สถานะ', align: 'center' },
-                                        { key: null, label: 'จัดการ', align: 'center' },
-                                    ].map((header, index) => (
-                                        <th
-                                            key={index}
-                                            className={`p-5 font-semibold text-${header.align} hover:bg-opacity-20 cursor-pointer transition-colors hover:bg-white`}
-                                            onClick={() => header.key && handleSort(header.key)}
+                        {/* Active Filters Display */}
+                        {(searchTerm ||
+                            statusFilter !== 'all' ||
+                            dateRange.startDate !== getFirstDayOfMonth() ||
+                            dateRange.endDate !== getTodayDate()) && (
+                            <div className="mt-4 flex flex-wrap items-center gap-2">
+                                <span className="text-sm text-gray-600">ตัวกรองที่ใช้งาน:</span>
+
+                                {/* Date Range Filter */}
+                                {(dateRange.startDate !== getFirstDayOfMonth() || dateRange.endDate !== getTodayDate()) && (
+                                    <div className="flex items-center gap-1 rounded-full bg-purple-100 px-3 py-1.5 text-sm text-purple-700">
+                                        <Calendar size={14} />
+                                        <span>
+                                            {formatDateForDisplay(dateRange.startDate)} ถึง {formatDateForDisplay(dateRange.endDate)}
+                                        </span>
+                                        <button
+                                            onClick={() =>
+                                                setDateRange({
+                                                    startDate: getFirstDayOfMonth(),
+                                                    endDate: getTodayDate(),
+                                                })
+                                            }
+                                            className="ml-1 rounded-full p-0.5 transition-colors duration-200 hover:bg-purple-200"
                                         >
-                                            <div
-                                                className={`flex items-center ${header.align === 'right' ? 'justify-end' : header.align === 'center' ? 'justify-center' : ''}`}
-                                            >
-                                                {header.label}
-                                                {header.key && getSortIcon(header.key)}
-                                            </div>
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                )}
 
-                            <tbody className="divide-y divide-gray-200">
-                                {sortedOrders.map((o, i) => (
-                                    <tr key={`order-${o.DocuNo}-${i}`} className="group transition-all duration-300 hover:cursor-pointer">
-                                        <td className="p-5">
-                                            <button
-                                                className="flex transform items-center font-bold text-blue-600 transition-all duration-300 group-hover:scale-105 group-hover:text-blue-700"
-                                                onClick={() => handleDetail(o.DocuNo, o)}
-                                            >
-                                                <div className="rounded-xl bg-blue-100 p-2 transition-colors group-hover:bg-blue-200">
-                                                    <Package size={16} className="text-blue-600" />
-                                                </div>
-                                                <span className="ml-3">{o.DocuNo}</span>
-                                            </button>
-                                        </td>
+                                {searchTerm && (
+                                    <div className="flex items-center gap-1 rounded-full bg-blue-100 px-3 py-1.5 text-sm text-blue-700">
+                                        <Search size={14} />
+                                        <span>ค้นหา: "{searchTerm}"</span>
+                                        <button
+                                            onClick={() => setSearchTerm('')}
+                                            className="ml-1 rounded-full p-0.5 transition-colors duration-200 hover:bg-blue-200"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                )}
 
-                                        <td className="p-5 text-gray-700">
-                                            <div className="flex items-center">
-                                                <Calendar size={14} className="mr-3 text-gray-400" />
-                                                {o.DocuDate?.substring(0, 10)}
-                                            </div>
-                                        </td>
-                                        <td className="p-5 text-gray-700">
-                                            <div className="flex items-center">
-                                                <User size={14} className="mr-3 text-gray-400" />
-                                                <span className="max-w-[150px] truncate font-medium">{o.CustName}</span>
-                                            </div>
-                                        </td>
-                                        <td className="p-5 text-right font-semibold text-gray-800">{Number(o.qty_order).toLocaleString()}</td>
-                                        <td className="p-5 text-right font-semibold text-blue-600">{Number(o.qty_invoice || 0).toLocaleString()}</td>
-                                        <td className={`p-5 text-right text-lg font-bold ${o.qty_balance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
-                                            {Number(o.qty_balance).toLocaleString()}
-                                        </td>
-                                        <td className="p-5 text-right">
-                                            <div className="flex items-center justify-end font-bold text-green-600">
-                                                <DollarSign size={16} className="mr-2" />
-                                                {Number(o.amount).toLocaleString()}
-                                            </div>
-                                        </td>
-
-                                        {/* <td className="p-5">
-                                        <div className="flex justify-center">
-                                            {o.AppvFlag === 'Y' ? (
-                                                <span className="flex items-center rounded-full bg-gradient-to-r from-green-500 to-emerald-500 px-4 py-2 text-xs font-bold text-white shadow-lg">
-                                                    <CheckCircle size={12} className="mr-1" />
-                                                    อนุมัติ
-                                                </span>
-                                            ) : (
-                                                <span className="flex items-center rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-xs font-bold text-white shadow-lg">
-                                                    <Clock size={12} className="mr-1" />
-                                                    {o.StatusRemark || 'รออนุมัติ'}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </td> */}
-
-                                        <td className="p-5">
-                                            <div className="flex justify-center space-x-2">
-                                                <button
-                                                    className="transform rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 p-3 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:cursor-pointer hover:shadow-xl"
-                                                    onClick={() => handleDetail(o.DocuNo, o)}
-                                                    title="ดูรายละเอียด"
-                                                >
-                                                    <Eye size={16} />
-                                                </button>
-                                                {/* <button
-                                                className="transform rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 p-3 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl"
-                                                title="ดูสถิติ"
-                                            >
-                                                <BarChart3 size={16} />
-                                            </button> */}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-
-                        {sortedOrders.length === 0 && (
-                            <div className="py-20 text-center">
-                                <div className="mx-auto mb-4 inline-block rounded-2xl bg-gray-100 p-6">
-                                    <Package size={48} className="text-gray-400" />
-                                </div>
-                                <p className="text-xl font-semibold text-gray-600">ไม่พบข้อมูลคำสั่งขาย</p>
-                                <p className="mt-2 text-gray-400">ลองเปลี่ยนคำค้นหาหรือเงื่อนไขการกรอง</p>
+                                {statusFilter !== 'all' && (
+                                    <div className="flex items-center gap-1 rounded-full bg-green-100 px-3 py-1.5 text-sm text-green-700">
+                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        <span>สถานะ: {statusFilter === 'approved' ? 'อนุมัติแล้ว' : 'รออนุมัติ'}</span>
+                                        <button
+                                            onClick={() => setStatusFilter('all')}
+                                            className="ml-1 rounded-full p-0.5 transition-colors duration-200 hover:bg-green-200"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
                 </div>
+
+                {/* Loading State */}
+                {loading && (
+                    <div className="flex justify-center py-8">
+                        <div className="flex items-center space-x-2 text-blue-600">
+                            <RefreshCw className="animate-spin" size={20} />
+                            <span>กำลังโหลดข้อมูล...</span>
+                        </div>
+                    </div>
+                )}
+
+                {!loading && activeTab === 'cpo' && (
+                    <div className="overflow-hidden rounded-2xl border border-gray-100 font-anuphan shadow-2xl">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white shadow-lg">
+                                        {[
+                                            { key: 'DocuNo', label: 'เลขที่ SO', align: 'left' },
+                                            { key: 'DocuDate', label: 'วันที่สั่ง', align: 'left' },
+                                            { key: 'CustName', label: 'ลูกค้า', align: 'left' },
+                                            { key: 'qty_order', label: 'สั่ง (kg)', align: 'right' },
+                                            { key: null, label: 'ออก Inv (kg)', align: 'right' },
+                                            { key: null, label: 'คงเหลือ (kg)', align: 'right' },
+                                            { key: 'amount', label: 'มูลค่า', align: 'right' },
+                                            { key: null, label: 'จัดการ', align: 'center' },
+                                        ].map((header, index) => (
+                                            <th
+                                                key={index}
+                                                className={`p-6 font-bold cursor-pointer border-r border-white/20 transition-all duration-300 last:border-r-0 hover:bg-white/10`}
+                                                onClick={() => header.key && handleSort(header.key)}
+                                            >
+                                                <div
+                                                    className={`flex items-center gap-2 ${header.align === 'right' ? 'justify-end' : header.align === 'center' ? 'justify-center' : 'justify-start'}`}
+                                                >
+                                                    {header.label}
+                                                    {header.key && getSortIcon(header.key)}
+                                                </div>
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+
+                                <tbody className="divide-y divide-gray-100 bg-white">
+                                    {sortedOrders.map((o, i) => (
+                                        <tr
+                                            key={`order-${o.DocuNo}-${i}`}
+                                            className="group transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-indigo-50/80 hover:shadow-lg"
+                                        >
+                                            {/* เลขที่ SO */}
+                                            <td className="p-4">
+                                                <button
+                                                    className="flex transform items-center gap-2 font-bold text-blue-700 transition-all duration-300 group-hover:scale-105 group-hover:text-blue-800"
+                                                    onClick={() => handleDetail(o.DocuNo, o)}
+                                                >
+                                                    <div className="rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 p-2 shadow-md transition-all duration-300 group-hover:from-blue-200 group-hover:to-blue-300 group-hover:shadow-lg">
+                                                        <Package size={14} className="text-blue-600" />
+                                                    </div>
+                                                    <span className="text-md font-mono">{o.DocuNo}</span>
+                                                </button>
+                                            </td>
+
+                                            {/* วันที่สั่ง */}
+                                            <td className="p-6">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-medium text-gray-800">{o.DocuDate?.substring(0, 10)}</span>
+                                                </div>
+                                            </td>
+
+                                            {/* ลูกค้า */}
+                                            <td className="p-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="rounded-lg bg-gray-100 p-2 group-hover:bg-white">
+                                                        <User size={14} className="text-gray-600" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <span className="block max-w-[180px] truncate font-semibold text-gray-800">{o.CustName}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* สั่ง (kg) */}
+                                            <td className="p-6 text-right">
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-md font-bold text-gray-900">{Number(o.qty_order).toLocaleString()}</span>
+                                                </div>
+                                            </td>
+
+                                            {/* ออก Inv (kg) */}
+                                            <td className="p-6 text-right">
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-md font-bold text-blue-600">
+                                                        {Number(o.qty_invoice || 0).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            {/* คงเหลือ (kg) */}
+                                            <td className="p-6 text-right">
+                                                <div className="flex flex-col items-end">
+                                                    <span className={`text-md font-bold ${o.qty_balance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                                                        {Number(o.qty_balance).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            {/* มูลค่า */}
+                                            <td className="p-6 text-right">
+                                                <div className="flex flex-col items-end">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-md font-bold text-green-700">{Number(o.amount).toLocaleString()}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* จัดการ */}
+                                            <td className="p-6">
+                                                <div className="flex justify-center">
+                                                    <button
+                                                        className="group relative transform rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500 p-2 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:from-blue-600 hover:to-cyan-600 hover:shadow-2xl"
+                                                        onClick={() => handleDetail(o.DocuNo, o)}
+                                                        title="ดูรายละเอียด"
+                                                    >
+                                                        <Eye size={14} />
+                                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 transform rounded-lg bg-gray-800 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                                            ดูรายละเอียด
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            {sortedOrders.length === 0 && (
+                                <div className="flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-white py-24">
+                                    <div className="mb-6 rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">
+                                        <div className="rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 p-6">
+                                            <Package size={64} className="text-blue-400" />
+                                        </div>
+                                    </div>
+                                    <h3 className="mb-3 text-2xl font-bold text-gray-700">ไม่พบข้อมูลคำสั่งขาย</h3>
+                                    <p className="text-lg text-gray-500">ลองเปลี่ยนคำค้นหาหรือเงื่อนไขการกรองดูนะครับ</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {!loading && activeTab === 'palm_kernel' && (
+                    <div className="overflow-hidden rounded-2xl border border-gray-100 font-anuphan shadow-2xl">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white shadow-lg">
+                                        {[
+                                            { key: 'DocuNo', label: 'เลขที่ SO', align: 'left' },
+                                            { key: 'DocuDate', label: 'วันที่สั่ง', align: 'left' },
+                                            { key: 'CustName', label: 'ลูกค้า', align: 'left' },
+                                            { key: 'qty_order', label: 'สั่ง (kg)', align: 'right' },
+                                            { key: null, label: 'ออก Inv (kg)', align: 'right' },
+                                            { key: null, label: 'คงเหลือ (kg)', align: 'right' },
+                                            { key: 'amount', label: 'มูลค่า', align: 'right' },
+                                            { key: null, label: 'จัดการ', align: 'center' },
+                                        ].map((header, index) => (
+                                            <th
+                                                key={index}
+                                                className={`p-6 font-bold cursor-pointer border-r border-white/20 transition-all duration-300 last:border-r-0 hover:bg-white/10`}
+                                                onClick={() => header.key && handleSort(header.key)}
+                                            >
+                                                <div
+                                                    className={`flex items-center gap-2 ${header.align === 'right' ? 'justify-end' : header.align === 'center' ? 'justify-center' : 'justify-start'}`}
+                                                >
+                                                    {header.label}
+                                                    {header.key && getSortIcon(header.key)}
+                                                </div>
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+
+                                <tbody className="divide-y divide-gray-100 bg-white">
+                                    {sortedOrders.map((o, i) => (
+                                        <tr
+                                            key={`order-${o.DocuNo}-${i}`}
+                                            className="group transition-all duration-300 hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-indigo-50/80 hover:shadow-lg"
+                                        >
+                                            {/* เลขที่ SO */}
+                                            <td className="p-4">
+                                                <button
+                                                    className="flex transform items-center gap-2 font-bold text-blue-700 transition-all duration-300 group-hover:scale-105 group-hover:text-blue-800"
+                                                    onClick={() => handleDetail(o.DocuNo, o)}
+                                                >
+                                                    <div className="rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 p-2 shadow-md transition-all duration-300 group-hover:from-blue-200 group-hover:to-blue-300 group-hover:shadow-lg">
+                                                        <Package size={14} className="text-blue-600" />
+                                                    </div>
+                                                    <span className="text-md font-mono">{o.DocuNo}</span>
+                                                </button>
+                                            </td>
+
+                                            {/* วันที่สั่ง */}
+                                            <td className="p-6">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="font-medium text-gray-800">{o.DocuDate?.substring(0, 10)}</span>
+                                                </div>
+                                            </td>
+
+                                            {/* ลูกค้า */}
+                                            <td className="p-6">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="rounded-lg bg-gray-100 p-2 group-hover:bg-white">
+                                                        <User size={14} className="text-gray-600" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <span className="block max-w-[180px] truncate font-semibold text-gray-800">{o.CustName}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* สั่ง (kg) */}
+                                            <td className="p-6 text-right">
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-lg font-bold text-gray-900">{Number(o.qty_order).toLocaleString()}</span>
+                                                </div>
+                                            </td>
+
+                                            {/* ออก Inv (kg) */}
+                                            <td className="p-6 text-right">
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-lg font-bold text-blue-600">
+                                                        {Number(o.qty_invoice || 0).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            {/* คงเหลือ (kg) */}
+                                            <td className="p-6 text-right">
+                                                <div className="flex flex-col items-end">
+                                                    <span className={`text-lg font-bold ${o.qty_balance > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                                                        {Number(o.qty_balance).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            {/* มูลค่า */}
+                                            <td className="p-6 text-right">
+                                                <div className="flex flex-col items-end">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-lg font-bold text-green-700">{Number(o.amount).toLocaleString()}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* จัดการ */}
+                                            <td className="p-6">
+                                                <div className="flex justify-center">
+                                                    <button
+                                                        className="group relative transform rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500 p-4 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:from-blue-600 hover:to-cyan-600 hover:shadow-2xl"
+                                                        onClick={() => handleDetail(o.DocuNo, o)}
+                                                        title="ดูรายละเอียด"
+                                                    >
+                                                        <Eye size={14} />
+                                                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 transform rounded-lg bg-gray-800 px-2 py-1 text-xs whitespace-nowrap text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                                            ดูรายละเอียด
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            {sortedOrders.length === 0 && (
+                                <div className="flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-white py-24">
+                                    <div className="mb-6 rounded-3xl border border-gray-100 bg-white p-8 shadow-2xl">
+                                        <div className="rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 p-6">
+                                            <Package size={64} className="text-blue-400" />
+                                        </div>
+                                    </div>
+                                    <h3 className="mb-3 text-2xl font-bold text-gray-700">ไม่พบข้อมูลคำสั่งขาย</h3>
+                                    <p className="text-lg text-gray-500">ลองเปลี่ยนคำค้นหาหรือเงื่อนไขการกรองดูนะครับ</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Enhanced Modern Modal */}
                 {isModalOpenDetail && (
@@ -512,7 +924,7 @@ export default function SalesOrder() {
                                         const diffPct = w1 > 0 ? (diff / w1) * 100 : 0;
 
                                         // ฟังก์ชันตรวจสอบและจัดรูปแบบข้อมูลผลตรวจคุณภาพ
-                                        const formatQualityValue = (value) => {
+                                        const formatQualityValue = (value: number | string) => {
                                             if (value === null || value === undefined || value === '') return '-';
                                             const numValue = Number(value);
                                             return isNaN(numValue)
@@ -616,14 +1028,14 @@ export default function SalesOrder() {
                                                                 <h4 className="flex items-center space-x-2 text-sm font-bold text-gray-800">
                                                                     <Truck size={16} className="text-blue-600" />
                                                                     <span>ข้อมูลการขนส่ง</span>
-                                                                    <span className="ml-1 text-xs text-blue-600">{i.mar_lot || 'N/A'}</span>
+                                                                    <span className="ml-1 text-xs text-blue-600">{i.reference_no || 'N/A'}</span>
                                                                 </h4>
                                                                 <div className="grid grid-cols-2 gap-3 rounded-lg bg-gray-50 p-3">
                                                                     {[
                                                                         { label: 'ทะเบียนรถ', value: i.plan_number_car, icon: Truck },
                                                                         { label: 'คนขับ', value: i.plan_driver_name, icon: User },
                                                                         { label: 'ปลายทาง', value: i.plan_recipient_name, icon: MapPin },
-                                                                        { label: 'เลขอ้างอิง', value: i.reference_no, icon: ClipboardList },
+                                                                        { label: 'เลขอ้างอิง', value: i.mar_lot, icon: ClipboardList },
                                                                     ].map((item, index) => (
                                                                         <div key={index} className="space-y-1">
                                                                             <div className="flex items-center space-x-1">
