@@ -16,161 +16,277 @@ class PopulationImportController extends Controller
 
     public function table()
     {
-
-        $people = PeoplePopulation::orderBy('id', 'desc')
+        $populations = PeoplePopulation::orderBy('id', 'desc')
             ->paginate(50)
             ->through(fn($p) => [
                 'id' => $p->id,
                 'national_id' => $p->national_id,
-                'name' => $p->title . ' ' . $p->first_name . ' ' . $p->last_name,
+                'title' => $p->title,
+                'first_name' => $p->first_name,
+                'last_name' => $p->last_name,
+                'birthdate' => $p->birthdate,
                 'gender' => $p->gender,
-                'village' => $p->village_name,
-                'subdistrict' => $p->subdistrict_name,
-                'district' => $p->district_name,
-                'province' => $p->province_name,
+                'house_no' => $p->house_no,
+                'village_no' => $p->village_no,
+                'village_name' => $p->village_name,
+                'subdistrict_name' => $p->subdistrict_name,
+                'district_name' => $p->district_name,
+                'province_name' => $p->province_name,
+                'religion' => $p->religion,
+                'phone' => $p->phone,
+                
             ]);
+
         return Inertia::render('Populations/components/PopulationsTable', [
-            'people' => $people,
+            'populations' => $populations,
+            'filters' => [
+                'search' => request()->input('search', ''),
+            ],
         ]);
     }
-
+    // // {"national_id":"4470800003747","prefix":"นาย","first_name":"มรุพงษ์","last_name":"นาขมิ้น","birthdate":null,"gender":"ชาย","house_no":"66",
+    // "village_no":null,"village_name":"แขวงวัดสามพระยา","subdistrict_name":"วัดสามพระยา","district_name":"พระนคร","province_name":"กรุงเทพมหานคร",
+    // "religion":"พุทธ","age_at_import":64,"phone":null}
     public function import(Request $request)
     {
         ini_set('max_execution_time', 0);
         ini_set('memory_limit', '1024M');
 
-        try {
+        $rows = $request->input('rows', []);
+        $importedCount = 0;
+        $updatedCount = 0;
+        $skippedCount = 0;
+        $skippedRows = [];
 
-            $rows = $request->input('rows', []);
+        if (!is_array($rows) || empty($rows)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'NO DATA RECEIVED',
+            ], 422);
+        }
 
-            if (!is_array($rows) || empty($rows)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'NO DATA RECEIVED',
-                ], 422);
-            }
-
-            $importData = [];
-            $skipped    = [];
-
-            // ดึงข้อมูลในฐานเพื่อใช้กันซ้ำ
-            $existingIds = PeoplePopulation::pluck('national_id')->toArray();
-            $existingNames = PeoplePopulation::select('first_name', 'last_name')
-                ->get()
-                ->map(fn($p) => strtolower($p->first_name . "|" . $p->last_name))
-                ->toArray();
-
-            foreach ($rows as $i => $row) {
-
-                // ------------------------------
-                // ❌ national_id ว่าง
-                // ------------------------------
-                if (empty($row['national_id'])) {
-                    $skipped[] = [
-                        'index' => $i,
-                        'row'   => $row,
-                        'cause' => 'เลขบัตรประชาชนว่าง',
-                    ];
-                    continue;
+        foreach ($rows as $i => $row) {
+            try {
+                // ----------------------------
+                // ทำความสะอาดและ hash เลขบัตร
+                // ----------------------------
+                $nationalIdMd5 = null;
+                $nationalIdSha = null;
+                if (!empty($row['national_id'])) {
+                    $cleanedId = preg_replace('/\s+/', '', trim($row['national_id']));
+                    if (!empty($cleanedId)) {
+                        $nationalIdMd5 = substr(hash('md5', $cleanedId), 0, 20);
+                        $nationalIdSha = substr(hash('sha256', $cleanedId), 0, 32);
+                    }
                 }
 
-                // ------------------------------
-                // ❌ first_name หรือ last_name ว่าง
-                // ------------------------------
-                if (empty($row['first_name']) || empty($row['last_name'])) {
-                    $skipped[] = [
-                        'index' => $i,
-                        'row'   => $row,
-                        'cause' => 'ชื่อหรือสกุลว่าง',
-                    ];
-                    continue;
+                // ----------------------------
+                // hash เบอร์โทร
+                // ----------------------------
+                $phoneMd5 = null;
+                $phoneSha = null;
+                if (!empty($row['phone'])) {
+                    $cleanedPhone = preg_replace('/\s+/', '', trim($row['phone']));
+                    if (!empty($cleanedPhone)) {
+                        $phoneMd5 = hash('md5', $cleanedPhone);
+                        $phoneSha = substr(hash('sha256', $cleanedPhone), 0, 32);
+                    }
                 }
 
-                $fullName = strtolower($row['first_name'] . "|" . $row['last_name']);
+                // ----------------------------
+                // แปลงวันที่ & normalize gender
+                // ----------------------------
+                $birthdate = $this->convertThaiDate($row['birthdate'] ?? null);
+                $idCardIssuedAt = $this->convertThaiDate($row['วันทำบัตร'] ?? null);
+                $idCardExpiredAt = $this->convertThaiDate($row['วันหมดอายุ'] ?? null);
 
-                // ------------------------------
-                // ❌เลขบัตรซ้ำในฐานข้อมูล
-                // ------------------------------
-                if (in_array($row['national_id'], $existingIds)) {
-                    $skipped[] = [
-                        'index' => $i,
-                        'row'   => $row,
-                        'cause' => 'เลขบัตรซ้ำ (มีอยู่แล้วในระบบ)',
-                    ];
-                    continue;
-                }
-
-                // ------------------------------
-                // ❌ชื่อ–สกุลซ้ำในฐานข้อมูล
-                // ------------------------------
-                if (in_array($fullName, $existingNames)) {
-                    $skipped[] = [
-                        'index' => $i,
-                        'row'   => $row,
-                        'cause' => 'ชื่อ–สกุลซ้ำ (มีอยู่แล้วในระบบ)',
-                    ];
-                    continue;
-                }
-
-                // ------------------------------
-                // Gender Normalization
-                // ------------------------------
                 $genderMap = [
                     'ชาย' => 'M',
                     'หญิง' => 'F',
+                    'male' => 'M',
+                    'female' => 'F',
+                    '1' => 'M',
+                    '2' => 'F'
                 ];
-                $gender = $genderMap[$row['gender']] ?? 'OTHER';
+                $gender = $genderMap[strtolower(trim($row['gender'] ?? ''))] ?? 'OTHER';
 
-                // ------------------------------
-                // เก็บข้อมูลสำหรับ bulk insert
-                // ------------------------------
-                $importData[] = [
-                    'national_id'       => $row['national_id'],
-                    'title'             => $row['prefix'],
-                    'first_name'        => $row['first_name'],
-                    'last_name'         => $row['last_name'],
-                    'birthdate'         => $row['birthdate'],
-                    'gender'            => $gender,
-                    'house_no'          => $row['house_no'],
-                    'village_no'        => $row['village_no'],
-                    'village_name'      => $row['village_name'],
-                    'subdistrict_name'  => $row['subdistrict_name'],
-                    'district_name'     => $row['district_name'],
-                    'province_name'     => $row['province_name'],
-                    'religion'          => $row['religion'],
-                    'age_at_import'     => $row['age_at_import'],
-                    'phone'             => $row['phone'],
-                    'created_at'        => now(),
-                    'updated_at'        => now(),
+                $firstName = $row['first_name'] ?? $row['ชื่อ'] ?? 'ไม่ระบุ';
+                $lastName  = $row['last_name'] ?? $row['นามสกุล'] ?? 'ไม่ระบุ';
+
+                // ----------------------------
+                // ข้อมูลสำหรับบันทึก
+                // ----------------------------
+                $data = [
+                    'title'            => substr($row['prefix'] ?? $row['คำนำหน้า'] ?? '', 0, 255),
+                    'first_name'       => substr($firstName, 0, 255),
+                    'last_name'        => substr($lastName, 0, 255),
+                    'birthdate'        => $birthdate,
+                    'gender'           => $gender,
+                    'house_no'         => substr($row['house_no'] ?? $row['บ้านเลขที่'] ?? '', 0, 255),
+                    'village_no'       => $this->extractNumber($row['village_no'] ?? $row['หมู่ที่'] ?? null),
+                    'village_name'     => substr($row['village_name'] ?? $row['ชื่อหมู่บ้าน'] ?? '', 0, 255),
+                    'subdistrict_name' => substr($this->cleanCity($row['subdistrict_name'] ?? $row['ตำบล'] ?? ''), 0, 255),
+                    'district_name'    => substr($this->cleanCity($row['district_name'] ?? $row['อำเภอ'] ?? ''), 0, 255),
+                    'province_name'    => substr($this->cleanCity($row['province_name'] ?? $row['จังหวัด'] ?? ''), 0, 255),
+                    'id_card_issued_at' => $idCardIssuedAt,
+                    'id_card_expired_at' => $idCardExpiredAt,
+                    'religion'         => substr($row['religion'] ?? $row['ศาสนา'] ?? '', 0, 255),
+                    'age_at_import'    => $this->extractNumber($row['age_at_import'] ?? $row['อายุ'] ?? null),
+                    'phone'            => $row['phone'] ?? null,
+                    'phone_md5'        => $phoneMd5,
+                    'phone_sha'        => $phoneSha,
+                    'national_id'      => $nationalIdMd5,
+                    'national_id_sha'  => $nationalIdSha,
+                    'updated_at'       => now(),
                 ];
 
-                // อัปเดตชุดข้อมูลกันซ้ำ
-                $existingIds[]   = $row['national_id'];
-                $existingNames[] = $fullName;
-            }
+                // ----------------------------
+                // insert หรือ update
+                // ----------------------------
+                if ($nationalIdMd5) {
+                    $person = PeoplePopulation::updateOrCreate(
+                        ['national_id' => $nationalIdMd5],
+                        $data
+                    );
+                } else {
+                    $data['national_id'] = null;
+                    $person = PeoplePopulation::create($data);
+                }
 
-            // ------------------------------
-            // Bulk Insert (500 rows / batch)
-            // ------------------------------
-            $chunks = array_chunk($importData, 500);
-            foreach ($chunks as $chunk) {
-                PeoplePopulation::insert($chunk);
+                $person->wasRecentlyCreated ? $importedCount++ : $updatedCount++;
+            } catch (\Exception $e) {
+                // ถ้า error บันทึก minimal แต่ยังบันทึก
+                $skippedRows[] = [
+                    'row_index' => $i,
+                    'error' => $e->getMessage(),
+                    'data' => $row
+                ];
+                $person = PeoplePopulation::create([
+                    'first_name' => $firstName ?? 'ไม่ระบุ',
+                    'last_name'  => $lastName ?? 'ไม่ระบุ',
+                    'gender'     => $gender ?? 'OTHER',
+                    'updated_at' => now()
+                ]);
+                $importedCount++;
+                $skippedCount++;
             }
-
-            return response()->json([
-                'success'        => true,
-                'imported_count' => count($importData),
-                'skipped_count'  => count($skipped),
-                'imported_items' => $importData,  // ส่งกลับรายการที่สำเร็จ
-                'skipped_items'  => $skipped,     // ส่งกลับรายการที่ไม่สำเร็จพร้อมเหตุผล
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'error'   => $e->getMessage(),
-                'line'    => $e->getLine(),
-                'file'    => $e->getFile(),
-            ], 500);
         }
+
+        return response()->json([
+            'success'        => true,
+            'message'        => 'นำเข้าข้อมูลเสร็จสิ้น',
+            'imported_count' => $importedCount,
+            'updated_count'  => $updatedCount,
+            'skipped_count'  => $skippedCount,
+            'reportData'     => [
+                'imported' => $importedCount,
+                'updated'  => $updatedCount,
+                'skipped'  => $skippedCount,
+                'skipped_rows' => $skippedRows
+            ]
+        ]);
+    }
+
+
+
+    // Helper functions
+    private function convertThaiDate($value)
+    {
+        if (!$value) return null;
+
+        $thaiMonths = [
+            "มกราคม" => 1,
+            "กุมภาพันธ์" => 2,
+            "มีนาคม" => 3,
+            "เมษายน" => 4,
+            "พฤษภาคม" => 5,
+            "มิถุนายน" => 6,
+            "กรกฎาคม" => 7,
+            "สิงหาคม" => 8,
+            "กันยายน" => 9,
+            "ตุลาคม" => 10,
+            "พฤศจิกายน" => 11,
+            "ธันวาคม" => 12
+        ];
+
+        if ($value instanceof \DateTime) {
+            return $value->format('Y-m-d');
+        }
+
+        $s = trim($value);
+
+        // รูปแบบ 22-ธ.ค.-04
+        if (preg_match('/(\d+)-([ก-๙]+)\.-(\d+)/', $s, $matches)) {
+            $day = (int)$matches[1];
+            $thaiMonth = $matches[2];
+            $year = (int)$matches[3] + 2500; // แปลง พ.ศ. เป็น ค.ศ.
+
+            $monthMap = [
+                'ม.ค.' => 1,
+                'ก.พ.' => 2,
+                'มี.ค.' => 3,
+                'เม.ย.' => 4,
+                'พ.ค.' => 5,
+                'มิ.ย.' => 6,
+                'ก.ค.' => 7,
+                'ส.ค.' => 8,
+                'ก.ย.' => 9,
+                'ต.ค.' => 10,
+                'พ.ย.' => 11,
+                'ธ.ค.' => 12
+            ];
+
+            $month = $monthMap[$thaiMonth . '.'] ?? null;
+            if ($month && $day > 0 && $year > 0) {
+                return sprintf('%04d-%02d-%02d', $year, $month, $day);
+            }
+        }
+
+        return null;
+    }
+
+    private function extractNumber($value)
+    {
+        if (!$value) return null;
+
+        if (is_numeric($value)) {
+            return (int)$value;
+        }
+
+        preg_match('/\d+/', (string)$value, $matches);
+        return $matches ? (int)$matches[0] : null;
+    }
+
+    private function cleanCity($value)
+    {
+        if (!$value) return '';
+
+        return trim(str_replace(
+            ['ตำบล', 'อำเภอ', 'จังหวัด', 'แขวง', 'เขต'],
+            '',
+            (string)$value
+        ));
+    }
+    private function normalizeGender($gender)
+    {
+        if (empty($gender)) {
+            return 'OTHER';
+        }
+
+        $gender = trim($gender);
+        $genderMap = [
+            'ชาย' => 'M',
+            'ชาย ' => 'M',
+            'male' => 'M',
+            'm' => 'M',
+            '1' => 'M',
+            'หญิง' => 'F',
+            'หญิง ' => 'F',
+            'female' => 'F',
+            'f' => 'F',
+            '2' => 'F',
+        ];
+
+        return $genderMap[strtolower($gender)] ?? 'OTHER';
     }
 }
