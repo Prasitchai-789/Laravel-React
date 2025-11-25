@@ -49,9 +49,9 @@ use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
 
-use App\Http\Controllers\ERP\ERPController;
 use App\Http\Controllers\WO\WorkOrderController;
-use App\Http\Controllers\ERP\ShiftController;
+use App\Http\Controllers\PerploController;
+
 
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
 
@@ -418,10 +418,10 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
 });
 
 // Dashboard QAC Routes
-Route::middleware(['auth', 'permission:developer.view'])->group(function () {
+Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::get('/populations', [PopulationController::class, 'index'])->name('populations.index');
     Route::get('/populations/table', [PopulationImportController::class, 'table'])
-    ->name('populations.table');
+        ->name('populations.table');
 
     Route::post('/population/import', [PopulationImportController::class, 'import'])
         ->name('population.import');
@@ -451,6 +451,11 @@ Route::middleware(['auth', 'permission:ERP.view'])->group(function () {
 Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::get('/WOIndex', [WorkOrderController::class, 'index']);
     Route::get('/OrderIndex', [WorkOrderController::class, 'Order']);
+});
+Route::middleware(['auth', 'permission:users.view'])->group(function () {
+    Route::get('/preplo', [PerploController::class, 'index']);
+    Route::post('/preplo/import-simple', [PopulationController::class, 'importSimple']);
+
 });
 
 require __DIR__ . '/settings.php';

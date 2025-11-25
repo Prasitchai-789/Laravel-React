@@ -1,9 +1,12 @@
-// resources/js/pages/Populations/PopulationsTable.tsx
 import React, { useState } from "react";
 import { router, usePage } from "@inertiajs/react";
 
 const PopulationsTable: React.FC = () => {
-    const { populations, filters } = usePage().props as any;
+    const page: any = usePage().props;
+
+    // ให้ default เป็น array ว่างเผื่อ props ยังไม่มี
+    const populations = page.populations ?? { data: [], current_page: 1, last_page: 1, links: [] };
+    const filters = page.filters ?? {};
 
     const [search, setSearch] = useState(filters.search ?? "");
 
@@ -22,7 +25,6 @@ const PopulationsTable: React.FC = () => {
         <div className="p-6 bg-white shadow-sm rounded-xl border">
             <h2 className="text-lg font-bold mb-4">ข้อมูลประชากรทั้งหมด</h2>
 
-            {/* Search Bar */}
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <input
                     className="w-full border rounded-lg px-3 py-2 text-sm"
@@ -30,7 +32,6 @@ const PopulationsTable: React.FC = () => {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
-
                 <button
                     onClick={handleSearch}
                     className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
@@ -39,7 +40,6 @@ const PopulationsTable: React.FC = () => {
                 </button>
             </div>
 
-            {/* TABLE */}
             <div className="overflow-auto max-h-[70vh] rounded-lg border">
                 <table className="min-w-full text-sm">
                     <thead className="bg-gray-100 text-gray-700">
@@ -58,47 +58,39 @@ const PopulationsTable: React.FC = () => {
                             <th className="px-3 py-2 border">เบอร์โทร</th>
                         </tr>
                     </thead>
-
                     <tbody>
-                        {populations.data.length === 0 && (
+                        {populations.data.length === 0 ? (
                             <tr>
-                                <td
-                                    colSpan={12}
-                                    className="text-center text-gray-500 py-4"
-                                >
+                                <td colSpan={12} className="text-center text-gray-500 py-4">
                                     ไม่พบข้อมูล
                                 </td>
                             </tr>
+                        ) : (
+                            populations.data.map((p: any) => (
+                                <tr key={p.id} className="border-t hover:bg-gray-50">
+                                    <td className="px-3 py-2 border">{p.national_id}</td>
+                                    <td className="px-3 py-2 border">{p.title} {p.first_name} {p.last_name}</td>
+                                    <td className="px-3 py-2 border">{p.birthdate ?? "-"}</td>
+                                    <td className="px-3 py-2 border">{p.gender}</td>
+                                    <td className="px-3 py-2 border">{p.house_no}</td>
+                                    <td className="px-3 py-2 border">{p.village_no}</td>
+                                    <td className="px-3 py-2 border">{p.village_name}</td>
+                                    <td className="px-3 py-2 border">{p.subdistrict_name}</td>
+                                    <td className="px-3 py-2 border">{p.district_name}</td>
+                                    <td className="px-3 py-2 border">{p.province_name}</td>
+                                    <td className="px-3 py-2 border">{p.religion}</td>
+                                    <td className="px-3 py-2 border">{p.phone}</td>
+                                </tr>
+                            ))
                         )}
-
-                        {populations.data.map((p: any) => (
-                            <tr key={p.id} className="border-t hover:bg-gray-50">
-                                <td className="px-3 py-2 border">{p.national_id}</td>
-                                <td className="px-3 py-2 border">
-                                    {p.title} {p.first_name} {p.last_name}
-                                </td>
-                                <td className="px-3 py-2 border">{p.birthdate ?? "-"}</td>
-                                <td className="px-3 py-2 border">{p.gender}</td>
-                                <td className="px-3 py-2 border">{p.house_no}</td>
-                                <td className="px-3 py-2 border">{p.village_no}</td>
-                                <td className="px-3 py-2 border">{p.village_name}</td>
-                                <td className="px-3 py-2 border">{p.subdistrict_name}</td>
-                                <td className="px-3 py-2 border">{p.district_name}</td>
-                                <td className="px-3 py-2 border">{p.province_name}</td>
-                                <td className="px-3 py-2 border">{p.religion}</td>
-                                <td className="px-3 py-2 border">{p.phone}</td>
-                            </tr>
-                        ))}
                     </tbody>
                 </table>
             </div>
 
-            {/* PAGINATION */}
             <div className="flex justify-between items-center mt-4">
                 <span className="text-sm text-gray-500">
                     หน้าที่ {populations.current_page} / {populations.last_page}
                 </span>
-
                 <div className="flex gap-2">
                     {populations.links.map((link: any, index: number) => (
                         <button
@@ -106,9 +98,7 @@ const PopulationsTable: React.FC = () => {
                             disabled={!link.url}
                             onClick={() => router.get(link.url, {}, { preserveScroll: true })}
                             className={`px-3 py-1 rounded ${
-                                link.active
-                                    ? "bg-blue-600 text-white"
-                                    : "bg-gray-100 hover:bg-gray-200"
+                                link.active ? "bg-blue-600 text-white" : "bg-gray-100 hover:bg-gray-200"
                             } ${!link.url && "opacity-50 cursor-not-allowed"}`}
                             dangerouslySetInnerHTML={{ __html: link.label }}
                         />
