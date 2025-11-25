@@ -48,9 +48,9 @@ use App\Http\Controllers\Dashboard\PalmProductionController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
-
 use App\Http\Controllers\WO\WorkOrderController;
 use App\Http\Controllers\PerploController;
+use App\Http\Controllers\SeederStatusController;
 
 
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
@@ -455,7 +455,12 @@ Route::middleware(['auth', 'permission:users.view'])->group(function () {
 Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::get('/preplo', [PerploController::class, 'index']);
     Route::post('/preplo/import-simple', [PopulationController::class, 'importSimple']);
+});
 
+
+Route::middleware(['auth', 'permission:users.view'])->group(function () {
+    Route::post('/seeder-status/{user}', [SeederStatusController::class, 'update']);
+    Route::post('/seeder-status/{user}/add-item/{itemId}', [SeederStatusController::class, 'addItem']);
 });
 
 require __DIR__ . '/settings.php';

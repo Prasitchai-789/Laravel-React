@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Perple extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory ;
 
     protected $fillable = [
         'title',
@@ -25,6 +25,5 @@ class Perple extends Model
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime',
     ];
 }

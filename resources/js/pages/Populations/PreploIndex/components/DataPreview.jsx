@@ -1,11 +1,28 @@
-// resources/js/Components/Preplo/components/DataPreview.jsx
-import React from 'react';
+import React, { useMemo } from 'react';
 
 const DataPreview = ({ parsedData, incompleteData, submitting, onReset, onSubmit }) => {
   if (parsedData.length === 0) return null;
 
+  // 🔍 หาข้อมูลซ้ำแบบไม่ลบข้อมูล
+  const duplicates = useMemo(() => {
+    const map = {};
+    const dup = [];
+
+    parsedData.forEach((person) => {
+      const key = `${person.first_name}-${person.last_name}-${person.house_no}`;
+      if (map[key]) {
+        dup.push(person);
+      } else {
+        map[key] = true;
+      }
+    });
+
+    return dup;
+  }, [parsedData]);
+
   return (
     <div className="mb-6">
+      {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-gray-800">
           ข้อมูลจากไฟล์ ({parsedData.length} รายการ)
@@ -35,6 +52,15 @@ const DataPreview = ({ parsedData, incompleteData, submitting, onReset, onSubmit
         </div>
       </div>
 
+      {/* 🚨 แจ้งเตือนข้อมูลซ้ำ */}
+      {duplicates.length > 0 && (
+        <div className="mb-4 p-4 bg-orange-100 border border-orange-300 text-orange-800 rounded-lg">
+          <strong>พบข้อมูลซ้ำ {duplicates.length} รายการ</strong><br />
+          ระบบจะตรวจสอบอีกครั้งตอนนำเข้าข้อมูล
+        </div>
+      )}
+
+      {/* ตารางแสดงข้อมูล */}
       <div className="overflow-x-auto border rounded-lg">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -52,13 +78,30 @@ const DataPreview = ({ parsedData, incompleteData, submitting, onReset, onSubmit
 
           <tbody className="bg-white divide-y divide-gray-200">
             {parsedData.slice(0, 10).map((person, index) => {
-              const isIncomplete = incompleteData.some(incomplete =>
-                incomplete.first_name === person.first_name &&
-                incomplete.last_name === person.last_name
+              const isIncomplete = incompleteData.some(
+                (inc) =>
+                  inc.first_name === person.first_name &&
+                  inc.last_name === person.last_name
+              );
+
+              const isDuplicate = duplicates.some(
+                (dup) =>
+                  dup.first_name === person.first_name &&
+                  dup.last_name === person.last_name &&
+                  dup.house_no === person.house_no
               );
 
               return (
-                <tr key={index} className={isIncomplete ? 'bg-yellow-50' : ''}>
+                <tr
+                  key={index}
+                  className={
+                    isDuplicate
+                      ? 'bg-red-100'
+                      : isIncomplete
+                      ? 'bg-yellow-50'
+                      : ''
+                  }
+                >
                   <td className="px-3 py-2 text-sm text-gray-900">{person.title || '-'}</td>
                   <td className="px-3 py-2 text-sm text-gray-900">{person.first_name || '-'}</td>
                   <td className="px-3 py-2 text-sm text-gray-900">{person.last_name || '-'}</td>
