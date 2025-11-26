@@ -420,6 +420,7 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
 // Dashboard QAC Routes
 Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::get('/populations', [PopulationController::class, 'index'])->name('populations.index');
+    Route::get('/populations/create', [PopulationController::class, 'onCreate']);
     Route::get('/populations/table', [PopulationImportController::class, 'table'])
         ->name('populations.table');
 

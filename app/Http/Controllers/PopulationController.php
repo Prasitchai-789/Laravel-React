@@ -12,6 +12,10 @@ class PopulationController extends Controller
     {
         return Inertia::render('Populations/PopulationData/Index');
     }
+    public function onCreate()
+    {
+        return Inertia::render('Populations/PopulationData/components/FormCreate');
+    }
 
 
     // ใน PopulationController
@@ -28,16 +32,20 @@ class PopulationController extends Controller
 
                 // เช็คว่าซ้ำใน DB หรือไม่
                 $exists = Perple::where([
-                    'first_name'       => $row['first_name'],
-                    'last_name'        => $row['last_name'],
-                    'house_no'         => $row['house_no'],
-                    'village_no'       => $row['village_no'],
+                    'title' => $row['title'],
+                    'first_name' => $row['first_name'],
+                    'last_name' => $row['last_name'],
+                    'house_no' => $row['house_no'],
+                    'village_no' => $row['village_no'],
                     'subdistrict_name' => $row['subdistrict_name'],
+                    'district_name' => $row['district_name'],
+                    'province_name' => $row['province_name'],
                 ])->first();
 
                 if ($exists) {
                     // เก็บข้อมูลซ้ำเพื่อนำไปแสดง
                     $duplicates[] = [
+                        'title' => $row['title'],
                         'first_name' => $row['first_name'],
                         'last_name' => $row['last_name'],
                         'house_no' => $row['house_no'],
