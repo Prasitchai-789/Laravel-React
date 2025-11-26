@@ -9,11 +9,29 @@ const DataPreview = ({ parsedData, incompleteData, submitting, onReset, onSubmit
     const dup = [];
 
     parsedData.forEach((person) => {
-      const key = `${person.first_name}-${person.last_name}-${person.house_no}`;
+      // สร้าง key จากทุก field
+      const key = [
+        person.title,
+        person.first_name,
+        person.last_name,
+        person.house_no,
+        person.village_no,
+        person.subdistrict_name,
+        person.district_name,
+        person.province_name
+      ].join('|'); // ใช้ | เป็นตัวเชื่อม
+
       if (map[key]) {
+        // เพิ่มตัวซ้ำ
         dup.push(person);
+
+        // เพิ่มตัวแรกถ้ายังไม่ถูกเพิ่ม
+        if (!map[key].addedFirst) {
+          dup.push(map[key].person);
+          map[key].addedFirst = true;
+        }
       } else {
-        map[key] = true;
+        map[key] = { person, addedFirst: false };
       }
     });
 
