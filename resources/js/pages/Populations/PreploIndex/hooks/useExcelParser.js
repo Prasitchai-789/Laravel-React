@@ -45,10 +45,11 @@ export const useExcelParser = () => {
   const parseSimpleExcelData = useCallback((excelRows) => {
     if (!excelRows || excelRows.length === 0) {
       console.log('ไม่มีข้อมูลที่จะ parse');
-      return [];
+      return { parsedData: [], skippedRows: [], summary: { total: 0, processed: 0, skipped: 0, successRate: '0%' } };
     }
 
     const parsedData = [];
+    const skippedRows = []; // ✅ เก็บข้อมูลที่ข้าม
     const columnMapping = {
       title: null,
       first_name: null,
@@ -99,6 +100,7 @@ export const useExcelParser = () => {
         columnMapping.village_no = 6;
         columnMapping.subdistrict_name = 7;
         columnMapping.district_name = 8;
+        columnMapping.province_name = 9;
         console.log('📝 ใช้ fixed column mapping:', columnMapping);
       }
     }
@@ -112,11 +114,17 @@ export const useExcelParser = () => {
     for (let i = startRow; i < excelRows.length; i++) {
       const row = excelRows[i];
 
+      // ตรวจสอบว่ามีข้อมูลจริงหรือไม่ (ไม่ใช่แถวว่าง)
       const hasData = row && row.some(cell =>
         cell !== null && cell !== undefined && cell.toString().trim() !== '' && cell.toString().trim() !== '-'
       );
 
-      if (hasData && row.length >= 6) {
+      if (!hasData) {
+        // ข้ามแถวว่าง
+        continue;
+      }
+
+      if (row.length >= 6) {
         // สร้าง object ข้อมูลตามโครงสร้างที่ backend ต้องการเท่านั้น
         const person = {
           title: (row[columnMapping.title]?.toString().trim() || '').replace(/\s+/g, ' '),
@@ -136,25 +144,68 @@ export const useExcelParser = () => {
         }
 
         const hasBasicInfo = person.first_name && person.last_name &&
-                          person.first_name !== '-' && person.last_name !== '-';
+                          person.first_name !== '-' && person.last_name !== '-' &&
+                          person.first_name.trim() !== '' && person.last_name.trim() !== '';
 
         if (hasBasicInfo) {
           parsedData.push(person);
           processedCount++;
           console.log(`✅ แถว ${i + 1}: ${person.first_name} ${person.last_name}`);
         } else {
+          // ✅ เก็บข้อมูลที่ข้ามพร้อมเหตุผล
+          skippedRows.push({
+            row_number: i + 1,
+            data: person,
+            reason: 'ไม่มีชื่อหรือสกุล',
+            raw_data: row
+          });
           console.log(`❌ ข้ามแถวที่ ${i + 1} เนื่องจากไม่มีชื่อหรือสกุล:`, person);
           skippedCount++;
         }
-      } else if (hasData) {
+      } else {
+        // ✅ เก็บข้อมูลที่ข้ามเนื่องจากคอลัมน์ไม่ครบ
+        skippedRows.push({
+          row_number: i + 1,
+          data: null,
+          reason: 'คอลัมน์ไม่ครบ',
+          raw_data: row
+        });
         console.log(`❌ ข้ามแถวที่ ${i + 1} เนื่องจากคอลัมน์ไม่ครบ:`, row);
         skippedCount++;
       }
     }
 
+    // ✅ แสดงสรุปข้อมูลที่ข้าม
     console.log(`🎯 Parse สำเร็จ: ${processedCount} รายการ, ข้าม: ${skippedCount} รายการ`);
+
+    if (skippedRows.length > 0) {
+      console.log('📋 รายการที่ข้าม:', skippedRows);
+      console.log('📊 สรุปเหตุผลที่ข้าม:');
+
+      const reasonSummary = {};
+      skippedRows.forEach(item => {
+        reasonSummary[item.reason] = (reasonSummary[item.reason] || 0) + 1;
+      });
+
+      console.log('📈 สถิติการข้าม:', reasonSummary);
+
+      // แสดงตัวอย่างข้อมูลที่ข้าม 5 รายการแรก
+      console.log('🔍 ตัวอย่างข้อมูลที่ข้าม (5 รายการแรก):', skippedRows.slice(0, 5));
+    }
+
     console.log('📦 ตัวอย่างข้อมูลที่ส่ง:', parsedData.slice(0, 1));
-    return parsedData;
+
+    // ✅ คืนค่าทั้งข้อมูลที่ parse ได้และข้อมูลที่ข้าม
+    return {
+      parsedData,
+      skippedRows,
+      summary: {
+        total: excelRows.length - startRow,
+        processed: processedCount,
+        skipped: skippedCount,
+        successRate: ((processedCount / (excelRows.length - startRow)) * 100).toFixed(2) + '%'
+      }
+    };
   }, []);
 
   // ตรวจสอบข้อมูลที่ไม่สมบูรณ์
@@ -163,6 +214,12 @@ export const useExcelParser = () => {
       return !person.house_no || person.house_no === '-' || person.house_no === '';
     });
     console.log('📊 ข้อมูลไม่สมบูรณ์ (ไม่มีบ้านเลขที่):', incomplete.length, 'รายการ');
+
+    // ✅ แสดงตัวอย่างข้อมูลที่ไม่สมบูรณ์
+    if (incomplete.length > 0) {
+      console.log('🔍 ตัวอย่างข้อมูลที่ไม่สมบูรณ์:', incomplete.slice(0, 3));
+    }
+
     return incomplete;
   }, []);
 
