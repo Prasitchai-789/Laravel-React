@@ -4,7 +4,7 @@ import PopulationsTable from "./components/PopulationsTable";
 
 import CreateForm from "./CreateForm"
 import AppLayout from "@/layouts/app-layout";
-import { Head , Link } from "@inertiajs/react";
+import { Head, Link } from "@inertiajs/react";
 
 const Index: React.FC = () => {
     const toCreate = () => {
@@ -22,13 +22,17 @@ const Index: React.FC = () => {
                             ระบบจัดการข้อมูลประชากร ใช้สำหรับนำเข้าข้อมูลจาก Excel และวิเคราะห์สถิติในหมู่บ้าน/ตำบล/อำเภอ/จังหวัด
                         </p>
                     </div>
-            
-                    <Link
-                        href="/populations/create"
-                        className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white font-semibold rounded-lg shadow-sm transition"
-                    >
-                        Create
-                    </Link>
+
+                    <div className="flex justify-end">
+                        <Link
+                            href="/populations/create"
+                            className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white font-semibold rounded-lg shadow-sm transition"
+                        >
+                            Create
+                        </Link>
+                    </div>
+
+
 
 
                     <PopulationImportForm />

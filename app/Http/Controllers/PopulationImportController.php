@@ -34,7 +34,7 @@ class PopulationImportController extends Controller
                 'province_name' => $p->province_name,
                 'religion' => $p->religion,
                 'phone' => $p->phone,
-                
+
             ]);
 
         return Inertia::render('Populations/components/PopulationsTable', [
@@ -186,8 +186,6 @@ class PopulationImportController extends Controller
             ]
         ]);
     }
-
-
 
     // Helper functions
     private function convertThaiDate($value)
