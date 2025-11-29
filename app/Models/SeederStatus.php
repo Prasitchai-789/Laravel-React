@@ -6,37 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class SeederStatus extends Model
 {
-    protected $fillable = ['user_id', 'received_items'];
+    // ชื่อตาราง (ถ้าใช้ชื่อ default laravel จะเป็น seeder_statuses)
+    protected $table = 'seeder_status';
 
+    // กำหนด field ที่สามารถ mass assign ได้
+    protected $fillable = [
+        'name',
+    ];
+
+    // ไม่ต้อง timestamps ก็ได้ถ้าไม่ใช้
+    // public $timestamps = false;
+
+    // ถ้าต้องการ cast วันเวลา
     protected $casts = [
-        'received_items' => 'array',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
-
-    const STATUS = [
-        'NOT_RECEIVED' => 1,
-        'RECEIVED_SHIRT' => 2,
-        'RECEIVED_HAT' => 3
-    ];
-
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public function getStatusTextAttribute()
-    {
-        if (empty($this->received_items)) {
-            return 'ยังไม่ได้รับอะไร';
-        }
-
-        $items = array_map(function($item) {
-            return [
-                1 => 'ไม่ได้รับเสื้อ',
-                2 => 'รับเสื้อแล้ว',
-                3 => 'รับหมวกแล้ว'
-            ][$item];
-        }, $this->received_items);
-        
-        return implode(', ', $items);
-    }
 }

@@ -427,6 +427,8 @@ Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::post('/population/import', [PopulationImportController::class, 'import'])
         ->name('population.import');
     Route::post('/population/createpopulation',[PopulationController::class,'CreatePopulation']);
+    Route::get('/getSeederStatusItems',[PopulationController::class,'getSeederStatusItems']);
+    Route::get('/summary',[PopulationController::class,'summary']);
 });
 
 
