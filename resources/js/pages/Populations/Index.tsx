@@ -26,7 +26,7 @@ const Index: React.FC = () => {
 
                     {/* Component Import Excel */}
                     <PopulationImportForm />
-                    <PopulationsTable />
+                    {/* <PopulationsTable /> */}
                 </div>
             </div>
         </AppLayout>

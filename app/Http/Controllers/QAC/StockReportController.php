@@ -117,6 +117,91 @@ class StockReportController extends Controller
             ], 500);
         }
     }
+    public function getStockCpoByDatePrevious(Request $request)
+{
+    try {
+        // รับวันที่จาก route param เช่น /cpo/previous/date/2025-11-16
+        $dateInput = $request->route('date');
+
+        if (!$dateInput) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่พบพารามิเตอร์วันที่',
+            ], 400);
+        }
+
+        // แปลงเป็น Y-m-d
+        $formatted = date('Y-m-d', strtotime($dateInput));
+
+        // วันก่อนหน้า
+        $prevDate = date('Y-m-d', strtotime('-1 day', strtotime($formatted)));
+
+        /* ============================================
+           1) ดึงข้อมูล SALES ตามวันที่ (ใช้ GoodID 2147)
+        ============================================= */
+        $sales = SOPlan::select(
+                DB::raw('SUM(NetWei) AS total_sale')
+            )
+            ->whereDate('SOPDate', $formatted)
+            ->where('GoodID', 2147) // CPO
+            ->first();
+
+        $saleAmount = $sales ? floatval($sales->total_sale) : 0;
+
+        /* ============================================
+           2) ดึงข้อมูล CPO วันก่อนหน้า
+        ============================================= */
+        $raw = DB::table('cpo_data')
+            ->whereDate('date', $prevDate)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if (!$raw) {
+            return response()->json([
+                'success' => false,
+                'message' => "ไม่พบข้อมูลวันที่ก่อนหน้า: {$prevDate}",
+            ], 404);
+        }
+
+        /* ============================================
+           3) แปลงข้อมูล Tank → ใช้ใน React ได้ทันที
+        ============================================= */
+
+        $tanks = [
+            1 => [
+                "prev_cpo"  => floatval($raw->tank1_cpo_volume),
+                "prev_temp" => floatval($raw->tank1_temperature),
+            ],
+            2 => [
+                "prev_cpo"  => floatval($raw->tank2_cpo_volume),
+                "prev_temp" => floatval($raw->tank2_temperature),
+            ],
+            3 => [
+                "prev_cpo"  => floatval($raw->tank3_cpo_volume),
+                "prev_temp" => floatval($raw->tank3_temperature),
+            ],
+            4 => [
+                "prev_cpo"  => floatval($raw->tank4_cpo_volume),
+                "prev_temp" => floatval($raw->tank4_temperature),
+            ],
+        ];
+
+        return response()->json([
+            'success' => true,
+            'date' => $formatted,
+            'previous_date' => $prevDate,
+            'sales' => $saleAmount,
+            'tanks' => $tanks,
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => "Error: " . $e->getMessage(),
+        ], 500);
+    }
+}
+
 
 
 

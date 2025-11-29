@@ -402,6 +402,7 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
     Route::get('/report/stock-cpo/api', [StockReportController::class, 'apiStockCPO'])->name('report.stock-cpo.api');
     Route::get('/report/stock-cpo/summary', [StockReportController::class, 'summary']);
     Route::get('/report/stock-cpo/date/{date}', [StockReportController::class, 'getStockCpoByDate']);
+    Route::get('/cpo/previous/date/{date}', [StockReportController::class, 'getStockCpoByDatePrevious']);
     Route::get('/report/stock-cpo/historical', [StockReportController::class, 'getHistoricalData'])->name('report.stock-cpo.historical');
     Route::get('/report/productions/summary', [StockProductController::class, 'apiProduction']);
 });
