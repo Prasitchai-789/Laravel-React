@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Population;
 
+use App\Http\Controllers\Controller;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use App\Models\Perple;
@@ -192,25 +193,81 @@ class PopulationController extends Controller
 
     public function summary()
     {
-        $perples = DB::table('perples')->get();
-
-        $summary = DB::table('perples')
-            ->select(
-                'village_no',
-                DB::raw('COUNT(*) as total'),
-                DB::raw("SUM(CASE WHEN title = 'นาย' THEN 1 ELSE 0 END) as male"),
-                DB::raw("SUM(CASE WHEN title IN ('นาง', 'นางสาว') THEN 1 ELSE 0 END) as female"),
-                DB::raw("SUM(CASE WHEN title NOT IN ('นาย', 'นาง', 'นางสาว', 'น.ส.') OR title IS NULL THEN 1 ELSE 0 END) as unspecified"),
-
-            )
-            ->groupBy('village_no')
-            ->orderBy('village_no')
-            ->get();
-
-        return Inertia::render('Populations/PopulationSummary/PopulationSummary', [
-            'perples' => $perples,
-            'summary' => $summary,
-        ]);
+        return Inertia::render(
+            'Populations/PopulationSummary/PopulationSummary'
+        );
     }
-    
+
+
+    public function summaryJson(Request $request)
+    {
+        try {
+            // 1️⃣ รับค่า filter
+            $province = trim($request->input('province', ''));
+            $amphoe   = trim($request->input('amphoe', ''));
+            $tambon   = trim($request->input('tambon', ''));
+
+            \Log::info('summaryJson request', compact('province', 'amphoe', 'tambon'));
+
+            // 2️⃣ Query Webapp_City
+            $city = DB::connection('sqlsrv2')->table('Webapp_City')
+                ->when($province, fn($q) => $q->where('ProvinceName', 'like', "%{$province}%"))
+                ->when($amphoe, fn($q) => $q->where('DistrictName', 'like', "%{$amphoe}%"))
+                ->when($tambon, fn($q) => $q->where('SubDistrictName', 'like', "%{$tambon}%"))
+                ->first();
+
+            if (!$city) {
+                return response()->json([
+                    'count' => 0,
+                    'items' => [],
+                    'message' => 'ไม่พบนิคมใน Webapp_City'
+                ]);
+            }
+
+            // 3️⃣ Query perples แบบปลอดภัย
+            $peopleQuery = DB::connection('sqlsrv')->table('perples')
+                ->select('id', 'title', 'first_name', 'last_name', 'house_no', 'village_no', 'subdistrict_name', 'district_name', 'province_name');
+
+            if (!empty($city->ProvinceName)) {
+                $peopleQuery->where('province_name', $city->ProvinceName);
+            }
+            if (!empty($city->DistrictName)) {
+                $peopleQuery->where('district_name', $city->DistrictName);
+            }
+            if (!empty($city->SubDistrictName)) {
+                $peopleQuery->where('subdistrict_name', $city->SubDistrictName);
+            }
+
+            // 4️⃣ ดึงข้อมูลจริง
+            try {
+                $people = $peopleQuery->get();
+            } catch (\Exception $e) {
+                \Log::error('Perples query failed', [
+                    'message' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return response()->json([
+                    'count' => 0,
+                    'items' => [],
+                    'error' => 'เกิดข้อผิดพลาดในการดึงข้อมูล perples'
+                ], 500);
+            }
+
+            return response()->json([
+                'count' => $people->count(),
+                'items' => $people
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('summaryJson failed', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'count' => 0,
+                'items' => [],
+                'error' => 'เกิดข้อผิดพลาดในการประมวลผลข้อมูล'
+            ], 500);
+        }
+    }
 }
