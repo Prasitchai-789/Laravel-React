@@ -1,8 +1,16 @@
 import { usePage } from '@inertiajs/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Beaker, Calculator, CheckSquare, Droplets, Filter, FlaskConical, Gauge, Save, Square, Thermometer, Trash2 } from 'lucide-react';
+import { Beaker, CheckSquare, Filter, FlaskConical, Save } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CPORecord } from './CPORecordList';
+
+import OilRoomSection from '../components/form/OilRoomSection';
+import TankQualitySection from '../components/form/TankQualitySection';
+import TankSection from '../components/form/TankSection';
+import TankSectionNoProduction from '../components/form/TankSectionNoProduction';
+import TankSelector from '../components/form/TankSelector';
+import TotalCPOSummary from '../components/form/TotalCPOSummary';
+import ProductionSwitch from '../components/ProductionSwitch';
 interface CPORecordFormProps {
     record?: CPORecord | null;
     onSave: (data: any) => void;
@@ -321,7 +329,6 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
             return;
         }
 
-
         const initialData = createInitialFormData();
 
         // ---- แก้วันที่ ----
@@ -383,70 +390,6 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
 
     const isTankSelected = (tankNo: number) => selectedTanks.includes(tankNo);
 
-    // 🔹 Input Field ที่ใช้ type="text" แทน type="number"
-    const InputField = ({
-        label,
-        value,
-        onChange,
-        step = '0.001',
-        icon: Icon,
-        required = false,
-        className = '',
-        compact = false,
-        disabled = false,
-        readOnly = false,
-        tankIndex,
-        fieldName,
-        allowDecimal = true,
-        showCalculator = false,
-        onCalculatorClick,
-    }: any) => (
-        <div className={`group relative ${className}`}>
-            <label className={`block font-medium text-gray-700 ${compact ? 'mb-1 text-xs' : 'mb-2 text-sm'}`}>
-                {label}
-                {required && <span className="ml-1 text-red-500">*</span>}
-            </label>
-            <div className="relative">
-                {Icon && (
-                    <div className="absolute top-1/2 left-3 z-10 -translate-y-1/2">
-                        <Icon className={`text-blue-500 ${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                    </div>
-                )}
-                <input
-                    ref={tankIndex !== undefined && fieldName ? setInputRef(tankIndex, fieldName) : undefined}
-                    type="text"
-                    inputMode="decimal"
-                    value={value}
-                    onChange={(e) => {
-                        const formattedValue = formatNumberInput(e.target.value, allowDecimal);
-                        onChange(formattedValue);
-                    }}
-                    disabled={disabled}
-                    readOnly={readOnly}
-                    className={`w-full border border-gray-300 bg-white transition-all duration-200 hover:border-gray-400 hover:shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
-                        disabled || readOnly ? 'cursor-not-allowed bg-gray-100 text-gray-600' : ''
-                    } ${compact ? 'rounded-lg px-2 py-1.5 text-sm' : 'rounded-xl px-4 py-2'} ${
-                        Icon ? (compact ? 'pl-8' : 'pl-11') : compact ? 'pl-2' : 'pl-4'
-                    } ${showCalculator ? 'pr-10' : ''}`}
-                    required={required}
-                    placeholder="0.000"
-                    pattern={allowDecimal ? '[0-9.]*' : '[0-9]*'}
-                    title={allowDecimal ? 'กรุณากรอกตัวเลขและทศนิยมเท่านั้น' : 'กรุณากรอกตัวเลขเท่านั้น'}
-                />
-                {showCalculator && (
-                    <button
-                        type="button"
-                        onClick={onCalculatorClick}
-                        className="absolute top-1/2 right-2 -translate-y-1/2 text-blue-500 transition-colors hover:text-blue-700"
-                        title="คำนวณอัตโนมัติ"
-                    >
-                        <Calculator className="h-4 w-4" />
-                    </button>
-                )}
-            </div>
-        </div>
-    );
-
     // คำนวณรายละเอียด Total CPO (กัน tank.volume undefined)
     const getTotalCPODetails = () => {
         const tankDetails = formData.tanks
@@ -477,6 +420,112 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
     };
 
     const totalCPODetails = getTotalCPODetails();
+
+    const [isProducing, setIsProducing] = useState(true);
+
+    // โหลดข้อมูลวันก่อนหน้าเพื่อนำมาใช้ตอน "ไม่ผลิต"
+
+    const handleSwitchMode = (v: boolean) => {
+        setIsProducing(v);
+
+        if (!v) {
+            // เมื่อเปลี่ยนเป็น “ไม่ผลิต” → โหลดข้อมูลจาก backend
+            loadPreviousDayData();
+        }
+    };
+
+    const loadPreviousDayData = async () => {
+        try {
+            const res = await fetch(`/cpo/previous/date/${formData.date}`);
+            const result = await res.json();
+
+            if (!result.success) return;
+
+            // 🔥 แปลง key ของ tanks เป็นตัวเลข
+            const tankMap = Object.fromEntries(Object.entries(result.tanks).map(([k, v]) => [Number(k), v]));
+
+            const saleTon = Number(result.sales || 0) / 1000; // kg → ton
+
+            setFormData((prev) => {
+                const updated = { ...prev };
+
+                updated.tanks = prev.tanks.map((t) => {
+                    const item = tankMap[t.tank_no] || {};
+
+                    const prevCPO = Number(item.prev_cpo || 0);
+                    const prevTemp = Number(item.prev_temp || 0);
+
+                    // คงเหลือหลังขาย (ลบครั้งเดียวทุกแทงค์)
+                    const afterSale = prevCPO - saleTon;
+
+                    // 🔥 คำนวณระดับน้ำมัน (cm.) จากสูตร Reverse จริง
+                    const cm = reverseCalculateOilLevel(t.tank_no, afterSale.toString(), prevTemp.toString());
+
+                    return {
+                        ...t,
+                        prev_cpo: prevCPO,
+                        prev_temp: prevTemp,
+                        sale: saleTon,
+                        cpo_after_sale: afterSale,
+                        cm_after_calc: cm, // ←🔥 ใส่เลยทันที ไม่ต้องรอ Tank 1
+                    };
+                });
+
+                return updated;
+            });
+        } catch (err) {
+            console.error('❌ loadPreviousDayData error', err);
+        }
+    };
+
+    const handleNoProductionChange = (index: number, field: string, value: string) => {
+        setFormData((prev) => {
+            const tanks = [...prev.tanks];
+            tanks[index] = {
+                ...tanks[index],
+                [field]: value,
+            };
+
+            const prevCPO = Number(tanks[index].prev_cpo || 0);
+            const sale = Number(tanks[index].sale || 0);
+
+            // คำนวณคงเหลือ
+            const afterSale = prevCPO - sale;
+            tanks[index].cpo_after_sale = afterSale;
+
+            // Reverse → คำนวณระดับน้ำมัน
+            const temp = Number(tanks[index].prev_temp || 0);
+
+            tanks[index].cm_after_calc = reverseCalculateOilLevel(tanks[index].tank_no, afterSale.toString(), temp.toString());
+
+            return { ...prev, tanks };
+        });
+    };
+
+    const reverseCalculateOilLevel = useCallback(
+        (tankNo: number, cpoVolume: string, temperature: string) => {
+            const volVal = safeParseNumber(cpoVolume);
+            const tempVal = safeParseNumber(temperature);
+
+            if (volVal == null || tempVal == null) return '';
+
+            const tankInfo = tankData.find((t) => t.tank_no === tankNo);
+            if (!tankInfo) return '';
+
+            const density = getDensityByTemperature(tempVal);
+            if (density == null) return '';
+
+            const height = tankInfo.height_m;
+            const vol = tankInfo.volume_m3;
+
+            if (!height || !vol) return '';
+
+            const cm = (volVal * height * 100) / (vol * density);
+
+            return Number(cm).toFixed(2);
+        },
+        [getDensityByTemperature, tankData],
+    );
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-6 font-anuphan">
@@ -532,52 +581,7 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
                                 </div>
                             </motion.div>
 
-                            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                                {[1, 2, 3, 4].map((tankNo) => (
-                                    <motion.div
-                                        key={tankNo}
-                                        whileHover={{ scale: 1.02, y: -2 }}
-                                        whileTap={{ scale: 0.98 }}
-                                        className={`relative transform-gpu cursor-pointer rounded-2xl border-2 p-4 transition-all duration-300 hover:shadow-lg ${
-                                            isTankSelected(tankNo)
-                                                ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-blue-100/80 shadow-md shadow-blue-200/30'
-                                                : 'border-gray-200/80 bg-white/60 hover:border-blue-300/50 hover:bg-blue-50/30'
-                                        } `}
-                                        onClick={() => toggleTankSelection(tankNo)}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-3">
-                                                <div
-                                                    className={`rounded-xl p-2 shadow-sm transition-all duration-300 ${
-                                                        isTankSelected(tankNo)
-                                                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                                                            : 'bg-gray-100 text-gray-400'
-                                                    } `}
-                                                >
-                                                    <FlaskConical className="h-4 w-4" />
-                                                </div>
-                                                <div>
-                                                    <span className={`font-semibold ${isTankSelected(tankNo) ? 'text-blue-700' : 'text-gray-600'} `}>
-                                                        Tank {tankNo}
-                                                    </span>
-                                                    <div
-                                                        className={`mt-0.5 text-xs ${
-                                                            isTankSelected(tankNo) ? 'font-medium text-blue-600' : 'text-gray-500'
-                                                        } `}
-                                                    >
-                                                        {isTankSelected(tankNo) ? '✓ เลือกแล้ว' : 'คลิกเพื่อเลือก'}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {isTankSelected(tankNo) ? (
-                                                <CheckSquare className="h-5 w-5 text-blue-500" />
-                                            ) : (
-                                                <Square className="h-5 w-5 text-gray-300" />
-                                            )}
-                                        </div>
-                                    </motion.div>
-                                ))}
-                            </div>
+                            <TankSelector selectedTanks={selectedTanks} onSelect={toggleTankSelection} />
                         </div>
 
                         {/* Tanks Data Section */}
@@ -596,6 +600,7 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
                                     </span>
                                 </div>
                             </motion.div>
+                            <ProductionSwitch isProducing={isProducing} onChange={handleSwitchMode} />
 
                             <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                                 {formData.tanks.map((tank: any, tankIndex: number) => (
@@ -608,231 +613,51 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
                                                 transition={{ duration: 0.3 }}
                                                 className="rounded-2xl border border-gray-200/80 bg-gradient-to-br from-white to-gray-50/50 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl"
                                             >
-                                                {/* Tank Header */}
-                                                <div className="mb-4 flex items-center justify-between border-b border-gray-200/60 pb-4">
-                                                    <div className="flex items-center space-x-3">
-                                                        <div className="rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 p-3 shadow-lg">
-                                                            <FlaskConical className="h-6 w-6 text-white" />
-                                                        </div>
-                                                        <div>
-                                                            <h3 className="text-lg font-bold text-gray-800">Tank No. {tank.tank_no}</h3>
-                                                            <p className="text-sm text-gray-500">กรอกข้อมูลแทงค์น้ำมัน</p>
-                                                        </div>
-                                                    </div>
-                                                    <motion.button
-                                                        type="button"
-                                                        whileHover={{
-                                                            scale: 1.05,
-                                                            backgroundColor: '#fef2f2',
-                                                        }}
-                                                        whileTap={{ scale: 0.95 }}
-                                                        onClick={() => toggleTankSelection(tank.tank_no)}
-                                                        className="flex items-center space-x-2 rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition-all duration-200 hover:bg-red-100 hover:text-red-700 hover:shadow-sm"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                        <span>ยกเลิก</span>
-                                                    </motion.button>
-                                                </div>
-
-                                                {/* Basic Information */}
-                                                <div className="mb-4">
-                                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                                        <InputField
-                                                            label="ระดับน้ำมัน (cm.)"
-                                                            value={tank.oil_level}
-                                                            onChange={(value: string) => handleTankChange(tankIndex, 'oil_level', value)}
-                                                            icon={Droplets}
-                                                            required
-                                                            tankIndex={tankIndex}
-                                                            fieldName="oil_level"
-                                                        />
-                                                        <InputField
-                                                            label="อุณหภูมิ (°C)"
-                                                            value={tank.temperature}
-                                                            onChange={(value: string) => handleTankChange(tankIndex, 'temperature', value)}
-                                                            icon={Thermometer}
-                                                            required
-                                                            tankIndex={tankIndex}
-                                                            fieldName="temperature"
-                                                        />
-                                                        <InputField
-                                                            label="ปริมาณ CPO"
-                                                            value={tank.cpo_volume}
-                                                            onChange={(value: string) => handleTankChange(tankIndex, 'cpo_volume', value)}
-                                                            icon={FlaskConical}
-                                                            required
-                                                            readOnly
-                                                            tankIndex={tankIndex}
-                                                            fieldName="cpo_volume"
-                                                        />
-                                                    </div>
-                                                    {tank.oil_level && tank.temperature && tank.cpo_volume && (
-                                                        <motion.div
-                                                            initial={{
-                                                                opacity: 0,
-                                                                scale: 0.95,
-                                                            }}
-                                                            animate={{
-                                                                opacity: 1,
-                                                                scale: 1,
-                                                            }}
-                                                            className="mt-3 rounded-lg bg-green-50 p-3"
-                                                        >
-                                                            <p className="text-sm text-green-700">
-                                                                <strong>คำนวณอัตโนมัติ:</strong> ระดับ {tank.oil_level} cm. ที่อุณหภูมิ{' '}
-                                                                {tank.temperature}
-                                                                °C = {tank.cpo_volume} ตัน
-                                                            </p>
-                                                        </motion.div>
-                                                    )}
-                                                </div>
+                                                {isProducing ? (
+                                                    <TankSection
+                                                        tankNo={tank.tank_no}
+                                                        oilLevel={tank.oil_level}
+                                                        temperature={tank.temperature}
+                                                        cpoVolume={tank.cpo_volume}
+                                                        onFieldChange={(field, v) =>
+                                                            handleTankChange(tankIndex, field.replace(`tank${tank.tank_no}_`, ''), v)
+                                                        }
+                                                        onRemove={() => toggleTankSelection(tank.tank_no)}
+                                                    />
+                                                ) : (
+                                                    <TankSectionNoProduction
+                                                        tankNo={tank.tank_no}
+                                                        sale={tank.sale}
+                                                        previousCPO={tank.prev_cpo}
+                                                        previousTemp={tank.prev_temp}
+                                                        resultCPO={tank.cpo_after_sale}
+                                                        resultOilLevel={tank.cm_after_calc}
+                                                        onChange={(field, value) => handleNoProductionChange(tankIndex, field, value)}
+                                                    />
+                                                )}
 
                                                 {/* Quality Data */}
-                                                <div>
-                                                    <motion.div
-                                                        initial={{ opacity: 0 }}
-                                                        animate={{ opacity: 1 }}
-                                                        className="mb-2 flex items-center space-x-2"
-                                                    >
-                                                        <div className="rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 p-1.5">
-                                                            <Filter className="h-4 w-4 text-white" />
-                                                        </div>
-                                                        <h4 className="text-sm font-semibold text-gray-700">ข้อมูลคุณภาพน้ำมัน</h4>
-                                                    </motion.div>
+                                                <TankQualitySection
+                                                    tankNo={tank.tank_no}
+                                                    fields={{
+                                                        ffa: tank.ffa,
+                                                        moisture: tank.moisture,
+                                                        dobi: tank.dobi,
 
-                                                    {tank.tank_no === 1 ? (
-                                                        // Tank 1 - Single values
-                                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                                            <InputField
-                                                                label="%FFA"
-                                                                value={tank.ffa}
-                                                                onChange={(value: string) => handleTankChange(tankIndex, 'ffa', value)}
-                                                                required
-                                                                tankIndex={tankIndex}
-                                                                fieldName="ffa"
-                                                            />
-                                                            <InputField
-                                                                label="%Moisture"
-                                                                value={tank.moisture}
-                                                                onChange={(value: string) => handleTankChange(tankIndex, 'moisture', value)}
-                                                                required
-                                                                tankIndex={tankIndex}
-                                                                fieldName="moisture"
-                                                            />
-                                                            <InputField
-                                                                label="DOBI"
-                                                                value={tank.dobi}
-                                                                onChange={(value: string) => handleTankChange(tankIndex, 'dobi', value)}
-                                                                required
-                                                                tankIndex={tankIndex}
-                                                                fieldName="dobi"
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        // Tanks 2,3,4 - Top/Bottom values
-                                                        <div className="space-y-4">
-                                                            {/* Top Section */}
-                                                            <motion.div
-                                                                initial={{
-                                                                    opacity: 0,
-                                                                    x: -20,
-                                                                }}
-                                                                animate={{
-                                                                    opacity: 1,
-                                                                    x: 0,
-                                                                }}
-                                                                className="rounded-2xl border border-blue-200/80 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 p-5 backdrop-blur-sm"
-                                                            >
-                                                                <h5 className="mb-2 flex items-center space-x-2 text-sm font-semibold text-blue-800">
-                                                                    <div className="h-2 w-2 rounded-full bg-blue-500 shadow-sm"></div>
-                                                                    <span>ข้อมูลส่วนบน (Top)</span>
-                                                                </h5>
-                                                                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                                                    <InputField
-                                                                        label="%FFA"
-                                                                        value={tank.top_ffa}
-                                                                        onChange={(value: string) => handleTankChange(tankIndex, 'top_ffa', value)}
-                                                                        required
-                                                                        compact
-                                                                        tankIndex={tankIndex}
-                                                                        fieldName="top_ffa"
-                                                                    />
-                                                                    <InputField
-                                                                        label="%Moisture"
-                                                                        value={tank.top_moisture}
-                                                                        onChange={(value: string) =>
-                                                                            handleTankChange(tankIndex, 'top_moisture', value)
-                                                                        }
-                                                                        required
-                                                                        compact
-                                                                        tankIndex={tankIndex}
-                                                                        fieldName="top_moisture"
-                                                                    />
-                                                                    <InputField
-                                                                        label="DOBI"
-                                                                        value={tank.top_dobi}
-                                                                        onChange={(value: string) => handleTankChange(tankIndex, 'top_dobi', value)}
-                                                                        required
-                                                                        compact
-                                                                        tankIndex={tankIndex}
-                                                                        fieldName="top_dobi"
-                                                                    />
-                                                                </div>
-                                                            </motion.div>
+                                                        // Top
+                                                        top_ffa: tank.top_ffa,
+                                                        top_moisture: tank.top_moisture,
+                                                        top_dobi: tank.top_dobi,
 
-                                                            {/* Bottom Section */}
-                                                            <motion.div
-                                                                initial={{
-                                                                    opacity: 0,
-                                                                    x: 20,
-                                                                }}
-                                                                animate={{
-                                                                    opacity: 1,
-                                                                    x: 0,
-                                                                }}
-                                                                className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/80 to-orange-50/50 p-5 backdrop-blur-sm"
-                                                            >
-                                                                <h5 className="mb-2 flex items-center space-x-2 text-sm font-semibold text-amber-800">
-                                                                    <div className="h-2 w-2 rounded-full bg-amber-500 shadow-sm"></div>
-                                                                    <span>ข้อมูลส่วนล่าง (Bottom)</span>
-                                                                </h5>
-                                                                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                                                    <InputField
-                                                                        label="%FFA"
-                                                                        value={tank.bottom_ffa}
-                                                                        onChange={(value: string) => handleTankChange(tankIndex, 'bottom_ffa', value)}
-                                                                        required
-                                                                        compact
-                                                                        tankIndex={tankIndex}
-                                                                        fieldName="bottom_ffa"
-                                                                    />
-                                                                    <InputField
-                                                                        label="%Moisture"
-                                                                        value={tank.bottom_moisture}
-                                                                        onChange={(value: string) =>
-                                                                            handleTankChange(tankIndex, 'bottom_moisture', value)
-                                                                        }
-                                                                        required
-                                                                        compact
-                                                                        tankIndex={tankIndex}
-                                                                        fieldName="bottom_moisture"
-                                                                    />
-                                                                    <InputField
-                                                                        label="DOBI"
-                                                                        value={tank.bottom_dobi}
-                                                                        onChange={(value: string) =>
-                                                                            handleTankChange(tankIndex, 'bottom_dobi', value)
-                                                                        }
-                                                                        required
-                                                                        compact
-                                                                        tankIndex={tankIndex}
-                                                                        fieldName="bottom_dobi"
-                                                                    />
-                                                                </div>
-                                                            </motion.div>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                        // Bottom
+                                                        bottom_ffa: tank.bottom_ffa,
+                                                        bottom_moisture: tank.bottom_moisture,
+                                                        bottom_dobi: tank.bottom_dobi,
+                                                    }}
+                                                    onFieldChange={(field: string, value: string) =>
+                                                        handleTankChange(tankIndex, field.replace(`tank${tank.tank_no}_`, ''), value)
+                                                    }
+                                                />
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
@@ -881,335 +706,15 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
                                     <div className="rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/50 to-pink-50/30 p-6 shadow-lg backdrop-blur-sm">
                                         {/* Total CPO Summary */}
                                         {totalCPODetails.tankCount > 0 && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                className="mb-6 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-cyan-50 p-4"
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center space-x-3">
-                                                        <Calculator className="h-5 w-5 text-blue-600" />
-                                                        <h3 className="font-semibold text-blue-800">สรุป Total CPO</h3>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-2xl font-bold text-blue-700">
-                                                            {parseFloat(String(totalCPODetails.totalVolume)).toFixed(3)} ตัน
-                                                        </p>
-                                                        <p className="text-sm text-blue-600">รวมจาก {totalCPODetails.tankCount} แทงค์</p>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-3 grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
-                                                    {totalCPODetails.tankDetails.map((tank) => (
-                                                        <div key={tank.tank_no} className="rounded-lg bg-white/50 p-2 text-center">
-                                                            <p className="font-medium text-blue-700">Tank {tank.tank_no}</p>
-                                                            <p className="text-blue-600">{tank.volume.toFixed(3)} ตัน</p>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </motion.div>
+                                            <TotalCPOSummary
+                                                totalVolume={totalCPODetails.totalVolume}
+                                                tankCount={totalCPODetails.tankCount}
+                                                tankDetails={totalCPODetails.tankDetails}
+                                            />
                                         )}
 
-                                        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                                            {/* %FFA CPO */}
-                                            <motion.div
-                                                initial={{
-                                                    opacity: 0,
-                                                    scale: 0.9,
-                                                    y: 20,
-                                                }}
-                                                animate={{
-                                                    opacity: 1,
-                                                    scale: 1,
-                                                    y: 0,
-                                                }}
-                                                className="group relative"
-                                            >
-                                                <div className="relative rounded-xl border border-gray-200/60 bg-white/80 p-4 backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                                                    <div className="absolute -top-2 -left-2 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 p-2 shadow-lg">
-                                                        <Filter className="h-4 w-4 text-white" />
-                                                    </div>
-                                                    <label className="mb-1 block pl-2.5 text-sm font-medium text-gray-700">%FFA CPO</label>
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={formData.oil_room.ffa_cpo}
-                                                        onChange={(e) => handleOilRoomChange('ffa_cpo', e.target.value)}
-                                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-pink-500 focus:ring-2 focus:ring-pink-500 focus:outline-none"
-                                                        placeholder="0.00"
-                                                    />
-                                                </div>
-                                            </motion.div>
-
-                                            {/* DOBI CPO */}
-                                            <motion.div
-                                                initial={{
-                                                    opacity: 0,
-                                                    scale: 0.9,
-                                                    y: 20,
-                                                }}
-                                                animate={{
-                                                    opacity: 1,
-                                                    scale: 1,
-                                                    y: 0,
-                                                }}
-                                                className="group relative"
-                                            >
-                                                <div className="relative rounded-xl border border-gray-200/60 bg-white/80 p-4 backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                                                    <div className="absolute -top-2 -left-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 p-2 shadow-lg">
-                                                        <Gauge className="h-4 w-4 text-white" />
-                                                    </div>
-                                                    <label className="mb-1 block pl-2.5 text-sm font-medium text-gray-700">DOBI CPO</label>
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={formData.oil_room.dobi_cpo}
-                                                        onChange={(e) => handleOilRoomChange('dobi_cpo', e.target.value)}
-                                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
-                                                        placeholder="0.00"
-                                                    />
-                                                </div>
-                                            </motion.div>
-
-                                            {/* CS1 CM */}
-                                            <motion.div
-                                                initial={{
-                                                    opacity: 0,
-                                                    scale: 0.9,
-                                                    y: 20,
-                                                }}
-                                                animate={{
-                                                    opacity: 1,
-                                                    scale: 1,
-                                                    y: 0,
-                                                }}
-                                                className="group relative"
-                                            >
-                                                <div className="relative rounded-xl border border-gray-200/60 bg-white/80 p-4 backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                                                    <div className="absolute -top-2 -left-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 p-2 shadow-lg">
-                                                        <Droplets className="h-4 w-4 text-white" />
-                                                    </div>
-                                                    <label className="mb-1 block pl-2.5 text-sm font-medium text-gray-700">CS1 CM</label>
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={formData.oil_room.cs1_cm}
-                                                        onChange={(e) => handleOilRoomChange('cs1_cm', e.target.value)}
-                                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                                        placeholder="0.00"
-                                                    />
-                                                </div>
-                                            </motion.div>
-
-                                            {/* Skim */}
-                                            <motion.div
-                                                initial={{
-                                                    opacity: 0,
-                                                    scale: 0.9,
-                                                    y: 20,
-                                                }}
-                                                animate={{
-                                                    opacity: 1,
-                                                    scale: 1,
-                                                    y: 0,
-                                                }}
-                                                className="group relative"
-                                            >
-                                                <div className="relative rounded-xl border border-gray-200/60 bg-white/80 p-4 backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                                                    <div className="absolute -top-2 -left-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 p-2 shadow-lg">
-                                                        <FlaskConical className="h-4 w-4 text-white" />
-                                                    </div>
-                                                    <label className="mb-1 block pl-2.5 text-sm font-medium text-gray-700">Skim</label>
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={formData.oil_room.skim}
-                                                        onChange={(e) => handleOilRoomChange('skim', e.target.value)}
-                                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                                        placeholder="0.000"
-                                                    />
-                                                </div>
-                                            </motion.div>
-
-                                            {/* Undilute 1 */}
-                                            <motion.div
-                                                initial={{
-                                                    opacity: 0,
-                                                    scale: 0.9,
-                                                    y: 20,
-                                                }}
-                                                animate={{
-                                                    opacity: 1,
-                                                    scale: 1,
-                                                    y: 0,
-                                                }}
-                                                className="group relative"
-                                            >
-                                                <div className="relative rounded-xl border border-gray-200/60 bg-white/80 p-4 backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                                                    <div className="absolute -top-2 -left-2 rounded-xl bg-gradient-to-r from-purple-500 to-fuchsia-500 p-2 shadow-lg">
-                                                        <Beaker className="h-4 w-4 text-white" />
-                                                    </div>
-                                                    <label className="mb-1 block pl-2.5 text-sm font-medium text-gray-700">Undilute 1 (แผ่น)</label>
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={formData.oil_room.undilute_1}
-                                                        onChange={(e) => handleOilRoomChange('undilute_1', e.target.value)}
-                                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500 focus:outline-none"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                            </motion.div>
-
-                                            {/* Undilute 2 */}
-                                            <motion.div
-                                                initial={{
-                                                    opacity: 0,
-                                                    scale: 0.9,
-                                                    y: 20,
-                                                }}
-                                                animate={{
-                                                    opacity: 1,
-                                                    scale: 1,
-                                                    y: 0,
-                                                }}
-                                                className="group relative"
-                                            >
-                                                <div className="relative rounded-xl border border-gray-200/60 bg-white/80 p-4 backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                                                    <div className="absolute -top-2 -left-2 rounded-xl bg-gradient-to-r from-purple-500 to-fuchsia-500 p-2 shadow-lg">
-                                                        <Beaker className="h-4 w-4 text-white" />
-                                                    </div>
-                                                    <label className="mb-1 block pl-2.5 text-sm font-medium text-gray-700">Undilute 2 (แผ่น)</label>
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={formData.oil_room.undilute_2}
-                                                        onChange={(e) => handleOilRoomChange('undilute_2', e.target.value)}
-                                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-fuchsia-500 focus:ring-2 focus:ring-fuchsia-500 focus:outline-none"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                            </motion.div>
-
-                                            {/* Setting */}
-                                            <motion.div
-                                                initial={{
-                                                    opacity: 0,
-                                                    scale: 0.9,
-                                                    y: 20,
-                                                }}
-                                                animate={{
-                                                    opacity: 1,
-                                                    scale: 1,
-                                                    y: 0,
-                                                }}
-                                                className="group relative"
-                                            >
-                                                <div className="relative rounded-xl border border-gray-200/60 bg-white/80 p-4 backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                                                    <div className="absolute -top-2 -left-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 p-2 shadow-lg">
-                                                        <Beaker className="h-4 w-4 text-white" />
-                                                    </div>
-                                                    <label className="mb-1 block pl-2.5 text-sm font-medium text-gray-700">Setting (แผ่น)</label>
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={formData.oil_room.setting}
-                                                        onChange={(e) => handleOilRoomChange('setting', e.target.value)}
-                                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                            </motion.div>
-
-                                            {/* Clean Oil */}
-                                            <motion.div
-                                                initial={{
-                                                    opacity: 0,
-                                                    scale: 0.9,
-                                                    y: 20,
-                                                }}
-                                                animate={{
-                                                    opacity: 1,
-                                                    scale: 1,
-                                                    y: 0,
-                                                }}
-                                                className="group relative"
-                                            >
-                                                <div className="relative rounded-xl border border-gray-200/60 bg-white/80 p-4 backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                                                    <div className="absolute -top-2 -left-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 p-2 shadow-lg">
-                                                        <Beaker className="h-4 w-4 text-white" />
-                                                    </div>
-                                                    <label className="mb-1 block pl-2.5 text-sm font-medium text-gray-700">Clean Oil (แผ่น)</label>
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={formData.oil_room.clean_oil}
-                                                        onChange={(e) => handleOilRoomChange('clean_oil', e.target.value)}
-                                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                            </motion.div>
-
-                                            {/* Mix */}
-                                            <motion.div
-                                                initial={{
-                                                    opacity: 0,
-                                                    scale: 0.9,
-                                                    y: 20,
-                                                }}
-                                                animate={{
-                                                    opacity: 1,
-                                                    scale: 1,
-                                                    y: 0,
-                                                }}
-                                                className="group relative"
-                                            >
-                                                <div className="relative rounded-xl border border-gray-200/60 bg-white/80 p-4 backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                                                    <div className="absolute -top-2 -left-2 rounded-xl bg-gradient-to-r from-yellow-500 to-teal-500 p-2 shadow-lg">
-                                                        <Beaker className="h-4 w-4 text-white" />
-                                                    </div>
-                                                    <label className="mb-1 block pl-2.5 text-sm font-medium text-gray-700">Mix (ตัน)</label>
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={formData.oil_room.mix}
-                                                        onChange={(e) => handleOilRoomChange('mix', e.target.value)}
-                                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                            </motion.div>
-
-                                            {/* Loop Back */}
-                                            <motion.div
-                                                initial={{
-                                                    opacity: 0,
-                                                    scale: 0.9,
-                                                    y: 20,
-                                                }}
-                                                animate={{
-                                                    opacity: 1,
-                                                    scale: 1,
-                                                    y: 0,
-                                                }}
-                                                className="group relative"
-                                            >
-                                                <div className="relative rounded-xl border border-gray-200/60 bg-white/80 p-4 backdrop-blur-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                                                    <div className="absolute -top-2 -left-2 rounded-xl bg-gradient-to-r from-yellow-500 to-teal-500 p-2 shadow-lg">
-                                                        <Beaker className="h-4 w-4 text-white" />
-                                                    </div>
-                                                    <label className="mb-1 block pl-2.5 text-sm font-medium text-gray-700">Loop Back (ตัน)</label>
-                                                    <input
-                                                        type="text"
-                                                        inputMode="decimal"
-                                                        value={formData.oil_room.loop_back}
-                                                        onChange={(e) => handleOilRoomChange('loop_back', e.target.value)}
-                                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500 focus:outline-none"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                            </motion.div>
-                                        </div>
+                                        {/* OilRoomSection */}
+                                        <OilRoomSection oilRoom={formData.oil_room} onChange={(field, value) => handleOilRoomChange(field, value)} />
                                     </div>
                                 </motion.div>
                             )}

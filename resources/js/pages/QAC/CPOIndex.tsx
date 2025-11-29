@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { usePage } from '@inertiajs/react';
-import CPORecordList from './components/CPORecordList';
+import CPORecordList from './CPORecordList';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
