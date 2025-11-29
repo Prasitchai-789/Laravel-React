@@ -59,18 +59,17 @@ const PreploIndex = () => {
     };
 
 
-    // ========== Parse Excel → Filter Unique / Duplicate ==========
     useEffect(() => {
         if (rows.length > 0 && !loading) {
-            const parsed = parseSimpleExcelData(rows);
+            const result = parseSimpleExcelData(rows); // ตอนนี้ result เป็น { parsedData, skippedRows, summary }
+            const parsed = Array.isArray(result.parsedData) ? result.parsedData : [];
 
-            // --- หา duplicates ใน Excel ---
+            // --- หา duplicates ---
             const duplicates = [];
             const map = {};
             const unique = [];
 
             parsed.forEach((item) => {
-                // สร้าง key จากทุก field
                 const key = [
                     item.title,
                     item.first_name,
@@ -80,13 +79,10 @@ const PreploIndex = () => {
                     item.subdistrict_name,
                     item.district_name,
                     item.province_name,
-                ].join('|'); // ใช้ | เป็นตัวเชื่อมเพื่อความชัดเจน
+                ].join('|');
 
                 if (map[key]) {
-                    // ถ้ามีแล้ว เพิ่มตัวปัจจุบันลง duplicates
                     duplicates.push(item);
-
-                    // ถ้ายังไม่เคยเพิ่มตัวแรกลง duplicates ให้เพิ่มด้วย
                     if (!map[key].addedFirst) {
                         duplicates.push(map[key].item);
                         map[key].addedFirst = true;
@@ -105,6 +101,7 @@ const PreploIndex = () => {
             setIncompleteData(incomplete);
         }
     }, [rows, loading, parseSimpleExcelData, checkIncompleteData]);
+
 
 
 

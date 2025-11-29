@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use App\Models\Perple;
+use App\Models\SeederStatus;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class PopulationController extends Controller
 {
@@ -93,16 +95,19 @@ class PopulationController extends Controller
     }
 
 
+
+
+
     public function CreatePopulation(Request $request)
     {
-        // 1) ตรวจสอบข้อมูลขั้นต่ำ
+        // 1) Validate ข้อมูล
         $validated = $request->validate([
             'national_id'       => 'nullable|string|max:20',
             'title'             => 'required|string|max:255',
             'first_name'        => 'required|string|max:255',
             'last_name'         => 'required|string|max:255',
             'birthdate'         => 'nullable|date',
-            'gender'            => 'nullable|in:M,F,OTHER',
+            'gender'            => 'nullable|in:ชาย,หญิง,อื่นๆ,M,F,OTHER',
             'house_no'          => 'required|string|max:255',
             'village_no'        => 'required|integer',
             'village_name'      => 'nullable|string|max:255',
@@ -112,13 +117,12 @@ class PopulationController extends Controller
             'religion'          => 'nullable|string|max:255',
             'age_at_import'     => 'nullable|integer',
             'phone'             => 'nullable|string|max:255',
-
             'subdistrict_name'  => 'required|string|max:255',
             'district_name'     => 'required|string|max:255',
             'province_name'     => 'nullable|string|max:255',
         ]);
 
-        // 2) แปลงค่า null เป็น "" สำหรับฟิลด์ text ยกเว้น national_id
+        // 2) แปลงค่า null → "" สำหรับ text fields
         $textFields = [
             'title',
             'first_name',
@@ -135,38 +139,78 @@ class PopulationController extends Controller
             $validated[$field] = $validated[$field] ?? '';
         }
 
-        // =========================
-        // CASE 1: มีบัตรประชาชน
-        // =========================
+        // 3) แปลง gender ไทย → code SQL
+        $genderMap = ['ชาย' => 'M', 'หญิง' => 'F', 'อื่นๆ' => 'OTHER'];
+        if (!empty($validated['gender']) && isset($genderMap[$validated['gender']])) {
+            $validated['gender'] = $genderMap[$validated['gender']];
+        }
+
+        // 4) ตรวจสอบซ้ำตาม ชื่อ-นามสกุล-ตำบล-อำเภอ-จังหวัด
+        $duplicateCount = DB::table('people_populations')
+            ->where('first_name', $validated['first_name'])
+            ->where('last_name', $validated['last_name'])
+            ->where('subdistrict_name', $validated['subdistrict_name'])
+            ->where('district_name', $validated['district_name'])
+            ->where('province_name', $validated['province_name'])
+            ->count();
+
+        if ($duplicateCount > 0) {
+            return back()->withErrors([
+                'duplicate' => 'มีข้อมูลคนนี้อยู่แล้วในระบบ (' . $duplicateCount . ' รายการ)'
+            ]);
+        }
+
+        // 5) จัดการเลขบัตร → hash แบบสั้น 20 ตัว
         if (!empty($validated['national_id'])) {
-            $exists = DB::table('people_populations')
-                ->where('national_id', $validated['national_id'])
-                ->exists();
-
-            if ($exists) {
-                return back()->withErrors([
-                    'national_id' => 'เลขบัตรประชาชนนี้มีอยู่ในระบบแล้ว',
-                ]);
-            }
-
-            // national_id ใช้ตามจริง
-        }
-        // =========================
-        // CASE 2: ไม่มีบัตรประชาชน
-        // =========================
-        else {
-            // ให้ค่า placeholder เพื่อหลีกเลี่ยง unique index
-            $validated['national_id'] = 'NO_ID_' . uniqid();
+            $hash = md5($validated['national_id']);
+            $validated['national_id'] = substr($hash, 0, 20);
+        } else {
+            $placeholder = 'NO_ID_' . uniqid();
+            $hash = md5($placeholder);
+            $validated['national_id'] = substr($hash, 0, 20);
         }
 
-        // 3) เพิ่ม timestamp
+        // 6) timestamp
         $validated['created_at'] = now();
         $validated['updated_at'] = now();
 
-        // 4) บันทึกลง DB
+        // 7) insert
         DB::table('people_populations')->insert($validated);
 
         return redirect()->route('populations.index')
             ->with('success', 'เพิ่มข้อมูลประชากรเรียบร้อยแล้ว!');
     }
+
+    public function getSeederStatusItems()
+    {
+        // ดึงแค่ id กับ name
+        $items = SeederStatus::select('id', 'name')->get();
+
+        return response()->json($items);
+    }
+
+
+    public function summary()
+    {
+        $perples = DB::table('perples')->get();
+
+        $summary = DB::table('perples')
+            ->select(
+                'village_no',
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN title = 'นาย' THEN 1 ELSE 0 END) as male"),
+                DB::raw("SUM(CASE WHEN title IN ('นาง', 'นางสาว') THEN 1 ELSE 0 END) as female"),
+                DB::raw("SUM(CASE WHEN title NOT IN ('นาย', 'นาง', 'นางสาว', 'น.ส.') OR title IS NULL THEN 1 ELSE 0 END) as unspecified"),
+
+            )
+            ->groupBy('village_no')
+            ->orderBy('village_no')
+            ->get();
+
+        return Inertia::render('Populations/PopulationSummary/PopulationSummary', [
+            'perples' => $perples,
+            'summary' => $summary,
+        ]);
+    }
+    
 }
