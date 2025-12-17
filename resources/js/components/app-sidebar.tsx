@@ -294,7 +294,7 @@ const AGRNavItems: NavItem[] = [
         title: 'รายงานการขายสินค้าต้นกล้า',
         href: '/sales/report-by-subdistrict',
         icon: Proportions,
-        permission: ['agr.edit'],
+        permission: ['agr.delete'],
     },
 ];
 
