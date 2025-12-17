@@ -85,6 +85,7 @@ class CPORecordController extends Controller
     {
         $validated = $request->validate([
             'date' => 'required|date',
+            'production_mode' => 'nullable|in:production,no_production',
 
             // Tank 1 validation
             'tanks.0.oil_level' => 'nullable|numeric',
@@ -93,6 +94,7 @@ class CPORecordController extends Controller
             'tanks.0.ffa' => 'nullable|numeric',
             'tanks.0.moisture' => 'nullable|numeric',
             'tanks.0.dobi' => 'nullable|numeric',
+            'tanks.0.sale' => 'nullable|numeric',
 
             // Tank 2 validation
             'tanks.1.oil_level' => 'nullable|numeric',
@@ -104,6 +106,7 @@ class CPORecordController extends Controller
             'tanks.1.bottom_ffa' => 'nullable|numeric',
             'tanks.1.bottom_moisture' => 'nullable|numeric',
             'tanks.1.bottom_dobi' => 'nullable|numeric',
+            'tanks.1.sale' => 'nullable|numeric',
 
             // Tank 3 validation
             'tanks.2.oil_level' => 'nullable|numeric',
@@ -115,6 +118,7 @@ class CPORecordController extends Controller
             'tanks.2.bottom_ffa' => 'nullable|numeric',
             'tanks.2.bottom_moisture' => 'nullable|numeric',
             'tanks.2.bottom_dobi' => 'nullable|numeric',
+            'tanks.2.sale' => 'nullable|numeric',
 
             // Tank 4 validation
             'tanks.3.oil_level' => 'nullable|numeric',
@@ -126,6 +130,7 @@ class CPORecordController extends Controller
             'tanks.3.bottom_ffa' => 'nullable|numeric',
             'tanks.3.bottom_moisture' => 'nullable|numeric',
             'tanks.3.bottom_dobi' => 'nullable|numeric',
+            'tanks.3.sale' => 'nullable|numeric',
 
             // Oil Room validation
             'oil_room.total_cpo' => 'nullable|numeric',
@@ -140,6 +145,8 @@ class CPORecordController extends Controller
             'oil_room.mix' => 'nullable|numeric',
             'oil_room.loop_back' => 'nullable|numeric',
         ]);
+
+        $productionMode = $validated['production_mode'] ?? 'production';
 
         // แปลงรูปแบบวันที่ให้ตรงกับ SQL Server
         $formattedDate = date('Y-m-d', strtotime($validated['date']));
@@ -158,6 +165,7 @@ class CPORecordController extends Controller
         if ($existingRecord) {
             // Update ข้อมูลที่มีอยู่
             $existingRecord->update([
+                'production_mode' => $productionMode,
                 // Tank 1 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
                 'tank1_oil_level' => $validated['tanks'][0]['oil_level'],
                 'tank1_temperature' => $validated['tanks'][0]['temperature'],
@@ -165,6 +173,7 @@ class CPORecordController extends Controller
                 'tank1_ffa' => $validated['tanks'][0]['ffa'],
                 'tank1_moisture' => $validated['tanks'][0]['moisture'],
                 'tank1_dobi' => $validated['tanks'][0]['dobi'],
+                'tank1_sale' => $validated['tanks'][0]['sale'] ?? null,
 
                 // Tank 2 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
                 'tank2_oil_level' => $validated['tanks'][1]['oil_level'],
@@ -176,6 +185,7 @@ class CPORecordController extends Controller
                 'tank2_bottom_ffa' => $validated['tanks'][1]['bottom_ffa'],
                 'tank2_bottom_moisture' => $validated['tanks'][1]['bottom_moisture'],
                 'tank2_bottom_dobi' => $validated['tanks'][1]['bottom_dobi'],
+                'tank2_sale' => $validated['tanks'][1]['sale'] ?? null,
 
                 // Tank 3 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
                 'tank3_oil_level' => $validated['tanks'][2]['oil_level'],
@@ -187,6 +197,7 @@ class CPORecordController extends Controller
                 'tank3_bottom_ffa' => $validated['tanks'][2]['bottom_ffa'],
                 'tank3_bottom_moisture' => $validated['tanks'][2]['bottom_moisture'],
                 'tank3_bottom_dobi' => $validated['tanks'][2]['bottom_dobi'],
+                'tank3_sale' => $validated['tanks'][2]['sale'] ?? null,
 
                 // Tank 4 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
                 'tank4_oil_level' => $validated['tanks'][3]['oil_level'],
@@ -198,6 +209,7 @@ class CPORecordController extends Controller
                 'tank4_bottom_ffa' => $validated['tanks'][3]['bottom_ffa'],
                 'tank4_bottom_moisture' => $validated['tanks'][3]['bottom_moisture'],
                 'tank4_bottom_dobi' => $validated['tanks'][3]['bottom_dobi'],
+                'tank4_sale' => $validated['tanks'][3]['sale'] ?? null,
 
                 // Oil Room - ใช้ค่าที่คำนวณได้สำหรับ total_cpo
                 'total_cpo' => $calculatedData['total_cpo'] ?? $validated['oil_room']['total_cpo'],
@@ -218,6 +230,7 @@ class CPORecordController extends Controller
             // สร้าง record ใหม่
             $cpoData = CPOData::create([
                 'date' => $validated['date'],
+                'production_mode' => $productionMode,
 
                 // Tank 1 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
                 'tank1_oil_level' => $validated['tanks'][0]['oil_level'],
@@ -226,6 +239,7 @@ class CPORecordController extends Controller
                 'tank1_ffa' => $validated['tanks'][0]['ffa'],
                 'tank1_moisture' => $validated['tanks'][0]['moisture'],
                 'tank1_dobi' => $validated['tanks'][0]['dobi'],
+                'tank1_sale' => $validated['tanks'][0]['sale'] ?? null,
 
                 // Tank 2 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
                 'tank2_oil_level' => $validated['tanks'][1]['oil_level'],
@@ -237,6 +251,7 @@ class CPORecordController extends Controller
                 'tank2_bottom_ffa' => $validated['tanks'][1]['bottom_ffa'],
                 'tank2_bottom_moisture' => $validated['tanks'][1]['bottom_moisture'],
                 'tank2_bottom_dobi' => $validated['tanks'][1]['bottom_dobi'],
+                'tank2_sale' => $validated['tanks'][1]['sale'] ?? null,
 
                 // Tank 3 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
                 'tank3_oil_level' => $validated['tanks'][2]['oil_level'],
@@ -248,6 +263,7 @@ class CPORecordController extends Controller
                 'tank3_bottom_ffa' => $validated['tanks'][2]['bottom_ffa'],
                 'tank3_bottom_moisture' => $validated['tanks'][2]['bottom_moisture'],
                 'tank3_bottom_dobi' => $validated['tanks'][2]['bottom_dobi'],
+                'tank3_sale' => $validated['tanks'][2]['sale'] ?? null,
 
                 // Tank 4 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
                 'tank4_oil_level' => $validated['tanks'][3]['oil_level'],
@@ -259,6 +275,7 @@ class CPORecordController extends Controller
                 'tank4_bottom_ffa' => $validated['tanks'][3]['bottom_ffa'],
                 'tank4_bottom_moisture' => $validated['tanks'][3]['bottom_moisture'],
                 'tank4_bottom_dobi' => $validated['tanks'][3]['bottom_dobi'],
+                'tank4_sale' => $validated['tanks'][3]['sale'] ?? null,
 
                 // Oil Room - ใช้ค่าที่คำนวณได้สำหรับ total_cpo
                 'total_cpo' => $calculatedData['total_cpo'] ?? $validated['oil_room']['total_cpo'],
@@ -323,6 +340,7 @@ class CPORecordController extends Controller
     {
         $validated = $request->validate([
             'date' => 'required|date',
+            'production_mode' => 'nullable|in:production,no_production',
 
             // Tank 1 validation
             'tanks.0.oil_level' => 'nullable|numeric',
@@ -331,6 +349,7 @@ class CPORecordController extends Controller
             'tanks.0.ffa' => 'nullable|numeric',
             'tanks.0.moisture' => 'nullable|numeric',
             'tanks.0.dobi' => 'nullable|numeric',
+            'tanks.0.sale' => 'nullable|numeric',
 
             // Tank 2 validation
             'tanks.1.oil_level' => 'nullable|numeric',
@@ -342,6 +361,7 @@ class CPORecordController extends Controller
             'tanks.1.bottom_ffa' => 'nullable|numeric',
             'tanks.1.bottom_moisture' => 'nullable|numeric',
             'tanks.1.bottom_dobi' => 'nullable|numeric',
+            'tanks.1.sale' => 'nullable|numeric',
 
             // Tank 3 validation
             'tanks.2.oil_level' => 'nullable|numeric',
@@ -353,6 +373,7 @@ class CPORecordController extends Controller
             'tanks.2.bottom_ffa' => 'nullable|numeric',
             'tanks.2.bottom_moisture' => 'nullable|numeric',
             'tanks.2.bottom_dobi' => 'nullable|numeric',
+            'tanks.2.sale' => 'nullable|numeric',
 
             // Tank 4 validation
             'tanks.3.oil_level' => 'nullable|numeric',
@@ -364,6 +385,7 @@ class CPORecordController extends Controller
             'tanks.3.bottom_ffa' => 'nullable|numeric',
             'tanks.3.bottom_moisture' => 'nullable|numeric',
             'tanks.3.bottom_dobi' => 'nullable|numeric',
+            'tanks.3.sale' => 'nullable|numeric',
 
             // Oil Room validation
             'oil_room.total_cpo' => 'nullable|numeric',
@@ -378,6 +400,8 @@ class CPORecordController extends Controller
             'oil_room.mix' => 'nullable|numeric',
             'oil_room.loop_back' => 'nullable|numeric',
         ]);
+
+        $productionMode = $validated['production_mode'] ?? 'production';
 
         // ค้นหาข้อมูลที่ต้องการอัพเดท
         $cpoData = CPOData::findOrFail($id);
@@ -396,6 +420,7 @@ class CPORecordController extends Controller
         // อัพเดทข้อมูล CPOData
         $cpoData->update([
             'date' => $newDate,
+            'production_mode' => $productionMode,
 
             // Tank 1 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
             'tank1_oil_level' => $validated['tanks'][0]['oil_level'],
@@ -404,6 +429,7 @@ class CPORecordController extends Controller
             'tank1_ffa' => $validated['tanks'][0]['ffa'],
             'tank1_moisture' => $validated['tanks'][0]['moisture'],
             'tank1_dobi' => $validated['tanks'][0]['dobi'],
+            'tank1_sale' => $validated['tanks'][0]['sale'] ?? null,
 
             // Tank 2 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
             'tank2_oil_level' => $validated['tanks'][1]['oil_level'],
@@ -415,6 +441,7 @@ class CPORecordController extends Controller
             'tank2_bottom_ffa' => $validated['tanks'][1]['bottom_ffa'],
             'tank2_bottom_moisture' => $validated['tanks'][1]['bottom_moisture'],
             'tank2_bottom_dobi' => $validated['tanks'][1]['bottom_dobi'],
+            'tank2_sale' => $validated['tanks'][1]['sale'] ?? null,
 
             // Tank 3 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
             'tank3_oil_level' => $validated['tanks'][2]['oil_level'],
@@ -426,6 +453,7 @@ class CPORecordController extends Controller
             'tank3_bottom_ffa' => $validated['tanks'][2]['bottom_ffa'],
             'tank3_bottom_moisture' => $validated['tanks'][2]['bottom_moisture'],
             'tank3_bottom_dobi' => $validated['tanks'][2]['bottom_dobi'],
+            'tank3_sale' => $validated['tanks'][2]['sale'] ?? null,
 
             // Tank 4 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
             'tank4_oil_level' => $validated['tanks'][3]['oil_level'],
@@ -437,6 +465,7 @@ class CPORecordController extends Controller
             'tank4_bottom_ffa' => $validated['tanks'][3]['bottom_ffa'],
             'tank4_bottom_moisture' => $validated['tanks'][3]['bottom_moisture'],
             'tank4_bottom_dobi' => $validated['tanks'][3]['bottom_dobi'],
+            'tank4_sale' => $validated['tanks'][3]['sale'] ?? null,
 
             // Oil Room - ใช้ค่าที่คำนวณได้สำหรับ total_cpo
             'total_cpo' => $calculatedData['total_cpo'] ?? $validated['oil_room']['total_cpo'],

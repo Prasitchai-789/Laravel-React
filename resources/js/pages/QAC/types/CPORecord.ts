@@ -65,4 +65,13 @@ export interface CPORecord {
     skim?: string | number;
     mix?: string | number;
     loop_back?: string | number;
+
+    // Production mode
+    production_mode?: 'production' | 'no_production';
+    
+    // Tank sales (for no-production mode)
+    tank1_sale?: string | number;
+    tank2_sale?: string | number;
+    tank3_sale?: string | number;
+    tank4_sale?: string | number;
 }

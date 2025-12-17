@@ -91,6 +91,7 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
                       bottom_ffa: '',
                       bottom_moisture: '',
                       bottom_dobi: '',
+                      sale: '',
                   }))
                 : [1, 2, 3, 4].map((no) => ({
                       tank_no: no,
@@ -106,6 +107,7 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
                       bottom_ffa: '',
                       bottom_moisture: '',
                       bottom_dobi: '',
+                      sale: '',
                   }));
 
         return {
@@ -128,6 +130,7 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
     };
 
     const [formData, setFormData] = useState(() => createInitialFormData());
+    const [isProducing, setIsProducing] = useState(true);
 
     // ใช้ useRef เพื่อเก็บค่า input ก่อน re-render
     const inputRefs = useRef<{ [key: string]: HTMLInputElement }>({});
@@ -326,10 +329,12 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
         if (!record) {
             setFormData(createInitialFormData());
             setSelectedTanks([1, 2]);
+            setIsProducing(true);
             return;
         }
 
         const initialData = createInitialFormData();
+        const isNoProduction = record.production_mode === 'no_production';
 
         // ---- แก้วันที่ ----
         if (record.date) {
@@ -343,11 +348,19 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
             const idx = initialData.tanks.findIndex((t: any) => t.tank_no === no);
             if (idx === -1) return;
 
+            const cpoVolume = record[`tank${no}_cpo_volume`] ? Number(record[`tank${no}_cpo_volume`]) : 0;
+            const sale = record[`tank${no}_sale`] ? Number(record[`tank${no}_sale`]) : 0;
+            const temperature = record[`tank${no}_temperature`] ? Number(record[`tank${no}_temperature`]) : 0;
+            const oilLevel = record[`tank${no}_oil_level`] ? Number(record[`tank${no}_oil_level`]) : 0;
+
+            // คำนวณ prev_cpo = cpo_volume + sale (เพราะ cpo_volume ที่บันทึกคือ หลังหักขาย)
+            const prevCpo = isNoProduction ? (cpoVolume + sale) : 0;
+
             initialData.tanks[idx] = {
                 tank_no: no,
-                oil_level: record[`tank${no}_oil_level`] ?? '',
-                temperature: record[`tank${no}_temperature`] ?? '',
-                cpo_volume: record[`tank${no}_cpo_volume`] ? Number(record[`tank${no}_cpo_volume`]).toFixed(3) : '',
+                oil_level: oilLevel || '',
+                temperature: temperature || '',
+                cpo_volume: cpoVolume ? cpoVolume.toFixed(3) : '',
                 ffa: record[`tank${no}_ffa`] ?? '',
                 moisture: record[`tank${no}_moisture`] ?? '',
                 dobi: record[`tank${no}_dobi`] ?? '',
@@ -357,6 +370,12 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
                 bottom_ffa: record[`tank${no}_bottom_ffa`] ?? '',
                 bottom_moisture: record[`tank${no}_bottom_moisture`] ?? '',
                 bottom_dobi: record[`tank${no}_bottom_dobi`] ?? '',
+                sale: sale || '',
+                // ข้อมูลสำหรับโหมดไม่ผลิต
+                prev_cpo: prevCpo,
+                prev_temp: temperature,
+                cpo_after_sale: cpoVolume,
+                cm_after_calc: oilLevel,
             };
         });
 
@@ -378,6 +397,9 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
         // ---- SET FORM ----
         setFormData(initialData);
 
+        // ---- SET PRODUCTION MODE ----
+        setIsProducing(!isNoProduction);
+
         // ---- SELECT TANKS ที่มีข้อมูล ----
         const tanksSelected = tankNumbers.filter((no) => record[`tank${no}_oil_level`] !== null && record[`tank${no}_oil_level`] !== undefined);
         setSelectedTanks(tanksSelected);
@@ -385,7 +407,72 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (onSave) onSave(formData);
+        
+        // สร้างข้อมูลสำหรับส่งไป backend
+        let totalCPO = 0;
+        
+        const updatedTanks = formData.tanks.map((tank: any, index: number) => {
+            const tankNo = tank.tank_no;
+            const isSelected = selectedTanks.includes(tankNo);
+            
+            // ถ้าแทงค์ไม่ถูกเลือก ให้ค่าเป็น null ทั้งหมด
+            if (!isSelected) {
+                return {
+                    ...tank,
+                    oil_level: null,
+                    temperature: null,
+                    cpo_volume: null,
+                    sale: null,
+                    ffa: null,
+                    moisture: null,
+                    dobi: null,
+                    top_ffa: null,
+                    top_moisture: null,
+                    top_dobi: null,
+                    bottom_ffa: null,
+                    bottom_moisture: null,
+                    bottom_dobi: null,
+                };
+            }
+            
+            // ถ้าเป็นโหมดไม่ผลิต
+            if (!isProducing) {
+                const oilLevel = tank.cm_after_calc || tank.oil_level || 0;
+                const temperature = tank.prev_temp || tank.temperature || 0;
+                const cpoVolume = tank.cpo_after_sale || tank.cpo_volume || 0;
+                const sale = tank.sale || 0;
+                
+                totalCPO += Number(cpoVolume) || 0;
+                
+                return {
+                    ...tank,
+                    oil_level: oilLevel,
+                    temperature: temperature,
+                    cpo_volume: cpoVolume,
+                    sale: sale,
+                };
+            }
+            
+            // โหมดผลิต
+            totalCPO += Number(tank.cpo_volume) || 0;
+            
+            return {
+                ...tank,
+                sale: null, // โหมดผลิตไม่มียอดขาย
+            };
+        });
+        
+        const submitData = {
+            ...formData,
+            production_mode: isProducing ? 'production' : 'no_production',
+            tanks: updatedTanks,
+            oil_room: {
+                ...formData.oil_room,
+                total_cpo: totalCPO.toFixed(3),
+            },
+        };
+        
+        if (onSave) onSave(submitData);
     };
 
     const isTankSelected = (tankNo: number) => selectedTanks.includes(tankNo);
@@ -393,24 +480,36 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
     // คำนวณรายละเอียด Total CPO (กัน tank.volume undefined)
     const getTotalCPODetails = () => {
         const tankDetails = formData.tanks
-            .filter(
-                (tank: any) =>
-                    selectedTanks.includes(tank.tank_no) &&
-                    tank.cpo_volume !== null &&
-                    tank.cpo_volume !== undefined &&
-                    String(tank.cpo_volume).trim() !== '',
-            )
+            .filter((tank: any) => {
+                if (!selectedTanks.includes(tank.tank_no)) return false;
+                
+                // สำหรับโหมดไม่ผลิต ตรวจสอบ cpo_after_sale
+                if (!isProducing) {
+                    return tank.cpo_after_sale !== null && 
+                           tank.cpo_after_sale !== undefined &&
+                           String(tank.cpo_after_sale).trim() !== '';
+                }
+                
+                // สำหรับโหมดผลิต ตรวจสอบ cpo_volume
+                return tank.cpo_volume !== null &&
+                       tank.cpo_volume !== undefined &&
+                       String(tank.cpo_volume).trim() !== '';
+            })
             .map((tank: any) => {
-                const volume = safeParseNumber(tank.cpo_volume) ?? 0;
+                // ใช้ cpo_after_sale ในโหมดไม่ผลิต, cpo_volume ในโหมดผลิต
+                const volume = isProducing 
+                    ? (safeParseNumber(tank.cpo_volume) ?? 0)
+                    : (safeParseNumber(tank.cpo_after_sale) ?? 0);
+                    
                 return {
                     tank_no: tank.tank_no,
                     volume,
-                    oil_level: tank.oil_level,
+                    oil_level: isProducing ? tank.oil_level : tank.cm_after_calc,
                     temperature: tank.temperature,
                 };
             });
 
-        const totalVolume = tankDetails.reduce((sum, tank) => sum + (isNaN(tank.volume) ? 0 : tank.volume), 0);
+        const totalVolume = tankDetails.reduce((sum: number, tank: any) => sum + (isNaN(tank.volume) ? 0 : tank.volume), 0);
 
         return {
             tankDetails,
@@ -420,8 +519,6 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
     };
 
     const totalCPODetails = getTotalCPODetails();
-
-    const [isProducing, setIsProducing] = useState(true);
 
     // โหลดข้อมูลวันก่อนหน้าเพื่อนำมาใช้ตอน "ไม่ผลิต"
 
