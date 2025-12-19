@@ -60,6 +60,19 @@ export default function RecordRow({
                                 weekday: 'long',
                             })}
                         </div>
+
+                        {/* สถานะการผลิต */}
+                        <div className="mt-1">
+                            {record.production_mode === 'no_production' ? (
+                                <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                                    ไม่ผลิต
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                                    ผลิต
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
             </td>
