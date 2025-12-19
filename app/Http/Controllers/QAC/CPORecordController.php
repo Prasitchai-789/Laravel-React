@@ -79,6 +79,27 @@ class CPORecordController extends Controller
         ];
     }
 
+    /**
+     * สำหรับโหมด no_production: ใช้ค่า cpo_volume จาก frontend โดยตรง (ไม่คำนวณใหม่จาก oil_level)
+     * เพื่อหลีกเลี่ยง rounding error จากการ reverse calculate
+     */
+    private function prepareNoProductionData($tankData)
+    {
+        $volumes = [];
+        $total = 0;
+
+        foreach ($tankData as $tank) {
+            $tankNo = intval($tank['tank_no'] ?? 0);
+            $cpoVolume = floatval($tank['cpo_volume'] ?? 0);
+            $volumes[$tankNo] = round($cpoVolume, 3);
+            $total += $cpoVolume;
+        }
+
+        return [
+            'volumes' => $volumes,
+            'total_cpo' => round($total, 3),
+        ];
+    }
 
 
     public function store(Request $request)
@@ -154,8 +175,13 @@ class CPORecordController extends Controller
         // ตรวจสอบว่ามีข้อมูลวันที่เดียวกันหรือไม่
         $existingRecord = CPOData::where('date', $validated['date'])->first();
 
-        // คำนวณ total_cpo  สำหรับ StockProduct
-        $calculatedData = $this->calculateCPOVolume($validated['tanks']);
+        // คำนวณ total_cpo สำหรับ StockProduct
+        // ถ้าเป็นโหมด no_production ใช้ค่าจาก frontend โดยตรง (หลีกเลี่ยง rounding error)
+        if ($productionMode === 'no_production') {
+            $calculatedData = $this->prepareNoProductionData($validated['tanks']);
+        } else {
+            $calculatedData = $this->calculateCPOVolume($validated['tanks']);
+        }
 
         $calculatedCPO = $calculatedData['total_cpo'];
         $skim = floatval($validated['oil_room']['skim'] ?? 0);
@@ -410,8 +436,13 @@ class CPORecordController extends Controller
         $oldDate = $cpoData->date;
         $newDate = $validated['date'];
 
-        // คำนวณ total_cpo  สำหรับ StockProduct
-        $calculatedData = $this->calculateCPOVolume($validated['tanks']);
+        // คำนวณ total_cpo สำหรับ StockProduct
+        // ถ้าเป็นโหมด no_production ใช้ค่าจาก frontend โดยตรง (หลีกเลี่ยง rounding error)
+        if ($productionMode === 'no_production') {
+            $calculatedData = $this->prepareNoProductionData($validated['tanks']);
+        } else {
+            $calculatedData = $this->calculateCPOVolume($validated['tanks']);
+        }
 
         $calculatedCPO = $calculatedData['total_cpo'];
         $skim = floatval($validated['oil_room']['skim'] ?? 0);

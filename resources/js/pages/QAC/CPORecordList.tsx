@@ -143,14 +143,30 @@ export default function CPORecordList({ flash }: CPORecordListProps) {
     const calculateTankTotals = (record: CPORecord) => {
         const normalized = normalizeRecord(record);
         const transformed = transformRecordData(normalized);
-        const res = calculateCPOVolume(transformed.tanks);
-
-        const tankDetails = transformed.tanks.map((tank: any) => ({
-            tank_no: tank.tank_no,
-            volume: toNumber(res.volumes[tank.tank_no]),
-            oil_level: toNumber(tank.oil_level),
-            temperature: toNumber(tank.temperature),
-        }));
+        
+        // ถ้าเป็นโหมด no_production: ใช้ค่า cpo_volume ที่บันทึกไว้โดยตรง (ไม่คำนวณใหม่)
+        const isNoProduction = record.production_mode === 'no_production';
+        
+        let tankDetails: { tank_no: number; volume: number; oil_level: number; temperature: number }[];
+        
+        if (isNoProduction) {
+            // ใช้ค่า cpo_volume ที่บันทึกไว้ในฐานข้อมูล
+            tankDetails = transformed.tanks.map((tank: any) => ({
+                tank_no: tank.tank_no,
+                volume: safeRound(toNumber(tank.cpo_volume), 3),
+                oil_level: toNumber(tank.oil_level),
+                temperature: toNumber(tank.temperature),
+            }));
+        } else {
+            // โหมด production: คำนวณใหม่จาก oil_level และ temperature
+            const res = calculateCPOVolume(transformed.tanks);
+            tankDetails = transformed.tanks.map((tank: any) => ({
+                tank_no: tank.tank_no,
+                volume: toNumber(res.volumes[tank.tank_no]),
+                oil_level: toNumber(tank.oil_level),
+                temperature: toNumber(tank.temperature),
+            }));
+        }
 
         // รวมแบบปลอดภัย
         const totalVolume = safeSum(...tankDetails.map((t) => t.volume));
