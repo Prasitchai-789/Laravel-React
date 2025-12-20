@@ -7,9 +7,22 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\UserCarUsageExport;
 
 class UserCarUsageReportController extends Controller
 {
+    /**
+     * Export user car usage report to Excel.
+     */
+    public function export(Request $request)
+    {
+        $year = $request->input('year', Carbon::now()->year);
+        $month = $request->input('month', Carbon::now()->month);
+        
+        return Excel::download(new UserCarUsageExport($year, $month), 'user-car-usage-report.xlsx');
+    }
+
     /**
      * Display the user car usage report page.
      */
