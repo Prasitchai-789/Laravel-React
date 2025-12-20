@@ -54,6 +54,7 @@ import {
     CalendarDays,
     CalendarClock,
     CloudDownload,
+    Car,
 
 
 } from 'lucide-react';
@@ -339,6 +340,21 @@ const QACNavItems: NavItem[] = [
     }
 ];
 
+const CarUsageNavItems: NavItem[] = [
+    {
+        title: 'รายงานการใช้รถตามคัน',
+        href: '/car-usage-report',
+        icon: Car,
+        permission: ['users.view'],
+    },
+    {
+        title: 'รายงานการใช้รถตามผู้ใช้',
+        href: '/user-car-usage-report',
+        icon: Car,
+        permission: ['users.view'],
+    },
+];
+
 const footerNavItems: NavItem[] = [
     {
         title: 'Repository',
@@ -592,6 +608,31 @@ export function AppSidebar() {
                             <NavMain
                                 items={ERPItems.filter(
                                     (item) => !item.permission || item.permission.some((p) => can(p))
+                                )}
+                            />
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Car Usage */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
+                                <Car className="h-6 w-6" />
+                                <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
+                                    รายงานการใช้รถ
+                                </span>
+                                <ChevronDown className="ml-auto h-4 w-4" />
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                        <DropdownMenuGroup>
+                            <SidebarGroupLabel>Car Usage</SidebarGroupLabel>
+                            <NavMain
+                                items={CarUsageNavItems.filter(
+                                    (item) => !item.permission || item.permission.some((p: string) => can(p))
                                 )}
                             />
                         </DropdownMenuGroup>

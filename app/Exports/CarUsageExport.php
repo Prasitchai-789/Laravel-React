@@ -1,53 +1,32 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Exports;
 
 use App\Models\CarUse;
 use App\Models\CarReport;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Inertia\Inertia;
 use Carbon\Carbon;
-use Maatwebsite\Excel\Facades\Excel;
-use App\Exports\CarUsageExport;
+use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class CarUsageReportController extends Controller
+class CarUsageExport implements FromArray, WithHeadings, WithStyles, ShouldAutoSize
 {
-    /**
-     * Export car usage report to Excel.
-     */
-    public function export(Request $request)
+    protected $year;
+    protected $month;
+
+    public function __construct($year, $month)
     {
-        $year = $request->input('year', Carbon::now()->year);
-        $month = $request->input('month', Carbon::now()->month);
-        
-        return Excel::download(new CarUsageExport($year, $month), 'car-usage-report.xlsx');
+        $this->year = $year;
+        $this->month = $month;
     }
 
-    /**
-     * Display the car usage report page.
-     */
-    public function index()
+    public function array(): array
     {
-        return Inertia::render('CarUsage/Index');
-    }
-
-    /**
-     * Get car usage data for API.
-     *
-     * Logic: For each vehicle (car_id -> car_reports.id), find:
-     * - First use_start of the month (earliest record)
-     * - Last use_end of the month (latest record)
-     * - Distance = Last use_end - First use_start
-     */
-    public function apiData(Request $request)
-    {
-        $year = $request->input('year', Carbon::now()->year);
-        $month = $request->input('month', Carbon::now()->month);
-
-        // Get start and end of month
-        $startOfMonth = Carbon::create($year, $month, 1)->startOfMonth();
-        $endOfMonth = Carbon::create($year, $month, 1)->endOfMonth();
+        $startOfMonth = Carbon::create($this->year, $this->month, 1)->startOfMonth();
+        $endOfMonth = Carbon::create($this->year, $this->month, 1)->endOfMonth();
 
         // Get province names from Webapp_City (sqlsrv2)
         $provinces = DB::connection('sqlsrv2')
@@ -72,12 +51,11 @@ class CarUsageReportController extends Controller
         $carIds = $carUsages->pluck('car_id')->filter()->unique()->toArray();
         $carReports = CarReport::whereIn('id', $carIds)->get()->keyBy('id');
 
-        // Process each car usage
         $result = $carUsages->map(function ($usage) use ($startOfMonth, $endOfMonth, $carReports, $provinces) {
             $carId = $usage->car_id;
             $carReport = $carReports->get((int) $carId);
 
-            // Get first record of the month (for use_start)
+            // Get first record of the month
             $firstRecord = CarUse::where('car_id', $carId)
                 ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
                 ->whereNotNull('use_start')
@@ -85,7 +63,7 @@ class CarUsageReportController extends Controller
                 ->orderBy('created_at', 'asc')
                 ->first();
 
-            // Get last record of the month (for use_end) - only completed trips (use_status = 2)
+            // Get last record of the month
             $lastRecord = CarUse::where('car_id', $carId)
                 ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
                 ->whereNotNull('use_end')
@@ -101,12 +79,11 @@ class CarUsageReportController extends Controller
             $carNumber = $carReport?->car_number ?? 'ไม่ระบุ';
             $carCounty = $carReport?->car_county ?? '';
 
-            // Get province name from Webapp_City
+            // Get province name
             $provinceName = '';
             if ($carCounty && isset($provinces[$carCounty])) {
                 $provinceName = $provinces[$carCounty]->ProvinceName;
             } else if ($carCounty) {
-                // Try to find by matching county code
                 $provinceData = DB::connection('sqlsrv2')
                     ->table('Webapp_City')
                     ->where('ProvinceID', $carCounty)
@@ -115,37 +92,62 @@ class CarUsageReportController extends Controller
                 $provinceName = $provinceData?->ProvinceName ?? $carCounty;
             }
 
-            $fullCarName = trim("{$carNumber} {$provinceName}");
-
             return [
-                'car_id' => $carId,
                 'car_number' => $carNumber,
                 'province_name' => $provinceName,
-                'full_car_name' => $fullCarName,
                 'car_brand' => $carReport?->car_brand ?? '-',
                 'car_model' => $carReport?->car_model ?? '-',
                 'trip_count' => $usage->trip_count,
-                'first_date' => $firstRecord?->created_at?->format('Y-m-d H:i'),
-                'last_date' => $lastRecord?->created_at?->format('Y-m-d H:i'),
-                'mileage_start' => $mileageStart,
-                'mileage_end' => $mileageEnd,
-                'total_distance' => $totalDistance,
+                'mileage_start' => number_format($mileageStart),
+                'mileage_end' => number_format($mileageEnd),
+                'total_distance' => number_format($totalDistance),
+                'first_date' => $firstRecord?->created_at?->format('d/m/Y H:i') ?? '-',
+                'last_date' => $lastRecord?->created_at?->format('d/m/Y H:i') ?? '-',
             ];
         })->sortByDesc('total_distance')->values();
 
-        // Summary statistics
-        $summary = [
-            'total_vehicles' => $result->count(),
-            'total_trips' => $result->sum('trip_count'),
-            'total_distance' => $result->sum('total_distance'),
-        ];
+        // Add index number
+        $finalData = [];
+        foreach ($result as $index => $row) {
+            $finalData[] = [
+                $index + 1,
+                $row['car_number'],
+                $row['province_name'],
+                $row['car_brand'],
+                $row['car_model'],
+                $row['trip_count'],
+                $row['mileage_start'],
+                $row['mileage_end'],
+                $row['total_distance'],
+                $row['first_date'],
+                $row['last_date'],
+            ];
+        }
 
-        return response()->json([
-            'success' => true,
-            'year' => (int) $year,
-            'month' => (int) $month,
-            'data' => $result,
-            'summary' => $summary,
-        ]);
+        return $finalData;
+    }
+
+    public function headings(): array
+    {
+        return [
+            'ลำดับ',
+            'หมายเลขรถ',
+            'จังหวัด',
+            'ยี่ห้อ',
+            'รุ่น',
+            'จำนวนเที่ยว',
+            'เลขไมล์เริ่มต้น',
+            'เลขไมล์สิ้นสุด',
+            'ระยะทางรวม (กม.)',
+            'วันที่เริ่มใช้งาน',
+            'วันที่ใช้งานล่าสุด',
+        ];
+    }
+
+    public function styles(Worksheet $sheet)
+    {
+        return [
+            1 => ['font' => ['bold' => true]],
+        ];
     }
 }

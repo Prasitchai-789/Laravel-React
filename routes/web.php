@@ -477,10 +477,12 @@ Route::middleware(['auth', 'permission:users.view'])->group(function () {
 Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::get('/car-usage-report', [\App\Http\Controllers\CarUsageReportController::class, 'index'])->name('car-usage-report.index');
     Route::get('/car-usage-report/api', [\App\Http\Controllers\CarUsageReportController::class, 'apiData'])->name('car-usage-report.api');
+    Route::get('/car-usage-report/export', [\App\Http\Controllers\CarUsageReportController::class, 'export'])->name('car-usage-report.export');
     
     // User Car Usage Report
     Route::get('/user-car-usage-report', [\App\Http\Controllers\UserCarUsageReportController::class, 'index'])->name('user-car-usage-report.index');
     Route::get('/user-car-usage-report/api', [\App\Http\Controllers\UserCarUsageReportController::class, 'apiData'])->name('user-car-usage-report.api');
+    Route::get('/user-car-usage-report/export', [\App\Http\Controllers\UserCarUsageReportController::class, 'export'])->name('user-car-usage-report.export');
 });
 
 require __DIR__ . '/settings.php';
