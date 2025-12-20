@@ -473,5 +473,15 @@ Route::middleware(['auth', 'permission:users.view'])->group(function () {
 //     Route::post('/seeder-status/{user}/add-item/{itemId}', [SeederStatusController::class, 'addItem']);
 // });
 
+// Car Usage Report Routes
+Route::middleware(['auth', 'permission:users.view'])->group(function () {
+    Route::get('/car-usage-report', [\App\Http\Controllers\CarUsageReportController::class, 'index'])->name('car-usage-report.index');
+    Route::get('/car-usage-report/api', [\App\Http\Controllers\CarUsageReportController::class, 'apiData'])->name('car-usage-report.api');
+    
+    // User Car Usage Report
+    Route::get('/user-car-usage-report', [\App\Http\Controllers\UserCarUsageReportController::class, 'index'])->name('user-car-usage-report.index');
+    Route::get('/user-car-usage-report/api', [\App\Http\Controllers\UserCarUsageReportController::class, 'apiData'])->name('user-car-usage-report.api');
+});
+
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
