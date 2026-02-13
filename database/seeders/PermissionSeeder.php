@@ -33,11 +33,7 @@ class PermissionSeeder extends Seeder
             "admin.delete",
             "admin.create",
 
-            "Admin.view",
-            "Admin.edit",
-            "Admin.delete",
-            "Admin.create",
-
+         
         ];
 
         // ✅ สร้าง permission ทั้งหมด

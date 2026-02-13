@@ -176,25 +176,25 @@ const adminNavItems: NavItem[] = [
         title: 'Users',
         href: '/users',
         icon: UsersRound,
-        permission: ['Admin.view'],
+        permission: ['admin.view'],
     },
     {
         title: 'Roles',
         href: '/roles',
         icon: Notebook,
-        permission: ['Admin.view'],
+        permission: ['admin.view'],
     },
     {
         title: 'Permissions',
         href: '/permissions',
         icon: Shield,
-        permission: ['Admin.view'],
+        permission: ['admin.view'],
     },
     {
         title: 'เพิ่มข้อมูลของชุมชน',
         href: '/citizens',
         icon: UsersRound,
-        permission: ['Admin.view'],
+        permission: ['admin.view'],
     },
 
 ];

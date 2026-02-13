@@ -109,7 +109,7 @@ export default function Welcome() {
                             </div>
                         </div>
                         {/* Quick Stats */}
-                        <div className="mt-4 grid w-full grid-cols-2 gap-6 lg:grid-cols-4">
+                        {/* <div className="mt-4 grid w-full grid-cols-2 gap-6 lg:grid-cols-4">
                             <div className="group relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-6 text-center shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl dark:border-gray-700 dark:from-gray-800 dark:to-gray-900">
                                 <div className="absolute -top-4 -right-4 h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-blue-500 opacity-10 transition-opacity group-hover:opacity-20"></div>
                                 <div className="relative z-10">
@@ -199,12 +199,12 @@ export default function Welcome() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
 
 
                         {/* Content Cards */}
-                        <div className="mt-10 grid w-full gap-6 lg:grid-cols-2">
-                            {/* Getting Started Card */}
+                        {/* <div className="mt-10 grid w-full gap-6 lg:grid-cols-2">
+                            
                             <div className="rounded-2xl border border-[#E0F2FE] bg-white p-8 shadow-[0_4px_20px_rgba(59,130,246,0.1)] transition-all hover:shadow-[0_8px_30px_rgba(59,130,246,0.15)] dark:border-[#334155] dark:bg-[#1E293B]">
                                 <h2 className="mb-4 text-xl font-semibold text-[#1E40AF] dark:text-[#E0F2FE]">เริ่มต้นใช้งาน</h2>
                                 <p className="mb-6 text-[#475569] dark:text-[#CBD5E1]">ระบบจัดการสวนปาล์มน้ำมันครบวงจรสำหรับเกษตรกรยุคใหม่</p>
@@ -329,7 +329,7 @@ export default function Welcome() {
                                 </div>
                             </div>
 
-                            {/* Features & Ecosystem Card */}
+                            
                             <div className="rounded-2xl bg-gradient-to-br from-[#1E40AF] to-[#3B82F6] p-8 text-white">
                                 <h2 className="mb-4 text-xl font-semibold">บริษัทในเครือ</h2>
                                 <p className="mb-6 text-[#E0F2FE]">กลุ่มธุรกิจปาล์มน้ำมันครบวงจรแห่งภาคอีสาน</p>
@@ -390,10 +390,10 @@ export default function Welcome() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
 
                         {/* Additional Progress Stats */}
-                        <div className="mt-8 grid w-full grid-cols-1 gap-6 lg:grid-cols-3">
+                        {/* <div className="mt-8 grid w-full grid-cols-1 gap-6 lg:grid-cols-3">
                             <div className="rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white shadow-lg">
                                 <div className="mb-4 flex items-center justify-between">
                                     <div className="text-sm font-medium">พื้นที่ปลูกทั้งหมด</div>
@@ -444,15 +444,15 @@ export default function Welcome() {
                                 </div>
                                 <div className="mt-2 text-xs text-green-200">จากเกษตรกรในเครือ</div>
                             </div>
-                        </div>
+                        </div> */}
 
 
 
                     </main>
                 </div>
-                <footer className="mt-12 text-center text-sm text-[#475569] dark:text-[#CBD5E1]">
+                {/* <footer className="mt-12 text-center text-sm text-[#475569] dark:text-[#CBD5E1]">
                     <p>ISANPALM - Building amazing experiences together</p>
-                </footer>
+                </footer> */}
             </div>
         </>
     );

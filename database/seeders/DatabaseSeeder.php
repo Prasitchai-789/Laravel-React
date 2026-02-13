@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
 
         // ✅ สร้าง user ที่เป็น admin
         $adminUser = User::firstOrCreate(
-            ['email' => 'admin@example.com'],
+            ['email' => 'admin@gmail.com'],
             [
                 'name' => 'Administrator',
                 'password' => bcrypt('12345678'), // อย่าลืมเปลี่ยนทีหลัง

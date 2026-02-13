@@ -46,6 +46,7 @@ use App\Http\Controllers\Dashboard\PalmDashboardController;
 use App\Http\Controllers\Dashboard\SalesOrderMarController;
 use App\Http\Controllers\Dashboard\PalmProductionController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
+use App\Http\Controllers\Dashboard\ActivityController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\WO\WorkOrderController;
@@ -64,6 +65,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
+
+    // Activity Routes for Dashboard
+    Route::get('activity/gallery', [ActivityController::class, 'gallery'])->name('activity.gallery');
+    Route::get('activity', [ActivityController::class, 'index'])->name('activity.index');
+    Route::post('activity', [ActivityController::class, 'store'])->name('activity.store');
+    Route::put('activity/{activity}', [ActivityController::class, 'update'])->name('activity.update');
+    Route::delete('activity/{activity}', [ActivityController::class, 'destroy'])->name('activity.destroy');
+    Route::post('activity/{activity}/upload-image', [ActivityController::class, 'uploadImage'])->name('activity.upload-image');
+    Route::delete('activity-image/{id}', [ActivityController::class, 'deleteImage'])->name('activity-image.delete');
 
     // Users Routes
     Route::middleware(['permission:users.view|users.create|users.edit|users.delete'])->group(function () {
