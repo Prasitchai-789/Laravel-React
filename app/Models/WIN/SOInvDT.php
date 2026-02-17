@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class SOInvDT extends Model
 {
-    protected $connection = 'sqlsrv2';
     use HasFactory;
     protected $table = 'SOInvDT';
     protected $primaryKey = 'SOInvDTID';

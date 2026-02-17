@@ -10,7 +10,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class WebappEmp extends Model
 {
     //
-    protected $connection = 'sqlsrv2';
+   
+   
 
     use HasFactory;
     protected $table = 'Webapp_Emp';

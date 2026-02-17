@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class EMGoodUnit extends Model
 {
-    protected $connection = 'sqlsrv2';
+    
     use HasFactory;
     protected $table = 'EMGoodUnit';
     public $timestamps = false;

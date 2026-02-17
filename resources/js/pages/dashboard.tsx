@@ -778,9 +778,9 @@ export default function Dashboard() {
                                                         <Camera size={12} />
                                                         {activity.images.length} ภาพ
                                                     </div>
-                                                    <span className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium bg-gradient-to-r ${getStatusColor(activity.status)} text-white`}>
+                                                    {/* <span className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-medium bg-gradient-to-r ${getStatusColor(activity.status)} text-white`}>
                                                         {activity.status}
-                                                    </span>
+                                                    </span> */}
                                                 </>
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center">

@@ -16,7 +16,6 @@ use App\Http\Controllers\Api\POInvController;
 use App\Http\Controllers\ERP\ShiftController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\Population\PopulationController;
 use App\Http\Controllers\StockOrderController;
 use App\Http\Controllers\ACC\AccountController;
 use App\Http\Controllers\AGR\ProductController;
@@ -31,7 +30,6 @@ use App\Http\Controllers\QAC\CPORecordController;
 use App\Http\Controllers\Api\SalesOrderController;
 use App\Http\Controllers\QAC\SiloRecordController;
 use App\Http\Controllers\QAC\StockReportController;
-use App\Http\Controllers\Population\PopulationImportController;
 use App\Http\Controllers\QAC\StockProductController;
 use App\Http\Controllers\Store\StoreOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
@@ -50,7 +48,7 @@ use App\Http\Controllers\Dashboard\ActivityController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\WO\WorkOrderController;
-use App\Http\Controllers\Population\PerploController;
+
 use App\Http\Controllers\Population\SummaryControllder;
 use App\Http\Controllers\SeederStatusController;
 
@@ -429,22 +427,6 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
     Route::get('/report/productions/summary', [StockProductController::class, 'apiProduction']);
 });
 
-// Dashboard QAC Routes
-Route::middleware(['auth', 'permission:users.view'])->group(function () {
-    Route::get('/populations', [PopulationController::class, 'index'])->name('populations.index');
-    Route::get('/populations/create', [PopulationController::class, 'onCreate']);
-    Route::get('/populations/table', [PopulationImportController::class, 'table'])
-        ->name('populations.table');
-
-    Route::post('/population/import', [PopulationImportController::class, 'import'])
-        ->name('population.import');
-    Route::post('/population/createpopulation',[PopulationController::class,'CreatePopulation']);
-    Route::get('/getSeederStatusItems',[PopulationController::class,'getSeederStatusItems']);
-    Route::get('/summary',[PopulationController::class,'summary']);
-    Route::get('/summaryJson',[PopulationController::class,'summaryJson']);
-    Route::get('/getLocationSakon', [SummaryControllder::class, 'getProvinceSakon']);
-});
-
 
 
 Route::middleware(['auth', 'permission:ERP.view'])->group(function () {
@@ -465,24 +447,14 @@ Route::middleware(['auth', 'permission:ERP.view'])->group(function () {
 });
 
 
-
 Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::get('/WOIndex', [WorkOrderController::class, 'index']);
     Route::get('/OrderIndex', [WorkOrderController::class, 'Order']);
 });
-Route::middleware(['auth', 'permission:users.view'])->group(function () {
-    Route::get('/preplo', [PerploController::class, 'index']);
-    Route::post('/preplo/import-simple', [PopulationController::class, 'importSimple']);
 
-
-});
-
-
-// Route::middleware(['auth', 'permission:users.view'])->group(function () {
-//     Route::post('/seeder-status/{user}', [SeederStatusController::class, 'update']);
-//     Route::post('/seeder-status/{user}/add-item/{itemId}', [SeederStatusController::class, 'addItem']);
-// });
-
+Route::get('/mar/plan-order', function () {
+    return inertia('MAR/PlanOrder/indexPlanOrder');
+})->name('mar.plan-order.index')->middleware(['auth', 'verified']);
 // Car Usage Report Routes
 Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::get('/car-usage-report', [\App\Http\Controllers\CarUsageReportController::class, 'index'])->name('car-usage-report.index');
