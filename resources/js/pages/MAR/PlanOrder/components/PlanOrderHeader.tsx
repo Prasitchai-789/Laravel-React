@@ -41,8 +41,7 @@ export default function PlanOrderHeader({ viewMode, onViewModeChange, selectedCo
                             </p>
                         </div>
                     </div>
-
-               
+              
                 </div>
 
                 {/* Right Section - Actions */}
