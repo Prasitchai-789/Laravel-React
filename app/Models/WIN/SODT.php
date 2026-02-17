@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class SODT extends Model
 {
-    protected $connection = 'sqlsrv2';
+    
     use HasFactory;
     protected $table = 'SODT';
     public $timestamps = false;

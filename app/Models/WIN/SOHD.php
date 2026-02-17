@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class SOHD extends Model
 {
-    protected $connection = 'sqlsrv2';
+    
     use HasFactory;
     protected $table = 'SOHD';
     protected $primaryKey = 'SOID';

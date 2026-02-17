@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class ICStockDetail extends Model
 {
-    protected $connection = 'sqlsrv2';
+    
     use HasFactory;
     protected $table = 'ICStockDetail';
     protected $primaryKey = 'DocuID'; // หรือ 'id' ถ้ามีคีย์อื่น

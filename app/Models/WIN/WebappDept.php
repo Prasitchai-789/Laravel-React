@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Shift;
 class WebappDept extends Model
 {
-    protected $connection = 'sqlsrv2';
+    
     use HasFactory;
     protected $table = 'Webapp_Dept';
     protected $primaryKey = 'DeptID';

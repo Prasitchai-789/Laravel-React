@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Education extends Model
 {
-    protected $connection = 'sqlsrv2';
+    
     use HasFactory;
     protected $table = 'Webapp_Education';
     protected $fillable =[

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class SOPlanStatus extends Model
 {
-    protected $connection = 'sqlsrv2';
+    
     use HasFactory;
     protected $table = 'SOPlanStatus';
     protected $fillable =[

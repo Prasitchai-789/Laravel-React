@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WebappPOInv extends Model
 {
-    protected $connection = 'sqlsrv2';
+    
     use HasFactory;
     protected $table = 'Webapp_POInv';
     protected $primaryKey = 'POInvID';

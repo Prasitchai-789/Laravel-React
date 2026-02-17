@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class EMVendor extends Model
 {
-    protected $connection = 'sqlsrv2';
+    
     use HasFactory;
     protected $table = 'EMVendor';
     protected $primaryKey = 'VendorID';

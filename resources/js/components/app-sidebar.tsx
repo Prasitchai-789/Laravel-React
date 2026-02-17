@@ -11,8 +11,6 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-
-
 } from '@/components/ui/sidebar';
 import { can } from '@/lib/can';
 import { type NavItem } from '@/types';
@@ -42,21 +40,18 @@ import {
     MonitorSmartphone,
     ScrollText,
     CreditCard,
-
     ChartLine,
     Beaker,
     BadgeDollarSign,
     Proportions,
     Truck,
-
     Fingerprint,
     LayoutDashboard,
     CalendarDays,
     CalendarClock,
     CloudDownload,
     Car,
-
-
+    Weight,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -69,7 +64,6 @@ const mainNavItems: NavItem[] = [
 ];
 
 const StoreNavItems: NavItem[] = [
-
     {
         title: 'Dashboard',
         href: '/StoreOrder/Dashboard',
@@ -80,13 +74,13 @@ const StoreNavItems: NavItem[] = [
         title: 'StoreOrder',
         href: '/StoreOrder',
         icon: Store,
-        permission: ['PUR.view', 'PUR.Admin'] // ใส่ permission ที่ต้องการ
+        permission: ['PUR.view', 'PUR.Admin']
     },
     {
         title: 'Product Withdrawal',
         href: '/StoreOrder/StoreOrderIssue',
         icon: ShoppingCart,
-        permission: ['PUR.view', 'users.view', 'PUR.Admin'], // OR condition ใช้ได้ทั้งสอง
+        permission: ['PUR.view', 'users.view', 'PUR.Admin'],
     },
     {
         title: 'Stock Report',
@@ -100,20 +94,17 @@ const StoreNavItems: NavItem[] = [
         icon: ClipboardMinus,
         permission: ['PUR.view', 'PUR.Admin'],
     },
-
 ];
 
 const ITNavItem: NavItem[] = [
-
     {
         title: 'Projects',
         href: '/projects',
         icon: FolderOpenDot,
     },
-    // React Menu
     {
         title: 'Community',
-        href: '/community', // ต้องตรงกับ Route Laravel
+        href: '/community',
         icon: Handshake,
     },
     {
@@ -123,15 +114,13 @@ const ITNavItem: NavItem[] = [
     },
 ];
 
-const PRONavItem: Navitemp[] = [
-
+const PRONavItem: NavItem[] = [
     {
         title: 'Chemicals',
         href: '/chemical',
         icon: FlaskConical,
     },
 ];
-
 
 const ERPItems: NavItem[] = [
     {
@@ -159,17 +148,12 @@ const ERPItems: NavItem[] = [
         href: '/shifts',
         icon: CalendarDays,
     },
-
     {
         title: 'OT',
         href: '/overtime',
         icon: CalendarClock,
-
     }
-
 ];
-
-
 
 const adminNavItems: NavItem[] = [
     {
@@ -196,7 +180,6 @@ const adminNavItems: NavItem[] = [
         icon: UsersRound,
         permission: ['admin.view'],
     },
-
 ];
 
 const DevNavItems: NavItem[] = [
@@ -248,7 +231,6 @@ const DevNavItems: NavItem[] = [
         icon: BadgeDollarSign,
         permission: ['developer.view'],
     },
-
 ];
 
 const MARNavItems: NavItem[] = [
@@ -270,6 +252,13 @@ const MARNavItems: NavItem[] = [
         icon: Truck,
         permission: ['mar.view'],
     },
+    {
+        title: 'แผนการโหลดสินค้า',
+        href: '/mar/plan-order',
+        icon: Weight,
+        permission: ['mar.view'],
+    },
+
 ];
 
 const AGRNavItems: NavItem[] = [
@@ -306,7 +295,8 @@ const FerNavItems: NavItem[] = [
         icon: Warehouse,
         permission: ['fer.view'],
     }
-]
+];
+
 const QACNavItems: NavItem[] = [
     {
         title: 'บันทึกข้อมูล Stock CPO',
@@ -368,6 +358,18 @@ const footerNavItems: NavItem[] = [
     },
 ];
 
+// Helper function to check if user is developer
+const isDeveloper = () => can('developer.view');
+
+// Helper function to filter items based on permissions or developer role
+const filterItemsByPermission = (items: NavItem[]) => {
+    return items.filter(item => 
+        !item.permission || // ไม่มี permission กำหนด
+        isDeveloper() || // เป็น developer เห็นหมด
+        item.permission.some(p => can(p)) // มี permission ตามที่กำหนด
+    );
+};
+
 export function AppSidebar() {
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -385,7 +387,9 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <SidebarGroupLabel>Report Present</SidebarGroupLabel>
-                {can('developer.view') && (
+                
+                {/* Developer Menu - จะแสดงถ้ามี permission developer.view */}
+                {isDeveloper() && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -399,130 +403,115 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                                <NavMain
-                                    items={DevNavItems.filter(
-                                        item => !item.permission || item.permission.some(p => can(p))
-                                    )} />
+                                <NavMain items={filterItemsByPermission(DevNavItems)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
+                
                 <NavMain items={mainNavItems} />
 
                 <hr className="border-t border-gray-200 my-1" />
-                {/* <hr className="border-t-[0.5px] border-gray-200 my-0.5 w-3/4 mx-auto" /> */}
                 <SidebarGroupLabel>Menu</SidebarGroupLabel>
-                {/* IT */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
-                                <MonitorSmartphone className="h-6 w-6" /> {/* ไอคอนหลักของกลุ่ม */}
-                                <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
-                                    ฝ่ายสารสนเทศและเทคโนโลยี
-                                </span>
-                                <ChevronDown className="ml-auto h-4 w-4" />
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
-                        <DropdownMenuGroup>
-                            <SidebarGroupLabel>IT</SidebarGroupLabel>
-                            {/* กรองเมนู Store ตาม permission */}
-                            <NavMain
-                                items={ITNavItem.filter(
-                                    item => !item.permission || item.permission.some(p => can(p))
-                                )}
-                            />
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
 
-                {/* PRO */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
-                                <ChartNoAxesCombined className="h-6 w-6" /> {/* ไอคอนหลักของกลุ่ม */}
-                                <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
-                                    ฝ่ายผลิต
-                                </span>
-                                <ChevronDown className="ml-auto h-4 w-4" />
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
-                        <DropdownMenuGroup>
-                            <SidebarGroupLabel>PRO</SidebarGroupLabel>
-                            {/* กรองเมนู Store ตาม permission */}
-                            <NavMain
-                                items={PRONavItem.filter(
-                                    item => !item.permission || item.permission.some(p => can(p))
-                                )}
-                            />
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* MAR */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
-                                <Truck className="h-6 w-6" /> {/* ไอคอนหลักของกลุ่ม */}
-                                <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
-                                    ฝ่ายขายและการตลาด
-                                </span>
-                                <ChevronDown className="ml-auto h-4 w-4" />
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
-                        <DropdownMenuGroup>
-                            <SidebarGroupLabel>MAR</SidebarGroupLabel>
-                            {/* กรองเมนู Store ตาม permission */}
-                            <NavMain
-                                items={MARNavItems.filter(
-                                    item => !item.permission || item.permission.some(p => can(p))
-                                )}
-                            />
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* STORE */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
-                                <Warehouse className="h-6 w-6" /> {/* ไอคอนหลักของกลุ่ม */}
-                                <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
-                                    Store
-                                </span>
-                                <ChevronDown className="ml-auto h-4 w-4" />
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
-                        <DropdownMenuGroup>
-                            <SidebarGroupLabel>Store</SidebarGroupLabel>
-                            {/* กรองเมนู Store ตาม permission */}
-                            <NavMain
-                                items={StoreNavItems.filter(
-                                    item => !item.permission || item.permission.some(p => can(p))
-                                )}
-                            />
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-
-                {/* PALM */}
-                {can('agr.view') && (
+                {/* IT - Developer จะเห็นหมด */}
+                {(isDeveloper() || filterItemsByPermission(ITNavItem).length > 0) && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
-                                <SidebarMenuButton className="flex w-full items-center">
+                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
+                                    <MonitorSmartphone className="h-6 w-6" />
+                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
+                                        ฝ่ายสารสนเทศและเทคโนโลยี
+                                    </span>
+                                    <ChevronDown className="ml-auto h-4 w-4" />
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                            <DropdownMenuGroup>
+                                <SidebarGroupLabel>IT</SidebarGroupLabel>
+                                <NavMain items={filterItemsByPermission(ITNavItem)} />
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
+
+                {/* PRO - Developer จะเห็นหมด */}
+                {(isDeveloper() || filterItemsByPermission(PRONavItem).length > 0) && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
+                                    <ChartNoAxesCombined className="h-6 w-6" />
+                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
+                                        ฝ่ายผลิต
+                                    </span>
+                                    <ChevronDown className="ml-auto h-4 w-4" />
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                            <DropdownMenuGroup>
+                                <SidebarGroupLabel>PRO</SidebarGroupLabel>
+                                <NavMain items={filterItemsByPermission(PRONavItem)} />
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
+
+                {/* MAR - Developer จะเห็นหมด */}
+                {(isDeveloper() || filterItemsByPermission(MARNavItems).length > 0) && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
+                                    <Truck className="h-6 w-6" />
+                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
+                                        ฝ่ายขายและการตลาด
+                                    </span>
+                                    <ChevronDown className="ml-auto h-4 w-4" />
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                            <DropdownMenuGroup>
+                                <SidebarGroupLabel>MAR</SidebarGroupLabel>
+                                <NavMain items={filterItemsByPermission(MARNavItems)} />
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
+
+                {/* STORE - Developer จะเห็นหมด */}
+                {(isDeveloper() || filterItemsByPermission(StoreNavItems).length > 0) && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
+                                    <Warehouse className="h-6 w-6" />
+                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
+                                        Store
+                                    </span>
+                                    <ChevronDown className="ml-auto h-4 w-4" />
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                            <DropdownMenuGroup>
+                                <SidebarGroupLabel>Store</SidebarGroupLabel>
+                                <NavMain items={filterItemsByPermission(StoreNavItems)} />
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
+
+                {/* AGR - Developer จะเห็นหมด */}
+                {(isDeveloper() || filterItemsByPermission(AGRNavItems).length > 0) && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
                                     <Fence className="h-6 w-6" />
                                     <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">ฝ่ายสวนและต้นกล้า</span>
                                     <ChevronDown className="ml-auto h-4 w-4" />
@@ -532,16 +521,14 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                                <NavMain
-                                    items={AGRNavItems.filter(
-                                        item => !item.permission || item.permission.some(p => can(p))
-                                    )} />
+                                <NavMain items={filterItemsByPermission(AGRNavItems)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
 
-                {can('agr.view') && (
+                {/* FER - Developer จะเห็นหมด */}
+                {(isDeveloper() || filterItemsByPermission(FerNavItems).length > 0) && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -555,17 +542,14 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                                <NavMain
-                                    items={FerNavItems.filter(
-                                        item => !item.permission || item.permission.some(p => can(p))
-                                    )} />
+                                <NavMain items={filterItemsByPermission(FerNavItems)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
 
-
-                 {can('qac.view') && (
+                {/* QAC - Developer จะเห็นหมด */}
+                {(isDeveloper() || filterItemsByPermission(QACNavItems).length > 0) && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -579,105 +563,85 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>QAC</SidebarGroupLabel>
-                                <NavMain
-                                 items={QACNavItems.filter(
-                                    item => !item.permission || item.permission.some(p => can(p))
-                                )} />
+                                <NavMain items={filterItemsByPermission(QACNavItems)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
 
+                {/* ERP - Developer จะเห็นหมด */}
+                {(isDeveloper() || filterItemsByPermission(ERPItems).length > 0) && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton className="flex w-full items-center">
+                                    <UsersRound className="h-6 w-6" />
+                                    <span className="flex-1 font-anuphan font-medium text-blue-800">
+                                        ERP
+                                    </span>
+                                    <ChevronDown className="ml-auto h-4 w-4" />
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                            <DropdownMenuGroup>
+                                <SidebarGroupLabel>ERP</SidebarGroupLabel>
+                                <NavMain items={filterItemsByPermission(ERPItems)} />
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
 
-                {/* ERP */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton className="flex w-full items-center">
-                                <UsersRound className="h-6 w-6" /> {/* ไอคอนหลักของกลุ่ม */}
-                                <span className="flex-1 font-anuphan font-medium text-blue-800">
-                                    ERP
-                                </span>
-                                <ChevronDown className="ml-auto h-4 w-4" />
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
-                        <DropdownMenuGroup>
-                            <SidebarGroupLabel>ERP</SidebarGroupLabel>
-                            <NavMain
-                                items={ERPItems.filter(
-                                    (item) => !item.permission || item.permission.some((p) => can(p))
-                                )}
-                            />
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Car Usage */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
-                                <Car className="h-6 w-6" />
-                                <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
-                                    รายงานการใช้รถ
-                                </span>
-                                <ChevronDown className="ml-auto h-4 w-4" />
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
-                        <DropdownMenuGroup>
-                            <SidebarGroupLabel>Car Usage</SidebarGroupLabel>
-                            <NavMain
-                                items={CarUsageNavItems.filter(
-                                    (item) => !item.permission || item.permission.some((p: string) => can(p))
-                                )}
-                            />
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-
-
-
-
-
-
-
-
+                {/* Car Usage - Developer จะเห็นหมด */}
+                {(isDeveloper() || filterItemsByPermission(CarUsageNavItems).length > 0) && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
+                                    <Car className="h-6 w-6" />
+                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
+                                        รายงานการใช้รถ
+                                    </span>
+                                    <ChevronDown className="ml-auto h-4 w-4" />
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                            <DropdownMenuGroup>
+                                <SidebarGroupLabel>Car Usage</SidebarGroupLabel>
+                                <NavMain items={filterItemsByPermission(CarUsageNavItems)} />
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
             </SidebarContent>
-            {/* <hr className="border-t-[0.5px] border-gray-200 my-0.5 w-3/4 mx-auto" /> */}
+            
             <hr className="border-t border-gray-200 my-1" />
 
-            {/* ADMIN */}
+            {/* ADMIN - Developer จะเห็นหมด */}
             <SidebarFooter>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
-                                <Shield className="h-6 w-6" />
-                                <span className="flex-1 font-medium hover:text-blue-800">Admin</span>
-                                <ChevronDown className="ml-auto h-4 w-4" />
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
-                        <DropdownMenuGroup>
-                            <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                            <NavMain items={adminNavItems.filter(item =>
-                                item.permission?.some(p => can(p))
-                            )} />
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                {(isDeveloper() || filterItemsByPermission(adminNavItems).length > 0) && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
+                                    <Shield className="h-6 w-6" />
+                                    <span className="flex-1 font-medium hover:text-blue-800">Admin</span>
+                                    <ChevronDown className="ml-auto h-4 w-4" />
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                            <DropdownMenuGroup>
+                                <SidebarGroupLabel>Platform</SidebarGroupLabel>
+                                <NavMain items={filterItemsByPermission(adminNavItems)} />
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
                 <hr className="border-t border-gray-200 my-1" />
-
-                {/* <NavFooter items={footerNavItems} className="mt-auto" /> */}
                 <NavUser />
             </SidebarFooter>
-
         </Sidebar>
     );
 }

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class EMCust extends Model
 {
-    protected $connection = 'sqlsrv2';
+    
     use HasFactory;
     protected $table = 'EMCust';
     protected $primaryKey = 'CustID';
