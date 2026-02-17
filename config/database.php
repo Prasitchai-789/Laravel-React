@@ -122,8 +122,8 @@ return [
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
-            'encrypt' => 'no',
-            'trust_server_certificate' => true,
+            'encrypt' => 'yes',
+    'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE_2', true),
 
             // 'options' => [
             //     PDO::SQLSRV_ATTR_QUERY_TIMEOUT => 60,
