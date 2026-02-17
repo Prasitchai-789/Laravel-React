@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class POInvHD extends Model
 {
+    protected $connection = 'sqlsrv2';
     
     use HasFactory;
     protected $table = 'POInvHD';
