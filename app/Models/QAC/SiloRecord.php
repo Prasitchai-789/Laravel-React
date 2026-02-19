@@ -11,6 +11,7 @@ class SiloRecord extends Model
 
     protected $fillable = [
         'record_date',
+        'is_production',
         'nut_silo_1_level',
         'nut_silo_2_level',
         'nut_silo_3_level',
@@ -24,9 +25,9 @@ class SiloRecord extends Model
         'outside_nut',
     ];
 
-    // protected $casts = [
-    //     'record_date' => 'date',
-    // ];
+    protected $casts = [
+        'is_production' => 'boolean',
+    ];
 
     // ค่าคงที่สำหรับการคำนวณ
     const CONSTANTS = [
