@@ -5,7 +5,7 @@ import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import { BarChart3, Calendar, CheckCircle, FileText, Leaf, Nut, Package, Plus, RefreshCw, Save, Trash2, Trees, TrendingUp ,Edit} from 'lucide-react';
+import { BarChart3, Calendar, CheckCircle, Edit, FileText, Filter, Leaf, Nut, Package, Plus, RefreshCw, Save, Search, Trash2, Trees, TrendingUp } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
@@ -320,69 +320,29 @@ const ByProductionForm: React.FC = () => {
     };
 
     /* ---------------------------------------------------
-        GET PREVIOUS BALANCE
+        GET PREVIOUS BALANCE จาก stock_products โดยตรง
     --------------------------------------------------- */
-    const getPreviousDayBalances = useCallback((stocksList: any[], selectedDate: string) => {
-        if (!stocksList || stocksList.length === 0) {
-            return {
-                efb_fiber_previous_balance: 0,
-                efb_previous_balance: 0,
-                shell_previous_balance: 0,
-            };
-        }
-
-        const targetStr = strictDateParser(selectedDate);
-        if (!targetStr) {
-            return {
-                efb_fiber_previous_balance: 0,
-                efb_previous_balance: 0,
-                shell_previous_balance: 0,
-            };
-        }
-
-        const target = new Date(targetStr);
-        const prev = new Date(target);
-        prev.setDate(prev.getDate() - 1);
-        const prevStr = prev.toISOString().split('T')[0];
-
-        // 1) exact previous day
-        const exact = stocksList.find((s) => strictDateParser(s.production_date) === prevStr);
-
-        if (exact) {
-            return {
-                efb_fiber_previous_balance: Number(exact.efb_fiber_balance) || 0,
-                efb_previous_balance: Number(exact.efb_balance) || 0,
-                shell_previous_balance: Number(exact.shell_balance) || 0,
-            };
-        }
-
-        // 2) latest before selected date
-        const before = stocksList
-            .filter((s) => {
-                const dStr = strictDateParser(s.production_date);
-                if (!dStr) return false;
-                return new Date(dStr) < target;
-            })
-            .sort((a, b) => {
-                const da = new Date(strictDateParser(a.production_date));
-                const db = new Date(strictDateParser(b.production_date));
-                return db.getTime() - da.getTime();
-            });
-
-        if (before.length > 0) {
-            const latest = before[0];
-            return {
-                efb_fiber_previous_balance: Number(latest.efb_fiber_balance) || 0,
-                efb_previous_balance: Number(latest.efb_balance) || 0,
-                shell_previous_balance: Number(latest.shell_balance) || 0,
-            };
-        }
-
-        return {
+    const fetchPreviousBalanceFromDB = useCallback(async (selectedDate: string) => {
+        const defaultBalances = {
             efb_fiber_previous_balance: 0,
             efb_previous_balance: 0,
             shell_previous_balance: 0,
         };
+
+        const targetStr = strictDateParser(selectedDate);
+        if (!targetStr) return defaultBalances;
+
+        try {
+            const res = await axios.get(`/stock/by-products/previous-balance?date=${targetStr}`);
+            return {
+                efb_fiber_previous_balance: Number(res.data.efb_fiber_previous_balance) || 0,
+                efb_previous_balance: Number(res.data.efb_previous_balance) || 0,
+                shell_previous_balance: Number(res.data.shell_previous_balance) || 0,
+            };
+        } catch (err) {
+            console.error('Error fetching previous balance from stock_products:', err);
+            return defaultBalances;
+        }
     }, []);
 
     /* ---------------------------------------------------
@@ -396,7 +356,7 @@ const ByProductionForm: React.FC = () => {
             setStocks(data);
 
             if (!isEditing) {
-                const prevBalances = getPreviousDayBalances(data, formData.production_date);
+                const prevBalances = await fetchPreviousBalanceFromDB(formData.production_date);
                 setFormData((prevForm) => ({
                     ...prevForm,
                     ...prevBalances,
@@ -412,7 +372,7 @@ const ByProductionForm: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [isEditing, formData.production_date, getPreviousDayBalances]);
+    }, [isEditing, formData.production_date, fetchPreviousBalanceFromDB]);
 
     const fetchProductions = useCallback(async () => {
         try {
@@ -523,15 +483,15 @@ const ByProductionForm: React.FC = () => {
         if (stocks.length > 0 && productions.length > 0 && sales.length > 0 && !isEditing) {
             const dateParsed = strictDateParser(formData.production_date);
 
-            // 1) โหลด FFB
-            fetchFFBByDate(dateParsed).then((ffbQty) => {
+            // 1) โหลด FFB + ยอดยกมาจาก stock_products
+            Promise.all([
+                fetchFFBByDate(dateParsed),
+                fetchPreviousBalanceFromDB(dateParsed),
+            ]).then(([ffbQty, prevBal]) => {
                 // 2) โหลดยอดขายตามวัน
                 const salesDay = findSalesByDate(dateParsed);
 
-                // 3) โหลดยอดยกมา (previous balance)
-                const prevBal = getPreviousDayBalances(stocks, dateParsed);
-
-                // 4) ใส่ค่าลงฟอร์ม
+                // 3) ใส่ค่าลงฟอร์ม
                 setFormData((prev) => ({
                     ...prev,
                     initial_palm_quantity: ffbQty,
@@ -544,7 +504,7 @@ const ByProductionForm: React.FC = () => {
                 }));
             });
         }
-    }, [stocks, productions, sales, isEditing, formData.production_date, findSalesByDate, getPreviousDayBalances]);
+    }, [stocks, productions, sales, isEditing, formData.production_date, findSalesByDate, fetchPreviousBalanceFromDB]);
 
     /* ---------------------------------------------------
         CALCULATE VALUES
@@ -598,9 +558,11 @@ const ByProductionForm: React.FC = () => {
             if (name === 'production_date' && value) {
                 const dateParsed = strictDateParser(value);
 
-                const ffbQty = await fetchFFBByDate(dateParsed);
+                const [ffbQty, prevBal] = await Promise.all([
+                    fetchFFBByDate(dateParsed),
+                    fetchPreviousBalanceFromDB(dateParsed),
+                ]);
                 const salesDay = findSalesByDate(dateParsed);
-                const prevBal = getPreviousDayBalances(stocks, dateParsed);
 
                 setFormData((prev) => ({
                     ...prev,
@@ -617,7 +579,7 @@ const ByProductionForm: React.FC = () => {
                 return;
             }
         },
-        [stocks, findSalesByDate, getPreviousDayBalances],
+        [findSalesByDate, fetchPreviousBalanceFromDB],
     );
     /* ---------------------------------------------------
         LOAD DATA ON MOUNT
@@ -657,9 +619,11 @@ useEffect(() => {
     const dateParsed = strictDateParser(formData.production_date);
 
     const salesDay = findSalesByDate(dateParsed);
-    const prevBal = getPreviousDayBalances(stocks, dateParsed);
 
-    fetchFFBByDate(dateParsed).then((ffbQty) => {
+    Promise.all([
+        fetchFFBByDate(dateParsed),
+        fetchPreviousBalanceFromDB(dateParsed),
+    ]).then(([ffbQty, prevBal]) => {
         setFormData(prev => ({
             ...prev,
             initial_palm_quantity: ffbQty,
@@ -673,6 +637,11 @@ useEffect(() => {
     });
 
 }, [stocks, sales, productions]);
+
+    // History pagination & search state
+    const [historySearch, setHistorySearch] = useState('');
+    const [historyPage, setHistoryPage] = useState(1);
+    const [historyItemsPerPage, setHistoryItemsPerPage] = useState(5);
 
     // เพิ่ม state สำหรับเลือกเดือน
     const [selectedMonth, setSelectedMonth] = useState('');
@@ -852,7 +821,7 @@ useEffect(() => {
     };
 
     const handleDeleteWithPermission = (id: number): void => {
-        if (userPermissions.includes('Admin.delete')) {
+        if (userPermissions.includes('admin.delete')) {
             openDeleteModal(id);
         } else {
             Swal.fire({
@@ -880,10 +849,10 @@ useEffect(() => {
         RESET & NEW RECORD
     --------------------------------------------------- */
     const resetForm = useCallback(
-        (keepDate = true) => {
+        async (keepDate = true) => {
             const targetDate = keepDate ? formData.production_date : getYesterdayDate();
             const parsed = strictDateParser(targetDate) || getYesterdayDate();
-            const prev = getPreviousDayBalances(stocks, parsed);
+            const prev = await fetchPreviousBalanceFromDB(parsed);
 
             setFormData({
                 production_date: parsed,
@@ -906,12 +875,12 @@ useEffect(() => {
             setEditingId(null);
             setIsEditing(false);
         },
-        [stocks, formData.production_date, getPreviousDayBalances],
+        [formData.production_date, fetchPreviousBalanceFromDB],
     );
 
-    const handleNewRecord = useCallback(() => {
+    const handleNewRecord = useCallback(async () => {
         const newDate = getYesterdayDate();
-        const prev = getPreviousDayBalances(stocks, newDate);
+        const prev = await fetchPreviousBalanceFromDB(newDate);
 
         setFormData({
             production_date: newDate,
@@ -934,7 +903,7 @@ useEffect(() => {
         setEditingId(null);
         setIsEditing(false);
         setActiveTab('form');
-    }, [stocks, getPreviousDayBalances]);
+    }, [fetchPreviousBalanceFromDB]);
 
     /* ---------------------------------------------------
         RENDER
@@ -1055,9 +1024,10 @@ useEffect(() => {
                                                 <InputField
                                                     label="ยอดยกมา"
                                                     name="efb_fiber_previous_balance"
-                                                    value={formData.efb_fiber_previous_balance}
+                                                    value={Number(formData.efb_fiber_previous_balance).toFixed(3)}
                                                     onChange={handleChange}
                                                     suffix="ตัน"
+                                                    step="0.001"
                                                     disabled={isEditing}
                                                 />
                                                 <InputField
@@ -1123,9 +1093,10 @@ useEffect(() => {
                                                 <InputField
                                                     label="ยอดยกมา"
                                                     name="shell_previous_balance"
-                                                    value={formData.shell_previous_balance}
+                                                    value={Number(formData.shell_previous_balance).toFixed(3)}
                                                     onChange={handleChange}
                                                     suffix="ตัน"
+                                                    step="0.001"
                                                     disabled={isEditing}
                                                 />
                                                 <InputField
@@ -1185,9 +1156,10 @@ useEffect(() => {
                                                 <InputField
                                                     label="ยอดยกมา"
                                                     name="efb_previous_balance"
-                                                    value={formData.efb_previous_balance}
+                                                    value={Number(formData.efb_previous_balance).toFixed(3)}
                                                     onChange={handleChange}
                                                     suffix="ตัน"
+                                                    step="0.001"
                                                     disabled={isEditing}
                                                 />
                                                 <InputField
@@ -1279,192 +1251,287 @@ useEffect(() => {
                             </div>
                         )}
 
-                         {/* History Tab */}
-                        {activeTab === 'history' && (
-                            <div className="p-6">
-                                <SectionHeader
-                                    title="ประวัติการบันทึก"
-                                    description="รายการบันทึกข้อมูลการผลิตทั้งหมด"
-                                    icon={BarChart3}
-                                    color="blue"
-                                />
+                        {/* History Tab */}
+                        {activeTab === 'history' && (() => {
+                            const filteredStocks = stocks.filter((s) => {
+                                if (!historySearch) return true;
+                                const d = new Date(s.production_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+                                return d.includes(historySearch);
+                            });
+                            const historyTotalPages = Math.ceil(filteredStocks.length / historyItemsPerPage);
+                            const pagedStocks = filteredStocks.slice((historyPage - 1) * historyItemsPerPage, historyPage * historyItemsPerPage);
+                            const getHistoryPageNums = (): (number | '...')[] => {
+                                const pages: (number | '...')[] = [];
+                                if (historyTotalPages <= 7) {
+                                    for (let i = 1; i <= historyTotalPages; i++) pages.push(i);
+                                } else {
+                                    pages.push(1);
+                                    if (historyPage > 3) pages.push('...');
+                                    for (let i = Math.max(2, historyPage - 1); i <= Math.min(historyTotalPages - 1, historyPage + 1); i++) pages.push(i);
+                                    if (historyPage < historyTotalPages - 2) pages.push('...');
+                                    pages.push(historyTotalPages);
+                                }
+                                return pages;
+                            };
+                            const fmt = (v: any, d = 3) => parseFloat(v || 0).toLocaleString('th-TH', { minimumFractionDigits: d, maximumFractionDigits: d });
 
-                                {loading ? (
-                                    <div className="flex flex-col items-center justify-center py-12">
-                                        <RefreshCw className="h-12 w-12 animate-spin text-blue-600" />
-                                        <p className="mt-4 text-gray-600">กำลังโหลดข้อมูล...</p>
-                                    </div>
-                                ) : stocks.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center rounded-xl bg-gray-50 py-12 text-center">
-                                        <BarChart3 className="mb-4 h-16 w-16 text-gray-300" />
-                                        <h3 className="mb-2 text-xl font-bold text-gray-600">ไม่มีข้อมูลการบันทึก</h3>
-                                        <p className="mb-6 text-gray-500">เริ่มต้นบันทึกข้อมูลการผลิตแรกของคุณ</p>
-                                        <button
-                                            onClick={handleNewRecord}
-                                            className="flex items-center gap-2 rounded-lg bg-blue-500 px-6 py-3 font-semibold text-white transition-all duration-200 hover:scale-105 hover:shadow-md"
-                                        >
-                                            <FileText size={16} />
-                                            บันทึกข้อมูลแรก
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
-                                        <div className="overflow-x-auto">
-                                            <table className="min-w-full divide-y divide-gray-200">
-                                                <thead className="bg-gray-50">
-                                                    <tr>
-                                                        {[
-                                                            'วันที่ผลิต',
-                                                            'ผลปาล์มตั้งต้น',
-                                                            'EFB Fiber (%)',
-                                                            'EFB Fiber ผลิตได้',
-                                                            'EFB Fiber คงเหลือ',
-                                                            'EFB (%)',
-                                                            'EFB ผลิตได้',
-                                                            'EFB คงเหลือ',
-                                                            'Shell (%)',
-                                                            'Shell ผลิตได้',
-                                                            'Shell คงเหลือ',
-                                                            'การจัดการ',
-                                                        ].map((header) => (
-                                                            <th
-                                                                key={header}
-                                                                className="px-3 py-3 text-left text-xs font-bold tracking-wider text-gray-700 uppercase"
-                                                            >
-                                                                {header}
-                                                            </th>
-                                                        ))}
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-100 bg-white">
-                                                    {stocks.map((stock) => (
-                                                        <tr key={stock.id} className="transition-colors duration-150 hover:bg-gray-50">
-                                                            <td className="px-3 py-3 whitespace-nowrap">
-                                                                <div className="text-sm font-semibold text-gray-900">
-                                                                    {new Date(stock.production_date).toLocaleDateString('th-TH')}
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-3 py-3 whitespace-nowrap">
-                                                                <div className="text-sm font-bold text-gray-900">
-                                                                    {parseFloat(stock.initial_palm_quantity).toLocaleString('th-TH', {
-                                                                        minimumFractionDigits: 2,
-                                                                        maximumFractionDigits: 2,
-                                                                    })}{' '}
-                                                                    ตัน
-                                                                </div>
-                                                            </td>
-                                                            {/* EFB Fiber Data */}
-                                                            <td className="px-3 py-3 whitespace-nowrap">
-                                                                <div className="text-sm text-blue-600">
-                                                                    {parseFloat(stock.efb_fiber_percentage || 0).toLocaleString('th-TH', {
-                                                                        minimumFractionDigits: 1,
-                                                                        maximumFractionDigits: 1,
-                                                                    })}
-                                                                    %
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-3 py-3 whitespace-nowrap">
-                                                                <div className="text-sm font-bold text-green-600">
-                                                                    {parseFloat(stock.efb_fiber_produced || 0).toLocaleString('th-TH', {
-                                                                        minimumFractionDigits: 2,
-                                                                        maximumFractionDigits: 2,
-                                                                    })}{' '}
-                                                                    ตัน
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-3 py-3 whitespace-nowrap">
-                                                                <div className="text-sm font-bold text-blue-600">
-                                                                    {parseFloat(stock.efb_fiber_balance || 0).toLocaleString('th-TH', {
-                                                                        minimumFractionDigits: 2,
-                                                                        maximumFractionDigits: 2,
-                                                                    })}{' '}
-                                                                    ตัน
-                                                                </div>
-                                                            </td>
-                                                            {/* EFB Data */}
-                                                            <td className="px-3 py-3 whitespace-nowrap">
-                                                                <div className="text-sm text-green-600">
-                                                                    {parseFloat(stock.efb_percentage || 0).toLocaleString('th-TH', {
-                                                                        minimumFractionDigits: 1,
-                                                                        maximumFractionDigits: 1,
-                                                                    })}
-                                                                    %
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-3 py-3 whitespace-nowrap">
-                                                                <div className="text-sm font-bold text-green-600">
-                                                                    {parseFloat(stock.efb_produced || 0).toLocaleString('th-TH', {
-                                                                        minimumFractionDigits: 2,
-                                                                        maximumFractionDigits: 2,
-                                                                    })}{' '}
-                                                                    ตัน
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-3 py-3 whitespace-nowrap">
-                                                                <div className="text-sm font-bold text-green-600">
-                                                                    {parseFloat(stock.efb_balance || 0).toLocaleString('th-TH', {
-                                                                        minimumFractionDigits: 2,
-                                                                        maximumFractionDigits: 2,
-                                                                    })}{' '}
-                                                                    ตัน
-                                                                </div>
-                                                            </td>
-                                                            {/* Shell Data */}
-                                                            <td className="px-3 py-3 whitespace-nowrap">
-                                                                <div className="text-sm text-orange-600">
-                                                                    {parseFloat(stock.shell_percentage || 0).toLocaleString('th-TH', {
-                                                                        minimumFractionDigits: 1,
-                                                                        maximumFractionDigits: 1,
-                                                                    })}
-                                                                    %
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-3 py-3 whitespace-nowrap">
-                                                                <div className="text-sm font-bold text-orange-600">
-                                                                    {parseFloat(stock.shell_produced || 0).toLocaleString('th-TH', {
-                                                                        minimumFractionDigits: 2,
-                                                                        maximumFractionDigits: 2,
-                                                                    })}{' '}
-                                                                    ตัน
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-3 py-3 whitespace-nowrap">
-                                                                <div className="text-sm font-bold text-orange-600">
-                                                                    {parseFloat(stock.shell_balance || 0).toLocaleString('th-TH', {
-                                                                        minimumFractionDigits: 2,
-                                                                        maximumFractionDigits: 2,
-                                                                    })}{' '}
-                                                                    ตัน
-                                                                </div>
-                                                            </td>
-                                                            {/* Actions */}
-                                                            <td className="px-3 py-3 whitespace-nowrap">
-                                                                <div className="flex items-center gap-2">
-                                                                    <button
-                                                                        onClick={() => handleEdit(stock)}
-                                                                        className="rounded-lg bg-blue-500 p-2 text-white transition-colors duration-200 hover:bg-blue-600"
-                                                                        title="แก้ไข"
-                                                                    >
-                                                                        <Edit size={16} />
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleDeleteWithPermission(stock.id)}
-                                                                        className="rounded-lg bg-red-500 p-2 text-white transition-colors duration-200 hover:bg-red-600"
-                                                                        title="ลบ"
-                                                                    >
-                                                                        <Trash2 size={16} />
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                            return (
+                                <div className="space-y-4 p-6">
+                                    {/* Search bar */}
+                                    <div className="rounded-3xl border border-white/50 bg-white/70 p-4 shadow-2xl backdrop-blur-sm">
+                                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                            <div className="relative max-w-md flex-1">
+                                                <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="ค้นหาตามวันที่..."
+                                                    value={historySearch}
+                                                    onChange={(e) => { setHistorySearch(e.target.value); setHistoryPage(1); }}
+                                                    className="w-full rounded-2xl border border-gray-200 bg-white py-3 pr-4 pl-10 text-sm transition-all duration-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200/50 focus:outline-none"
+                                                />
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <button className="flex items-center gap-2 rounded-2xl border border-emerald-200/50 bg-gradient-to-r from-emerald-50 to-green-100 px-5 py-2.5 text-sm font-medium text-emerald-700 shadow-sm transition-all duration-200 hover:shadow-md">
+                                                    <Filter className="h-4 w-4" />
+                                                    กรองข้อมูล
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                )}
-                            </div>
-                        )}
+
+                                    {loading ? (
+                                        <div className="flex flex-col items-center justify-center py-16">
+                                            <RefreshCw className="h-12 w-12 animate-spin text-emerald-600" />
+                                            <p className="mt-4 text-gray-600">กำลังโหลดข้อมูล...</p>
+                                        </div>
+                                    ) : stocks.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center rounded-3xl border border-gray-200/50 bg-gradient-to-br from-gray-50 to-gray-100 py-16 text-center">
+                                            <BarChart3 className="mb-4 h-16 w-16 text-gray-300" />
+                                            <h3 className="mb-2 text-lg font-semibold text-gray-600">ไม่มีข้อมูลการบันทึก</h3>
+                                            <p className="mb-6 text-sm text-gray-500">เริ่มต้นบันทึกข้อมูลการผลิตแรกของคุณ</p>
+                                            <button
+                                                onClick={handleNewRecord}
+                                                className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 px-6 py-3 text-white shadow-lg transition-all duration-200 hover:shadow-xl"
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                                บันทึกข้อมูลแรก
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {/* Table card */}
+                                            <div className="overflow-hidden rounded-3xl border border-white/50 bg-white/70 shadow-2xl backdrop-blur-sm">
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full">
+                                                        <thead className="border-b border-gray-200/50 bg-gradient-to-r from-gray-50 to-emerald-50/30">
+                                                            <tr>
+                                                                <th className="px-5 py-4 text-left text-sm font-semibold text-gray-700">
+                                                                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-emerald-600" /><span>วันที่ผลิต</span></div>
+                                                                </th>
+                                                                <th className="px-5 py-4 text-left text-sm font-semibold text-gray-700">
+                                                                    <div className="flex items-center gap-2"><Package className="h-4 w-4 text-gray-500" /><span>ผลปาล์มตั้งต้น</span></div>
+                                                                </th>
+                                                                <th className="px-5 py-4 text-left text-sm font-semibold text-gray-700">
+                                                                    <div className="flex items-center gap-2"><Leaf className="h-4 w-4 text-blue-500" /><span>EFB Fiber</span></div>
+                                                                </th>
+                                                                <th className="px-5 py-4 text-left text-sm font-semibold text-gray-700">
+                                                                    <div className="flex items-center gap-2"><Trees className="h-4 w-4 text-green-600" /><span>EFB</span></div>
+                                                                </th>
+                                                                <th className="px-5 py-4 text-left text-sm font-semibold text-gray-700">
+                                                                    <div className="flex items-center gap-2"><Nut className="h-4 w-4 text-orange-500" /><span>Shell</span></div>
+                                                                </th>
+                                                                <th className="px-5 py-4 text-left text-sm font-semibold text-gray-700">การจัดการ</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-100/50">
+                                                            {pagedStocks.map((stock, index) => (
+                                                                <tr
+                                                                    key={stock.id}
+                                                                    className={`group transition-all duration-300 hover:bg-gradient-to-r hover:from-emerald-50/30 hover:to-green-50/30 ${
+                                                                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
+                                                                    }`}
+                                                                >
+                                                                    {/* วันที่ */}
+                                                                    <td className="px-5 py-4 align-top">
+                                                                        <div className="flex items-start gap-3">
+                                                                            <div className="rounded-xl bg-gradient-to-br from-emerald-100 to-green-200 p-2 shadow-sm">
+                                                                                <Calendar className="h-4 w-4 text-emerald-600" />
+                                                                            </div>
+                                                                            <div>
+                                                                                <div className="text-sm font-semibold text-gray-900">
+                                                                                    {new Date(stock.production_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                                                </div>
+                                                                                <div className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                                                                                    {new Date(stock.production_date).toLocaleDateString('th-TH', { weekday: 'long' })}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+
+                                                                    {/* ผลปาล์มตั้งต้น */}
+                                                                    <td className="px-5 py-4 align-top">
+                                                                        <div className="rounded-2xl border border-gray-100 bg-gray-50/50 p-3">
+                                                                            <div className="mb-1 text-xs font-medium text-gray-500">ปริมาณ</div>
+                                                                            <div className="text-sm font-bold text-gray-800">{fmt(stock.initial_palm_quantity, 2)} ตัน</div>
+                                                                        </div>
+                                                                    </td>
+
+                                                                    {/* EFB Fiber */}
+                                                                    <td className="px-5 py-4 align-top">
+                                                                        <div className="space-y-1.5">
+                                                                            <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-2.5">
+                                                                                <div className="mb-1 text-xs font-medium text-blue-500">% การผลิต</div>
+                                                                                <div className="text-sm font-bold text-blue-700">{fmt(stock.efb_fiber_percentage, 1)}%</div>
+                                                                            </div>
+                                                                            <div className="rounded-2xl border border-green-100 bg-green-50/50 p-2.5">
+                                                                                <div className="mb-1 text-xs font-medium text-green-500">ผลิตได้</div>
+                                                                                <div className="text-sm font-bold text-green-700">{fmt(stock.efb_fiber_produced)} ตัน</div>
+                                                                            </div>
+                                                                            <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-2.5">
+                                                                                <div className="mb-1 text-xs font-medium text-blue-500">คงเหลือ</div>
+                                                                                <div className={`text-sm font-bold ${parseFloat(stock.efb_fiber_balance) < 0 ? 'text-red-600' : 'text-blue-700'}`}>{fmt(stock.efb_fiber_balance)} ตัน</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+
+                                                                    {/* EFB */}
+                                                                    <td className="px-5 py-4 align-top">
+                                                                        <div className="space-y-1.5">
+                                                                            <div className="rounded-2xl border border-green-100 bg-green-50/50 p-2.5">
+                                                                                <div className="mb-1 text-xs font-medium text-green-500">% การผลิต</div>
+                                                                                <div className="text-sm font-bold text-green-700">{fmt(stock.efb_percentage, 1)}%</div>
+                                                                            </div>
+                                                                            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-2.5">
+                                                                                <div className="mb-1 text-xs font-medium text-emerald-500">ผลิตได้</div>
+                                                                                <div className="text-sm font-bold text-emerald-700">{fmt(stock.efb_produced)} ตัน</div>
+                                                                            </div>
+                                                                            <div className="rounded-2xl border border-green-100 bg-green-50/50 p-2.5">
+                                                                                <div className="mb-1 text-xs font-medium text-green-500">คงเหลือ</div>
+                                                                                <div className={`text-sm font-bold ${parseFloat(stock.efb_balance) < 0 ? 'text-red-600' : 'text-green-700'}`}>{fmt(stock.efb_balance)} ตัน</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+
+                                                                    {/* Shell */}
+                                                                    <td className="px-5 py-4 align-top">
+                                                                        <div className="space-y-1.5">
+                                                                            <div className="rounded-2xl border border-orange-100 bg-orange-50/50 p-2.5">
+                                                                                <div className="mb-1 text-xs font-medium text-orange-500">% การผลิต</div>
+                                                                                <div className="text-sm font-bold text-orange-700">{fmt(stock.shell_percentage, 1)}%</div>
+                                                                            </div>
+                                                                            <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-2.5">
+                                                                                <div className="mb-1 text-xs font-medium text-amber-500">ผลิตได้</div>
+                                                                                <div className="text-sm font-bold text-amber-700">{fmt(stock.shell_produced)} ตัน</div>
+                                                                            </div>
+                                                                            <div className="rounded-2xl border border-orange-100 bg-orange-50/50 p-2.5">
+                                                                                <div className="mb-1 text-xs font-medium text-orange-500">คงเหลือ</div>
+                                                                                <div className={`text-sm font-bold ${parseFloat(stock.shell_balance) < 0 ? 'text-red-600' : 'text-orange-700'}`}>{fmt(stock.shell_balance)} ตัน</div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+
+                                                                    {/* Actions */}
+                                                                    <td className="px-5 py-4 align-top">
+                                                                        <div className="flex flex-col gap-2">
+                                                                            <button
+                                                                                onClick={() => handleEdit(stock)}
+                                                                                className="flex items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 text-sm text-white shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-md"
+                                                                            >
+                                                                                <Edit className="h-4 w-4" />
+                                                                                แก้ไข
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => handleDeleteWithPermission(stock.id)}
+                                                                                className="flex items-center justify-center gap-1 rounded-xl bg-gradient-to-r from-red-500 to-red-600 px-4 py-2 text-sm text-white shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-md"
+                                                                            >
+                                                                                <Trash2 className="h-4 w-4" />
+                                                                                ลบ
+                                                                            </button>
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+
+                                                {filteredStocks.length === 0 && (
+                                                    <div className="py-16 text-center">
+                                                        <div className="mx-auto max-w-md rounded-3xl border border-gray-200/50 bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+                                                            <Package className="mx-auto mb-4 h-16 w-16 text-gray-300" />
+                                                            <h3 className="mb-2 text-lg font-semibold text-gray-600">ไม่พบข้อมูล</h3>
+                                                            <p className="text-sm text-gray-500">ลองเปลี่ยนคำค้นหาใหม่</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Pagination */}
+                                            {historyTotalPages > 1 && (
+                                                <div className="flex flex-col items-center justify-between gap-3 rounded-3xl border border-white/50 bg-white/70 px-6 py-4 shadow-2xl backdrop-blur-sm sm:flex-row">
+                                                    <div className="flex items-center gap-3">
+                                                        <p className="text-sm text-gray-500">
+                                                            แสดง{' '}
+                                                            <span className="font-semibold text-gray-700">{(historyPage - 1) * historyItemsPerPage + 1}</span>
+                                                            {' '}–{' '}
+                                                            <span className="font-semibold text-gray-700">{Math.min(historyPage * historyItemsPerPage, filteredStocks.length)}</span>
+                                                            {' '}จาก{' '}
+                                                            <span className="font-semibold text-gray-700">{filteredStocks.length}</span> รายการ
+                                                        </p>
+                                                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                                                            <span>แสดง</span>
+                                                            <select
+                                                                value={historyItemsPerPage}
+                                                                onChange={(e) => { setHistoryItemsPerPage(Number(e.target.value)); setHistoryPage(1); }}
+                                                                className="rounded-xl border border-gray-200 bg-white px-2 py-1 text-sm focus:border-emerald-400 focus:ring-2 focus:ring-emerald-200/50 focus:outline-none"
+                                                            >
+                                                                <option value={5}>5</option>
+                                                                <option value={10}>10</option>
+                                                                <option value={20}>20</option>
+                                                            </select>
+                                                            <span>รายการ</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
+                                                            disabled={historyPage === 1}
+                                                            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-all duration-200 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                                        >
+                                                            ‹ ก่อนหน้า
+                                                        </button>
+                                                        {getHistoryPageNums().map((pg, idx) =>
+                                                            pg === '...' ? (
+                                                                <span key={`e-${idx}`} className="px-2 text-gray-400">…</span>
+                                                            ) : (
+                                                                <button
+                                                                    key={pg}
+                                                                    onClick={() => setHistoryPage(pg as number)}
+                                                                    className={`rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                                                                        historyPage === pg
+                                                                            ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md'
+                                                                            : 'border border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
+                                                                    }`}
+                                                                >
+                                                                    {pg}
+                                                                </button>
+                                                            )
+                                                        )}
+                                                        <button
+                                                            onClick={() => setHistoryPage((p) => Math.min(historyTotalPages, p + 1))}
+                                                            disabled={historyPage === historyTotalPages}
+                                                            className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-all duration-200 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-40"
+                                                        >
+                                                            ถัดไป ›
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
             </div>

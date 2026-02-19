@@ -223,8 +223,8 @@ export default function ProductionReport() {
                         </motion.div>
                                 <div className="grid grid-cols-2 gap-2">
                         {/* Monthly Summary Mobile */}
-                        <MobileCardNumberVertical title="ยอดรับเข้า" value={fmt(prod?.ffb_purchase_month)} tone="emerald" />
-                        <MobileCardNumberVertical title="ยอดเบิกผลิต" value={fmt(prod?.ffb_good_qty_month)} tone="teal" />
+                        <MobileCardNumberVertical title="ยอดรับเข้า" value={fmt(prod?.ffb_purchase_month, 2)} tone="emerald" />
+                        <MobileCardNumberVertical title="ยอดเบิกผลิต" value={fmt(prod?.ffb_good_qty_month, 2)} tone="teal" />
                         </div>
                     </div>
                 </div>
@@ -472,9 +472,9 @@ export default function ProductionReport() {
 
                     {/* -------------------- MONTHLY SUMMARY -------------------- */}
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-1 xl:col-span-3">
-                        <CardNumberVertical title="ยอดรับเข้าทั้งเดือน" value={fmt(prod?.ffb_purchase_month)} tone="emerald" />
+                        <CardNumberVertical title="ยอดรับเข้าทั้งเดือน" value={fmt(prod?.ffb_purchase_month, 2)} tone="emerald" />
 
-                        <CardNumberVertical title="ยอดเบิกผลิต" value={fmt(prod?.ffb_good_qty_month)} tone="teal" />
+                        <CardNumberVertical title="ยอดเบิกผลิต" value={fmt(prod?.ffb_good_qty_month, 2)} tone="teal" />
                     </div>
                 </div>
 
