@@ -96,6 +96,7 @@ class ByProductionStockController extends Controller
                 'GoodID',
                 DB::raw('SUM(NetWei) AS total_netwei')
             )
+                ->whereIn('GoodID', [9012, 2149, 2151])
                 ->groupBy('SOPDate', 'GoodID')
                 ->orderBy('SOPDate', 'desc')
                 ->get();
