@@ -437,7 +437,7 @@ const ByProductionForm: React.FC = () => {
             salesForDay.forEach((s) => {
                 const weight = Number(s.total_netwei) / 1000 || 0;
 
-                switch (s.GoodID) {
+                switch (Number(s.GoodID)) {
                     case 9012:
                         result.efb_fiber_sold += weight;
                         break;
