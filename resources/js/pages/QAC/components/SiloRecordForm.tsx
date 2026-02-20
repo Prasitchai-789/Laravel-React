@@ -176,7 +176,10 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
     const calculateQuantity = (level, multiplier, constant, extra = 0) => {
         if (!level || level === '') return 0;
         const levelNum = parseFloat(level);
-        return isNaN(levelNum) ? 0 : (constant - levelNum) * multiplier + extra;
+        if (isNaN(levelNum)) return 0;
+        
+        const raw = (constant - levelNum) * multiplier;
+        return raw > 0 ? raw + extra : 0;
     };
 
     const calculateQuantities = (data: Record<string, string>) => {
@@ -186,11 +189,11 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
             silo_sale_big: number; silo_sale_small: number;
             kernel_total: number;
         } = {
-            nut_silo_1: calculateQuantity(data.nut_silo_1_level, multipliers.nut_silo_1, constants.nut_silo_1),
-            nut_silo_2: calculateQuantity(data.nut_silo_2_level, multipliers.nut_silo_2, constants.nut_silo_2),
-            nut_silo_3: calculateQuantity(data.nut_silo_3_level, multipliers.nut_silo_3, constants.nut_silo_3),
-            kernel_silo_1: calculateQuantity(data.kernel_silo_1_level, multipliers.kernel_silo_1, constants.kernel_silo_1),
-            kernel_silo_2: calculateQuantity(data.kernel_silo_2_level, multipliers.kernel_silo_2, constants.kernel_silo_2),
+            nut_silo_1: calculateQuantity(data.nut_silo_1_level, multipliers.nut_silo_1, constants.nut_silo_1, 1.40),
+            nut_silo_2: calculateQuantity(data.nut_silo_2_level, multipliers.nut_silo_2, constants.nut_silo_2, 1.40),
+            nut_silo_3: calculateQuantity(data.nut_silo_3_level, multipliers.nut_silo_3, constants.nut_silo_3, 2.19),
+            kernel_silo_1: calculateQuantity(data.kernel_silo_1_level, multipliers.kernel_silo_1, constants.kernel_silo_1, 0.814),
+            kernel_silo_2: calculateQuantity(data.kernel_silo_2_level, multipliers.kernel_silo_2, constants.kernel_silo_2, 0.814),
             silo_sale_big: calculateQuantity(data.silo_sale_big_level, multipliers.silo_sale_big, constants.silo_sale_big),
             silo_sale_small: calculateQuantity(data.silo_sale_small_level, multipliers.silo_sale_small, constants.silo_sale_small),
             kernel_total: 0,
@@ -258,7 +261,7 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
             label: 'Nut Silo 1',
             icon: Nut,
             type: 'nut',
-            formula: '(614 - ระดับ) × 0.0453',
+            formula: '((614 - ระดับ) × 0.0453) + 1.40',
             description: 'Silo หมายเลข 1'
         },
         {
@@ -266,7 +269,7 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
             label: 'Nut Silo 2',
             icon: Nut,
             type: 'nut',
-            formula: '(614 - ระดับ) × 0.0453',
+            formula: '((614 - ระดับ) × 0.0453) + 1.40',
             description: 'Silo หมายเลข 2'
         },
         {
@@ -274,7 +277,7 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
             label: 'Nut Silo 3',
             icon: Nut,
             type: 'nut',
-            formula: '(614 - ระดับ) × 0.0538',
+            formula: '((614 - ระดับ) × 0.0538) + 2.19',
             description: 'Silo หมายเลข 3'
         },
         {
@@ -282,7 +285,7 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
             label: 'Kernel Silo 1',
             icon: Package,
             type: 'kernel',
-            formula: '(640 - ระดับ) × 0.0296',
+            formula: '((640 - ระดับ) × 0.0296) + 0.814',
             description: 'Silo เมล็ดในหมายเลข 1'
         },
         {
@@ -290,7 +293,7 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
             label: 'Kernel Silo 2',
             icon: Package,
             type: 'kernel',
-            formula: '(640 - ระดับ) × 0.0296',
+            formula: '((640 - ระดับ) × 0.0296) + 0.814',
             description: 'Silo เมล็ดในหมายเลข 2'
         },
         {

@@ -54,27 +54,32 @@ class SiloRecord extends Model
     // Accessors สำหรับคำนวณปริมาณจริง (ทศนิยม 3 ตำแหน่ง)
     public function getNutSilo1QuantityAttribute()
     {
-        return round((self::CONSTANTS['nut_silo_1'] - $this->nut_silo_1_level) * self::MULTIPLIERS['nut_silo_1'], 3);
+        $raw = (self::CONSTANTS['nut_silo_1'] - $this->nut_silo_1_level) * self::MULTIPLIERS['nut_silo_1'];
+        return $raw > 0 ? round($raw + 1.40, 3) : 0;
     }
 
     public function getNutSilo2QuantityAttribute()
     {
-        return round((self::CONSTANTS['nut_silo_2'] - $this->nut_silo_2_level) * self::MULTIPLIERS['nut_silo_2'], 3);
+        $raw = (self::CONSTANTS['nut_silo_2'] - $this->nut_silo_2_level) * self::MULTIPLIERS['nut_silo_2'];
+        return $raw > 0 ? round($raw + 1.40, 3) : 0;
     }
 
     public function getNutSilo3QuantityAttribute()
     {
-        return round(((self::CONSTANTS['nut_silo_3'] - $this->nut_silo_3_level) * self::MULTIPLIERS['nut_silo_3']) + 2.19, 3);
+        $raw = (self::CONSTANTS['nut_silo_3'] - $this->nut_silo_3_level) * self::MULTIPLIERS['nut_silo_3'];
+        return $raw > 0 ? round($raw + 2.19, 3) : 0;
     }
 
     public function getKernelSilo1QuantityAttribute()
     {
-        return round((self::CONSTANTS['kernel_silo_1'] - $this->kernel_silo_1_level) * self::MULTIPLIERS['kernel_silo_1'], 3);
+        $raw = (self::CONSTANTS['kernel_silo_1'] - $this->kernel_silo_1_level) * self::MULTIPLIERS['kernel_silo_1'];
+        return $raw > 0 ? round($raw + 0.814, 3) : 0;
     }
 
     public function getKernelSilo2QuantityAttribute()
     {
-        return round((self::CONSTANTS['kernel_silo_2'] - $this->kernel_silo_2_level) * self::MULTIPLIERS['kernel_silo_2'], 3);
+        $raw = (self::CONSTANTS['kernel_silo_2'] - $this->kernel_silo_2_level) * self::MULTIPLIERS['kernel_silo_2'];
+        return $raw > 0 ? round($raw + 0.814, 3) : 0;
     }
 
     public function getSiloSaleBigQuantityAttribute()
