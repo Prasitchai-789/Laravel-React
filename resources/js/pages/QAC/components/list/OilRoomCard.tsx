@@ -24,7 +24,9 @@ export default function OilRoomCard({ oil }: Props) {
                     <div key={idx} className="rounded-xl border border-gray-100 bg-gray-50/50 p-2">
                         <div className="text-xs text-gray-600">{item.label}</div>
                         <div className={`text-sm font-bold ${item.color}`}>
-                            {item.value}
+                            {["Undilute 1", "Undilute 2", "Setting", "Clean Oil"].includes(item.label)
+                                ? Number(item.value).toFixed(2)
+                                : item.value}
                             {["Undilute 1", "Undilute 2", "Setting", "Clean Oil"].includes(item.label)
                                 ? " แผ่น"
                                 : ""}

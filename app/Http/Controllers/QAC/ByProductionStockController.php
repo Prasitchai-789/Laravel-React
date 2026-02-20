@@ -22,7 +22,7 @@ class ByProductionStockController extends Controller
     public function apiByProduction()
     {
         try {
-            $records = ByProductionStock::all();
+            $records = ByProductionStock::orderBy('production_date', 'desc')->get();
             return response()->json([
                 'success' => true,
                 'records' => $records,
