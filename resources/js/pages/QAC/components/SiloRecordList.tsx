@@ -150,20 +150,21 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
         const levelNum = typeof level === 'string' ? parseFloat(level) : level;
         if (isNaN(levelNum)) return '0.000';
 
-        const result = (constant - levelNum) * multiplier + extra;
+        const raw = (constant - levelNum) * multiplier;
+        const result = raw > 0 ? raw + extra : 0;
         return result.toFixed(3);
     };
 
     const calculateTotals = (record: SiloRecord): TotalsResult => {
         // คำนวณ Nut Total
-        const nutSilo1 = safeParseFloat(calculateQuantity(record.nut_silo_1_level, 0.0453, 614));
-        const nutSilo2 = safeParseFloat(calculateQuantity(record.nut_silo_2_level, 0.0453, 614));
+        const nutSilo1 = safeParseFloat(calculateQuantity(record.nut_silo_1_level, 0.0453, 614, 1.40));
+        const nutSilo2 = safeParseFloat(calculateQuantity(record.nut_silo_2_level, 0.0453, 614, 1.40));
         const nutSilo3 = safeParseFloat(calculateQuantity(record.nut_silo_3_level, 0.0538, 614, 2.19));
         const nutTotal = nutSilo1 + nutSilo2 + nutSilo3;
 
         // คำนวณ Kernel Total
-        const kernelSilo1 = safeParseFloat(calculateQuantity(record.kernel_silo_1_level, 0.0296, 640));
-        const kernelSilo2 = safeParseFloat(calculateQuantity(record.kernel_silo_2_level, 0.0296, 640));
+        const kernelSilo1 = safeParseFloat(calculateQuantity(record.kernel_silo_1_level, 0.0296, 640, 0.814));
+        const kernelSilo2 = safeParseFloat(calculateQuantity(record.kernel_silo_2_level, 0.0296, 640, 0.814));
         const kernelTotal = kernelSilo1 + kernelSilo2;
 
         // คำนวณ Sale Total
@@ -584,12 +585,12 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
                                                         {
                                                             level: record.nut_silo_1_level,
                                                             label: 'Silo 1',
-                                                            value: calculateQuantity(record.nut_silo_1_level, 0.0453, 614),
+                                                            value: calculateQuantity(record.nut_silo_1_level, 0.0453, 614, 1.40),
                                                         },
                                                         {
                                                             level: record.nut_silo_2_level,
                                                             label: 'Silo 2',
-                                                            value: calculateQuantity(record.nut_silo_2_level, 0.0453, 614),
+                                                            value: calculateQuantity(record.nut_silo_2_level, 0.0453, 614, 1.40),
                                                         },
                                                         {
                                                             level: record.nut_silo_3_level,
@@ -615,12 +616,12 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
                                                         {
                                                             level: record.kernel_silo_1_level,
                                                             label: 'Silo 1',
-                                                            value: calculateQuantity(record.kernel_silo_1_level, 0.0296, 640),
+                                                            value: calculateQuantity(record.kernel_silo_1_level, 0.0296, 640, 0.814),
                                                         },
                                                         {
                                                             level: record.kernel_silo_2_level,
                                                             label: 'Silo 2',
-                                                            value: calculateQuantity(record.kernel_silo_2_level, 0.0296, 640),
+                                                            value: calculateQuantity(record.kernel_silo_2_level, 0.0296, 640, 0.814),
                                                         },
                                                     ].map((silo, idx) => (
                                                         <div key={idx} className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-3">
