@@ -347,7 +347,8 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
 
     const totalNut = calculatedQuantities.nut_silo_1 + calculatedQuantities.nut_silo_2 + calculatedQuantities.nut_silo_3;
     const totalKernel = calculatedQuantities.kernel_silo_1 + calculatedQuantities.kernel_silo_2;
-    const totalSale = ((calculatedQuantities.silo_sale_big + calculatedQuantities.silo_sale_small)/2)+12;
+    const saleSum = calculatedQuantities.silo_sale_big + calculatedQuantities.silo_sale_small;
+    const totalSale = saleSum > 0 ? (saleSum / 2) + 12 : 0;
 
     const getFieldColor = (type) => {
         switch (type) {

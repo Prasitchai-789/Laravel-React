@@ -170,7 +170,8 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
         // คำนวณ Sale Total
         const saleBig = safeParseFloat(calculateQuantity(record.silo_sale_big_level, 0.228, 920));
         const saleSmall = safeParseFloat(calculateQuantity(record.silo_sale_small_level, 0.228, 870));
-        const saleTotal = (saleBig + saleSmall) / 2 + 12;
+        const saleSum = saleBig + saleSmall;
+        const saleTotal = saleSum > 0 ? (saleSum / 2) + 12 : 0;
 
         // คำนวณ Outside Total
         const outsideNut = safeParseFloat(record.outside_nut);
