@@ -913,13 +913,13 @@ useEffect(() => {
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-emerald-50/30 py-6 font-anuphan">
                 <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
                     {/* Header */}
-                    <div className="mb-8 text-center">
-                        <h1 className="mb-3 bg-gradient-to-br from-gray-900 via-blue-800 to-purple-700 bg-clip-text text-3xl font-black text-transparent">
+                    <div className="mb-0 text-center">
+                        {/* <h1 className="mb-3 bg-gradient-to-br from-gray-900 via-blue-800 to-purple-700 bg-clip-text text-3xl font-black text-transparent">
                             บันทึกข้อมูลสต๊อคผลผลิตปาล์ม
-                        </h1>
+                        </h1> */}
 
                         {/* Quick Actions */}
-                        <div className="mt-4 flex flex-wrap justify-center gap-2">
+                        {/* <div className="mt-4 flex flex-wrap justify-center gap-2">
                             <button
                                 onClick={handleNewRecord}
                                 className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:scale-105 hover:shadow-md"
@@ -934,7 +934,7 @@ useEffect(() => {
                                 <Trash2 size={16} />
                                 ล้างฟอร์ม
                             </button>
-                        </div>
+                        </div> */}
                     </div>
 
                     {/* Navigation Tabs */}
@@ -1217,7 +1217,7 @@ useEffect(() => {
                                     </SectionHeader>
 
                                     {/* Submit Button */}
-                                    <div className="flex justify-center gap-4 pt-4">
+                                    <div className="flex justify-center gap-4 pt-2">
                                         {isEditing && (
                                             <button
                                                 type="button"
