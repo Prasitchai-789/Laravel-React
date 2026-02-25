@@ -14,11 +14,11 @@
 
 @theme {
     --font-anuphan: 'Anuphan', sans-serif;
+    --font-anuphut: 'Anuphan', sans-serif;
     --font-kanit: 'Kanit', sans-serif;
     --font-sarabun: 'Sarabun', sans-serif;
     --font-db: 'DB EuroThai X Bold', sans-serif;
-    --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Anuphan', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -153,7 +153,23 @@
 
     body {
         @apply bg-background text-foreground;
+        font-family: 'Anuphan', ui-sans-serif, system-ui, sans-serif;
     }
 }
 
+/* utility class เพื่อ backward compat */
+.font-anuphut {
+    font-family: 'Anuphan', ui-sans-serif, system-ui, sans-serif;
+}
 
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

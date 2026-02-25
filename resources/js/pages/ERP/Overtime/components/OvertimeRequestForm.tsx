@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Save, Clock, Calendar } from "lucide-react";
-import EmployeeSearchSelect from "./EmployeeSearchSelect";
 
 interface OvertimeRequestFormProps {
   shifts: any[];
@@ -83,8 +82,8 @@ const OvertimeRequestForm: React.FC<OvertimeRequestFormProps> = ({
       return;
     }
 
-    const employee = employees.find(emp => emp.id === formData.employeeId);
-    const shift = shifts.find(s => s.id === formData.shiftId);
+    const employee = employees.find(emp => emp.id.toString() === formData.employeeId);
+    const shift = shifts.find(s => s.id.toString() === formData.shiftId);
 
     const requestData = {
       id: Date.now(),
@@ -97,7 +96,7 @@ const OvertimeRequestForm: React.FC<OvertimeRequestFormProps> = ({
       date: formData.date,
       startTime: formData.startTime,
       endTime: formData.endTime,
-      plannedHours: parseFloat(formData.plannedHours),
+      plannedHours: typeof formData.plannedHours === 'string' ? parseFloat(formData.plannedHours) : formData.plannedHours,
       reason: formData.reason,
       status: "approved",
       type: formData.type === "auto" ? calculateOvertimeType(formData.date, formData.startTime, formData.endTime) : formData.type,
@@ -141,12 +140,21 @@ const OvertimeRequestForm: React.FC<OvertimeRequestFormProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="employee">พนักงาน</Label>
-              <EmployeeSearchSelect
-                employees={employees}
+              <Select
                 value={formData.employeeId}
                 onValueChange={(value) => setFormData(prev => ({ ...prev, employeeId: value }))}
-                placeholder="ค้นหาและเลือกพนักงาน"
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="ค้นหาและเลือกพนักงาน" />
+                </SelectTrigger>
+                <SelectContent>
+                  {employees.map(emp => (
+                    <SelectItem key={emp.id} value={emp.id.toString()}>
+                      {emp.name} ({emp.department})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -162,10 +170,10 @@ const OvertimeRequestForm: React.FC<OvertimeRequestFormProps> = ({
                   {shifts
                     .filter(shift => shift.status === "active" && shift.overtimeAllowed)
                     .map(shift => (
-                    <SelectItem key={shift.id} value={shift.id}>
-                      {shift.shiftName} ({shift.startTime} - {shift.endTime} น.)
-                    </SelectItem>
-                  ))}
+                      <SelectItem key={shift.id} value={shift.id}>
+                        {shift.shiftName} ({shift.startTime} - {shift.endTime} น.)
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

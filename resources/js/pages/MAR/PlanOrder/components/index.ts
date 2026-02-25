@@ -9,3 +9,4 @@ export { default as PlanOrderRow } from './PlanOrderRow';
 export { default as PlanOrderStatusBadge } from './PlanOrderStatusBadge';
 export { default as PlanOrderPriorityBadge } from './PlanOrderPriorityBadge';
 export { default as CreatePlanOrderModal } from './CreatePlanOrderModal';
+export { default as VehicleCheckModal } from './VehicleCheckModal';

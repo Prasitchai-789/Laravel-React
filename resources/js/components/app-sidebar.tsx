@@ -15,6 +15,7 @@ import {
 import { can } from '@/lib/can';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
+import { route } from 'ziggy-js';
 import {
     BookOpen,
     ChartCandlestick,
@@ -298,6 +299,19 @@ const FerNavItems: NavItem[] = [
 ];
 
 const QACNavItems: NavItem[] = [
+    // primary COA links come first
+    {
+        title: 'Oil COA',
+        href: '/qac/coa/oil',
+        icon: Beaker,
+        permission: ['qac.view'],
+    },
+    {
+        title: 'Seed COA',
+        href: '/qac/coa/seed',
+        icon: Beaker,
+        permission: ['qac.view'],
+    },
     {
         title: 'บันทึกข้อมูล Stock CPO',
         href: '/cpo',
@@ -327,7 +341,7 @@ const QACNavItems: NavItem[] = [
         href: '/stock/report',
         icon: ScrollText,
         permission: ['qac.view'],
-    }
+    },
 ];
 
 const CarUsageNavItems: NavItem[] = [
@@ -576,7 +590,7 @@ export function AppSidebar() {
                             <SidebarMenuItem>
                                 <SidebarMenuButton className="flex w-full items-center">
                                     <UsersRound className="h-6 w-6" />
-                                    <span className="flex-1 font-anuphan font-medium text-blue-800">
+                                    <span className="flex-1 font-anuphan font-medium text-gray-700">
                                         ERP
                                     </span>
                                     <ChevronDown className="ml-auto h-4 w-4" />

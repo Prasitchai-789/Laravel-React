@@ -38,6 +38,7 @@ use App\Http\Controllers\Store\DashboardStoreController;
 use App\Http\Controllers\Api\PurchaseDashboardController;
 use App\Http\Controllers\QAC\ByProductionStockController;
 use App\Http\Controllers\Dashboard\CostAnalysisController;
+use App\Models\MAR\SOPlan;
 use App\Http\Controllers\Dashboard\DailyBarCharController;
 use App\Http\Controllers\Dashboard\SaleOrderMarController;
 use App\Http\Controllers\Dashboard\PalmDashboardController;
@@ -48,10 +49,11 @@ use App\Http\Controllers\Dashboard\ActivityController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
 use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\WO\WorkOrderController;
-
+use App\Http\Controllers\QAC\COA\COAController;
+use App\Http\Controllers\MAR\SOPlanController;
 use App\Http\Controllers\Population\SummaryControllder;
 use App\Http\Controllers\SeederStatusController;
-
+use App\Http\Controllers\Api\VehicleInspectionController;
 
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
 
@@ -390,6 +392,22 @@ Route::middleware(['auth', 'permission:developer.view|mar.view'])->group(functio
 
 // QAC Routes
 Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(function () {
+    // redirect base COA path to oil page
+    Route::redirect('/qac/coa', '/qac/coa/oil');
+
+    // COA pages
+    Route::get('/qac/coa/oil', function () {
+        return Inertia::render('QAC/COA/Oil_COA/Oil_COA');
+    })->name('qac.coa.oil');
+
+    Route::get('/qac/coa/seed', function () {
+        return Inertia::render('QAC/COA/Seed_COA/Seed_COA');
+    })->name('qac.coa.seed');
+
+    Route::post('/qac/coa/store', [COAController::class, 'store'])->name('qac.coa.store');
+    Route::post('/qac/coa/approve', [COAController::class, 'approve'])->name('qac.coa.approve');
+    Route::post('/qac/coa/cancel', [COAController::class, 'cancel'])->name('qac.coa.cancel');
+
     Route::get('/stock/report', [StockReportController::class, 'index'])->name('stock.report.index');
     Route::get('/stock/cpo', [StockReportController::class, 'stockCPO'])->name('stock.cpo.index');
     Route::get('/cpo', [CPORecordController::class, 'index'])->name('cpo.index');
@@ -452,20 +470,57 @@ Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::get('/OrderIndex', [WorkOrderController::class, 'Order']);
 });
 
-Route::get('/mar/plan-order', function () {
-    return inertia('MAR/PlanOrder/indexPlanOrder');
-})->name('mar.plan-order.index')->middleware(['auth', 'verified']);
+
+
+Route::prefix('mar')->name('mar.')->group(function () {
+    // Plan Order Routes
+    Route::get('/plan-order', [SOPlanController::class, 'index'])
+        ->name('plan-order.index');
+
+    // Data endpoints
+    Route::get('/plan-order/data/{id}', [SOPlanController::class, 'show'])->name('plan-order.data-item');
+    Route::get('/plan-order/pending-coa', [SOPlanController::class, 'pendingCOA'])->name('plan-order.pending-coa');
+
+    // Vehicle Inspections API
+    Route::get('/vehicle-inspections/{sop_id}', [VehicleInspectionController::class, 'show']);
+    Route::post('/vehicle-inspections', [VehicleInspectionController::class, 'store']);
+
+    Route::post('/plan-order', [SOPlanController::class, 'store'])
+        ->middleware(['auth', 'verified'])
+        ->name('plan-order.store');
+
+    Route::put('/plan-order/{id}', [SOPlanController::class, 'update'])
+        ->middleware(['auth', 'verified'])
+        ->name('plan-order.update');
+
+    // Soft Delete
+    Route::delete('/plan-order/{id}', [SOPlanController::class, 'destroy'])
+        ->middleware(['auth', 'verified'])
+        ->name('plan-order.destroy');
+
+    // กู้คืน record ที่ soft-deleted
+    Route::patch('/plan-order/{id}/restore', [SOPlanController::class, 'restore'])
+        ->middleware(['auth', 'verified'])
+        ->name('plan-order.restore');
+
+    // ลบถาวร (เฉพาะ admin)
+    Route::delete('/plan-order/{id}/force', [SOPlanController::class, 'forceDelete'])
+        ->middleware(['auth', 'verified'])
+        ->name('plan-order.force-delete');
+});
 // Car Usage Report Routes
 Route::middleware(['auth', 'permission:users.view'])->group(function () {
     Route::get('/car-usage-report', [\App\Http\Controllers\CarUsageReportController::class, 'index'])->name('car-usage-report.index');
     Route::get('/car-usage-report/api', [\App\Http\Controllers\CarUsageReportController::class, 'apiData'])->name('car-usage-report.api');
     Route::get('/car-usage-report/export', [\App\Http\Controllers\CarUsageReportController::class, 'export'])->name('car-usage-report.export');
-    
+
     // User Car Usage Report
     Route::get('/user-car-usage-report', [\App\Http\Controllers\UserCarUsageReportController::class, 'index'])->name('user-car-usage-report.index');
     Route::get('/user-car-usage-report/api', [\App\Http\Controllers\UserCarUsageReportController::class, 'apiData'])->name('user-car-usage-report.api');
     Route::get('/user-car-usage-report/export', [\App\Http\Controllers\UserCarUsageReportController::class, 'export'])->name('user-car-usage-report.export');
 });
+
+
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
