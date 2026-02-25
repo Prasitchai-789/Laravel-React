@@ -1,33 +1,38 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Input } from '@/components/ui/input';
+// resources/js/pages/MAR/PlanOrder/components/PlanOrderFilters.tsx
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-    Select, 
-    SelectContent, 
-    SelectItem, 
-    SelectTrigger, 
-    SelectValue 
-} from '@/components/ui/select';
-import { 
-    Search, 
-    Filter, 
-    X, 
-    Calendar, 
-    Package, 
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Calendar,
+    CalendarCheck,
+    CalendarRange,
+    CalendarX,
+    CheckCircle2,
     ChevronDown,
     Clock,
-    CheckCircle2,
-    TrendingUp,
-    Target,
+    Droplets,
+    Filter,
+    Flower2,
+    Leaf,
+    Package,
+    Search,
     Sparkles,
-    XCircle
+    Target,
+    Trees,
+    TrendingUp,
+    X,
+    XCircle,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import React, { useEffect, useRef, useState } from 'react';
+
+// Import PlanOrder interface
+import { PlanOrder } from './PlanOrderTable';
 
 interface Filters {
     search: string;
     status: string;
-    priority: string;
     productType: string;
     dateFrom: string;
     dateTo: string;
@@ -35,10 +40,16 @@ interface Filters {
 
 interface Stats {
     pending: number;
+    processing: number;
     completed: number;
-    production: number;
-    confirmed: number;
     cancelled: number;
+    totalWeight?: number;
+    statusCodes?: {
+        w: number;
+        p: number;
+        f: number;
+        c: number;
+    };
 }
 
 interface Props {
@@ -46,218 +57,594 @@ interface Props {
     onFilterChange: (filters: Partial<Filters>) => void;
     totalCount: number;
     stats?: Stats;
+    orders?: PlanOrder[];
+    productStats?: Array<{ type: string; total: number }>;
     selectedProduct?: string | null;
     onProductSelect?: (productType: string | null) => void;
+    selectedYear?: number;
+    availableYears?: number[];
+    onYearChange?: (year: string) => void;
 }
 
-export default function PlanOrderFilters({ 
-    filters, 
-    onFilterChange, 
-    totalCount, 
+// Map สีแบบ static สำหรับ Status
+const STATUS_COLOR_CLASSES = {
+    yellow: {
+        bg: 'bg-yellow-500',
+        bgLight: 'bg-yellow-50',
+        text: 'text-yellow-700',
+        border: 'border-yellow-200',
+        hover: 'hover:bg-yellow-600',
+        hoverLight: 'hover:bg-yellow-100',
+    },
+    sky: {
+        bg: 'bg-sky-500',
+        bgLight: 'bg-sky-50',
+        text: 'text-sky-700',
+        border: 'border-sky-200',
+        hover: 'hover:bg-sky-600',
+        hoverLight: 'hover:bg-sky-100',
+    },
+    emerald: {
+        bg: 'bg-emerald-500',
+        bgLight: 'bg-emerald-50',
+        text: 'text-emerald-700',
+        border: 'border-emerald-200',
+        hover: 'hover:bg-emerald-600',
+        hoverLight: 'hover:bg-emerald-100',
+    },
+    purple: {
+        bg: 'bg-purple-500',
+        bgLight: 'bg-purple-50',
+        text: 'text-purple-700',
+        border: 'border-purple-200',
+        hover: 'hover:bg-purple-600',
+        hoverLight: 'hover:bg-purple-100',
+    },
+    gray: {
+        bg: 'bg-gray-500',
+        bgLight: 'bg-gray-50',
+        text: 'text-gray-700',
+        border: 'border-gray-200',
+        hover: 'hover:bg-gray-600',
+        hoverLight: 'hover:bg-gray-100',
+    },
+};
+
+// Map สีแบบ static สำหรับ Product
+const PRODUCT_COLOR_CLASSES = {
+    amber: {
+        bg: 'bg-amber-500',
+        bgLight: 'bg-amber-50',
+        text: 'text-amber-700',
+        border: 'border-amber-200',
+        hover: 'hover:bg-amber-600',
+        hoverLight: 'hover:bg-amber-100',
+    },
+    emerald: {
+        bg: 'bg-emerald-500',
+        bgLight: 'bg-emerald-50',
+        text: 'text-emerald-700',
+        border: 'border-emerald-200',
+        hover: 'hover:bg-emerald-600',
+        hoverLight: 'hover:bg-emerald-100',
+    },
+    stone: {
+        bg: 'bg-stone-500',
+        bgLight: 'bg-stone-50',
+        text: 'text-stone-700',
+        border: 'border-stone-200',
+        hover: 'hover:bg-stone-600',
+        hoverLight: 'hover:bg-stone-100',
+    },
+    lime: {
+        bg: 'bg-lime-500',
+        bgLight: 'bg-lime-50',
+        text: 'text-lime-700',
+        border: 'border-lime-200',
+        hover: 'hover:bg-lime-600',
+        hoverLight: 'hover:bg-lime-100',
+    },
+    green: {
+        bg: 'bg-green-500',
+        bgLight: 'bg-green-50',
+        text: 'text-green-700',
+        border: 'border-green-200',
+        hover: 'hover:bg-green-600',
+        hoverLight: 'hover:bg-green-100',
+    },
+    sky: {
+        bg: 'bg-sky-500',
+        bgLight: 'bg-sky-50',
+        text: 'text-sky-700',
+        border: 'border-sky-200',
+        hover: 'hover:bg-sky-600',
+        hoverLight: 'hover:bg-sky-100',
+    },
+    brown: {
+        bg: 'bg-amber-700',
+        bgLight: 'bg-amber-100',
+        text: 'text-amber-800',
+        border: 'border-amber-300',
+        hover: 'hover:bg-amber-800',
+        hoverLight: 'hover:bg-amber-200',
+    },
+    gray: {
+        bg: 'bg-gray-500',
+        bgLight: 'bg-gray-50',
+        text: 'text-gray-700',
+        border: 'border-gray-200',
+        hover: 'hover:bg-gray-600',
+        hoverLight: 'hover:bg-gray-100',
+    },
+};
+
+// แก้ไข STATUS_OPTIONS ให้ใช้ค่า database โดยตรง
+const STATUS_OPTIONS = [
+    { value: 'all', label: 'ทั้งหมด', icon: Package, color: 'gray' },
+    { value: 'w', label: 'รอดำเนินการ', icon: Clock, color: 'yellow' },
+    { value: 'p', label: 'กำลังดำเนินการ', icon: TrendingUp, color: 'sky' },
+    { value: 'f', label: 'เสร็จแล้ว', icon: CheckCircle2, color: 'emerald' },
+    { value: 'c', label: 'ยกเลิก', icon: XCircle, color: 'gray' },
+];
+
+// PRODUCT_OPTIONS คงเดิม
+const PRODUCT_OPTIONS = [
+    { value: 'all', label: 'ทั้งหมด', icon: Package, color: 'gray' },
+    { value: 'cpo', label: 'น้ำมันปาล์มดิบ', icon: Droplets, color: 'amber' },
+    { value: 'palm-kernel', label: 'เมล็ดในปาล์ม', icon: Flower2, color: 'emerald' },
+    { value: 'shell', label: 'กะลาปาล์ม', icon: Package, color: 'stone' },
+    { value: 'fiber', label: 'ใยปาล์ม', icon: Leaf, color: 'lime' },
+    { value: 'efb', label: 'ทะลายปาล์ม', icon: Trees, color: 'green' },
+    { value: 'palm-oil', label: 'น้ำมันปาล์มบริสุทธิ์', icon: Droplets, color: 'sky' },
+    { value: 'other', label: 'อื่นๆ', icon: Package, color: 'gray' },
+];
+
+const DATE_RANGE_OPTIONS = [
+    { value: 'custom', label: 'กำหนดเอง', icon: Calendar },
+    { value: 'today', label: 'วันนี้', icon: CalendarCheck },
+    { value: 'yesterday', label: 'เมื่อวาน', icon: CalendarX },
+    { value: 'thisWeek', label: 'สัปดาห์นี้', icon: CalendarRange },
+    { value: 'lastWeek', label: 'สัปดาห์ที่แล้ว', icon: CalendarRange },
+    { value: 'thisMonth', label: 'เดือนนี้', icon: CalendarRange },
+    { value: 'lastMonth', label: 'เดือนที่แล้ว', icon: CalendarRange },
+];
+
+// normalizeType คงเดิม
+const normalizeType = (type: string | undefined): string => {
+    if (!type) return 'other';
+
+    const typeLower = type.toLowerCase().trim();
+
+    if (typeLower.includes('cpo') || typeLower.includes('น้ำมันปาล์มดิบ') || typeLower.includes('ปาล์มดิบ')) {
+        return 'cpo';
+    }
+
+    if (typeLower.includes('kernel') || typeLower.includes('เมล็ด')) {
+        return 'palm-kernel';
+    }
+
+    if (typeLower.includes('shell') || typeLower.includes('กะลา') || typeLower.includes('palm-shell') || typeLower.includes('palm shell')) {
+        return 'shell';
+    }
+
+    if (typeLower.includes('fiber') || typeLower.includes('ใย') || typeLower.includes('palm-fiber') || typeLower.includes('palm fiber')) {
+        return 'fiber';
+    }
+
+    if (typeLower.includes('efb') || typeLower.includes('ทะลาย')) {
+        return 'efb';
+    }
+
+    if (typeLower.includes('palm-oil') || typeLower.includes('palm oil') || typeLower.includes('oil') || (typeLower.includes('น้ำมัน') && !typeLower.includes('ดิบ'))) {
+        return 'palm-oil';
+    }
+
+    return 'other';
+};
+
+const detectFromProductName = (productName: string | undefined): string | null => {
+    if (!productName) return null;
+
+    const nameLower = productName.toLowerCase();
+
+    if (nameLower.includes('กะลา') || nameLower.includes('shell') || (nameLower.includes('กะลา') && nameLower.includes('ปาล์ม'))) {
+        return 'shell';
+    }
+
+    if (nameLower.includes('ใย') || nameLower.includes('fiber') || (nameLower.includes('ใย') && nameLower.includes('ปาล์ม'))) {
+        return 'fiber';
+    }
+
+    return null;
+};
+
+const formatDisplayDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        });
+    } catch {
+        return dateStr;
+    }
+};
+
+const getTodayDate = (): string => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+};
+
+export default function PlanOrderFilters({
+    filters,
+    onFilterChange,
+    totalCount,
     stats,
+    orders = [],
     selectedProduct,
-    onProductSelect 
+    onProductSelect,
+    selectedYear,
+    availableYears = [],
+    onYearChange,
 }: Props) {
     const [showFilters, setShowFilters] = useState(false);
     const [searchHistory, setSearchHistory] = useState<string[]>([]);
     const [showSearchHistory, setShowSearchHistory] = useState(false);
-    const searchInputRef = useRef<HTMLInputElement>(null);
-    const [prevSelectedProduct, setPrevSelectedProduct] = useState<string | null | undefined>(selectedProduct);
+    const [dateRangeType, setDateRangeType] = useState('today');
 
-    // อัปเดต productType เมื่อมีการเลือกจาก summary และจัดการล้างเมื่อคลิกซ้ำ
+    const searchInputRef = useRef<HTMLInputElement>(null);
+    const dateFromRef = useRef<HTMLInputElement>(null);
+    const dateToRef = useRef<HTMLInputElement>(null);
+
+    // หมายเหตุ: ไม่ auto-set วันที่เริ่มต้น เพราะ server กรองข้อมูลตามปีที่เลือกแล้ว
+    // ถ้าต้องการดูวันนี้ให้กดปุ่ม "วันนี้" เอง
+
+    const productCounts = React.useMemo(() => {
+        const counts: Record<string, number> = {};
+
+        orders.forEach((order) => {
+            let type = normalizeType(order.productType);
+
+            if (type === 'other' && order.productName) {
+                const detected = detectFromProductName(order.productName);
+                if (detected) {
+                    type = detected;
+                }
+            }
+
+            counts[type] = (counts[type] || 0) + 1;
+        });
+
+        return counts;
+    }, [orders]);
+
+    useEffect(() => {
+        console.log('🔍 Filters Debug:', {
+            filters,
+            selectedProduct,
+            productCounts,
+            stats,
+            ordersCount: orders.length,
+            dateRangeType,
+        });
+    }, [filters, selectedProduct, productCounts, stats, orders, dateRangeType]);
+
+    const getDateRange = (type: string) => {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+        const startOfLastWeek = new Date(startOfWeek);
+        startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+        const endOfLastWeek = new Date(startOfLastWeek);
+        endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
+
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+        const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+
+        const formatDate = (date: Date) => date.toISOString().split('T')[0];
+
+        const ranges: Record<string, { dateFrom: string; dateTo: string }> = {
+            today: { dateFrom: formatDate(today), dateTo: formatDate(today) },
+            yesterday: { dateFrom: formatDate(yesterday), dateTo: formatDate(yesterday) },
+            thisWeek: { dateFrom: formatDate(startOfWeek), dateTo: formatDate(endOfWeek) },
+            lastWeek: { dateFrom: formatDate(startOfLastWeek), dateTo: formatDate(endOfLastWeek) },
+            thisMonth: { dateFrom: formatDate(startOfMonth), dateTo: formatDate(endOfMonth) },
+            lastMonth: { dateFrom: formatDate(startOfLastMonth), dateTo: formatDate(endOfLastMonth) },
+        };
+
+        return ranges[type] || { dateFrom: filters.dateFrom, dateTo: filters.dateTo };
+    };
+
+    const isDateRangeActive = (type: string): boolean => {
+        const range = getDateRange(type);
+        return filters.dateFrom === range.dateFrom && filters.dateTo === range.dateTo;
+    };
+
     useEffect(() => {
         if (selectedProduct !== undefined) {
-            // ถ้า selectedProduct เหมือนกับครั้งที่แล้ว แสดงว่าคลิกซ้ำ ให้ล้าง filter
-            if (selectedProduct === prevSelectedProduct && selectedProduct !== null) {
-                onFilterChange({ productType: 'all' });
-                if (onProductSelect) {
-                    onProductSelect(null);
-                }
-            } 
-            // ถ้าเป็นค่าอื่น ให้ตั้งค่าตามปกติ
-            else if (selectedProduct !== prevSelectedProduct) {
-                onFilterChange({ productType: selectedProduct || 'all' });
+            const newProductType = selectedProduct || 'all';
+            if (filters.productType !== newProductType) {
+                onFilterChange({ productType: newProductType });
             }
-            
-            setPrevSelectedProduct(selectedProduct);
         }
-    }, [selectedProduct, prevSelectedProduct, onFilterChange, onProductSelect]);
+    }, [selectedProduct]);
 
     const handleChange = (key: keyof Filters, value: string) => {
+        console.log(`📝 Filter changed - ${key}:`, value);
         onFilterChange({ [key]: value });
 
-        // บันทึกประวัติการค้นหา
         if (key === 'search' && value && !searchHistory.includes(value)) {
             setSearchHistory(prev => [value, ...prev].slice(0, 5));
         }
 
-        // ถ้าเปลี่ยน productType ให้แจ้งไปยัง summary
-        if (key === 'productType' && onProductSelect) {
-            onProductSelect(value === 'all' ? null : value);
+        if (key === 'productType') {
+            if (onProductSelect) {
+                onProductSelect(value === 'all' ? null : value);
+            }
         }
     };
 
-    const clearFilters = () => {
-        onFilterChange({
-            search: '',
-            status: 'all',
-            priority: 'all',
-            productType: 'all',
-            dateFrom: '',
-            dateTo: '',
-        });
-        if (onProductSelect) {
-            onProductSelect(null);
+    const handleDateRangeChange = (value: string) => {
+        setDateRangeType(value);
+        if (value !== 'custom') {
+            const range = getDateRange(value);
+            onFilterChange(range);
         }
-        setPrevSelectedProduct(null);
     };
 
-    const quickFilter = (type: string) => {
-        switch(type) {
-            case 'today':
-                const today = new Date().toISOString().split('T')[0];
-                onFilterChange({ dateFrom: today, dateTo: today });
-                break;
-            case 'pending':
-                onFilterChange({ status: 'pending' });
-                break;
-            case 'completed':
-                onFilterChange({ status: 'completed' });
-                break;
-            case 'cancelled':
-                onFilterChange({ status: 'cancelled' });
-                break;
+    const handleDateClick = (type: string) => {
+        const isActive = isDateRangeActive(type);
+
+        if (isActive) {
+            onFilterChange({
+                dateFrom: '',
+                dateTo: '',
+            });
+            setDateRangeType('custom');
+        } else {
+            const range = getDateRange(type);
+            onFilterChange(range);
+            setDateRangeType(type);
         }
         setShowFilters(false);
     };
 
-    const handleProductTagClick = (productValue: string) => {
-        // ถ้าคลิกที่ tag สินค้าเดิม ให้ล้าง
-        if (filters.productType === productValue) {
-            handleChange('productType', 'all');
-        } else {
-            handleChange('productType', productValue);
+    const clearFilters = () => {
+        console.log('🧹 Clearing all filters');
+        const today = getTodayDate();
+        onFilterChange({
+            search: '',
+            status: 'all',
+            productType: 'all',
+            dateFrom: '',
+            dateTo: '',
+        });
+        setDateRangeType('custom');
+        if (onProductSelect) {
+            onProductSelect(null);
         }
     };
 
-    const hasActiveFilters = filters.search || 
+    const quickFilter = (type: string) => {
+        handleChange('status', type);
+        setShowFilters(false);
+    };
+
+    const hasActiveFilters = Boolean(
+        filters.search ||
         (filters.status && filters.status !== 'all') ||
-        (filters.priority && filters.priority !== 'all') ||
         (filters.productType && filters.productType !== 'all') ||
-        filters.dateFrom || 
-        filters.dateTo;
+        filters.dateFrom ||
+        filters.dateTo
+    );
 
     const activeFilterCount = [
         filters.status && filters.status !== 'all',
-        filters.priority && filters.priority !== 'all',
         filters.productType && filters.productType !== 'all',
         filters.dateFrom,
-        filters.dateTo
+        filters.dateTo,
     ].filter(Boolean).length;
 
-    const statusOptions = [
-        { value: 'all', label: 'ทั้งหมด', icon: <Package className="h-3 w-3" />, color: 'gray' },
-        { value: 'pending', label: 'รอดำเนินการ', icon: <Clock className="h-3 w-3" />, color: 'yellow' },
-        { value: 'confirmed', label: 'ยืนยันแล้ว', icon: <CheckCircle2 className="h-3 w-3" />, color: 'blue' },
-        { value: 'production', label: 'กำลังผลิต', icon: <TrendingUp className="h-3 w-3" />, color: 'yellow' },
-        { value: 'completed', label: 'เสร็จสิ้น', icon: <CheckCircle2 className="h-3 w-3" />, color: 'green' },
-        { value: 'cancelled', label: 'ยกเลิก', icon: <XCircle className="h-3 w-3" />, color: 'gray' }
-    ];
+    const getProductLabel = (value: string) => {
+        const product = PRODUCT_OPTIONS.find(p => p.value === value);
+        return product?.label || value;
+    };
 
-    const priorityOptions = [
-        { value: 'all', label: 'ทั้งหมด' },
-        { value: 'normal', label: 'ปกติ' },
-        { value: 'high', label: 'สำคัญ' },
-        { value: 'urgent', label: 'เร่งด่วน' }
-    ];
+    const getStatusLabel = (value: string) => {
+        const statusMap: { [key: string]: string } = {
+            'w': 'รอดำเนินการ',
+            'p': 'กำลังดำเนินการ',
+            'f': 'เสร็จแล้ว',
+            'c': 'ยกเลิก',
+        };
+        return statusMap[value] || value;
+    };
 
-    const productOptions = [
-        { value: 'all', label: 'ทั้งหมด' },
-        { value: 'cpo', label: 'น้ำมันปาล์มดิบ' },
-        { value: 'kernel', label: 'เมล็ดในปาล์ม' },
-        { value: 'shell', label: 'กะลาปาล์ม' },
-        { value: 'efb', label: 'ทะลายสับ' },
-        { value: 'fiber', label: 'ใยปาล์ม' }
-    ];
+    const handleProductBadgeClick = (productValue: string) => {
+        if (filters.productType === productValue) {
+            onFilterChange({ productType: 'all' });
+            if (onProductSelect) {
+                onProductSelect(null);
+            }
+        } else {
+            onFilterChange({ productType: productValue });
+            if (onProductSelect) {
+                onProductSelect(productValue);
+            }
+        }
+    };
+
+    const handleStatusBadgeClick = (statusValue: string) => {
+        if (filters.status === statusValue) {
+            onFilterChange({ status: 'all' });
+        } else {
+            onFilterChange({ status: statusValue });
+        }
+    };
+
+    const getStatusColorClasses = (color: string, isSelected: boolean) => {
+        const colors = STATUS_COLOR_CLASSES[color as keyof typeof STATUS_COLOR_CLASSES] || STATUS_COLOR_CLASSES.gray;
+
+        if (isSelected) {
+            return `${colors.bg} ${colors.hover} text-white`;
+        } else {
+            return `${colors.bgLight} ${colors.text} ${colors.border} ${colors.hoverLight}`;
+        }
+    };
+
+    const getProductColorClasses = (color: string, isSelected: boolean) => {
+        const colors = PRODUCT_COLOR_CLASSES[color as keyof typeof PRODUCT_COLOR_CLASSES] || PRODUCT_COLOR_CLASSES.gray;
+
+        if (isSelected) {
+            return `${colors.bg} ${colors.hover} text-white`;
+        } else {
+            return `${colors.bgLight} ${colors.text} ${colors.border} ${colors.hoverLight}`;
+        }
+    };
+
+    const renderStatusFilterSection = () => {
+        return (
+            <div className="space-y-2">
+                <label className="flex items-center gap-1 text-xs font-medium text-gray-600">
+                    <Clock className="h-3.5 w-3.5" />
+                    สถานะ
+                </label>
+                <Select value={filters.status} onValueChange={(v) => handleChange('status', v)}>
+                    <SelectTrigger className="h-9 border-2 bg-white text-sm">
+                        <SelectValue placeholder="ทั้งหมด" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {STATUS_OPTIONS.map((opt) => {
+                            const Icon = opt.icon;
+                            // ใช้ stats.statusCodes สำหรับจำนวน
+                            const count = stats?.statusCodes?.[opt.value as keyof typeof stats.statusCodes] || 0;
+                            return (
+                                <SelectItem key={opt.value} value={opt.value} className="text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <Icon className="h-3.5 w-3.5" style={{ color: `var(--${opt.color}-500)` }} />
+                                        <span>{opt.label}</span>
+                                        {opt.value !== 'all' && (
+                                            <span className="ml-1 text-xs text-gray-400">({count})</span>
+                                        )}
+                                    </div>
+                                </SelectItem>
+                            );
+                        })}
+                    </SelectContent>
+                </Select>
+            </div>
+        );
+    };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
+        <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             {/* Header */}
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="bg-blue-500 p-1.5 rounded-lg">
+                    <div className="rounded-lg bg-blue-500 p-1.5">
                         <Filter className="h-3.5 w-3.5 text-white" />
                     </div>
                     <h3 className="text-sm font-semibold text-gray-800">ค้นหาและกรอง</h3>
                     {activeFilterCount > 0 && (
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">
+                        <Badge variant="secondary" className="bg-blue-100 text-xs text-blue-700">
                             {activeFilterCount} ตัวกรอง
                         </Badge>
+                    )}
+                    {totalCount > 0 && (
+                        <span className="ml-2 text-xs text-gray-400">พบ {totalCount} รายการ</span>
                     )}
                 </div>
 
                 {/* Quick Filters */}
                 <div className="flex items-center gap-1">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => quickFilter('today')}
-                        className="text-xs h-7 px-2 text-gray-600 hover:text-blue-600"
-                    >
-                        วันนี้
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => quickFilter('pending')}
-                        className="text-xs h-7 px-2 text-gray-600 hover:text-yellow-600"
-                    >
-                        <Clock className="h-3 w-3 mr-1" />
-                        รอ
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => quickFilter('completed')}
-                        className="text-xs h-7 px-2 text-gray-600 hover:text-green-600"
-                    >
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                        เสร็จ
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => quickFilter('cancelled')}
-                        className="text-xs h-7 px-2 text-gray-600 hover:text-gray-600"
-                    >
-                        <XCircle className="h-3 w-3 mr-1" />
-                        ยกเลิก
-                    </Button>
+                    {['today', 'yesterday', 'thisWeek'].map((type) => {
+                        const icons = {
+                            today: Calendar,
+                            yesterday: CalendarX,
+                            thisWeek: CalendarRange,
+                        };
+                        const labels = {
+                            today: 'วันนี้',
+                            yesterday: 'เมื่อวาน',
+                            thisWeek: 'สัปดาห์นี้',
+                        };
+                        const Icon = icons[type as keyof typeof icons];
+                        const isActive = isDateRangeActive(type);
+
+                        return (
+                            <Button
+                                key={type}
+                                variant={isActive ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => handleDateClick(type)}
+                                className={`h-7 px-2 text-xs ${isActive
+                                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                                    : 'text-gray-600 hover:text-blue-600'
+                                    }`}
+                                title={isActive ? `คลิกเพื่อล้างตัวกรอง${labels[type as keyof typeof labels]}` : `เลือก${labels[type as keyof typeof labels]}`}
+                            >
+                                <Icon className="mr-1 h-3 w-3" />
+                                {labels[type as keyof typeof labels]}
+                            </Button>
+                        );
+                    })}
+
+                    {/* ปีข้อมูล (Year Selector) ไปอยู่หลัง สัปดาห์นี้ */}
+                    {availableYears && availableYears.length > 0 && (
+                        <div className="ml-2 flex items-center gap-1.5 border-l pl-2 border-gray-200">
+                            <Calendar className="h-3 w-3 text-gray-400" />
+                            <Select
+                                value={String(selectedYear ?? new Date().getFullYear())}
+                                onValueChange={(v) => onYearChange?.(v)}
+                            >
+                                <SelectTrigger className="h-7 w-[90px] border-2 text-xs bg-white">
+                                    <SelectValue placeholder="ปี" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableYears.map(y => (
+                                        <SelectItem key={y} value={String(y)} className="text-xs">
+                                            {y}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Search Bar */}
             <div className="relative">
                 <div className="flex gap-2">
-                    <div className="flex-1 relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                         <Input
                             ref={searchInputRef}
-                            placeholder="ค้นหาเลขที่คำสั่งซื้อ, ชื่อลูกค้า, ทะเบียนรถ..."
-                            className="pl-9 pr-4 py-2 text-sm border-2 focus:border-blue-400 transition-all"
+                            placeholder="ค้นหาเลขที่คำสั่งซื้อ, ชื่อลูกค้า, ทะเบียนรถ, ชื่อคนขับ..."
+                            className="border-2 py-2 pl-9 pr-4 text-sm transition-all focus:border-blue-400"
                             value={filters.search || ''}
                             onChange={(e) => handleChange('search', e.target.value)}
                             onFocus={() => setShowSearchHistory(true)}
                             onBlur={() => setTimeout(() => setShowSearchHistory(false), 200)}
                         />
-                        
-                        {/* Search History */}
+
                         {showSearchHistory && searchHistory.length > 0 && (
-                            <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg py-1">
-                                {searchHistory.map((term, index) => (
+                            <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-lg border bg-white py-1 shadow-lg">
+                                {searchHistory.map((term, i) => (
                                     <button
-                                        key={index}
-                                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center gap-2"
+                                        key={i}
+                                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-gray-50"
                                         onClick={() => {
                                             handleChange('search', term);
                                             setShowSearchHistory(false);
@@ -274,9 +661,8 @@ export default function PlanOrderFilters({
                     <Button
                         variant="outline"
                         onClick={() => setShowFilters(!showFilters)}
-                        className={`gap-2 border-2 transition-all ${
-                            showFilters ? 'border-blue-400 bg-blue-50 text-blue-700' : ''
-                        }`}
+                        className={`gap-2 border-2 transition-all ${showFilters ? 'border-blue-400 bg-blue-50 text-blue-700' : ''
+                            }`}
                     >
                         <Filter className="h-4 w-4" />
                         <span className="hidden sm:inline">ตัวกรอง</span>
@@ -289,11 +675,11 @@ export default function PlanOrderFilters({
                     </Button>
 
                     {hasActiveFilters && (
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={clearFilters} 
-                            className="text-gray-500 hover:text-red-600 hover:bg-red-50"
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={clearFilters}
+                            className="text-gray-500 hover:bg-red-50 hover:text-red-600"
                             title="ล้างตัวกรองทั้งหมด"
                         >
                             <X className="h-4 w-4" />
@@ -302,129 +688,291 @@ export default function PlanOrderFilters({
                 </div>
             </div>
 
+            {/* Status Badges - ใช้ stats.statusCodes */}
+            {stats && stats.statusCodes && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-gray-500">สถานะ:</span>
+                    {STATUS_OPTIONS.filter(opt => opt.value !== 'all').map((opt) => {
+                        const Icon = opt.icon;
+                        // ใช้ stats.statusCodes ตามรหัสสถานะโดยตรง
+                        const count = stats.statusCodes?.[opt.value as keyof typeof stats.statusCodes] || 0;
+                        const isSelected = filters.status === opt.value;
+                        const colorClasses = getStatusColorClasses(opt.color, isSelected);
+
+                        if (count === 0 && !isSelected) return null;
+
+                        return (
+                            <Badge
+                                key={opt.value}
+                                variant={isSelected ? "default" : "outline"}
+                                className={`cursor-pointer gap-1 px-3 py-1 text-xs transition-all border ${colorClasses}`}
+                                onClick={() => handleStatusBadgeClick(opt.value)}
+                                title={isSelected ? `คลิกเพื่อล้างตัวกรอง${opt.label}` : `เลือก${opt.label}`}
+                            >
+                                <Icon className="h-3 w-3" />
+                                {opt.label} ({count})
+                                {isSelected && (
+                                    <X
+                                        className="ml-1 h-3 w-3 cursor-pointer hover:text-white"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleStatusBadgeClick(opt.value);
+                                        }}
+                                    />
+                                )}
+                            </Badge>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Product Badges */}
+            {Object.keys(productCounts).length > 0 && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-gray-500">สินค้า:</span>
+                    {PRODUCT_OPTIONS.filter(opt =>
+                        opt.value !== 'all' && productCounts[opt.value] > 0
+                    ).map((opt) => {
+                        const Icon = opt.icon;
+                        const isSelected = filters.productType === opt.value;
+                        const colorClasses = getProductColorClasses(opt.color, isSelected);
+
+                        return (
+                            <Badge
+                                key={opt.value}
+                                variant={isSelected ? "default" : "outline"}
+                                className={`cursor-pointer gap-1 px-3 py-1 text-xs transition-all border ${colorClasses}`}
+                                onClick={() => handleProductBadgeClick(opt.value)}
+                                title={isSelected ? `คลิกเพื่อล้างตัวกรอง${opt.label}` : `เลือก${opt.label}`}
+                            >
+                                <Icon className="h-3 w-3" />
+                                {opt.label} ({productCounts[opt.value]})
+                                {isSelected && (
+                                    <X
+                                        className="ml-1 h-3 w-3 cursor-pointer hover:text-white"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleProductBadgeClick(opt.value);
+                                        }}
+                                    />
+                                )}
+                            </Badge>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Active Filters */}
+            {hasActiveFilters && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                    {filters.search && (
+                        <Badge variant="outline" className="gap-1 bg-gray-50 text-gray-700">
+                            <Search className="h-3 w-3" />
+                            {filters.search}
+                            <X className="ml-1 h-3 w-3 cursor-pointer hover:text-red-600" onClick={() => handleChange('search', '')} />
+                        </Badge>
+                    )}
+                    {filters.status && filters.status !== 'all' && (
+                        <Badge variant="outline" className="gap-1 bg-yellow-50 text-yellow-700">
+                            <Clock className="h-3 w-3" />
+                            {getStatusLabel(filters.status)}
+                            <X className="ml-1 h-3 w-3 cursor-pointer hover:text-red-600" onClick={() => handleChange('status', 'all')} />
+                        </Badge>
+                    )}
+                    {filters.productType && filters.productType !== 'all' && (
+                        <Badge variant="outline" className="gap-1 bg-blue-50 text-blue-700">
+                            <Package className="h-3 w-3" />
+                            {getProductLabel(filters.productType)}
+                            <X className="ml-1 h-3 w-3 cursor-pointer hover:text-red-600" onClick={() => handleChange('productType', 'all')} />
+                        </Badge>
+                    )}
+                    {filters.dateFrom && (
+                        <Badge variant="outline" className="gap-1 bg-indigo-50 text-indigo-700">
+                            <Calendar className="h-3 w-3" />
+                            {formatDisplayDate(filters.dateFrom)}
+                            {filters.dateTo && filters.dateFrom !== filters.dateTo && ` - ${formatDisplayDate(filters.dateTo)}`}
+                            <X
+                                className="ml-1 h-3 w-3 cursor-pointer hover:text-red-600"
+                                onClick={() => {
+                                    handleChange('dateFrom', '');
+                                    handleChange('dateTo', '');
+                                    setDateRangeType('custom');
+                                }}
+                            />
+                        </Badge>
+                    )}
+                </div>
+            )}
+
             {/* Advanced Filters */}
             {showFilters && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {/* สถานะ */}
+                <div className="mt-4 border-t border-gray-200 pt-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        {/* Status */}
                         <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1">
-                                <Clock className="h-3.5 w-3.5" />
-                                สถานะ
-                            </label>
-                            <Select
-                                value={filters.status}
-                                onValueChange={(value) => handleChange('status', value)}
-                            >
-                                <SelectTrigger className="bg-white border-2 h-9 text-sm">
-                                    <SelectValue placeholder="ทั้งหมด" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {statusOptions.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value} className="text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`text-${opt.color}-500`}>{opt.icon}</span>
-                                                {opt.label}
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            {renderStatusFilterSection()}
                         </div>
 
-                        {/* ความสำคัญ */}
+                        {/* Product Type */}
                         <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1">
-                                <Target className="h-3.5 w-3.5" />
-                                ความสำคัญ
-                            </label>
-                            <Select
-                                value={filters.priority}
-                                onValueChange={(value) => handleChange('priority', value)}
-                            >
-                                <SelectTrigger className="bg-white border-2 h-9 text-sm">
-                                    <SelectValue placeholder="ทั้งหมด" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {priorityOptions.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value} className="text-sm">
-                                            {opt.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* ประเภทสินค้า */}
-                        <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1">
+                            <label className="mb-1.5 flex items-center gap-1 text-xs font-medium text-gray-600">
                                 <Package className="h-3.5 w-3.5" />
                                 สินค้า
                             </label>
-                            <Select
-                                value={filters.productType}
-                                onValueChange={(value) => handleChange('productType', value)}
-                            >
-                                <SelectTrigger className="bg-white border-2 h-9 text-sm">
+                            <Select value={filters.productType} onValueChange={(v) => handleChange('productType', v)}>
+                                <SelectTrigger className="h-9 border-2 bg-white text-sm">
                                     <SelectValue placeholder="ทั้งหมด" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {productOptions.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value} className="text-sm">
-                                            {opt.label}
-                                        </SelectItem>
-                                    ))}
+                                    <SelectItem value="all" className="text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <Package className="h-3.5 w-3.5 text-gray-500" />
+                                            <span>ทั้งหมด</span>
+                                            <span className="ml-1 text-xs text-gray-400">({orders.length})</span>
+                                        </div>
+                                    </SelectItem>
+
+                                    {PRODUCT_OPTIONS.filter(opt =>
+                                        opt.value !== 'all' && productCounts[opt.value] > 0
+                                    ).map((opt) => {
+                                        const Icon = opt.icon;
+                                        const count = productCounts[opt.value] || 0;
+
+                                        return (
+                                            <SelectItem key={opt.value} value={opt.value} className="text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <Icon className="h-3.5 w-3.5" style={{ color: `var(--${opt.color}-500)` }} />
+                                                    <span>{opt.label}</span>
+                                                    <span className="ml-1 text-xs text-gray-400">({count})</span>
+                                                </div>
+                                            </SelectItem>
+                                        );
+                                    })}
                                 </SelectContent>
                             </Select>
                         </div>
 
-                        {/* ช่วงวันที่ */}
-                        <div className="grid grid-cols-2 gap-2">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1.5">ตั้งแต่</label>
+                        {/* Date Range */}
+                        <div>
+                            <label className="mb-1.5 flex items-center gap-1 text-xs font-medium text-gray-600">
+                                <Calendar className="h-3.5 w-3.5" />
+                                ช่วงวันที่
+                            </label>
+
+                            <Select value={dateRangeType} onValueChange={handleDateRangeChange}>
+                                <SelectTrigger className="mb-2 h-9 border-2 bg-white text-sm">
+                                    <SelectValue placeholder="เลือกช่วงวันที่" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {DATE_RANGE_OPTIONS.map((opt) => {
+                                        const Icon = opt.icon;
+                                        return (
+                                            <SelectItem key={opt.value} value={opt.value} className="text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <Icon className="h-3.5 w-3.5 text-gray-500" />
+                                                    {opt.label}
+                                                </div>
+                                            </SelectItem>
+                                        );
+                                    })}
+                                </SelectContent>
+                            </Select>
+
+                            <div className="grid grid-cols-2 gap-2">
                                 <div className="relative">
-                                    <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 h-3.5 w-3.5" />
+                                    <div
+                                        className="absolute left-2 top-1/2 z-10 -translate-y-1/2 cursor-pointer"
+                                        onClick={() => dateFromRef.current?.showPicker()}
+                                    >
+                                        <Calendar className="h-3.5 w-3.5 text-gray-400 hover:text-blue-600" />
+                                    </div>
                                     <Input
+                                        ref={dateFromRef}
                                         type="date"
                                         value={filters.dateFrom || ''}
-                                        onChange={(e) => handleChange('dateFrom', e.target.value)}
-                                        className="pl-8 h-9 text-sm border-2"
+                                        onChange={(e) => {
+                                            handleChange('dateFrom', e.target.value);
+                                            setDateRangeType('custom');
+                                        }}
+                                        className="h-9 w-full cursor-pointer border-2 pl-8 text-sm hover:border-blue-400 focus:border-blue-400"
+                                        placeholder="จากวันที่"
                                     />
                                 </div>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1.5">ถึง</label>
                                 <div className="relative">
-                                    <Calendar className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 h-3.5 w-3.5" />
+                                    <div
+                                        className="absolute left-2 top-1/2 z-10 -translate-y-1/2 cursor-pointer"
+                                        onClick={() => dateToRef.current?.showPicker()}
+                                    >
+                                        <Calendar className="h-3.5 w-3.5 text-gray-400 hover:text-blue-600" />
+                                    </div>
                                     <Input
+                                        ref={dateToRef}
                                         type="date"
                                         value={filters.dateTo || ''}
-                                        onChange={(e) => handleChange('dateTo', e.target.value)}
-                                        className="pl-8 h-9 text-sm border-2"
+                                        onChange={(e) => {
+                                            handleChange('dateTo', e.target.value);
+                                            setDateRangeType('custom');
+                                        }}
+                                        className="h-9 w-full cursor-pointer border-2 pl-8 text-sm hover:border-blue-400 focus:border-blue-400"
                                         min={filters.dateFrom}
+                                        placeholder="ถึงวันที่"
                                     />
                                 </div>
                             </div>
+
+                            {(filters.dateFrom || filters.dateTo) && (
+                                <div className="mt-2 flex items-center gap-1">
+                                    {filters.dateFrom && (
+                                        <div className="flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-[10px] text-blue-700">
+                                            <Calendar className="h-3 w-3" />
+                                            <span>{formatDisplayDate(filters.dateFrom)}</span>
+                                        </div>
+                                    )}
+                                    {filters.dateTo && filters.dateFrom && filters.dateFrom !== filters.dateTo && (
+                                        <span className="text-[10px] text-gray-400">→</span>
+                                    )}
+                                    {filters.dateTo && filters.dateFrom !== filters.dateTo && (
+                                        <div className="flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-[10px] text-blue-700">
+                                            <Calendar className="h-3 w-3" />
+                                            <span>{formatDisplayDate(filters.dateTo)}</span>
+                                        </div>
+                                    )}
+                                    {(filters.dateFrom || filters.dateTo) && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => {
+                                                handleChange('dateFrom', '');
+                                                handleChange('dateTo', '');
+                                                setDateRangeType('custom');
+                                            }}
+                                            className="ml-1 h-5 w-5 p-0 text-gray-400 hover:text-red-600"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Filter Stats */}
+                    {/* Stats Footer */}
                     <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
                         <div className="flex items-center gap-3">
                             <span className="flex items-center gap-1">
                                 <Target className="h-3.5 w-3.5" />
-                                ตัวกรองที่ใช้งาน: {activeFilterCount}
+                                ตัวกรอง: {activeFilterCount}
                             </span>
                             {stats && (
                                 <>
                                     <span className="flex items-center gap-1 text-yellow-600">
                                         <Clock className="h-3.5 w-3.5" /> รอ {stats.pending}
                                     </span>
-                                    <span className="flex items-center gap-1 text-green-600">
-                                        <CheckCircle2 className="h-3.5 w-3.5" /> เสร็จ {stats.completed}
+                                    <span className="flex items-center gap-1 text-sky-600">
+                                        <TrendingUp className="h-3.5 w-3.5" /> กำลัง {stats.processing}
                                     </span>
-                                    <span className="flex items-center gap-1 text-yellow-600">
-                                        <TrendingUp className="h-3.5 w-3.5" /> ผลิต {stats.production}
+                                    <span className="flex items-center gap-1 text-emerald-600">
+                                        <CheckCircle2 className="h-3.5 w-3.5" /> เสร็จ {stats.completed}
                                     </span>
                                     <span className="flex items-center gap-1 text-gray-500">
                                         <XCircle className="h-3.5 w-3.5" /> ยกเลิก {stats.cancelled}
@@ -432,31 +980,10 @@ export default function PlanOrderFilters({
                                 </>
                             )}
                         </div>
-                        <Button
-                            variant="link"
-                            onClick={clearFilters}
-                            className="text-xs text-red-600 hover:text-red-800 h-auto p-0"
-                        >
+                        <Button variant="link" onClick={clearFilters} className="h-auto p-0 text-xs text-red-600 hover:text-red-800">
                             ล้างทั้งหมด
                         </Button>
                     </div>
-                </div>
-            )}         
-
-            {/* Selected Product Indicator - ทำให้คลิกล้างได้ */}
-            {selectedProduct && selectedProduct !== 'all' && (
-                <div 
-                    className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors"
-                    onClick={() => {
-                        onFilterChange({ productType: 'all' });
-                        if (onProductSelect) onProductSelect(null);
-                    }}
-                >
-                    <span className="flex items-center gap-1">
-                        <Package className="h-3 w-3" />
-                        กำลังแสดงเฉพาะ: {productOptions.find(p => p.value === selectedProduct)?.label}
-                        <X className="h-3 w-3 ml-2 inline" />
-                    </span>
                 </div>
             )}
         </div>

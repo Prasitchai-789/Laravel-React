@@ -35,10 +35,7 @@ export default function PlanOrderHeader({ viewMode, onViewModeChange, selectedCo
                                     จัดการคำสั่งขนส่ง
                                 </Badge>
                             </h1>
-                            <p className="text-blue-100 text-sm mt-0.5 flex items-center gap-2">
-                                <Clock className="h-3.5 w-3.5" />
-                                อัปเดตล่าสุด {new Date().toLocaleTimeString('th-TH')}
-                            </p>
+                           
                         </div>
                     </div>
               
