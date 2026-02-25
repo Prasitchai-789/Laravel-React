@@ -22,7 +22,7 @@ class ByProductionStockController extends Controller
     public function apiByProduction()
     {
         try {
-            $records = ByProductionStock::all();
+            $records = ByProductionStock::orderBy('production_date', 'desc')->get();
             return response()->json([
                 'success' => true,
                 'records' => $records,
@@ -96,6 +96,7 @@ class ByProductionStockController extends Controller
                 'GoodID',
                 DB::raw('SUM(NetWei) AS total_netwei')
             )
+                ->whereIn('GoodID', [9012, 2149, 2151])
                 ->groupBy('SOPDate', 'GoodID')
                 ->orderBy('SOPDate', 'desc')
                 ->get();
@@ -111,6 +112,73 @@ class ByProductionStockController extends Controller
                 'success' => false,
                 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
                 'records' => []
+            ], 500);
+        }
+    }
+
+    /**
+     * ดึงยอดยกมา (previous balance) จาก stock_products โดยตรง
+     * ส่งวันที่มา → หาวันก่อนหน้าใน stock_products → คืน efb_fiber, efb, shell
+     */
+    public function apiPreviousBalance(Request $request)
+    {
+        try {
+            $date = $request->query('date');
+
+            if (!$date) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing date parameter',
+                    'efb_fiber_previous_balance' => 0,
+                    'efb_previous_balance' => 0,
+                    'shell_previous_balance' => 0,
+                ]);
+            }
+
+            $parsedDate = $this->strictDateParser($date);
+
+            if (!$parsedDate) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid date format',
+                    'efb_fiber_previous_balance' => 0,
+                    'efb_previous_balance' => 0,
+                    'shell_previous_balance' => 0,
+                ]);
+            }
+
+            // หาข้อมูลวันก่อนหน้าจาก stock_products
+            $previous = DB::table('stock_products')
+                ->whereDate('record_date', '<', $parsedDate)
+                ->orderBy('record_date', 'desc')
+                ->first();
+
+            if ($previous) {
+                return response()->json([
+                    'success' => true,
+                    'date' => $parsedDate,
+                    'previous_date' => $previous->record_date,
+                    'efb_fiber_previous_balance' => round((float) $previous->efb_fiber, 3),
+                    'efb_previous_balance' => round((float) $previous->efb, 3),
+                    'shell_previous_balance' => round((float) $previous->shell, 3),
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'date' => $parsedDate,
+                'previous_date' => null,
+                'efb_fiber_previous_balance' => 0,
+                'efb_previous_balance' => 0,
+                'shell_previous_balance' => 0,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+                'efb_fiber_previous_balance' => 0,
+                'efb_previous_balance' => 0,
+                'shell_previous_balance' => 0,
             ], 500);
         }
     }

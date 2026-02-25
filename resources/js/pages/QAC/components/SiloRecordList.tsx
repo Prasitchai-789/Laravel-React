@@ -29,6 +29,7 @@ type Flash = { success?: string; error?: string };
 interface SiloRecord {
     id: number;
     record_date: string;
+    is_production?: boolean;
     nut_silo_1_level: number | string;
     nut_silo_2_level: number | string;
     nut_silo_3_level: number | string;
@@ -71,6 +72,8 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
     const [sortField, setSortField] = useState<string>('record_date');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const [selectedRecord, setSelectedRecord] = useState<SiloRecord | null>(null);
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [itemsPerPage, setItemsPerPage] = useState<number>(5);
 
     const page = usePage<{ auth: { user?: any; permissions?: string[] } }>();
     const userPermissions: string[] = Array.isArray(page.props.auth?.permissions)
@@ -147,26 +150,28 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
         const levelNum = typeof level === 'string' ? parseFloat(level) : level;
         if (isNaN(levelNum)) return '0.000';
 
-        const result = (constant - levelNum) * multiplier + extra;
+        const raw = (constant - levelNum) * multiplier;
+        const result = raw > 0 ? raw + extra : 0;
         return result.toFixed(3);
     };
 
     const calculateTotals = (record: SiloRecord): TotalsResult => {
         // คำนวณ Nut Total
-        const nutSilo1 = safeParseFloat(calculateQuantity(record.nut_silo_1_level, 0.0453, 614));
-        const nutSilo2 = safeParseFloat(calculateQuantity(record.nut_silo_2_level, 0.0453, 614));
+        const nutSilo1 = safeParseFloat(calculateQuantity(record.nut_silo_1_level, 0.0453, 614, 1.40));
+        const nutSilo2 = safeParseFloat(calculateQuantity(record.nut_silo_2_level, 0.0453, 614, 1.40));
         const nutSilo3 = safeParseFloat(calculateQuantity(record.nut_silo_3_level, 0.0538, 614, 2.19));
         const nutTotal = nutSilo1 + nutSilo2 + nutSilo3;
 
         // คำนวณ Kernel Total
-        const kernelSilo1 = safeParseFloat(calculateQuantity(record.kernel_silo_1_level, 0.0296, 640));
-        const kernelSilo2 = safeParseFloat(calculateQuantity(record.kernel_silo_2_level, 0.0296, 640));
+        const kernelSilo1 = safeParseFloat(calculateQuantity(record.kernel_silo_1_level, 0.0296, 640, 0.814));
+        const kernelSilo2 = safeParseFloat(calculateQuantity(record.kernel_silo_2_level, 0.0296, 640, 0.814));
         const kernelTotal = kernelSilo1 + kernelSilo2;
 
         // คำนวณ Sale Total
         const saleBig = safeParseFloat(calculateQuantity(record.silo_sale_big_level, 0.228, 920));
         const saleSmall = safeParseFloat(calculateQuantity(record.silo_sale_small_level, 0.228, 870));
-        const saleTotal = (saleBig + saleSmall) / 2 + 12;
+        const saleSum = saleBig + saleSmall;
+        const saleTotal = saleSum > 0 ? (saleSum / 2) + 12 : 0;
 
         // คำนวณ Outside Total
         const outsideNut = safeParseFloat(record.outside_nut);
@@ -246,7 +251,11 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
     };
 
     const handleDeleteWithPermission = (id: number): void => {
-        if (userPermissions.includes('Admin.delete')) {
+        const canDelete =
+            userPermissions.includes('Admin.delete') ||
+            userPermissions.includes('developer.view') ||
+            userPermissions.includes('qac.view');
+        if (canDelete) {
             openDeleteModal(id);
         } else {
             Swal.fire({
@@ -256,6 +265,7 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
             });
         }
     };
+
 
     const handleDelete = (): void => {
         if (selectedId) {
@@ -294,6 +304,25 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
             setSortField(field);
             setSortDirection('desc');
         }
+        setCurrentPage(1);
+    };
+
+    // Pagination
+    const totalPages = Math.ceil(sortedRecords.length / itemsPerPage);
+    const paginatedRecords = sortedRecords.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    const getPageNumbers = (): (number | '...')[] => {
+        const pages: (number | '...')[] = [];
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            pages.push(1);
+            if (currentPage > 3) pages.push('...');
+            for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+            if (currentPage < totalPages - 2) pages.push('...');
+            pages.push(totalPages);
+        }
+        return pages;
     };
 
     const getSortIcon = (field: string): JSX.Element | null => {
@@ -445,7 +474,7 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
                                     type="text"
                                     placeholder="ค้นหาตามวันที่..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                                     className="w-full rounded-2xl border border-gray-200 bg-white py-3 pr-4 pl-10 text-sm transition-all duration-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200/50"
                                 />
                             </div>
@@ -509,7 +538,7 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100/50">
-                                {sortedRecords.map((record, index) => {
+                                {paginatedRecords.map((record, index) => {
                                     const totals = calculateTotals(record);
 
                                     return (
@@ -538,6 +567,14 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
                                                                 weekday: 'long',
                                                             })}
                                                         </div>
+                                                        {/* บาดจ์สถานะการผลิต */}
+                                                        <div className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                                            record.is_production === false
+                                                                ? 'bg-red-100 text-red-700'
+                                                                : 'bg-emerald-100 text-emerald-700'
+                                                        }`}>
+                                                            {record.is_production === false ? 'ไม่ผลิต' : 'ผลิต'}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
@@ -549,12 +586,12 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
                                                         {
                                                             level: record.nut_silo_1_level,
                                                             label: 'Silo 1',
-                                                            value: calculateQuantity(record.nut_silo_1_level, 0.0453, 614),
+                                                            value: calculateQuantity(record.nut_silo_1_level, 0.0453, 614, 1.40),
                                                         },
                                                         {
                                                             level: record.nut_silo_2_level,
                                                             label: 'Silo 2',
-                                                            value: calculateQuantity(record.nut_silo_2_level, 0.0453, 614),
+                                                            value: calculateQuantity(record.nut_silo_2_level, 0.0453, 614, 1.40),
                                                         },
                                                         {
                                                             level: record.nut_silo_3_level,
@@ -580,12 +617,12 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
                                                         {
                                                             level: record.kernel_silo_1_level,
                                                             label: 'Silo 1',
-                                                            value: calculateQuantity(record.kernel_silo_1_level, 0.0296, 640),
+                                                            value: calculateQuantity(record.kernel_silo_1_level, 0.0296, 640, 0.814),
                                                         },
                                                         {
                                                             level: record.kernel_silo_2_level,
                                                             label: 'Silo 2',
-                                                            value: calculateQuantity(record.kernel_silo_2_level, 0.0296, 640),
+                                                            value: calculateQuantity(record.kernel_silo_2_level, 0.0296, 640, 0.814),
                                                         },
                                                     ].map((silo, idx) => (
                                                         <div key={idx} className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-3">
@@ -723,6 +760,68 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
                         </div>
                     )}
                 </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex flex-col items-center justify-between gap-3 rounded-3xl border border-white/50 bg-white/70 px-6 py-4 shadow-2xl backdrop-blur-sm sm:flex-row">
+                        <div className="flex items-center space-x-3">
+                            <p className="text-sm text-gray-500">
+                                แสดง{' '}
+                                <span className="font-semibold text-gray-700">{(currentPage - 1) * itemsPerPage + 1}</span>
+                                {' '}–{' '}
+                                <span className="font-semibold text-gray-700">{Math.min(currentPage * itemsPerPage, sortedRecords.length)}</span>
+                                {' '}จาก{' '}
+                                <span className="font-semibold text-gray-700">{sortedRecords.length}</span> รายการ
+                            </p>
+                            <div className="flex items-center space-x-1 text-sm text-gray-500">
+                                <span>แสดง</span>
+                                <select
+                                    value={itemsPerPage}
+                                    onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                                    className="rounded-xl border border-gray-200 bg-white px-2 py-1 text-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-200/50 focus:outline-none"
+                                >
+                                    <option value={5}>5</option>
+                                    <option value={10}>10</option>
+                                    <option value={20}>20</option>
+                                </select>
+                                <span>รายการ</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                            <button
+                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                ‹ ก่อนหน้า
+                            </button>
+                            {getPageNumbers().map((page, idx) =>
+                                page === '...' ? (
+                                    <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">…</span>
+                                ) : (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page as number)}
+                                        className={`rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${
+                                            currentPage === page
+                                                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                                                : 'border border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                )
+                            )}
+                            <button
+                                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                ถัดไป ›
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Delete Modal */}

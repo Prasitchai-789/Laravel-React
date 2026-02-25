@@ -10,7 +10,11 @@ class SOPlan extends Model
 {
     protected $connection = 'sqlsrv2';
 
+
     use HasFactory, SoftDeletes;
+
+
+    use HasFactory;
 
     protected $table = 'SOPlan';
     protected $primaryKey = 'SOPID';

@@ -854,7 +854,7 @@ export default function StockCPO() {
                                 </div>
                                 <div className="rounded p-1 text-center">
                                     <span className="font-bold text-blue-700">
-                                        {safeFixed(data.undilute_1, 0)} <span className="text-xs font-normal text-gray-500"> แผ่น</span>
+                                        {safeFixed(data.undilute_1, 2)} <span className="text-xs font-normal text-gray-500"> แผ่น</span>
                                     </span>
                                 </div>
                             </div>
@@ -865,7 +865,7 @@ export default function StockCPO() {
                                 </div>
                                 <div className="rounded p-1 text-center">
                                     <span className="font-bold text-blue-700">
-                                        {safeFixed(data.undilute_2, 0)}
+                                        {safeFixed(data.undilute_2, 2)}
  <span className="text-xs font-normal text-gray-500"> แผ่น</span>
                                     </span>
                                 </div>
@@ -877,7 +877,7 @@ export default function StockCPO() {
                                 </div>
                                 <div className="rounded p-1 text-center">
                                     <span className="font-bold text-blue-700">
-                                        {safeFixed(data.setting, 0)}
+                                        {safeFixed(data.setting, 2)}
  <span className="text-xs font-normal text-gray-500"> แผ่น</span>
                                     </span>
                                 </div>
@@ -889,7 +889,7 @@ export default function StockCPO() {
                                 </div>
                                 <div className="rounded p-1 text-center">
                                     <span className="font-bold text-blue-700">
-                                        {safeFixed(data.cleanOil, 0)}
+                                        {safeFixed(data.cleanOil, 2)}
  <span className="text-xs font-normal text-gray-500"> แผ่น</span>
                                     </span>
                                 </div>

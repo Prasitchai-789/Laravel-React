@@ -421,6 +421,7 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
     Route::get('/stock/kernel/api', [SiloRecordController::class, 'apiRecord'])->name('stock.kernel.api');
     Route::put('/stock/kernel/{siloRecord}', [SiloRecordController::class, 'update']);
     Route::delete('/stock/kernel/{siloRecord}', [SiloRecordController::class, 'destroy'])->name('stock.kernel.destroy');
+    Route::get('/stock/kernel/no-production-data', [SiloRecordController::class, 'apiKernelNoProductionData'])->name('stock.kernel.no-production-data');
 
     Route::get('/stock/by-products', [ByProductionStockController::class, 'index'])->name('stock.by-products.index');
     Route::post('/stock/by-products', [ByProductionStockController::class, 'store'])->name('stock.by-products.store');
@@ -431,6 +432,7 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
     Route::get('/productions/by-date', [ByProductionStockController::class, 'getByDate']);
 
     Route::get('/stock/sales/api', [ByProductionStockController::class, 'apiSumSales'])->name('stock.sales.api');
+    Route::get('/stock/by-products/previous-balance', [ByProductionStockController::class, 'apiPreviousBalance'])->name('stock.by-products.previous-balance');
 });
 
 // Dashboard QAC Routes

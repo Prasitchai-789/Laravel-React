@@ -521,14 +521,15 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
     const totalCPODetails = getTotalCPODetails();
 
     // โหลดข้อมูลวันก่อนหน้าเพื่อนำมาใช้ตอน "ไม่ผลิต"
+    useEffect(() => {
+        if (!isProducing && formData.date) {
+            loadPreviousDayData();
+        }
+    }, [isProducing, formData.date]);
 
     const handleSwitchMode = (v: boolean) => {
         setIsProducing(v);
-
-        if (!v) {
-            // เมื่อเปลี่ยนเป็น “ไม่ผลิต” → โหลดข้อมูลจาก backend
-            loadPreviousDayData();
-        }
+        // ไม่ต้อง loadPreviousDayData() ตรงนี้แล้ว เพราะ useEffect จะทำงานเอง
     };
 
     const loadPreviousDayData = async () => {
