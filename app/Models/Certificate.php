@@ -7,8 +7,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Certificate extends Model
 {
+    public function __construct(array $attributes = [])
+    {
+        parent::__construct($attributes);
+        // กำหนด Connection ของ Database ผ่าน .env ได้
+        // โดยตั้งค่า `DB_CERTIFICATES_CONNECTION=sqlsrv` (หรือชื่ออื่นๆ) ไว้
+        // หรือถ้าไม่มีค่านี้ จะใช้ 'sqlsrv3' เป็นค่าพื้นฐาน
+        $this->connection = env('DB_CERTIFICATES_CONNECTION', 'sqlsrv3');
+    }
 
-   
     use HasFactory;
 
     protected $table = 'certificates';
