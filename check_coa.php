@@ -12,7 +12,7 @@ $mapped = [];
 $sopids = [];
 
 $query = SOPlan::select('SOPlan.SOPID', 'SOPlan.SOPDate', 'SOPlan.GoodName', 'SOPlan.Status_coa')
-    ->whereRaw('YEAR(TRY_CONVERT(DATE, SOPDate, 103)) = ?', [$selectedYear])
+    ->whereYear('SOPDate', $selectedYear)
     ->orderByRaw('ISNULL(TRY_CAST(SOPlan.SOPID AS INT), 0) DESC');
 
 foreach ($query->cursor() as $s) {
