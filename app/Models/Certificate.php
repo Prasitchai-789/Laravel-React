@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Certificate extends Model
 {
 
-    protected $connection = 'sqlsrv';
+   
     use HasFactory;
 
     protected $table = 'certificates';
