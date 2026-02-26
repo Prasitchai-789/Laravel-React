@@ -52,17 +52,13 @@ class SOPlanController extends Controller
             'c.CustName as CustName',
             'c.CustCode',
             DB::raw("
-            -- ใช้ TRY_CONVERT เพื่อรองรับรูปแบบ D/M/YYYY (ไม่มี leading zero) และ dd/mm/yyyy
-            ISNULL(
-                CONVERT(NVARCHAR(19), TRY_CONVERT(DATE, SOPDate, 103), 120),
-                SOPDate
-            ) as sort_date
+            -- ใช้ SOPDate โดยตรง เนื่องจากตอนนี้เป็น datetime2 แล้ว
+            SOPDate as sort_date
         ")
         )
             ->leftJoin('EMCust as c', 'SOPlan.CustID', '=', 'c.CustID')
             // ======= กรองเฉพาะปีที่เลือก =======
-            // TRY_CONVERT(DATE, SOPDate, 103) รองรับทั้ง '7/1/2023' และ '17/12/2023'
-            ->whereRaw('YEAR(TRY_CONVERT(DATE, SOPDate, 103)) = ?', [$selectedYear])
+            ->whereYear('SOPDate', $selectedYear)
             // TRY_CAST ป้องกัน SOPID ที่ไม่ใช่ตัวเลข เช่น '23 0'
             ->orderByRaw('ISNULL(TRY_CAST(SOPlan.SOPID AS INT), 0) DESC')
             ->orderBy('sort_date', 'desc');
@@ -161,13 +157,13 @@ class SOPlanController extends Controller
     // ============================================================
     private function getAvailableYears(): array
     {
-        // ใช้ TRY_CONVERT(DATE, SOPDate, 103) รองรับทั้ง D/M/YYYY และ DD/MM/YYYY
+        // ใช้ YEAR(SOPDate) ได้โดยตรงเนื่องจากฟิลด์เป็น datetime2 แล้ว
         $rows = DB::connection('sqlsrv2')
             ->select("
-                SELECT DISTINCT YEAR(TRY_CONVERT(DATE, SOPDate, 103)) AS yr
+                SELECT DISTINCT YEAR(SOPDate) AS yr
                 FROM SOPlan
                 WHERE deleted_at IS NULL
-                  AND TRY_CONVERT(DATE, SOPDate, 103) IS NOT NULL
+                  AND SOPDate IS NOT NULL
                 ORDER BY yr DESC
             ");
 
@@ -282,11 +278,10 @@ class SOPlanController extends Controller
                 });
             }
 
-            // เฉพาะที่ยังไม่มีผล COA หรือสถานะยังไม่เสร็จ (ตัวอย่างเงื่อนไข)
             // ดึงข้อมูลย้อนหลัง 30 วัน
-            $query->whereRaw("TRY_CONVERT(DATE, SOPDate, 103) >= ?", [now()->subDays(30)->format('Y-m-d')]);
+            $query->whereDate("SOPDate", ">=", now()->subDays(30)->format('Y-m-d'));
 
-            $data = $query->orderByRaw("TRY_CONVERT(DATE, SOPDate, 103) DESC")->get();
+            $data = $query->orderBy("SOPDate", "DESC")->get();
 
             // Fetch related certificates
             $sopIds = $data->pluck('SOPID')->toArray();
@@ -359,7 +354,7 @@ class SOPlanController extends Controller
             'vehicles.*.driverName' => 'nullable|string',
         ]);
 
-        $receiveDate = \Carbon\Carbon::parse($data['receiveDate'])->format('d/m/Y H:i:s');
+        $receiveDate = \Carbon\Carbon::parse($data['receiveDate'])->format('Y-m-d H:i:s');
 
         // แก้ไข: ใช้ query เดียว (MAX) แทนที่จะทำ 3 queries แยก
         $maxSOP = SOPlan::selectRaw('MAX(CAST([SOPID] AS INT)) as max_id')
@@ -542,7 +537,7 @@ class SOPlanController extends Controller
                 return $this->errorResponse($request, 'ไม่พบข้อมูลที่ต้องการแก้ไข (SOPID: ' . $id . ')', 404);
             }
 
-            $receiveDate = \Carbon\Carbon::parse($data['receiveDate'])->format('d/m/Y H:i:s');
+            $receiveDate = \Carbon\Carbon::parse($data['receiveDate'])->format('Y-m-d H:i:s');
 
             $plan->SOPDate = $receiveDate;
             $plan->GoodID = $data['goodID'];
