@@ -379,7 +379,9 @@ export default function PlanOrderTable({
                 const [day, month, year] = dateString.split(' ')[0].split('/');
                 date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
             } else {
-                date = new Date(dateString);
+                // Handle 'YYYY-MM-DD HH:mm:ss.0000000' or 'YYYY-MM-DD'
+                const dateOnly = dateString.includes('T') ? dateString.split('T')[0] : dateString.split(' ')[0];
+                date = new Date(dateOnly);
             }
 
             return date.toLocaleDateString('th-TH', {

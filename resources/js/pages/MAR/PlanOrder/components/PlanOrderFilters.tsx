@@ -261,7 +261,9 @@ const detectFromProductName = (productName: string | undefined): string | null =
 const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return '';
     try {
-        const date = new Date(dateStr);
+        // Handle 'YYYY-MM-DD HH:mm:ss.0000000' or 'YYYY-MM-DD'
+        const dateOnly = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.split(' ')[0];
+        const date = new Date(dateOnly);
         return date.toLocaleDateString('th-TH', {
             year: 'numeric',
             month: '2-digit',

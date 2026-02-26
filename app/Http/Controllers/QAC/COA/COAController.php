@@ -104,7 +104,7 @@ class COAController extends Controller
             $cert->spec_kn_moisture = $request->get('spec_kn_moisture');
 
             // Set users based on new explicit payload or fallbacks
-            $cert->coa_user = $request->get('coa_user', $request->get('inspector'));
+            $cert->coa_user = $request->get('coa_user_id', $request->get('coa_user', $request->get('inspector')));
 
             // Only update manager if it's explicitly sent in store (usually done in approve)
             if ($request->has('coa_mgr') && $request->get('coa_mgr') !== '') {

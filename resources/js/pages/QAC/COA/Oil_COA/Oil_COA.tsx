@@ -215,7 +215,8 @@ const Oil_COA: React.FC = () => {
                         spec_dobi: s.spec_dobi || '> 2.00',
                         coa_tank: s.coa_tank,
                         notes: s.notes,
-                        inspector: s.inspector,
+                        inspector: s.coa_user_id || s.inspector, // Use ID for dropdown
+                        coa_user: s.inspector, // Keep name here if needed
                         coa_mgr: s.coa_mgr,   // เพิ่มฟิลด์
                         status: s.Status_coa || (s.Status === 'p' ? 'processing' : 'pending'), // ✅ ใช้ Status_coa เป็นหลัก
                         created_at: parseDateString(s.coa_date || s.SOPDate),
@@ -251,8 +252,8 @@ const Oil_COA: React.FC = () => {
                             dobi: d.dobi,
                             coa_tank: d.coa_tank,
                             notes: d.notes,
-                            inspector: d.inspector,
-                            coa_user: d.coa_user,
+                            inspector: d.coa_user_id || d.inspector,
+                            coa_user: d.inspector,
                             coa_mgr: d.coa_mgr,
                             status: d.Status_coa || 'processing', // ✅ ค่าเริ่มต้นเมื่อเปิด modal
                             created_at: d.coa_date ? parseDateString(d.coa_date) : new Date().toISOString().split('T')[0],
@@ -362,6 +363,7 @@ const Oil_COA: React.FC = () => {
                 spec_iv: formData.spec_iv,
                 spec_dobi: formData.spec_dobi,
                 inspector: formData.inspector,
+                coa_user_id: auth?.user?.employee_id || formData.coa_user_id,
                 notes: formData.notes
             });
             const res = response.data;
@@ -419,8 +421,8 @@ const Oil_COA: React.FC = () => {
                 spec_moisture: row.spec_moisture,
                 spec_iv: row.spec_iv,
                 spec_dobi: row.spec_dobi,
-                inspector: row.inspector,
-                coa_user_id: row.inspector, // Assuming inspector stores user ID
+                inspector: currentUserName || row.coa_user || row.inspector,
+                coa_user_id: auth?.user?.employee_id || row.inspector,
                 notes: row.notes,
             };
             await generateAndDownloadCoa(pdfData, coaType);

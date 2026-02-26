@@ -11,9 +11,22 @@ use Illuminate\Http\JsonResponse;
 use App\Models\MAR\SOPlan;
 use App\Models\Certificate;
 use App\Models\VehicleInspection;
+use App\Models\WIN\WebappEmp;
 
 class SOPlanController extends Controller
 {
+    private function getEmployeeName($empIdOrName)
+    {
+        if (!$empIdOrName)
+            return null;
+        if (is_numeric($empIdOrName)) {
+            $emp = WebappEmp::find($empIdOrName);
+            if ($emp)
+                return $emp->EmpName;
+        }
+        return $empIdOrName;
+    }
+
     // ============================================================
     // INDEX — โหลดรายการแผนการขนส่ง (filter by year, memory-safe)
     // ============================================================
@@ -239,7 +252,8 @@ class SOPlanController extends Controller
                     'spec_kn_moisture' => $cert ? $cert->spec_kn_moisture : null,
 
                     'coa_tank' => $cert ? $cert->coa_tank : null,
-                    'inspector' => $cert ? $cert->coa_user : null,
+                    'inspector' => $cert ? $this->getEmployeeName($cert->coa_user) : null,
+                    'coa_user_id' => $cert ? $cert->coa_user : null,
                     'notes' => $cert ? $cert->coa_remark : null,
                 ]
             ]);
@@ -318,7 +332,8 @@ class SOPlanController extends Controller
                     'spec_dobi' => $cert ? $cert->spec_dobi : null,
                     'spec_shell' => $cert ? $cert->spec_shell : null,
                     'spec_kn_moisture' => $cert ? $cert->spec_kn_moisture : null,
-                    'inspector' => $cert ? $cert->coa_user : null,
+                    'inspector' => $cert ? $this->getEmployeeName($cert->coa_user) : null,
+                    'coa_user_id' => $cert ? $cert->coa_user : null,
                     'notes' => $cert ? $cert->coa_remark : null,
                 ];
             });

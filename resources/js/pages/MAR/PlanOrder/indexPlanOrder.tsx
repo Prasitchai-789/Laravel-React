@@ -91,13 +91,16 @@ const PRODUCT_TYPE_MAP: { [key: string]: string } = {
 const formatDateForComparison = (dateStr: string): string => {
     if (!dateStr) return '';
 
+    // Handle 'DD/MM/YYYY HH:mm:ss' which could exist in older data
     if (dateStr.includes('/')) {
         const [datePart] = dateStr.split(' ');
         const [day, month, year] = datePart.split('/');
         return `${year}-${month}-${day}`;
     }
 
-    return dateStr.split('T')[0];
+    // Handle 'YYYY-MM-DD HH:mm:ss.0000000' from datetime2 and 'YYYY-MM-DDTHH:mm...' 
+    const dateOnly = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.split(' ')[0];
+    return dateOnly;
 };
 
 const mapProductType = (goodId: string, goodName: string): string => {
@@ -405,8 +408,8 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
                 spec_shell: data.spec_shell,
                 spec_kn_moisture: data.spec_kn_moisture,
 
-                inspector: data.inspector || '-',
-                coa_user_id: data.inspector,
+                inspector: props.auth?.employee_name || props.auth?.user?.name || data.inspector || '-',
+                coa_user_id: props.auth?.user?.employee_id || data.coa_user_id || data.inspector,
                 notes: data.notes || '-',
                 created_at: data.SOPDate || order.orderDate,
             };

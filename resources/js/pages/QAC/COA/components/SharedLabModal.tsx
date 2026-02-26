@@ -5,6 +5,7 @@ import {
     X, FlaskConical, Package, Activity, Droplets, Beaker, Thermometer, Gauge,
     TrendingUp, User, FileText, Info, Droplet, FileDown, Loader2
 } from 'lucide-react';
+import axios from 'axios';
 import { generateAndDownloadCoa } from '../PDF/coaPdfGenerator';
 
 export interface SharedCOAData {
@@ -34,6 +35,9 @@ export interface SharedCOAData {
     result_kn_moisture?: number | string;
     spec_shell?: string;
     spec_kn_moisture?: string;
+    coa_user?: string;
+    coa_user_id?: string;
+    coa_mgr?: string;
 }
 
 interface SharedLabModalProps {
@@ -47,6 +51,7 @@ interface SharedLabModalProps {
 export default function SharedLabModal({ isOpen, onClose, data, type, onSave }: SharedLabModalProps) {
     const [form, setForm] = useState<Partial<SharedCOAData>>({});
     const [pdfLoading, setPdfLoading] = useState(false);
+    const [employees, setEmployees] = useState<{ EmpID: number, EmpName: string }[]>([]);
 
     const { auth } = usePage<any>().props;
     const currentUserName = auth?.employee_name || auth?.user?.name || '';
@@ -56,10 +61,8 @@ export default function SharedLabModal({ isOpen, onClose, data, type, onSave }: 
             // Only initialize form if it's empty or data ID has changed
             if (!form.id || form.id !== data.id) {
                 const initialForm = { ...data };
-                // Auto-fill inspector if empty
-                if (!initialForm.inspector) {
-                    initialForm.inspector = currentUserName;
-                }
+                // We won't auto-fill a string name into a dropdown ID field,
+                // but we map existing inspector which might be an ID or Name.
                 setForm(initialForm);
             }
         } else if (!isOpen) {
@@ -68,18 +71,37 @@ export default function SharedLabModal({ isOpen, onClose, data, type, onSave }: 
         }
     }, [data?.id, isOpen]); // Depend on ID specifically
 
+    useEffect(() => {
+        axios.get('/api/employees')
+            .then(res => {
+                if (res.data.success) {
+                    setEmployees(res.data.data);
+                }
+            })
+            .catch(err => console.error('Failed to fetch employees', err));
+    }, []);
+
     if (!isOpen || !data) return null;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({ ...form, status: 'W' as any });
+        onSave({
+            ...form,
+            status: 'W' as any,
+            inspector: currentUserName || form.inspector,
+            coa_user_id: auth?.user?.employee_id || form.coa_user_id
+        });
         onClose();
     };
 
     const handleDownloadPdf = async () => {
         setPdfLoading(true);
         try {
-            await generateAndDownloadCoa({ ...form } as any, type);
+            await generateAndDownloadCoa({
+                ...form,
+                inspector: currentUserName || form.inspector,
+                coa_user_id: auth?.user?.employee_id || form.coa_user_id,
+            } as any, type);
         } catch (err) {
             console.error('PDF generation error:', err);
         } finally {
@@ -306,13 +328,12 @@ export default function SharedLabModal({ isOpen, onClose, data, type, onSave }: 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">ผู้ตรวจสอบ</label>
                             <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                 <input
                                     type="text"
-                                    value={form.inspector || ''}
-                                    onChange={(e) => setForm({ ...form, inspector: e.target.value })}
-                                    className={`w-full pl-9 pr-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-${isOil ? 'blue' : 'green'}-500 text-sm`}
-                                    placeholder="ชื่อผู้ตรวจสอบ"
+                                    readOnly
+                                    value={currentUserName || form.inspector || ''}
+                                    className={`w-full pl-9 pr-3 py-2 border-2 border-gray-200 rounded-lg bg-gray-100 text-gray-600 focus:outline-none focus:ring-0 text-sm`}
                                 />
                             </div>
                         </div>
