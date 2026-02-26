@@ -79,6 +79,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['permission:users.view|users.create|users.edit|users.delete'])->group(function () {
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::get('api/employees', [UserController::class, 'getEmployees'])->name('api.employees');
     });
 
     Route::middleware('permission:users.create')->group(function () {

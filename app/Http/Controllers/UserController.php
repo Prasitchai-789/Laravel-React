@@ -197,6 +197,15 @@ class UserController extends Controller
         }
     }
 
+    public function getEmployees()
+    {
+        $employees = WebappEmp::select('EmpID', 'EmpName')
+            ->orderBy('EmpName')
+            ->get();
 
-
+        return response()->json([
+            'success' => true,
+            'data' => $employees
+        ]);
+    }
 }

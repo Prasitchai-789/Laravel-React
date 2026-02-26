@@ -456,7 +456,7 @@ export async function generateCarPdf(fields: COAFields): Promise<Uint8Array> {
         // Adjust these (X, and fromTop height) to fit the CAR template correctly
         firstPage.drawImage(userSigImage, {
             x: 420,
-            y: height - 560, // 600 from top
+            y: height - 550, // 600 from top
             width: userSigDims.width,
             height: userSigDims.height,
         });

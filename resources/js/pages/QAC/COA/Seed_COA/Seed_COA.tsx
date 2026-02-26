@@ -283,6 +283,8 @@ const Seed_COA: React.FC = () => {
                 date: new Date().toLocaleDateString('th-TH'),
                 license_plate: order.license_plate || order.licensePlate || '-',
                 driver_name: order.driver_name || order.driverName || '-',
+                inspector: currentUserName || '-',
+                coa_user_id: auth?.user?.employee_id || '-',
             };
 
             // ดึงข้อมูล Inspection
@@ -324,8 +326,8 @@ const Seed_COA: React.FC = () => {
                 result_kn_moisture: row.result_kn_moisture,
                 spec_shell: row.spec_shell,
                 spec_kn_moisture: row.spec_kn_moisture,
-                inspector: row.inspector,
-                coa_user_id: row.inspector, // Assuming inspector stores user ID
+                inspector: currentUserName || row.coa_user || row.inspector,
+                coa_user_id: auth?.user?.employee_id || row.inspector,
                 notes: row.notes,
             };
             await generateAndDownloadCoa(pdfData, type === 'mun' ? 'seed_mun' : 'seed_isp');
@@ -369,8 +371,8 @@ const Seed_COA: React.FC = () => {
                         spec_kn_moisture: s.spec_kn_moisture,
                         coa_tank: s.coa_tank,
                         notes: s.notes,
-                        inspector: s.inspector,
-                        coa_user: s.coa_user, // ดึงข้อมูล coa_user
+                        inspector: s.coa_user_id || s.inspector,
+                        coa_user: s.inspector, // ดึงข้อมูล coa_user
                         coa_mgr: s.coa_mgr,   // ดึงข้อมูล coa_mgr
                         status: s.Status_coa || (s.Status === 'p' ? 'processing' : 'pending'),
                         created_at: parseDateString(s.coa_date || s.SOPDate),
@@ -409,8 +411,8 @@ const Seed_COA: React.FC = () => {
                             spec_kn_moisture: d.spec_kn_moisture,
                             coa_tank: d.coa_tank,
                             notes: d.notes,
-                            inspector: d.inspector,
-                            coa_user: d.coa_user, // ดึงข้อมูล coa_user
+                            inspector: d.coa_user_id || d.inspector,
+                            coa_user: d.inspector, // ดึงข้อมูล coa_user
                             coa_mgr: d.coa_mgr,   // ดึงข้อมูล coa_mgr
                             status: d.Status_coa || 'processing',
                             created_at: d.coa_date ? parseDateString(d.coa_date) : new Date().toISOString().split('T')[0],
@@ -452,7 +454,6 @@ const Seed_COA: React.FC = () => {
                 result_shell: formData.result_shell,
                 result_kn_moisture: formData.result_kn_moisture,
                 tank: formData.coa_tank, // เปลี่ยนเป็น tank ตามที่ backend คาดหวัง
-                coa_user: currentUserName, // ส่งชื่อผู้บันทึก
                 coa_mgr: 'ประภาพร เชื่อพระซอง' // บังคับใช้ชื่อนี้เสมอ
             });
 
@@ -466,8 +467,8 @@ const Seed_COA: React.FC = () => {
                 coa_number: formData.coa_no,
                 coa_lot: formData.lot_no,
                 inspector: formData.inspector,
+                coa_user_id: auth?.user?.employee_id || formData.coa_user_id,
                 notes: formData.notes,
-                coa_user: currentUserName, // เพิ่มชื่อผู้บันทึก
                 coa_mgr: 'ประภาพร เชื่อพระซอง' // บังคับใช้ชื่อนี้เสมอ
             });
 
