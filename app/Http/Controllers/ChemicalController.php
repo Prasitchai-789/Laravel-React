@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
 use App\Models\DailyChemical;
+use App\Models\Chemical;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -310,8 +311,12 @@ class ChemicalController extends Controller
         // รายการปี (ย้อนหลัง 3 ปี + ปีปัจจุบัน)
         $years = range(now()->year - 3, now()->year);
 
+        // ✅ ดึงสารเคมีจาก DB แทน hardcode เพื่อส่งไปให้ frontend
+        $chemicals = Chemical::orderBy('name')->get();
+
         return Inertia::render('Chemical/Monthly', [
             'records' => $records,
+            'chemicals' => $chemicals,
             'filters' => [
                 'month' => $selectedMonth, // เดือนปัจจุบันเป็นค่า default
                 'year' => $selectedYear,   // ปีปัจจุบันเป็นค่า default
@@ -333,18 +338,9 @@ class ChemicalController extends Controller
 
         $data = $this->getMonthlyData($month, $year);
 
-        // ✅ Default Chemicals ใหม่ (ไม่มี PAC)
-        $chemicals = [
-            'ดินขาว',
-            'Fogon 3000',
-            'Hexon 4000',
-            'Sumalchlor 50',
-            'PROXITANE',
-            'Polymer',
-            'Soda Ash',
-            'Salt',
-            'HURRICANE ACH 23KH'
-        ];
+        // ✅ ดึงสารเคมีจาก DB แทน hardcode
+        $chemicalRecords = Chemical::orderBy('name')->get();
+        $chemicals = $chemicalRecords->pluck('name')->toArray();
 
         // หัวตาราง
         $header = array_merge(['วันที่'], $chemicals);
@@ -387,18 +383,8 @@ class ChemicalController extends Controller
             ->orderBy('created_at')
             ->get();
 
-        // ✅ Default Chemicals ใหม่
-        $chemicals = [
-            'ดินขาว',
-            'Fogon 3000',
-            'Hexon 4000',
-            'Sumalchlor 50',
-            'PROXITANE',
-            'Polymer',
-            'Soda Ash',
-            'Salt',
-            'HURRICANE ACH 23KH'
-        ];
+        // ✅ ดึงสารเคมีจาก DB แทน hardcode
+        $chemicals = Chemical::orderBy('name')->pluck('name')->toArray();
 
         // Group by date
         return $raw->groupBy('date')->map(function ($dayGroups, $date) use ($chemicals) {

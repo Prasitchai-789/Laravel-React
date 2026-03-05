@@ -419,12 +419,6 @@ class SOPlanController extends Controller
 
         $receiveDate = \Carbon\Carbon::parse($data['receiveDate'])->format('Y-m-d H:i:s');
 
-        // แก้ไข: ใช้ query เดียว (MAX) แทนที่จะทำ 3 queries แยก
-        $maxSOP = SOPlan::selectRaw('MAX(CAST([SOPID] AS INT)) as max_id')
-            ->whereRaw('ISNUMERIC([SOPID]) = 1')
-            ->first();
-
-        $baseId = $maxSOP && $maxSOP->max_id ? (int) $maxSOP->max_id : 0;
         $savedPlans = [];
 
         // กรองข้อมูลรถที่มีค่า
@@ -438,10 +432,7 @@ class SOPlanController extends Controller
         }
 
         foreach ($validVehicles as $index => $vehicle) {
-            $sopId = (string) ($baseId + $index + 1);
-
             $plan = new SOPlan();
-            $plan->SOPID = $sopId;
             $plan->SOPDate = $receiveDate;
             $plan->GoodID = $data['goodID'];
             $plan->GoodName = $data['goodName'];
@@ -471,7 +462,8 @@ class SOPlanController extends Controller
 
             try {
                 $plan->save();
-                $savedPlans[] = ['SOPID' => $sopId, 'NumberCar' => $plan->NumberCar, 'DriverName' => $plan->DriverName];
+                // ✅ ดึง SOPID ที่ระบบ Auto-increment มาใช้
+                $savedPlans[] = ['SOPID' => $plan->SOPID, 'NumberCar' => $plan->NumberCar, 'DriverName' => $plan->DriverName];
             } catch (\Exception $e) {
                 Log::error('❌ Error saving vehicle ' . ($index + 1) . ': ' . $e->getMessage());
                 return $this->errorResponse(

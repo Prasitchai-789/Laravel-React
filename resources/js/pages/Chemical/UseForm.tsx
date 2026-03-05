@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from '@inertiajs/react';
+import axios from 'axios';
 
 interface UseFormProps {
     mode: 'create' | 'edit';
@@ -9,7 +10,8 @@ interface UseFormProps {
     onSuccess?: () => void;
 }
 
-const getDefaultChemicals = () => [
+// Fallback กรณี API ล้มเหลว
+const FALLBACK_CHEMICALS = [
     { chemical_name: 'ดินขาว', unit: 'กก.', quantityA: 0, quantityB: 0 },
     { chemical_name: 'Fogon 3000', unit: 'กก.', quantityA: 0, quantityB: 0 },
     { chemical_name: 'Hexon 4000', unit: 'กก.', quantityA: 0, quantityB: 0 },
@@ -23,12 +25,36 @@ const getDefaultChemicals = () => [
 
 export default function UseForm({ mode, data = [], shift = 'A', onClose, onSuccess }: UseFormProps) {
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [chemicalsLoaded, setChemicalsLoaded] = useState(false);
     const { data: formData, setData, post, put, reset, processing } = useForm({
         date: selectedDate,
-        records: mode === 'edit' && data.length ? data : getDefaultChemicals()
+        records: mode === 'edit' && data.length ? data : FALLBACK_CHEMICALS
     });
 
     const [inputErrors, setInputErrors] = useState<{ [key: string]: string }>({});
+
+    // ดึงรายชื่อสารเคมีจาก API เมื่อ mode === 'create'
+    useEffect(() => {
+        if (mode === 'create' && !chemicalsLoaded) {
+            axios.get('/api/chemicals')
+                .then(res => {
+                    if (res.data.success && res.data.data.length > 0) {
+                        const apiChemicals = res.data.data.map((c: any) => ({
+                            chemical_name: c.name,
+                            unit: c.unit,
+                            quantityA: 0,
+                            quantityB: 0,
+                        }));
+                        setData('records', apiChemicals);
+                    }
+                    setChemicalsLoaded(true);
+                })
+                .catch(() => {
+                    // ใช้ fallback กรณี API ล้มเหลว
+                    setChemicalsLoaded(true);
+                });
+        }
+    }, [mode]);
 
     useEffect(() => {
         if (mode === 'edit' && data.length) {
@@ -46,10 +72,6 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
             }));
 
             setData('records', filtered);
-        }
-
-        if (mode === 'create') {
-            setData('records', getDefaultChemicals());
         }
     }, [mode, data, shift, setData]);
 
@@ -200,8 +222,8 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
                                                 onChange={e => handleChange(idx, 'quantityA', e.target.value)}
                                                 onBlur={e => handleBlur(idx, 'quantityA', e.target.value)}
                                                 className={`w-full border p-2.5 rounded-lg text-right focus:ring-2 transition-all duration-200 font-medium ${inputErrors[`${idx}-quantityA`]
-                                                        ? 'border-red-300 focus:ring-red-500 bg-red-50'
-                                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                                    ? 'border-red-300 focus:ring-red-500 bg-red-50'
+                                                    : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                                                     } ${r.quantityA > 0 ? 'bg-blue-50 border-blue-200' : ''}`}
                                                 placeholder="0.00"
                                             />
@@ -227,8 +249,8 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
                                                 onChange={e => handleChange(idx, 'quantityB', e.target.value)}
                                                 onBlur={e => handleBlur(idx, 'quantityB', e.target.value)}
                                                 className={`w-full border p-2.5 rounded-lg text-right focus:ring-2 transition-all duration-200 font-medium ${inputErrors[`${idx}-quantityB`]
-                                                        ? 'border-red-300 focus:ring-red-500 bg-red-50'
-                                                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                                    ? 'border-red-300 focus:ring-red-500 bg-red-50'
+                                                    : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                                                     } ${r.quantityB > 0 ? 'bg-green-50 border-green-200' : ''}`}
                                                 placeholder="0.00"
                                             />
@@ -256,8 +278,8 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
                                             onChange={e => handleChange(idx, shift === 'A' ? 'quantityA' : 'quantityB', e.target.value)}
                                             onBlur={e => handleBlur(idx, shift === 'A' ? 'quantityA' : 'quantityB', e.target.value)}
                                             className={`w-full border p-2.5 rounded-lg text-right focus:ring-2 transition-all duration-200 font-medium ${inputErrors[`${idx}-${shift === 'A' ? 'quantityA' : 'quantityB'}`]
-                                                    ? 'border-red-300 focus:ring-red-500 bg-red-50'
-                                                    : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                                ? 'border-red-300 focus:ring-red-500 bg-red-50'
+                                                : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                                                 } ${(shift === 'A' ? r.quantityA > 0 : r.quantityB > 0)
                                                     ? shift === 'A' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'
                                                     : ''

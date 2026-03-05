@@ -121,6 +121,11 @@ const PRONavItem: NavItem[] = [
         href: '/chemical',
         icon: FlaskConical,
     },
+    {
+        title: 'จัดการสารเคมี',
+        href: '/chemical-master',
+        icon: Beaker,
+    },
 ];
 
 const ERPItems: NavItem[] = [
@@ -377,7 +382,7 @@ const isDeveloper = () => can('developer.view');
 
 // Helper function to filter items based on permissions or developer role
 const filterItemsByPermission = (items: NavItem[]) => {
-    return items.filter(item => 
+    return items.filter(item =>
         !item.permission || // ไม่มี permission กำหนด
         isDeveloper() || // เป็น developer เห็นหมด
         item.permission.some(p => can(p)) // มี permission ตามที่กำหนด
@@ -401,7 +406,7 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <SidebarGroupLabel>Report Present</SidebarGroupLabel>
-                
+
                 {/* Developer Menu - จะแสดงถ้ามี permission developer.view */}
                 {isDeveloper() && (
                     <DropdownMenu>
@@ -422,7 +427,7 @@ export function AppSidebar() {
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
-                
+
                 <NavMain items={mainNavItems} />
 
                 <hr className="border-t border-gray-200 my-1" />
@@ -629,7 +634,7 @@ export function AppSidebar() {
                     </DropdownMenu>
                 )}
             </SidebarContent>
-            
+
             <hr className="border-t border-gray-200 my-1" />
 
             {/* ADMIN - Developer จะเห็นหมด */}

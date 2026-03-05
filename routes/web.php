@@ -10,6 +10,7 @@ use App\Http\Controllers\PUR\POController;
 use App\Http\Controllers\ERP\ERPController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ChemicalController;
+use App\Http\Controllers\ChemicalMasterController;
 use App\Http\Controllers\AGR\SalesController;
 use App\Http\Controllers\AGR\StockController;
 use App\Http\Controllers\Api\POInvController;
@@ -149,6 +150,15 @@ Route::middleware('permission:users.delete|developer.view')->group(function () {
     Route::delete('chemical/{chemical}', [ChemicalController::class, 'destroy'])->name('chemical.destroy');
     Route::post('/chemical/delete', [ChemicalController::class, 'destroyMultiple'])->name('chemical.delete.multiple');
     Route::delete('/chemical', [ChemicalController::class, 'destroyBulk'])->name('chemical.destroy.bulk');
+});
+
+// Chemical Master Data Routes (จัดการรายชื่อสารเคมี)
+Route::middleware(['auth', 'permission:users.view|chemical.view|developer.view'])->group(function () {
+    Route::get('/chemical-master', [ChemicalMasterController::class, 'index'])->name('chemical-master.index');
+    Route::post('/chemical-master', [ChemicalMasterController::class, 'store'])->name('chemical-master.store');
+    Route::put('/chemical-master/{id}', [ChemicalMasterController::class, 'update'])->name('chemical-master.update');
+    Route::delete('/chemical-master/{id}', [ChemicalMasterController::class, 'destroy'])->name('chemical-master.destroy');
+    Route::get('/api/chemicals', [ChemicalMasterController::class, 'apiList'])->name('api.chemicals');
 });
 
 // Chemical Order Routes

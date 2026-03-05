@@ -7,47 +7,119 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import MonthlyDetail from './MonthlyDetail';
 import { debounce } from 'lodash';
 
+// ✅ เพิ่ม Interfaces เพื่อแก้ปัญหา Type
+interface ChemicalRecord {
+    chemical_name: string;
+    quantity: number;
+    unit: string;
+}
+
+interface DailyGroup {
+    date: string;
+    shift?: string;
+    records: ChemicalRecord[];
+    totalChemicals?: number;
+}
+
+interface ChemicalItem {
+    id: number;
+    name: string;
+    unit: string;
+}
+
+interface Filters {
+    month?: string;
+    year?: string;
+}
+
+interface MonthlyProps {
+    records: DailyGroup[];
+    chemicals: ChemicalItem[];
+    filters: Filters;
+    months: Record<string, string>;
+    years: Record<string, string> | string[];
+    currentMonth: string;
+    currentYear: string;
+}
+
 // เปลี่ยน props เพื่อรับข้อมูลเดือนและปีปัจจุบันจาก backend
 export default function MonthlyChemicals({
     records = [],
+    chemicals = [], // รับค่า chemicals จาก backend
     filters,
     months,
     years,
     currentMonth,
     currentYear
-}) {
-    const [selectedMonth, setSelectedMonth] = useState(filters?.month || currentMonth);
-    const [selectedYear, setSelectedYear] = useState(filters?.year || currentYear);
+}: MonthlyProps) {
+    const [selectedMonth, setSelectedMonth] = useState<string>(filters?.month || currentMonth);
+    const [selectedYear, setSelectedYear] = useState<string>(filters?.year || currentYear);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [isModalOpen, setIsOpen] = useState(false);
-    const [selectedDateRecords, setSelectedDateRecords] = useState([]);
+    const [selectedDateRecords, setSelectedDateRecords] = useState<ChemicalRecord[]>([]);
     const [activeTab, setActiveTab] = useState('table');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
-    const chemicalNames = ['ดินขาว', 'Fogon 3000', 'Hexon 4000', 'Sumalchlor 50', 'PROXITANE', 'Polymer', 'Soda Ash', 'Salt', 'HURRICANE ACH 23KH'];
+    // ดึงรายชื่อสารเคมีจาก props หรือใช้ fallback ถ้าไม่มี
+    const chemicalNames = useMemo(() => {
+        if (chemicals && chemicals.length > 0) {
+            return chemicals.map(c => c.name);
+        }
+        // Fallback หาจาก records ถ้ามี
+        const foundNames = new Set<string>();
+        records.forEach(r => {
+            r.records?.forEach(item => foundNames.add(item.chemical_name));
+        });
+        if (foundNames.size > 0) return Array.from(foundNames);
+
+        // Fallback สุดท้าย
+        return ['ดินขาว', 'Fogon 3000', 'Hexon 4000', 'Sumalchlor 50', 'PROXITANE', 'Polymer', 'Soda Ash', 'Salt', 'HURRICANE ACH 23KH'];
+    }, [chemicals, records]);
+
     const monthOrder = [
         "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"
     ];
 
     const orderedMonths = monthOrder;
 
-    // กำหนดสีสำหรับแต่ละสารเคมี
-    const chemicalColors = {
-        ดินขาว: { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200', chart: 'rgba(245, 158, 11, 0.7)' },
-        'Fogon 3000': { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200', chart: 'rgba(59, 130, 246, 0.7)' },
-        'Hexon 4000': { bg: 'bg-indigo-100', text: 'text-indigo-800', border: 'border-indigo-200', chart: 'rgba(99, 102, 241, 0.7)' },
-        'Sumalchlor 50': { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200', chart: 'rgba(34, 197, 94, 0.7)' },
-        PROXITANE: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200', chart: 'rgba(239, 68, 68, 0.7)' },
-        Polymer: { bg: 'bg-pink-100', text: 'text-pink-800', border: 'border-pink-200', chart: 'rgba(236, 72, 153, 0.7)' },
-        'Soda Ash': { bg: 'bg-cyan-100', text: 'text-cyan-800', border: 'border-cyan-200', chart: 'rgba(6, 182, 212, 0.7)' },
-        Salt: { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200', chart: 'rgba(13, 148, 136, 0.7)' },
-        'HURRICANE ACH 23KH': { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200', chart: 'rgba(13, 148, 136, 0.7)' },
+    // ฟังก์ชันสร้างสีแบบสุ่มแต่คงที่ตามชื่อสารเคมี
+    const getTailwindColorClass = (name: string) => {
+        const palettes = [
+            { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200', chart: 'rgba(245, 158, 11, 0.7)' },
+            { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-200', chart: 'rgba(59, 130, 246, 0.7)' },
+            { bg: 'bg-indigo-100', text: 'text-indigo-800', border: 'border-indigo-200', chart: 'rgba(99, 102, 241, 0.7)' },
+            { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200', chart: 'rgba(34, 197, 94, 0.7)' },
+            { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-200', chart: 'rgba(239, 68, 68, 0.7)' },
+            { bg: 'bg-pink-100', text: 'text-pink-800', border: 'border-pink-200', chart: 'rgba(236, 72, 153, 0.7)' },
+            { bg: 'bg-cyan-100', text: 'text-cyan-800', border: 'border-cyan-200', chart: 'rgba(6, 182, 212, 0.7)' },
+            { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200', chart: 'rgba(13, 148, 136, 0.7)' },
+            { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-200', chart: 'rgba(168, 85, 247, 0.7)' },
+            { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-200', chart: 'rgba(249, 115, 22, 0.7)' },
+            { bg: 'bg-lime-100', text: 'text-lime-800', border: 'border-lime-200', chart: 'rgba(132, 204, 22, 0.7)' },
+            { bg: 'bg-rose-100', text: 'text-rose-800', border: 'border-rose-200', chart: 'rgba(244, 63, 94, 0.7)' }
+        ];
+
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const index = Math.abs(hash) % palettes.length;
+        return palettes[index];
     };
+
+    // กำหนดสีสำหรับแต่ละสารเคมีแบบ Dynamic
+    const chemicalColors = useMemo(() => {
+        const colors: Record<string, any> = {};
+        chemicalNames.forEach(name => {
+            colors[name] = getTailwindColorClass(name);
+        });
+        return colors;
+    }, [chemicalNames]);
 
 
     // --- helper functions ---
-    const formatNumber = (value, decimals = 2) => {
+    const formatNumber = (value: any, decimals = 2) => {
         if (value == null || isNaN(value)) return "0";
         return Number(value).toLocaleString("th-TH", {
             minimumFractionDigits: decimals,
@@ -55,7 +127,7 @@ export default function MonthlyChemicals({
         });
     };
 
-    const formatNumberWithoutDecimal = (value) => {
+    const formatNumberWithoutDecimal = (value: any) => {
         if (value == null || isNaN(value)) return "0";
         return Number(value).toLocaleString("th-TH", {
             maximumFractionDigits: 0,
@@ -199,7 +271,7 @@ export default function MonthlyChemicals({
             );
 
         setSelectedDate(date);
-        setSelectedDateRecords(dayRecords);
+        setSelectedDateRecords(dayRecords as any); // Cast เพื่อหลีกเลี่ยง TS error กรณี type ไม่ตรง
         setIsOpen(true);
     };
 
@@ -437,7 +509,7 @@ export default function MonthlyChemicals({
                                     onChange={(e) => setSelectedYear(e.target.value)}
                                     className="h-full w-full rounded-md border-0 bg-transparent px-3 text-base font-medium text-blue-700"
                                 >
-                                    {(years || []).map((year) => (
+                                    {(Array.isArray(years) ? years : Object.keys(years || {})).map((year) => (
                                         <option key={year} value={year}>{year}</option>
                                     ))}
                                 </select>
@@ -513,11 +585,11 @@ export default function MonthlyChemicals({
                 {activeTab === 'table' ? (
                     /* Table View */
                     <div>
-                        <div className="mb-4 overflow-hidden rounded-xl border border-gray-200 shadow-xs">
+                        <div className="mb-4 overflow-x-auto rounded-xl border border-gray-200 shadow-xs custom-scrollbar">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="w-32 px-6 py-4 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase">
+                                        <th className="sticky left-0 z-10 w-32 bg-gray-50 px-6 py-4 text-left text-xs font-semibold tracking-wider text-gray-600 uppercase border-r border-gray-200">
                                             <div className="flex flex-col items-center justify-center">
                                                 <Calendar className="h-5 w-5" />
                                                 <span className="mt-2.5 text-xs">วันที่</span>
@@ -527,20 +599,20 @@ export default function MonthlyChemicals({
                                         {chemicalNames.map((name, i) => (
                                             <th
                                                 key={i}
-                                                className="w-24 px-4 py-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase"
+                                                className="min-w-[100px] px-4 py-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase"
                                             >
-                                                <div className="flex flex-col items-center justify-center">
+                                                <div className="flex flex-col items-center justify-center whitespace-nowrap">
                                                     <div
                                                         className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${chemicalColors[name].bg} ${chemicalColors[name].border} mb-1`}
                                                     >
                                                         {getChemicalIcon(name)}
                                                     </div>
-                                                    <span className="text-xs">{name}</span>
+                                                    <span className="text-xs truncate max-w-[100px]" title={name}>{name}</span>
                                                     <span className="mt-1 text-[10px] text-gray-400">(กก.)</span>
                                                 </div>
                                             </th>
                                         ))}
-                                        <th className="w-20 px-4 py-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase">
+                                        <th className="sticky right-0 z-10 w-28 bg-gray-50 px-4 py-4 text-center text-xs font-semibold tracking-wider text-gray-600 uppercase border-l border-gray-200">
                                             <div className="flex flex-col items-center justify-center">
                                                 <Eye className="h-5 w-5" />
                                                 <span className="mt-2.5 text-xs">การดำเนินการ</span>
@@ -553,21 +625,23 @@ export default function MonthlyChemicals({
                                     {currentItems.length > 0 ? (
                                         currentItems.map((group, idx) => (
                                             <tr key={idx} className="transition-colors duration-150 hover:bg-blue-50/30">
-                                                <td className="px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900">{group.date}</td>
+                                                <td className="sticky left-0 z-10 bg-white px-6 py-4 text-sm font-semibold whitespace-nowrap text-gray-900 border-r border-gray-200 transition-colors duration-150 group-hover:bg-blue-50/30">
+                                                    {group.date}
+                                                </td>
                                                 {chemicalNames.map((name, i) => {
                                                     const quantity = group.totals[name] || 0;
                                                     const colorClass = chemicalColors[name];
                                                     return (
                                                         <td key={i} className="px-4 py-4 text-center text-sm whitespace-nowrap">
                                                             <span
-                                                                className={`inline-flex min-w-[2.5rem] items-center justify-center rounded-lg border px-2 py-1 text-xs font-medium ${colorClass.bg} ${colorClass.text} ${colorClass.border} ${quantity > 0 ? 'opacity-100' : 'opacity-50'}`}
+                                                                className={`inline-flex min-w-[3.5rem] items-center justify-center rounded-lg border px-2 py-1 text-xs font-medium ${colorClass.bg} ${colorClass.text} ${colorClass.border} ${quantity > 0 ? 'opacity-100' : 'opacity-40'}`}
                                                             >
                                                                 {quantity > 0 ? formatNumber(quantity) : '-'}
                                                             </span>
                                                         </td>
                                                     );
                                                 })}
-                                                <td className="px-4 py-4 text-sm whitespace-nowrap">
+                                                <td className="sticky right-0 z-10 bg-white px-4 py-4 text-sm whitespace-nowrap border-l border-gray-200 transition-colors duration-150 group-hover:bg-blue-50/30">
                                                     <div className="flex justify-center">
                                                         <button
                                                             onClick={() => handleView(group.date)}
@@ -582,19 +656,11 @@ export default function MonthlyChemicals({
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={chemicalNames.length + 2} className="px-4 py-8 text-center">
+                                            <td colSpan={chemicalNames.length + 2} className="px-4 py-8 text-center sticky left-0 min-w-full">
                                                 <div className="flex flex-col items-center justify-center text-gray-400">
                                                     <Calendar className="mb-2 h-12 w-12 opacity-50" />
                                                     <p className="text-sm">ไม่มีข้อมูลสำหรับเดือน {getMonthName(selectedMonth)} {selectedYear}</p>
                                                     <p className="mt-1 text-xs">กรุณาเลือกเดือนอื่นหรือเพิ่มข้อมูลใหม่</p>
-                                                    {/* แสดงข้อมูลที่มีอยู่เพื่อ debug */}
-                                                    <div className="mt-2 text-xs">
-                                                        <p>เดือนที่มีข้อมูล: {[...new Set(records.map(r => {
-                                                            if (!r.date) return '';
-                                                            const { month, year } = getMonthYearFromDate(r.date);
-                                                            return `${getMonthName(month)} ${year}`;
-                                                        }).filter(Boolean))].join(', ')}</p>
-                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
@@ -680,7 +746,7 @@ export default function MonthlyChemicals({
                                     <div className="mt-1 text-xl font-bold text-purple-600">
                                         {
                                             Object.entries(chartData.monthlyTotals).reduce(
-                                                (max, [name, value]) => (value > max.value ? { name, value } : max),
+                                                (max, [name, value]) => (Number(value) > Number(max.value) ? { name, value: Number(value) } : max),
                                                 { name: 'ไม่มีข้อมูล', value: 0 },
                                             ).name
                                         }
@@ -811,7 +877,7 @@ export default function MonthlyChemicals({
                                         <span className="font-medium text-purple-600">
                                             {
                                                 Object.entries(chartData.monthlyTotals).reduce(
-                                                    (max, [name, value]) => (value > max.value ? { name, value } : max),
+                                                    (max, [name, value]) => (Number(value) > Number(max.value) ? { name, value: Number(value) } : max),
                                                     { name: 'ไม่มีข้อมูล', value: 0 },
                                                 ).name
                                             }
@@ -849,15 +915,12 @@ export default function MonthlyChemicals({
             {isModalOpen && selectedDate && (
                 <ModalForm
                     isModalOpen={isModalOpen}
-                    month={selectedMonth}
                     onClose={() => setIsOpen(false)}
                     title={`รายละเอียดสารเคมีวันที่ ${selectedDate}`}
-                    className="rounded-xl shadow-lg"
-                    size="w-full max-w-4xl h-auto mx-auto flex flex-col"
                 >
                     {/* เนื้อหา */}
                     <div className="w-full flex-1 overflow-auto bg-white py-4">
-                        <MonthlyDetail month={selectedMonth} records={selectedDateRecords} />
+                        <MonthlyDetail month={selectedMonth} records={selectedDateRecords as any} />
                     </div>
 
                     {/* Footer */}
