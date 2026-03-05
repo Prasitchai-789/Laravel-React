@@ -7,7 +7,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import { DollarSign, Plus, ShoppingCart, TrendingUp, Users } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import PayForm from './PayForm';
 import SaleForm from './SaleForm';
@@ -16,25 +16,24 @@ import { useSalesData } from './hooks/useSalesData';
 
 interface Sale {
     id: number;
-    date: string;
-    customer: string;
-    product: string;
+    sale_date: string;
+    customer_id: number;
+    product_id: number;
     quantity: number;
     price: number;
-    status: string;
     total_amount: number;
     deposit: number;
     paid_amount: number;
-    sale_date: string;
     payment_status: string;
-    customer_id: number;
-    product_id: number;
     invoice_no: string;
+    custom_product_id?: string;
+    items?: any[];
 }
 
 interface Product {
     id: number;
     name: string;
+    store_id?: string | number;
 }
 
 interface Customer {
@@ -44,6 +43,10 @@ interface Customer {
 
 interface Payment {
     id: number;
+    paid_at?: string;
+    method?: string;
+    amount?: number;
+    new_payment?: number;
 }
 
 interface IndexProps {
@@ -52,18 +55,43 @@ interface IndexProps {
     locations: any[];
     customers: Customer[];
     payments: Payment[];
+    next_reference: string;
 }
 
 export default function Index(props: IndexProps) {
-    const { sales, products, locations, customers, payments } = props;
-    const page = usePage<{ auth: { user: any; permissions: string[] } }>();
+    const { sales, products, locations, customers, payments, next_reference } = props;
+    const page = usePage<{ auth: { user: any; permissions: string[] }, flash: { success?: string, error?: string } }>();
     const userPermissions = page.props.auth.permissions || [];
+
+    useEffect(() => {
+        if (page.props.flash?.error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: page.props.flash.error,
+                customClass: { popup: 'custom-swal font-anuphan' }
+            });
+        }
+        if (page.props.flash?.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'สำเร็จ',
+                text: page.props.flash.success,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                customClass: { popup: 'custom-swal font-anuphan' }
+            });
+        }
+    }, [page.props.flash]);
 
     const {
         mode,
         searchTerm,
         statusFilter,
-        isSaleModalOpen,
+        isCreateModalOpen,
+        isEditModalOpen,
         isPayModalOpen,
         isDeleteModalOpen,
         selectedSale,
@@ -71,14 +99,17 @@ export default function Index(props: IndexProps) {
         setMode,
         setSearchTerm,
         setStatusFilter,
-        setIsSaleModalOpen,
+        setIsCreateModalOpen,
+        setIsEditModalOpen,
         setIsPayModalOpen,
         setIsDeleteModalOpen,
         setSelectedSale,
         setSelectedSaleId,
         openCreate,
         handlePay,
+        handleEdit,
         handleEditWithPermission,
+        selectedItemIndex,
         handleDeleteWithPermission,
         openDeleteModal,
         closeDeleteModal,
@@ -110,7 +141,7 @@ export default function Index(props: IndexProps) {
                                 <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
                                     <div className="flex items-center gap-1">
                                         <TrendingUp className="h-4 w-4 text-green-500" />
-                                        <span>ทั้งหมด {sales.length} รายการ</span>
+                                        <span>ทั้งหมด {stats.totalOrders} รายการ</span>
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <Users className="h-4 w-4 text-blue-500" />
@@ -139,8 +170,8 @@ export default function Index(props: IndexProps) {
                         value={stats.qtyToday.toLocaleString('th-TH')}
                         icon={ShoppingCart}
                         color="blue"
-                        description="เทียบกับวันก่อน"
-                        className="bg-gradient-to-br from-blue-50 to-blue-100 border-0 shadow-sm"
+                        description="รายการ"
+                        trend={{ isPositive: true, value: 0 }}
                     />
                     <SummaryCard
                         title="รายได้วันนี้"
@@ -148,7 +179,7 @@ export default function Index(props: IndexProps) {
                         icon={DollarSign}
                         color="green"
                         description="บาท"
-                        className="bg-gradient-to-br from-green-50 to-emerald-100 border-0 shadow-sm"
+                        trend={{ isPositive: true, value: 0 }}
                     />
                     <SummaryCard
                         title="รายได้รวม"
@@ -156,15 +187,15 @@ export default function Index(props: IndexProps) {
                         icon={DollarSign}
                         color="purple"
                         description="บาท"
-                        className="bg-gradient-to-br from-purple-50 to-violet-100 border-0 shadow-sm"
+                        trend={{ isPositive: true, value: 0 }}
                     />
                     <SummaryCard
-                        title="ยอดค้างชำระ"
+                        title="รายได้รวมที่ยังค้าง"
                         value={stats.totalDeposit.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         icon={DollarSign}
                         color="red"
                         description="บาท"
-                        className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-sm"
+                        trend={{ isPositive: false, value: 0 }}
                     />
                 </div>
 
@@ -192,7 +223,7 @@ export default function Index(props: IndexProps) {
                     {/* Quick Stats */}
                     <div className=" flex flex-wrap gap-4">
                         <div className="rounded-lg bg-blue-50 px-3 py-2 border border-blue-200">
-                            <span className="text-sm font-medium text-blue-700">ทั้งหมด: {sales.length}</span>
+                            <span className="text-sm font-medium text-blue-700">ทั้งหมด: {stats.totalOrders}</span>
                         </div>
                         <div className="rounded-lg bg-green-50 px-3 py-2 border border-green-200">
                             <span className="text-sm font-medium text-green-700">ชำระแล้ว: {stats.paymentStats.completed}</span>
@@ -220,22 +251,44 @@ export default function Index(props: IndexProps) {
                     />
                 </div>
 
-                {/* Sale Form Modal */}
+                {/* Create Sale Modal */}
                 <ModalForm
-                    isModalOpen={isSaleModalOpen}
-                    onClose={() => setIsSaleModalOpen(false)}
-                    title={mode === 'create' ? 'บันทึกการขายสินค้า' : 'แก้ไขการขายสินค้า'}
-                    description="กรุณากรอกข้อมูลรายการขายให้ครบถ้วน"
+                    isModalOpen={isCreateModalOpen}
+                    onClose={() => setIsCreateModalOpen(false)}
+                    title="สร้างรายการขายสินค้า"
+                    description="กรุณากรอกข้อมูลรายการขายใหม่ให้ครบถ้วน"
                     size="max-w-5xl"
                 >
                     <SaleForm
                         customers={customers}
                         products={products}
                         locations={locations}
-                        onClose={() => setIsSaleModalOpen(false)}
-                        onSuccess={() => setIsSaleModalOpen(false)}
-                        mode={mode}
+                        onClose={() => setIsCreateModalOpen(false)}
+                        onSuccess={() => setIsCreateModalOpen(false)}
+                        mode="create"
+                        sale={null}
+                        next_reference={next_reference}
+                    />
+                </ModalForm>
+
+                {/* Edit Sale Modal */}
+                <ModalForm
+                    isModalOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    title="แก้ไขการขายสินค้า"
+                    description="จัดการข้อมูลการขายที่เลือก"
+                    size="max-w-5xl"
+                >
+                    <SaleForm
+                        customers={customers}
+                        products={products}
+                        locations={locations}
+                        onClose={() => setIsEditModalOpen(false)}
+                        onSuccess={() => setIsEditModalOpen(false)}
+                        mode="edit"
                         sale={selectedSale}
+                        next_reference={next_reference}
+                        itemIndex={selectedItemIndex}
                     />
                 </ModalForm>
 
@@ -249,13 +302,12 @@ export default function Index(props: IndexProps) {
                 >
                     <PayForm
                         customers={customers}
-                        products={products}
+                        products={products as any}
                         locations={locations}
-                        payments={payments}
+                        payments={payments as any}
                         onClose={() => setIsPayModalOpen(false)}
-                        onSuccess={() => setIsPayModalOpen(false)}
-                        mode={mode}
-                        sale={selectedSale}
+                        mode={mode as any}
+                        sale={selectedSale as any}
                     />
                 </ModalForm>
 

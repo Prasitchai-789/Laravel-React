@@ -302,9 +302,13 @@ interface PageProps {
     soplans?: SOPlanData[];
     selectedYear?: number;
     availableYears?: number[];
+    allProducts?: { goodID: string; goodName: string }[];
+    allCustomers?: { custID: string; custName: string; custCode: string }[];
+    allDestinations?: string[];
+    allVehicles?: { numberCar: string; driverName: string }[];
 }
 
-export default function IndexPlanOrder({ soplans = [], selectedYear, availableYears = [] }: PageProps) {
+export default function IndexPlanOrder({ soplans = [], selectedYear, availableYears = [], allProducts = [], allCustomers = [], allDestinations = [], allVehicles = [] }: PageProps) {
     const { props } = usePage<any>();
     const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
     const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
@@ -595,21 +599,29 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
         return Object.entries(stats).map(([type, total]) => ({ type, total }));
     }, [orders]);
 
-    // ============ ข้อมูลสรุปสำหรับ Dropdown ใน Modal ============
+    // ============ ข้อมูลสรุปสำหรับ Dropdown ใน Modal (ใช้ข้อมูลจากทุกปี) ============
     const modalData = useMemo(() => {
+        // ใช้ข้อมูลจาก server (ทุกปี) ถ้ามี, ถ้าไม่มี fallback เป็นข้อมูลจาก orders ปีปัจจุบัน
+        if (allProducts.length > 0 || allCustomers.length > 0) {
+            return {
+                products: allProducts,
+                customers: allCustomers,
+                destinations: allDestinations,
+                vehicles: allVehicles,
+            };
+        }
+
+        // Fallback: สร้างจาก orders (ปีปัจจุบัน)
         const productsMap = new Map();
         const customersMap = new Map();
         const destinationsSet = new Set<string>();
         const vehiclesMap = new Map();
 
         orders.forEach(o => {
-            // Products
             const gId = o.rawData?.goodId || o.productType;
             if (gId && o.productName) {
                 productsMap.set(gId, { goodID: gId, goodName: o.productName });
             }
-
-            // Customers
             if (o.customerID && o.customerName) {
                 customersMap.set(o.customerID, {
                     custID: o.customerID,
@@ -617,11 +629,7 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
                     custCode: o.customerCode || ''
                 });
             }
-
-            // Destinations
             if (o.destination) destinationsSet.add(o.destination);
-
-            // Vehicles
             if (o.licensePlate && o.licensePlate !== '-') {
                 vehiclesMap.set(o.licensePlate, {
                     numberCar: o.licensePlate,
@@ -636,7 +644,7 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
             destinations: Array.from(destinationsSet),
             vehicles: Array.from(vehiclesMap.values())
         };
-    }, [orders]);
+    }, [orders, allProducts, allCustomers, allDestinations, allVehicles]);
 
     // ============ ฟังก์ชันสร้าง - Real-time update ============
     const handleCreatePlanOrder = (data: CreateOrderFormData) => {
@@ -779,9 +787,8 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
 
         const dbStatus = dbStatusMap[newStatus] || 'w';
 
-        router.put(`/mar/plan-order/${order.id}`, {
-            ...order,
-            status: dbStatus  // ส่งสถานะแบบ database
+        router.put(`/mar/plan-order/${order.rawData?.sopId}/status`, {
+            status: dbStatus  // ส่งเฉพาะสถานะ
         }, {
             preserveState: true,
             preserveScroll: true,

@@ -18,6 +18,7 @@ const getDefaultChemicals = () => [
     { chemical_name: 'Polymer', unit: 'กก.', quantityA: 0, quantityB: 0 },
     { chemical_name: 'Soda Ash', unit: 'กก.', quantityA: 0, quantityB: 0 },
     { chemical_name: 'Salt', unit: 'กก.', quantityA: 0, quantityB: 0 },
+    { chemical_name: 'HURRICANE ACH 23KH', unit: 'กก.', quantityA: 0, quantityB: 0 },
 ];
 
 export default function UseForm({ mode, data = [], shift = 'A', onClose, onSuccess }: UseFormProps) {

@@ -3,11 +3,12 @@
 namespace App\Models\AGR;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class AgrProduct extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     // ถ้าชื่อตารางไม่ตรงกับ convention ของ Laravel ให้ระบุชื่อ
     protected $table = 'agr_products';

@@ -25,6 +25,14 @@ const paymentStatusOptions = [
     { value: 'pending', label: 'ค้างชำระ', color: 'text-red-600 bg-red-100' },
 ];
 
+type SaleItem = {
+    id?: number;
+    product_id: string;
+    custom_product_id: string; // The new extra product ID tracking
+    quantity: string;
+    price: string;
+};
+
 type SaleFormProps = {
     mode?: 'create' | 'edit';
     sale?: any;
@@ -32,21 +40,34 @@ type SaleFormProps = {
     customers?: any[];
     locations?: any[];
     payments?: any[];
+    next_reference?: string;
     onClose: () => void;
     onSuccess?: () => void;
+    itemIndex?: number | null;
 };
 
-export default function SaleForm({ mode = 'create', sale, products, customers = [], locations, payments, onClose, onSuccess }: SaleFormProps) {
+export default function SaleForm({ mode = 'create', sale, products, customers = [], locations, payments, next_reference, onClose, onSuccess, itemIndex }: SaleFormProps) {
     const [showPaymentDetails, setShowPaymentDetails] = useState(false);
 
-    const { data, setData, post, put, reset, processing, errors } = useForm({
+    // Initial items based on whether it's edit or create
+    const initialItems: SaleItem[] = sale?.items && sale.items.length > 0
+        ? sale.items.map((item: any) => ({
+            id: item.id,
+            product_id: item.product_id?.toString() || '',
+            custom_product_id: item.custom_product_id?.toString() || next_reference || '',
+            quantity: parseNumber(item.quantity?.toString() || '0'),
+            price: parseNumber(item.unit_price?.toString() || item.price?.toString() || '0'),
+        }))
+        : sale?.product_id
+            ? [{ product_id: sale.product_id.toString(), custom_product_id: sale.custom_product_id?.toString() || next_reference || '', quantity: parseNumber(sale.quantity?.toString() || '0'), price: parseNumber(sale.price?.toString() || '0') }]
+            : [{ product_id: '', custom_product_id: next_reference || '', quantity: '0', price: '' }];
+
+    const { data, setData, post, put, reset, processing, errors, clearErrors, transform } = useForm({
         id: sale?.id || '',
+        invoice_no: sale?.invoice_no || '',
         sale_date: formatDateSafe(sale?.sale_date),
-        customer: sale?.customer || '',
-        customer_id: sale?.customer_id || '',
-        product_id: sale?.product_id || '',
-        quantity: sale?.quantity ? parseNumber(sale.quantity) : '0',
-        price: sale?.price ? parseNumber(sale.price) : '',
+        customer_id: sale?.customer_id?.toString() || '',
+        items: initialItems,
         deposit: sale?.deposit ? parseNumber(sale.deposit) : '',
         status: sale?.status || 'completed',
         store_id: sale?.store_id || '',
@@ -65,13 +86,31 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
         return products?.filter((pro) => !data.store_id || Number(pro.store_id) === Number(data.store_id)) ?? [];
     }, [products, data.store_id]);
 
-    // คำนวณยอดรวมอัตโนมัติ
+    // คำนวณยอดรวมอัตโนมัติตากรายการสินค้าทั้งหมด
+    const itemsTotal = React.useMemo(() => {
+        return data.items.reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.price) || 0), 0);
+    }, [data.items]);
+
+    const totalQuantity = React.useMemo(() => {
+        return data.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+    }, [data.items]);
+
+    // คำนวณยอดเฉพาะสินค้าที่เลือก (ถ้ามี itemIndex)
+    const selectedItemTotal = React.useMemo(() => {
+        if (itemIndex === null || itemIndex === undefined || !data.items[itemIndex]) return null;
+        const item = data.items[itemIndex];
+        return (Number(item.quantity) || 0) * (Number(item.price) || 0);
+    }, [data.items, itemIndex]);
+
+    const selectedItemQuantity = React.useMemo(() => {
+        if (itemIndex === null || itemIndex === undefined || !data.items[itemIndex]) return null;
+        return Number(data.items[itemIndex].quantity) || 0;
+    }, [data.items, itemIndex]);
+
     const calculatedTotal = React.useMemo(() => {
-        const quantity = Number(data.quantity) || 0;
-        const price = Number(data.price) || 0;
         const shipping = Number(data.shipping_cost) || 0;
-        return quantity * price + shipping;
-    }, [data.quantity, data.price, data.shipping_cost]);
+        return itemsTotal + shipping;
+    }, [itemsTotal, data.shipping_cost]);
 
     // คำนวณยอดค้างชำระ
     const pendingAmount = React.useMemo(() => {
@@ -85,25 +124,77 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
         return data.payment_status !== 'completed' || showPaymentDetails;
     }, [data.payment_status, showPaymentDetails]);
 
+    // แสดงแจ้งเตือนเมื่อมี Validation Error จาก Backend
+    useEffect(() => {
+        if (Object.keys(errors).length > 0) {
+            console.error('Backend validation errors:', errors);
+            const errorMessages = Object.values(errors).join('\\n');
+            Swal.fire({
+                icon: 'error',
+                title: 'ข้อมูลไม่ถูกต้อง',
+                text: errorMessages,
+                customClass: { popup: 'custom-swal font-anuphan' }
+            });
+        }
+    }, [errors]);
+
     useEffect(() => {
         if (sale) {
+            const parsedItems: SaleItem[] = sale?.items && sale.items.length > 0
+                ? sale.items.map((item: any) => ({
+                    id: item.id,
+                    product_id: item.product_id?.toString() || '',
+                    custom_product_id: item.custom_product_id?.toString() || '',
+                    quantity: parseNumber(item.quantity?.toString() || '0'),
+                    price: parseNumber(item.unit_price?.toString() || item.price?.toString() || '0'),
+                }))
+                : sale?.product_id
+                    ? [{ product_id: sale.product_id.toString(), custom_product_id: sale.custom_product_id?.toString() || '', quantity: parseNumber(sale.quantity?.toString() || '0'), price: parseNumber(sale.price?.toString() || '0') }]
+                    : [{ product_id: '', custom_product_id: '', quantity: '0', price: '' }];
+
             reset({
                 ...sale,
+                invoice_no: sale.invoice_no || '',
                 sale_date: formatDateSafe(sale.sale_date),
-                quantity: parseNumber(sale.quantity),
-                price: parseNumber(sale.price),
-                paid_amount: parseNumber(sale.paid_amount || '0'),
-                shipping_cost: parseNumber(sale.shipping_cost || '0'),
-                total_amount: parseNumber(sale.total_amount || '0'),
-                deposit: parseNumber(sale.deposit || '0'),
+                customer_id: sale.customer_id?.toString() || '',
+                items: parsedItems,
+                paid_amount: sale.paid_amount ? parseNumber(sale.paid_amount) : '0',
+                shipping_cost: sale.shipping_cost ? parseNumber(sale.shipping_cost) : '0',
+                total_amount: sale.total_amount ? parseNumber(sale.total_amount) : '0',
+                deposit: sale.deposit ? parseNumber(sale.deposit) : '0',
                 payment_status: sale.payment_status || 'completed',
+                method: sale.method || '',
+                note: sale.note || '',
             });
 
             if (sale.payment_status === 'partial' || sale.payment_status === 'pending') {
                 setShowPaymentDetails(true);
             }
+        } else if (mode === 'create') {
+            // เมื่อเปิดหน้าสร้างใหม่ ให้ล้างข้อมูลเดิมทิ้ง และใส่เลขที่เอกสารถัดไป
+            reset();
+            if (next_reference) {
+                setData('invoice_no', next_reference);
+            }
+            setShowPaymentDetails(false);
         }
-    }, [sale]);
+    }, [sale, mode, next_reference]);
+
+    // ซิงค์ custom_product_id กับ invoice_no อัตโนมัติในโหมดสร้างใหม่
+    useEffect(() => {
+        if (mode === 'create' && data.invoice_no) {
+            const newItems = data.items.map(item => ({
+                ...item,
+                custom_product_id: data.invoice_no
+            }));
+
+            // ตรวจสอบว่าเปลี่ยนจริงๆ ไหมเพื่อป้องกัน infinite loop
+            const isChanged = data.items.some(item => item.custom_product_id !== data.invoice_no);
+            if (isChanged) {
+                setData('items', newItems);
+            }
+        }
+    }, [data.invoice_no, mode]);
 
     // อัพเดทยอดรวมเมื่อข้อมูลเปลี่ยน
     useEffect(() => {
@@ -150,15 +241,76 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
         }
     };
 
+    const handleItemChange = (index: number, field: keyof SaleItem, value: string) => {
+        const newItems = [...data.items];
+
+        if (field === 'quantity' || field === 'price') {
+            if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                newItems[index] = { ...newItems[index], [field]: value };
+            }
+        } else if (field === 'product_id') {
+            newItems[index] = { ...newItems[index], [field]: value };
+            const selected = filteredProducts.find(p => p.id.toString() === value || p.sku === value);
+            if (selected && selected.price) {
+                newItems[index].price = formatNumber(selected.price);
+                clearErrors(`items.${index}.product_id` as any);
+            }
+        } else {
+            // General case for fields like custom_product_id
+            newItems[index] = { ...newItems[index], [field]: value };
+        }
+
+        setData('items', newItems);
+    };
+
+    const addItem = () => {
+        const firstItem = data.items[0];
+        setData('items', [
+            ...data.items,
+            {
+                product_id: firstItem?.product_id || '',
+                custom_product_id: firstItem?.custom_product_id || next_reference || '',
+                quantity: '0',
+                price: firstItem?.price || ''
+            }
+        ]);
+    };
+
+    const removeItem = (index: number) => {
+        if (data.items.length > 1) {
+            const newItems = [...data.items];
+            newItems.splice(index, 1);
+            setData('items', newItems);
+        }
+    };
+
     const handleNumberChange = (field: string, value: string) => {
         // อนุญาตให้ใส่ทศนิยมได้
         if (value === '' || /^\d*\.?\d*$/.test(value)) {
-            setData(field, value);
+            setData(field as any, value);
         }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate items
+        const invalidItems = data.items.filter(item => !item.product_id || Number(item.quantity) <= 0);
+        if (invalidItems.length > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณากรอกรหัสสินค้าและจำนวนให้ครบถ้วนทุกรายการ',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                customClass: {
+                    popup: 'custom-swal font-anuphan',
+                    title: 'font-anuphan text-orange-800',
+                },
+            });
+            return;
+        }
 
         if (!data.method) {
             Swal.fire({
@@ -194,16 +346,29 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
 
         const submitData = {
             ...data,
-            quantity: Number(data.quantity) || 0,
-            price: Number(data.price) || 0,
+            items: data.items.map(item => ({
+                product_id: item.product_id,
+                custom_product_id: item.custom_product_id,
+                quantity: Number(item.quantity) || 0,
+                price: Number(item.price) || 0,
+            })),
             paid_amount: Number(data.paid_amount) || 0,
             shipping_cost: Number(data.shipping_cost) || 0,
             total_amount: calculatedTotal,
+            quantity: totalQuantity, // สำหรับ backward compatibility
+            price: itemsTotal,       // สำหรับ backward compatibility
+            product_id: data.items[0]?.product_id || '', // สำหรับ backward compatibility
+            // ✅ คำนวณยอดชำระเงินใหม่
+            new_payment: mode === 'edit'
+                ? Math.max(0, (Number(data.paid_amount) || 0) - (Number(sale?.paid_amount) || 0))
+                : (Number(data.paid_amount) || 0),
         };
+
+        // @ts-ignore
+        transform((_data: any) => submitData);
 
         if (mode === 'create') {
             post('/sales', {
-                data: submitData,
                 onSuccess: () => {
                     Swal.fire({
                         icon: 'success',
@@ -225,7 +390,6 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
             });
         } else {
             put(`/sales/${sale?.id}`, {
-                data: submitData,
                 onSuccess: () => {
                     Swal.fire({
                         icon: 'success',
@@ -270,7 +434,6 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 font-anuphan">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                {/* วันที่ขาย */}
                 <div className="space-y-2">
                     <InputLabel
                         label={
@@ -283,9 +446,30 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                         name="sale_date"
                         value={data.sale_date}
                         onChange={(e) => setData('sale_date', e.target.value)}
-                        error={errors.sale_date}
+                        error={errors.sale_date as string}
                         disabled={processing}
                         type="date"
+                        className="font-anuphan"
+                    />
+                </div>
+
+                {/* เลขที่เอกสาร */}
+                <div className="space-y-2">
+                    <InputLabel
+                        label={
+                            <div className="flex items-center gap-2">
+                                <span className="text-lg">📄</span>
+                                <span>เลขที่เอกสาร (Invoice No.)</span>
+                                <span className="text-red-500">*</span>
+                            </div>
+                        }
+                        name="invoice_no"
+                        value={data.invoice_no}
+                        onChange={(e) => setData('invoice_no', e.target.value)}
+                        error={errors.invoice_no as string}
+                        disabled={processing}
+                        type="text"
+                        placeholder="เช่น 6903-0001"
                         className="font-anuphan"
                     />
                 </div>
@@ -299,99 +483,125 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                         placeholder="เลือกลูกค้า"
                         showSearch
                         showClear
-                        label={
-                            <div className="flex items-center gap-2">
-                                <span className="text-lg">👤</span>
-                                <span>ลูกค้า</span>
-                                <span className="text-red-500">*</span>
-                            </div>
-                        }
+                        label="ลูกค้า *"
                         disabled={processing}
                     />
                 </div>
 
-                {/* สินค้า */}
-                <div className="space-y-2">
-                    <SaleProductSelect
-                        products={filteredProducts}
-                        value={data.product_id}
-                        onChange={(value: string) => {
-                            setData('product_id', value);
-                            const selected = filteredProducts.find((p) => p.id.toString() === value);
-                            if (selected?.price) {
-                                setData('price', formatNumber(selected.price));
-                            }
-                        }}
-                        placeholder="เลือกสินค้าเกษตร"
-                        showSearch
-                        showClear
-                        label={
-                            <div className="flex items-center gap-2">
-                                <span className="text-lg">🌱</span>
-                                <span>สินค้า</span>
-                                <span className="text-red-500">*</span>
-                            </div>
-                        }
-                        disabled={processing}
-                    />
-                </div>
+                {/* รายการสินค้า (Multiple Items Support) */}
+                <div className="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <div className="mb-4 flex items-center justify-between">
+                        <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
+                            <span>🌱</span>
+                            รายการสินค้าที่ขาย
+                            {itemIndex !== null && itemIndex !== undefined && (
+                                <span className="ml-2 text-sm font-normal text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                                    (เฉพาะรายการที่เลือก)
+                                </span>
+                            )}
+                        </h3>
+                        {(itemIndex === null || itemIndex === undefined) && (
+                            <Button type="button" variant="primary" onClick={addItem} disabled={processing} className="px-3 py-1 text-sm">
+                                + เพิ่มรายการสินค้า
+                            </Button>
+                        )}
+                    </div>
 
-                {/* จำนวน */}
-                <div className="space-y-2">
-                    <InputLabel
-                        label={
-                            <div className="flex items-center gap-2">
-                                <span className="text-lg">📦</span>
-                                <span>จำนวน</span>
-                                <span className="text-red-500">*</span>
-                            </div>
-                        }
-                        name="quantity"
-                        value={data.quantity}
-                        onChange={(e) => {
-                            const value = e.target.value;
-                            handleNumberChange('quantity', value);
+                    <div className="space-y-4">
+                        {data.items.map((item, index) => {
+                            // ถ้ามีการระบุ itemIndex ให้แสดงเฉพาะรายการนั้น
+                            if (itemIndex !== null && itemIndex !== undefined && index !== itemIndex) return null;
 
-                            const selected = filteredProducts.find((p) => p.id.toString() === data.product_id);
-                            const maxStock = selected?.stock ?? Infinity;
+                            const productError = (errors as any)[`items.${index}.product_id`];
+                            const quantityError = (errors as any)[`items.${index}.quantity`];
+                            const priceError = (errors as any)[`items.${index}.price`];
+                            return (
+                                <div key={index} className="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4 bg-white border border-gray-200 rounded-lg shadow-sm relative">
+                                    {(itemIndex === null || itemIndex === undefined) && data.items.length > 1 && (
+                                        <button type="button" onClick={() => removeItem(index)} className="absolute top-2 right-2 text-red-500 hover:text-red-700 bg-red-50 rounded-full w-8 h-8 flex items-center justify-center">
+                                            ❌
+                                        </button>
+                                    )}
 
-                            if (Number(value) > maxStock) {
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: `จำนวนสูงสุดที่มีคือ ${maxStock}`,
-                                    customClass: { popup: 'custom-swal' },
-                                });
-                                setData('quantity', maxStock.toString());
-                            }
-                        }}
-                        error={errors.quantity}
-                        disabled={processing}
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        className="font-anuphan"
-                    />
-                </div>
+                                    {/* ตัวเลือกสินค้าจาก Dropdown */}
+                                    <div className="w-full sm:flex-1 space-y-1">
+                                        <SaleProductSelect
+                                            products={filteredProducts}
+                                            value={item.product_id}
+                                            onChange={(value: string) => {
+                                                const newItems = [...data.items];
+                                                const selected = filteredProducts.find((p) => p.id.toString() === value || p.sku === value);
+                                                const newPrice = selected?.price ? formatNumber(selected.price) : '';
 
-                {/* ราคา */}
-                <div className="space-y-2">
-                    <InputLabel
-                        label={
-                            <div className="flex items-center gap-2">
-                                <span className="text-lg">💰</span>
-                                <span>ราคาต่อหน่วย</span>
-                            </div>
-                        }
-                        name="price"
-                        value={data.price}
-                        onChange={(e) => handleNumberChange('price', e.target.value)}
-                        error={errors.price}
-                        disabled={processing}
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        className="font-anuphan"
-                    />
+                                                // อัปเดตรายการที่เลือก
+                                                newItems[index] = { ...newItems[index], product_id: value, price: newPrice };
+
+                                                // ถ้าเปลี่ยนที่รายการแรก ให้ไล่อัปเดตรายการอื่นให้เหมือนกันตามที่ user บอกว่า "product_id เป็นอันเดียวกัน"
+                                                if (index === 0) {
+                                                    for (let i = 1; i < newItems.length; i++) {
+                                                        newItems[i] = { ...newItems[i], product_id: value, price: newPrice };
+                                                    }
+                                                }
+                                                setData('items', newItems);
+                                            }}
+                                            placeholder="เลือกสินค้า (ชื่อ)"
+                                            showSearch
+                                            showClear
+                                            label="อ้างอิงสินค้า"
+                                            disabled={processing}
+                                        />
+                                    </div>
+
+                                    {/* กล่องใส่ Product ID ตัวใหม่ (อ้างอิง) */}
+                                    <div className="w-full sm:w-2/5 md:w-1/4 space-y-1">
+                                        <InputLabel
+                                            label="อ้างอิง (Product ID)"
+                                            name={`item-custom-product-id-${index}`}
+                                            value={item.custom_product_id}
+                                            onChange={(e) => handleItemChange(index, 'custom_product_id', e.target.value)}
+                                            disabled={processing}
+                                            type="text"
+                                            placeholder="ใส่ Product ID (อ้างอิง)"
+                                            className="font-anuphan"
+                                        />
+                                    </div>
+
+                                    <div className="w-full sm:w-1/4 md:w-1/6 space-y-1">
+                                        <InputLabel
+                                            label="จำนวน"
+                                            name={`item-qty-${index}`}
+                                            value={item.quantity}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                handleItemChange(index, 'quantity', value);
+                                            }}
+                                            disabled={processing}
+                                            type="number"
+                                            min={0}
+                                            step={0.5}
+                                            error={quantityError}
+                                            className="font-anuphan"
+                                        />
+                                    </div>
+
+                                    <div className="w-full sm:w-1/4 md:w-1/6 space-y-1">
+                                        <InputLabel
+                                            label="ราคาต่อหน่วย"
+                                            name={`item-price-${index}`}
+                                            value={item.price}
+                                            onChange={(e) => handleItemChange(index, 'price', e.target.value)}
+                                            disabled={processing}
+                                            type="number"
+                                            min={0}
+                                            step={0.5}
+                                            error={priceError}
+                                            className="font-anuphan"
+                                        />
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
                 </div>
 
                 {/* ค่าขนส่ง */}
@@ -404,13 +614,13 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                             </div>
                         }
                         name="shipping_cost"
-                        value={data.shipping_cost}
+                        value={data.shipping_cost as unknown as string}
                         onChange={(e) => handleNumberChange('shipping_cost', e.target.value)}
-                        error={errors.shipping_cost}
+                        error={errors.shipping_cost as string}
                         disabled={processing}
                         type="number"
-                        min="0"
-                        step="0.5"
+                        min={0}
+                        step={0.5}
                         className="font-anuphan"
                     />
                 </div>
@@ -430,9 +640,8 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                             value={data.method}
                             onChange={(e) => setData('method', e.target.value)}
                             disabled={processing}
-                            className={`w-full appearance-none rounded-xl border-0 bg-gradient-to-br from-gray-50 to-white px-4 py-3 pr-12 font-anuphan shadow-sm transition-all duration-200 focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 focus:outline-none ${
-                                errors.method ? 'ring-2 ring-red-300' : 'ring-1 ring-gray-300'
-                            } ${processing ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer text-gray-900 hover:shadow-md'}`}
+                            className={`w-full appearance-none rounded-xl border-0 bg-gradient-to-br from-gray-50 to-white px-4 py-3 pr-12 font-anuphan shadow-sm transition-all duration-200 focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 focus:outline-none ${errors.method ? 'ring-2 ring-red-300' : 'ring-1 ring-gray-300'
+                                } ${processing ? 'cursor-not-allowed text-gray-400' : 'cursor-pointer text-gray-900 hover:shadow-md'}`}
                         >
                             {paymentOptions.map((option) => (
                                 <option
@@ -483,11 +692,10 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                                 type="button"
                                 onClick={() => handlePaymentStatusChange(option.value)}
                                 disabled={processing}
-                                className={`rounded-lg border p-3 text-center transition-all ${
-                                    data.payment_status === option.value
-                                        ? `${option.color} border-2 border-current font-bold`
-                                        : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                                } ${processing ? 'cursor-not-allowed opacity-50' : ''}`}
+                                className={`rounded-lg border p-3 text-center transition-all ${data.payment_status === option.value
+                                    ? `${option.color} border-2 border-current font-bold`
+                                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                                    } ${processing ? 'cursor-not-allowed opacity-50' : ''}`}
                             >
                                 <div className="text-sm font-medium">
                                     {getPaymentStatusIcon(option.value)} {option.label}
@@ -500,56 +708,58 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
             </div>
 
             {/* รายละเอียดการชำระเงิน */}
-            {shouldShowPaymentDetails && (
-                <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
-                    <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold text-orange-800">
-                        <span>💸</span>
-                        รายละเอียดการชำระเงิน
-                    </h3>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                            <InputLabel
-                                label={
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-lg">💰</span>
-                                        <span>จำนวนที่ชำระแล้ว</span>
-                                    </div>
-                                }
-                                name="paid_amount"
-                                value={data.paid_amount}
-                                onChange={(e) => handlePaidAmountChange(e.target.value)}
-                                error={errors.paid_amount}
-                                disabled={processing}
-                                type="number"
-                                min="0"
-                                max={calculatedTotal}
-                                step="0.5"
-                                className="font-anuphan"
-                            />
-                            <p className="text-xs text-orange-600">จำนวนที่ชำระแล้วต้องไม่เกินยอดรวม {calculatedTotal.toLocaleString()} บาท</p>
-                        </div>
-
-                        <div className="rounded-lg bg-white p-4">
+            {
+                shouldShowPaymentDetails && (
+                    <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+                        <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold text-orange-800">
+                            <span>💸</span>
+                            รายละเอียดการชำระเงิน
+                        </h3>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <div className="space-y-2">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">ยอดรวม:</span>
-                                    <span className="font-semibold">{calculatedTotal.toLocaleString()} บาท</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">ชำระแล้ว:</span>
-                                    <span className="font-semibold text-green-600">{Number(data.paid_amount || 0).toLocaleString()} บาท</span>
-                                </div>
-                                <div className="flex justify-between border-t border-gray-200 pt-2">
-                                    <span className="font-medium text-gray-800">ค้างชำระ:</span>
-                                    <span className={`font-bold ${pendingAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                        {pendingAmount.toLocaleString()} บาท
-                                    </span>
+                                <InputLabel
+                                    label={
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg">💰</span>
+                                            <span>จำนวนที่ชำระแล้ว</span>
+                                        </div>
+                                    }
+                                    name="paid_amount"
+                                    value={data.paid_amount as unknown as string}
+                                    onChange={(e) => handlePaidAmountChange(e.target.value)}
+                                    error={errors.paid_amount as string}
+                                    disabled={processing}
+                                    type="number"
+                                    min={0}
+                                    max={calculatedTotal.toString()}
+                                    step={0.5}
+                                    className="font-anuphan"
+                                />
+                                <p className="text-xs text-orange-600">จำนวนที่ชำระแล้วต้องไม่เกินยอดรวม {calculatedTotal.toLocaleString()} บาท</p>
+                            </div>
+
+                            <div className="rounded-lg bg-white p-4">
+                                <div className="space-y-2">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">ยอดรวม:</span>
+                                        <span className="font-semibold">{calculatedTotal.toLocaleString()} บาท</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">ชำระแล้ว:</span>
+                                        <span className="font-semibold text-green-600">{Number(data.paid_amount || 0).toLocaleString()} บาท</span>
+                                    </div>
+                                    <div className="flex justify-between border-t border-gray-200 pt-2">
+                                        <span className="font-medium text-gray-800">ค้างชำระ:</span>
+                                        <span className={`font-bold ${pendingAmount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                            {pendingAmount.toLocaleString()} บาท
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Summary Card */}
             <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
@@ -557,19 +767,38 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                     <span>🧮</span>
                     สรุปยอดขาย
                 </h3>
+
+                {/* แสดงยอดรายสินค้าที่เลือก (ถ้าแก้ไขเฉพาะรายการ) */}
+                {selectedItemTotal !== null && (
+                    <div className="mb-3 rounded-lg border border-blue-300 bg-gradient-to-r from-blue-50 to-indigo-50 p-3">
+                        <p className="text-sm font-medium text-blue-700 mb-1">🌿 ยอดรายการนี้</p>
+                        <div className="flex items-center gap-4">
+                            <div>
+                                <span className="text-sm text-gray-500">จำนวน</span>
+                                <p className="text-lg font-bold text-blue-600">{selectedItemQuantity} หน่วย</p>
+                            </div>
+                            <div>
+                                <span className="text-sm text-gray-500">ยอดสินค้า</span>
+                                <p className="text-xl font-bold text-green-600">{formatNumber(selectedItemTotal)} บาท</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* ยอดรวมทั้งบิล */}
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     <div className="rounded-lg bg-white p-3 shadow-sm">
-                        <p className="text-sm text-gray-600">จำนวนสินค้า</p>
-                        <p className="text-lg font-bold text-blue-600">{data.quantity || 0} หน่วย</p>
+                        <p className="text-sm text-gray-600">จำนวนสินค้ารวม{selectedItemTotal !== null ? ' (ทั้งบิล)' : ''}</p>
+                        <p className="text-lg font-bold text-blue-600">{totalQuantity} หน่วย</p>
                     </div>
                     <div className="rounded-lg bg-white p-3 shadow-sm">
-                        <p className="text-sm text-gray-600">ราคารวม</p>
+                        <p className="text-sm text-gray-600">ราคาสินค้ารวม{selectedItemTotal !== null ? ' (ทั้งบิล)' : ''}</p>
                         <p className="text-lg font-bold text-green-600">
-                            {((Number(data.quantity) || 0) * (Number(data.price) || 0)).toLocaleString()} บาท
+                            {formatNumber(itemsTotal)} บาท
                         </p>
                     </div>
                     <div className="rounded-lg bg-white p-3 shadow-sm">
-                        <p className="text-sm text-gray-600">ยอดรวมทั้งสิ้น</p>
+                        <p className="text-sm text-gray-600">ยอดรวมทั้งสิ้น{selectedItemTotal !== null ? ' (ทั้งบิล)' : ''}</p>
                         <p className="text-xl font-bold text-purple-600">{calculatedTotal.toLocaleString()} บาท</p>
                     </div>
                 </div>
@@ -587,21 +816,19 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                     )}
 
                     <div
-                        className={`flex items-center gap-3 rounded-lg p-3 ${
-                            data.payment_status === 'completed' ? 'bg-green-100' : data.payment_status === 'partial' ? 'bg-orange-100' : 'bg-red-100'
-                        }`}
+                        className={`flex items-center gap-3 rounded-lg p-3 ${data.payment_status === 'completed' ? 'bg-green-100' : data.payment_status === 'partial' ? 'bg-orange-100' : 'bg-red-100'
+                            }`}
                     >
                         <span className="text-2xl">{getPaymentStatusIcon(data.payment_status)}</span>
                         <div>
                             <p className="text-sm text-gray-600">สถานะการชำระเงิน</p>
                             <p
-                                className={`font-semibold ${
-                                    data.payment_status === 'completed'
-                                        ? 'text-green-800'
-                                        : data.payment_status === 'partial'
-                                          ? 'text-orange-800'
-                                          : 'text-red-800'
-                                }`}
+                                className={`font-semibold ${data.payment_status === 'completed'
+                                    ? 'text-green-800'
+                                    : data.payment_status === 'partial'
+                                        ? 'text-orange-800'
+                                        : 'text-red-800'
+                                    }`}
                             >
                                 {paymentStatusOptions.find((opt) => opt.value === data.payment_status)?.label}
                                 {pendingAmount > 0 && ` (ค้างชำระ ${pendingAmount.toLocaleString()} บาท)`}
@@ -623,7 +850,7 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
                     name="note"
                     value={data.note}
                     onChange={(e) => setData('note', e.target.value)}
-                    error={errors.note}
+                    error={errors.note as string}
                     disabled={processing}
                     type="text"
                     placeholder="บันทึกหมายเหตุเพิ่มเติม (ถ้ามี)"
@@ -653,19 +880,21 @@ export default function SaleForm({ mode = 'create', sale, products, customers = 
             </div>
 
             {/* Error Summary */}
-            {Object.keys(errors).length > 0 && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-                    <div className="mb-2 flex items-center gap-2">
-                        <span className="text-lg">⚠️</span>
-                        <h4 className="text-sm font-medium text-red-800">กรุณาตรวจสอบข้อมูลต่อไปนี้:</h4>
+            {
+                Object.keys(errors).length > 0 && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                        <div className="mb-2 flex items-center gap-2">
+                            <span className="text-lg">⚠️</span>
+                            <h4 className="text-sm font-medium text-red-800">กรุณาตรวจสอบข้อมูลต่อไปนี้:</h4>
+                        </div>
+                        <ul className="list-inside list-disc space-y-1 text-sm text-red-600">
+                            {Object.entries(errors).map(([field, error]) => (
+                                <li key={field}>{error as string}</li>
+                            ))}
+                        </ul>
                     </div>
-                    <ul className="list-inside list-disc space-y-1 text-sm text-red-600">
-                        {Object.entries(errors).map(([field, error]) => (
-                            <li key={field}>{error as string}</li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-        </form>
+                )
+            }
+        </form >
     );
 }

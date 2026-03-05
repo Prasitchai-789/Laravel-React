@@ -158,10 +158,56 @@ class SOPlanController extends Controller
 
         Log::info('📊 SOPlan index', ['year' => $selectedYear, 'count' => count($mapped)]);
 
+        // ============ ดึงข้อมูล Dropdown จากทุกปี (ไม่กรองปี) ============
+        $allProducts = DB::connection('sqlsrv2')
+            ->select("
+                SELECT DISTINCT GoodID, GoodName
+                FROM SOPlan
+                WHERE deleted_at IS NULL
+                  AND GoodID IS NOT NULL
+                  AND GoodName IS NOT NULL
+                ORDER BY GoodName
+            ");
+
+        $allCustomers = DB::connection('sqlsrv2')
+            ->select("
+                SELECT DISTINCT s.CustID, c.CustName, c.CustCode
+                FROM SOPlan s
+                LEFT JOIN EMCust c ON s.CustID = c.CustID
+                WHERE s.deleted_at IS NULL
+                  AND s.CustID IS NOT NULL
+                  AND c.CustName IS NOT NULL
+                ORDER BY c.CustName
+            ");
+
+        $allDestinations = DB::connection('sqlsrv2')
+            ->select("
+                SELECT DISTINCT Recipient
+                FROM SOPlan
+                WHERE deleted_at IS NULL
+                  AND Recipient IS NOT NULL
+                  AND Recipient != ''
+                ORDER BY Recipient
+            ");
+
+        $allVehicles = DB::connection('sqlsrv2')
+            ->select("
+                SELECT DISTINCT NumberCar, DriverName
+                FROM SOPlan
+                WHERE deleted_at IS NULL
+                  AND NumberCar IS NOT NULL
+                  AND NumberCar != ''
+                ORDER BY NumberCar
+            ");
+
         return Inertia::render('MAR/PlanOrder/indexPlanOrder', [
             'soplans' => $mapped,
             'selectedYear' => $selectedYear,
             'availableYears' => $availableYears,
+            'allProducts' => array_map(fn($p) => ['goodID' => $p->GoodID, 'goodName' => $p->GoodName], $allProducts),
+            'allCustomers' => array_map(fn($c) => ['custID' => $c->CustID, 'custName' => $c->CustName, 'custCode' => $c->CustCode ?? ''], $allCustomers),
+            'allDestinations' => array_map(fn($d) => $d->Recipient, $allDestinations),
+            'allVehicles' => array_map(fn($v) => ['numberCar' => $v->NumberCar, 'driverName' => $v->DriverName ?? ''], $allVehicles),
         ]);
     }
 
@@ -605,6 +651,42 @@ class SOPlanController extends Controller
             DB::rollBack();
             Log::error('❌ Error updating SOPlan: ' . $e->getMessage());
             return $this->errorResponse($request, 'เกิดข้อผิดพลาดในการแก้ไข: ' . $e->getMessage(), 500);
+        }
+    }
+    // ============================================================
+    // UPDATE STATUS — เปลี่ยนเฉพาะสถานะ
+    // ============================================================
+    public function updateStatus(Request $request, $id)
+    {
+        Illuminate\Support\Facades\Log::info('📥 SOPlan update status request:', ['id' => $id, 'status' => $request->status]);
+
+        $status = $request->status;
+
+        try {
+            $plan = SOPlan::where('SOPID', $id)->first();
+
+            if (!$plan) {
+                return $this->errorResponse($request, 'ไม่พบข้อมูลที่ต้องการเปลี่ยนสถานะ', 404);
+            }
+
+            $plan->Status = $status;
+            $plan->save();
+
+            Illuminate\Support\Facades\Log::info('✅ SOPlan status updated', ['SOPID' => $id, 'newStatus' => $status]);
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'เปลี่ยนสถานะเรียบร้อย (SOPID: ' . $id . ')',
+                    'data' => ['SOPID' => $id, 'Status' => $plan->Status],
+                ], 200);
+            }
+
+            return redirect()->back()->with('success', 'เปลี่ยนสถานะเรียบร้อย (SOPID: ' . $id . ')');
+
+        } catch (\Exception $e) {
+            Illuminate\Support\Facades\Log::error('❌ Error updating SOPlan status: ' . $e->getMessage());
+            return $this->errorResponse($request, 'เกิดข้อผิดพลาดในการเปลี่ยนสถานะ: ' . $e->getMessage(), 500);
         }
     }
 

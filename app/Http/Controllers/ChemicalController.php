@@ -342,7 +342,8 @@ class ChemicalController extends Controller
             'PROXITANE',
             'Polymer',
             'Soda Ash',
-            'Salt'
+            'Salt',
+            'HURRICANE ACH 23KH'
         ];
 
         // หัวตาราง
@@ -395,7 +396,8 @@ class ChemicalController extends Controller
             'PROXITANE',
             'Polymer',
             'Soda Ash',
-            'Salt'
+            'Salt',
+            'HURRICANE ACH 23KH'
         ];
 
         // Group by date

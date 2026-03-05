@@ -432,21 +432,6 @@ export default function PlanOrderTable({
                                         </div>
                                     </TableHead>
 
-                                    <TableHead
-                                        className="cursor-pointer transition-colors hover:bg-gray-200/80"
-                                        onClick={() => requestSort('orderNumber')}
-                                    >
-                                        <div className="flex items-center gap-1.5 font-medium text-gray-700">
-                                            <Hash className="h-4 w-4 text-gray-500" />
-                                            <span>เลขที่ (SOPID)</span>
-                                            {sortConfig?.key === 'orderNumber' && (
-                                                <ArrowUpDown
-                                                    className={`h-3.5 w-3.5 text-blue-600 transition-transform duration-300 ${sortConfig.direction === 'desc' ? 'rotate-180' : ''
-                                                        }`}
-                                                />
-                                            )}
-                                        </div>
-                                    </TableHead>
 
                                     <TableHead>
                                         <div className="flex items-center gap-1.5 font-medium text-gray-700">
@@ -523,7 +508,7 @@ export default function PlanOrderTable({
                             <TableBody>
                                 {!ordersArray.length ? (
                                     <TableRow>
-                                        <TableCell colSpan={9} className="py-16 text-center">
+                                        <TableCell colSpan={8} className="py-16 text-center">
                                             <div className="flex flex-col items-center gap-3">
                                                 <div className="rounded-2xl bg-gray-100 p-4">
                                                     <AlertCircle className="h-12 w-12 text-gray-400" />
@@ -553,11 +538,6 @@ export default function PlanOrderTable({
                                                     </div>
                                                 </TableCell>
 
-                                                <TableCell>
-                                                    <div className="inline-block rounded-lg bg-blue-50/50 px-2 py-1 font-mono text-xs font-medium text-blue-600">
-                                                        {order.orderNumber || '-'}
-                                                    </div>
-                                                </TableCell>
 
                                                 <TableCell>
                                                     <div className="inline-block rounded-lg bg-emerald-50/50 px-2 py-1 font-mono text-xs font-medium text-emerald-600">
@@ -770,7 +750,7 @@ export default function PlanOrderTable({
                                 </div>
                                 {sortConfig && (
                                     <div className="rounded-lg bg-blue-50 px-2 py-1 text-[10px] text-blue-600">
-                                        เรียงตาม: {sortConfig.key === 'orderNumber' ? 'SOPID' : sortConfig.key} {sortConfig.direction === 'desc' ? '↓' : '↑'}
+                                        เรียงตาม: {sortConfig.key === 'orderNumber' ? 'ลำดับ' : sortConfig.key} {sortConfig.direction === 'desc' ? '↓' : '↑'}
                                     </div>
                                 )}
                             </div>

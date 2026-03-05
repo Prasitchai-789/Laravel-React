@@ -4,9 +4,11 @@ namespace App\Models\AGR;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AgrSale extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'invoice_no',
         'sale_date',
@@ -39,7 +41,7 @@ class AgrSale extends Model
 
     public function payments()
     {
-        return $this->hasMany(AgrPayment::class);
+        return $this->hasMany(AgrPayment::class, 'sale_id');
     }
 
     public function recalcTotals()

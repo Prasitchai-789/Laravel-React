@@ -25,7 +25,7 @@ export default function MonthlyChemicals({
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
 
-    const chemicalNames = ['ดินขาว', 'Fogon 3000', 'Hexon 4000', 'Sumalchlor 50', 'PROXITANE', 'Polymer', 'Soda Ash', 'Salt'];
+    const chemicalNames = ['ดินขาว', 'Fogon 3000', 'Hexon 4000', 'Sumalchlor 50', 'PROXITANE', 'Polymer', 'Soda Ash', 'Salt', 'HURRICANE ACH 23KH'];
     const monthOrder = [
         "01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"
     ];
@@ -42,6 +42,7 @@ export default function MonthlyChemicals({
         Polymer: { bg: 'bg-pink-100', text: 'text-pink-800', border: 'border-pink-200', chart: 'rgba(236, 72, 153, 0.7)' },
         'Soda Ash': { bg: 'bg-cyan-100', text: 'text-cyan-800', border: 'border-cyan-200', chart: 'rgba(6, 182, 212, 0.7)' },
         Salt: { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200', chart: 'rgba(13, 148, 136, 0.7)' },
+        'HURRICANE ACH 23KH': { bg: 'bg-teal-100', text: 'text-teal-800', border: 'border-teal-200', chart: 'rgba(13, 148, 136, 0.7)' },
     };
 
 

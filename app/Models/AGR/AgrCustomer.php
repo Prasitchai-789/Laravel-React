@@ -4,11 +4,12 @@ namespace App\Models\AGR;
 
 use App\Models\WIN\WebCity;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class AgrCustomer extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'agr_customers';
 

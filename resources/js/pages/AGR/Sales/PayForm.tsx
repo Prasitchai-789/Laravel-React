@@ -27,11 +27,21 @@ interface Location {
     location_name: string;
 }
 
+interface SaleItem {
+    id: number;
+    product_id: number;
+    quantity: number;
+    unit_price: number;
+    line_total: number;
+    paid_amount: number;
+    payment_status: string;
+}
+
 interface Sale {
     id?: number;
     sale_date: string;
     customer: string;
-    customer_id: number | string; // ← ปรับ
+    customer_id: number | string;
     product_id: number | string;
     quantity: string;
     price: string;
@@ -42,6 +52,7 @@ interface Sale {
     paid_amount: string;
     total_amount: string;
     deposit_percent: string;
+    items?: SaleItem[];
 }
 
 interface Payment {
@@ -63,7 +74,15 @@ interface PayFormProps {
     onClose: () => void;
 }
 
+interface ItemPaymentInput {
+    sale_item_id: number;
+    amount: string;
+}
+
 export default function PayForm({ mode = 'create', sale, products, customers = [], locations, onClose, payments }: PayFormProps) {
+    // สร้าง state สำหรับยอดชำระแต่ละ item
+    const [itemPayments, setItemPayments] = useState<ItemPaymentInput[]>([]);
+
     const { data, setData, post, put, reset, processing, errors } = useForm({
         id: sale?.id || '',
         sale_date: sale?.sale_date || '',
@@ -75,43 +94,62 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
         deposit: sale?.deposit || '',
         status: sale?.status || '',
         store_id: sale?.store_id || '',
-        paid_amount: sale?.paid_amount || '', // ยอดชำระเดิม
-        new_payment: '', // ยอดชำระใหม่ที่เพิ่ม
+        paid_amount: sale?.paid_amount || '',
+        new_payment: '',
         total_amount: sale?.total_amount || '',
         deposit_percent: sale?.deposit_percent || '',
         shipping_cost: sale?.shipping_cost || '',
         payment_slip: null,
         method: payments?.length > 0 ? payments[0].method : '1',
+        item_payments: [] as { sale_item_id: number; amount: number }[],
     });
 
-    // State สำหรับจัดการยอดคงค้าง
-    const [remainingBalance, setRemainingBalance] = useState(0);
-    const [totalPaid, setTotalPaid] = useState(0);
-
-    // คำนวณยอดคงค้างเมื่อโหลด component หรือเมื่อมีการเปลี่ยนแปลง
+    // เริ่มต้น itemPayments จาก sale.items
     useEffect(() => {
-        if (sale) {
-            const currentPaid = parseFloat(sale.paid_amount || '0');
-            const total = parseFloat(sale.total_amount || '0');
-            const newPayment = parseFloat(data.new_payment || '0');
-
-            // คำนวณยอดชำระรวม (เดิม + ใหม่)
-            const updatedTotalPaid = currentPaid + newPayment;
-
-            // คำนวณยอดคงค้าง
-            const updatedRemainingBalance = Math.max(0, total - updatedTotalPaid);
-
-            setTotalPaid(updatedTotalPaid);
-            setRemainingBalance(updatedRemainingBalance);
-
-            // อัปเดต deposit ด้วยยอดคงค้างใหม่
-            setData('deposit', updatedRemainingBalance.toString());
+        if (sale?.items && sale.items.length > 0) {
+            setItemPayments(
+                sale.items.map(item => ({
+                    sale_item_id: item.id,
+                    amount: '',
+                }))
+            );
         }
-    }, [data.new_payment, sale]);
+    }, [sale]);
 
-    // เมื่อกดปุ่มชำระเต็มจำนวน
-    const handleFullPayment = () => {
-        setData('new_payment', remainingBalance.toString());
+    // คำนวณยอดรวมจาก itemPayments
+    const totalNewPayment = itemPayments.reduce(
+        (sum, ip) => sum + (parseFloat(ip.amount) || 0), 0
+    );
+
+    // คำนวณยอดคงค้าง
+    const totalAmount = parseFloat(sale?.total_amount || '0');
+    const currentPaid = parseFloat(sale?.paid_amount || '0');
+    const totalPaid = currentPaid + totalNewPayment;
+    const remainingBalance = Math.max(0, totalAmount - totalPaid);
+
+    const updateItemPayment = (index: number, amount: string) => {
+        setItemPayments(prev => {
+            const updated = [...prev];
+            updated[index] = { ...updated[index], amount };
+            return updated;
+        });
+    };
+
+    const payItemFull = (index: number) => {
+        if (!sale?.items) return;
+        const item = sale.items[index];
+        const remaining = Math.max(0, Number(item.line_total) - Number(item.paid_amount));
+        updateItemPayment(index, remaining.toString());
+    };
+
+    const payAllFull = () => {
+        if (!sale?.items) return;
+        setItemPayments(
+            sale.items.map(item => ({
+                sale_item_id: item.id,
+                amount: Math.max(0, Number(item.line_total) - Number(item.paid_amount)).toString(),
+            }))
+        );
     };
 
     const getCustomerName = (id: number) => {
@@ -120,39 +158,24 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
     };
 
     const formatPhone = (phone: string | null | undefined): string => {
-        // ตรวจสอบค่า null, undefined และ string ว่าง
         if (!phone || typeof phone !== 'string') return '';
-
-        // ตรวจสอบว่า string มีอย่างน้อย 1 ตัวเลข
         const digits = phone.replace(/\D/g, '');
         if (digits.length === 0) return '';
-
-        // จัดรูปแบบตามความยาว
-        if (digits.length === 10) {
-            return digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
-        } else if (digits.length === 9) {
-            return digits.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
-        } else {
-            // คืนค่า digits ถ้าไม่สามารถจัดรูปแบบได้
-            return digits;
-        }
+        if (digits.length === 10) return digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+        if (digits.length === 9) return digits.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+        return digits;
     };
 
     const getCustomerPhone = (id: number) => {
         const customer = customers.find((c) => Number(c.id) === Number(id));
-        // console.log('customer found =', customer);
         if (!customer) return `#${id}`;
-
         return formatPhone(customer.phone);
     };
 
-    // ฟังก์ชันช่วยหาชื่อสินค้า
     const getProductName = (id: number) => {
-        const product = products.find((p) => Number(p.id) === Number(id));
+        const product = products?.find((p) => Number(p.id) === Number(id));
         return product ? product.name : `#${id}`;
     };
-
-    // ... (other functions and useEffect remain mostly the same) ...
 
     const Toast = Swal.mixin({
         toast: true,
@@ -166,56 +189,68 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
             toast.onmouseleave = Swal.resumeTimer;
         },
     });
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // สร้าง FormData
+        if (!sale?.id) return;
+
         const formData = new FormData();
 
-        // append ค่าทั้งหมดจาก state
-        Object.entries({
-            ...data,
-            paid_amount: totalPaid.toString(),
-            deposit: remainingBalance.toString(),
-        }).forEach(([key, value]) => {
-            if (value !== null && value !== undefined) {
-                formData.append(key, value as string | Blob);
-            }
+        // แปลง item_payments เป็น array ที่ backend รับได้
+        const validItemPayments = itemPayments
+            .filter(ip => parseFloat(ip.amount) > 0)
+            .map(ip => ({
+                sale_item_id: ip.sale_item_id,
+                amount: parseFloat(ip.amount),
+            }));
+
+        // ✅ ต้องส่ง fields ที่ backend ต้องการ (required)
+        formData.append('sale_date', sale.sale_date || '');
+        formData.append('invoice_no', (sale as any).invoice_no || '');
+        formData.append('customer_id', String(sale.customer_id || ''));
+        formData.append('status', sale.status || 'completed');
+        formData.append('store_id', String(sale.store_id || ''));
+        formData.append('shipping_cost', String(sale.shipping_cost || '0'));
+        formData.append('total_amount', String(sale.total_amount || '0'));
+        formData.append('paid_amount', totalPaid.toString());
+        formData.append('deposit', remainingBalance.toString());
+        formData.append('new_payment', totalNewPayment.toString());
+        formData.append('method', data.method || '');
+
+        // ✅ ส่ง items จาก sale.items เดิม (backend ต้องการ items required)
+        if (sale.items && sale.items.length > 0) {
+            sale.items.forEach((item, i) => {
+                formData.append(`items[${i}][product_id]`, String(item.product_id));
+                formData.append(`items[${i}][quantity]`, String(item.quantity));
+                formData.append(`items[${i}][price]`, String(item.unit_price));
+                formData.append(`items[${i}][custom_product_id]`, '');
+            });
+        }
+
+        // Append item_payments as array
+        validItemPayments.forEach((ip, i) => {
+            formData.append(`item_payments[${i}][sale_item_id]`, ip.sale_item_id.toString());
+            formData.append(`item_payments[${i}][amount]`, ip.amount.toString());
         });
 
-        // ถ้ามีไฟล์ payment_slip ให้ append แยก
         if (data.payment_slip instanceof File) {
             formData.append('payment_slip', data.payment_slip);
         }
 
-        if (mode === 'create') {
-            router.post(route('sales.store'), formData, {
-                forceFormData: true, // 👈 สำคัญ ให้ Inertia ส่งเป็น multipart/form-data
-                onSuccess: () => {
-                    Toast.fire({ icon: 'success', title: 'สร้างการขายเรียบร้อยแล้ว' });
-                    reset();
-                    onClose();
-                },
-                onError: () => {
-                    Toast.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' });
-                },
-                preserveScroll: true,
-            });
-        } else if (mode === 'pay' && data.id) {
-            formData.append('_method', 'PUT'); // 👈 spoof method ให้ Laravel รู้ว่าเป็น PUT
-
-            router.post(route('sales.update', data.id), formData, {
-                forceFormData: true,
-                onSuccess: () => {
-                    Toast.fire({ icon: 'success', title: 'อัปเดตการขายเรียบร้อยแล้ว' });
-                    onClose();
-                },
-                onError: () => {
-                    Toast.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' });
-                },
-                preserveScroll: true,
-            });
-        }
+        formData.append('_method', 'PUT');
+        router.post(route('sales.update', sale.id), formData, {
+            forceFormData: true,
+            onSuccess: () => {
+                Toast.fire({ icon: 'success', title: 'บันทึกการชำระเงินเรียบร้อย' });
+                onClose();
+            },
+            onError: (errors) => {
+                console.error('PayForm errors:', errors);
+                Toast.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' });
+            },
+            preserveScroll: true,
+        });
     };
 
     const paymentOptions = [
@@ -225,80 +260,142 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
         { value: '3', label: 'บัตรเครดิต/เดบิต' },
         { value: '4', label: 'อื่นๆ' },
     ];
+
     return (
         <form onSubmit={handleSubmit} className="space-y-6 font-anuphan">
             <div className="grid grid-cols-1 gap-2">
-                {/* Product Information Section */}
+                {/* ข้อมูลบิล */}
                 <div className="rounded-xl border border-green-200 bg-white px-5 py-4 shadow-sm">
                     <div className="flex items-center justify-between">
                         <h3 className="flex items-center text-lg font-semibold text-gray-800">
                             <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-5 w-5 text-green-600" viewBox="0 0 20 20" fill="currentColor">
-                                <path
-                                    fillRule="evenodd"
-                                    d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z"
-                                    clipRule="evenodd"
-                                />
+                                <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
                             </svg>
-                            ข้อมูลการขายสินค้า
+                            ข้อมูลบิล
                         </h3>
-                        <span className="pl-7 text-sm font-medium text-gray-500">
-                            วันที่รายการ {sale.sale_date ? dayjs(sale.sale_date).format('DD/MM/YYYY') : '-'}
+                        <span className="text-sm font-medium text-gray-500">
+                            {sale?.sale_date ? dayjs(sale.sale_date).format('DD/MM/YYYY') : '-'}
                         </span>
                     </div>
 
-                    <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="mt-2 grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div className="flex flex-col">
-                            <span className="text-sm font-medium text-gray-500">ชื่อลูกค้า</span>
-                            <span className="text-lg font-medium text-blue-700">{getCustomerName(sale.customer_id)}</span>
-                            <span className="text-xs font-medium text-red-700">เบอร์ติดต่อ {getCustomerPhone(sale.customer_id) || '-'}</span>
-                        </div>
-
-                        <div className="flex flex-col">
-                            <span className="text-sm font-medium text-gray-500">สินค้า</span>
-                            <span className="text-lg font-medium text-blue-700">{getProductName(sale.product_id)}</span>
-                        </div>
-
-                        <div className="flex flex-col">
-                            <span className="text-sm font-medium text-gray-500">จำนวนสินค้า</span>
-                            <span className="text-xl font-semibold text-blue-700">{sale.quantity}</span>
+                            <span className="text-sm font-medium text-gray-500">ลูกค้า</span>
+                            <span className="text-lg font-medium text-blue-700">{getCustomerName(sale?.customer_id as number)}</span>
+                            <span className="text-xs font-medium text-red-700">เบอร์: {getCustomerPhone(sale?.customer_id as number) || '-'}</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-sm font-medium text-gray-500">ยอดเงิน</span>
+                            <span className="text-sm font-medium text-gray-500">ยอดรวมบิล</span>
                             <span className="text-xl font-semibold text-green-600">
-                                {parseFloat(sale?.total_amount || '0').toLocaleString('th-TH')} บาท
+                                {totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
+                            </span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-500">ชำระแล้ว</span>
+                            <span className="text-xl font-semibold text-blue-600">
+                                {currentPaid.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท
                             </span>
                         </div>
                     </div>
                 </div>
 
-                {/* Payment Input Section */}
-                <div className="rounded-xl border border-yellow-200 bg-white px-5 py-3 shadow-sm">
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div className="mb-1 flex flex-col">
-                            <h3 className="text-lg font-semibold text-gray-800">การชำระเงินเพิ่มเติม</h3>
-                        </div>
+                {/* ตารางรายการสินค้า - ชำระแยกรายตัว */}
+                <div className="rounded-xl border border-blue-200 bg-white px-5 py-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="flex items-center text-lg font-semibold text-gray-800">
+                            💰 ชำระเงินแยกรายสินค้า
+                        </h3>
+                        <button
+                            type="button"
+                            onClick={payAllFull}
+                            className="rounded-full bg-blue-100 px-4 py-1.5 text-sm font-medium text-blue-700 shadow-sm transition-colors hover:scale-105 hover:bg-blue-200"
+                            disabled={remainingBalance <= 0}
+                        >
+                            จ่ายครบทุกรายการ
+                        </button>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                        <div>
-                            <InputLabel
-                                label="ยอดชำระเพิ่ม"
-                                placeholder="0"
-                                name="new_payment"
-                                value={data.new_payment}
-                                onChange={(e) => setData('new_payment', e.target.value)}
-                                required={false}
-                                error={errors.paid_amount}
-                                disabled={processing}
-                                type="number"
-                                min="0"
-                                step="1"
-                                className="font-anuphan"
-                            />
-                            {/* <p className="mt-1.5 pl-2 text-xs text-gray-500">กรุณากรอกยอดชำระเพิ่มเป็นจำนวนเต็ม</p> */}
-                        </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-gray-200 text-left">
+                                    <th className="px-3 py-2 font-medium text-gray-600">สินค้า</th>
+                                    <th className="px-3 py-2 text-center font-medium text-gray-600">จำนวน</th>
+                                    <th className="px-3 py-2 text-right font-medium text-gray-600">ยอดสินค้า</th>
+                                    <th className="px-3 py-2 text-right font-medium text-gray-600">จ่ายแล้ว</th>
+                                    <th className="px-3 py-2 text-right font-medium text-gray-600">ค้างชำระ</th>
+                                    <th className="px-3 py-2 text-center font-medium text-gray-600">สถานะ</th>
+                                    <th className="px-3 py-2 text-center font-medium text-gray-600 min-w-[180px]">ชำระเพิ่ม</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sale?.items && sale.items.map((item, index) => {
+                                    const itemRemaining = Math.max(0, Number(item.line_total) - Number(item.paid_amount));
+                                    const newPay = parseFloat(itemPayments[index]?.amount || '0');
+                                    const statusMap: Record<string, { bg: string, text: string, label: string }> = {
+                                        completed: { bg: 'bg-green-100', text: 'text-green-700', label: '✅ ครบ' },
+                                        partial: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: '⚠️ บางส่วน' },
+                                        pending: { bg: 'bg-red-100', text: 'text-red-700', label: '❌ ค้าง' },
+                                    };
+                                    const st = statusMap[item.payment_status] || statusMap.pending;
 
-                        {/* วิธีการชำระเงิน */}
+                                    return (
+                                        <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                            <td className="px-3 py-3 font-medium text-gray-800">
+                                                {getProductName(item.product_id)}
+                                            </td>
+                                            <td className="px-3 py-3 text-center text-gray-600">
+                                                {Number(item.quantity).toLocaleString()}
+                                            </td>
+                                            <td className="px-3 py-3 text-right font-semibold text-gray-800">
+                                                {Number(item.line_total).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="px-3 py-3 text-right font-semibold text-green-600">
+                                                {Number(item.paid_amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="px-3 py-3 text-right font-semibold text-red-600">
+                                                {itemRemaining.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="px-3 py-3 text-center">
+                                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${st.bg} ${st.text}`}>
+                                                    {st.label}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        max={itemRemaining}
+                                                        placeholder="0"
+                                                        value={itemPayments[index]?.amount || ''}
+                                                        onChange={(e) => updateItemPayment(index, e.target.value)}
+                                                        disabled={processing || itemRemaining <= 0}
+                                                        className="w-24 rounded-lg border border-gray-300 px-2 py-1.5 text-right text-sm font-anuphan focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => payItemFull(index)}
+                                                        disabled={itemRemaining <= 0}
+                                                        className="whitespace-nowrap rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700 hover:bg-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                    >
+                                                        เต็ม
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* วิธีชำระเงิน + ไฟล์แนบ */}
+                <div className="rounded-xl border border-yellow-200 bg-white px-5 py-3 shadow-sm">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">รายละเอียดการชำระ</h3>
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                         <div>
                             <Select
                                 label="ประเภทการชำระเงิน"
@@ -312,7 +409,6 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                                 className="font-anuphan"
                             ></Select>
                         </div>
-                        {/* อัปโหลดหลักฐานการชำระเงิน */}
                         <div>
                             <InputLabel
                                 label="แนบไฟล์หลักฐาน"
@@ -325,97 +421,62 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                                 disabled={processing}
                                 className="font-anuphan"
                             />
-                            <p className="mt-1.5 pl-2 text-xs text-gray-500">รองรับไฟล์รูปภาพ หรือ PDF</p>
-                        </div>
-
-                        <div className="flex items-center justify-center">
-                            <button
-                                type="button"
-                                onClick={handleFullPayment}
-                                className="rounded-full bg-blue-100 px-4 py-2.5 text-sm font-medium text-blue-700 shadow-sm transition-colors hover:scale-105 hover:bg-blue-200 disabled:cursor-not-allowed disabled:opacity-50"
-                                disabled={remainingBalance <= 0}
-                            >
-                                ชำระเต็มจำนวน
-                            </button>
+                            <p className="mt-1 pl-2 text-xs text-gray-500">รองรับ รูปภาพ / PDF</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Summary Section */}
+                {/* สรุป */}
                 <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 shadow-sm">
-                    <h3 className="mb-1 flex items-center text-lg font-semibold text-gray-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="mr-2 h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-                            <path
-                                fillRule="evenodd"
-                                d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                            />
-                        </svg>
-                        สรุปรายการ
-                    </h3>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        {/* Total Paid Card */}
-                        <div className="rounded-lg border border-blue-100 bg-white p-4 shadow-sm">
+                    <h3 className="mb-2 flex items-center text-lg font-semibold text-gray-800">🧮 สรุปการชำระ</h3>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                        <div className="rounded-lg border border-blue-100 bg-white p-3 shadow-sm">
                             <div className="flex items-center justify-between">
-                                <span className="font-medium text-gray-600">ชำระแล้วรวม</span>
+                                <span className="font-medium text-gray-600">ชำระครั้งนี้</span>
+                                <div className="text-xl font-bold text-orange-600">
+                                    {totalNewPayment.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                                    <span className="ml-1 text-sm">฿</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="rounded-lg border border-blue-100 bg-white p-3 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <span className="font-medium text-gray-600">ชำระรวม</span>
                                 <div className="text-xl font-bold text-blue-600">
-                                    {totalPaid.toLocaleString('th-TH', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                    })}
+                                    {totalPaid.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                                     <span className="ml-1 text-sm">฿</span>
                                 </div>
                             </div>
                             <div className="mt-1 text-xs text-gray-500">
-                                (เดิม {parseFloat(sale?.paid_amount || '0').toLocaleString('th-TH')} ฿ + ใหม่{' '}
-                                {parseFloat(data.new_payment || '0').toLocaleString('th-TH')} ฿)
+                                (เดิม {currentPaid.toLocaleString('th-TH')} ฿ + ใหม่ {totalNewPayment.toLocaleString('th-TH')} ฿)
                             </div>
                         </div>
-
-                        {/* Remaining Balance Card */}
-                        <div className="rounded-lg border border-red-100 bg-white p-4 shadow-sm">
+                        <div className="rounded-lg border border-red-100 bg-white p-3 shadow-sm">
                             <div className="flex items-center justify-between">
                                 <span className="font-medium text-gray-600">ยอดคงค้าง</span>
                                 <div className="text-xl font-bold text-red-600">
-                                    {remainingBalance.toLocaleString('th-TH', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                    })}
+                                    {remainingBalance.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                                     <span className="ml-1 text-sm">฿</span>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div className="col-span-2">
-                            <h4 className="text-md mb-1 flex items-center font-semibold text-gray-700">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="mr-2 h-4 w-4 text-green-600"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
-                                >
-                                    <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
-                                ประวัติการชำระเงิน
-                            </h4>
-
-                            {sale && (
-                                <div className="overflow-hidden rounded-lg border border-gray-200">
-                                    <PayTable payments={payments || []} saleId={sale?.id || 0} />
-                                </div>
-                            )}
-                        </div>
+                    {/* ประวัติชำระเงิน */}
+                    <div className="mt-3">
+                        <h4 className="text-md mb-1 flex items-center font-semibold text-gray-700">
+                            💳 ประวัติการชำระเงิน
+                        </h4>
+                        {sale && (
+                            <div className="overflow-hidden rounded-lg border border-gray-200">
+                                <PayTable payments={payments || []} saleId={sale?.id || 0} />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Buttons */}
             <div className="flex justify-end gap-3">
                 <Button
                     type="button"
@@ -429,7 +490,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                 <Button
                     type="submit"
                     variant="primary"
-                    disabled={processing || parseFloat(data.new_payment || '0') <= 0}
+                    disabled={processing || totalNewPayment <= 0}
                     loading={processing}
                     className="rounded-full bg-green-600 px-5 py-2.5 text-white transition-colors hover:bg-green-700 disabled:opacity-50"
                 >

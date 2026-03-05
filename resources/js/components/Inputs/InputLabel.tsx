@@ -8,13 +8,14 @@ interface InputProps {
   type?: string;
   required?: boolean;
   placeholder?: string;
-  error?: string;
+  error?: React.ReactNode;
   disabled?: boolean;
   className?: string;
   labelClassName?: string;
   inputClassName?: string;
   errorClassName?: string;
   min?: number;
+  max?: number | string;
   step?: number
 }
 
@@ -33,6 +34,7 @@ const InputLabel: React.FC<InputProps> = ({
   inputClassName = "",
   errorClassName = "",
   min,
+  max,
   step
 }) => {
   return (
@@ -52,11 +54,11 @@ const InputLabel: React.FC<InputProps> = ({
         required={required}
         disabled={disabled}
         placeholder={placeholder}
-        min={min}
-        step={step}
-        className={`block w-full rounded-lg border border-gray-300 px-4 py-3 font-anuphan shadow-sm transition duration-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 ${inputClassName} ${
-          error ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
-        }`}
+        min={min === undefined ? undefined : String(min)}
+        max={max === undefined ? undefined : String(max)}
+        step={step === undefined ? undefined : String(step)}
+        className={`block w-full rounded-lg border border-gray-300 px-4 py-3 font-anuphan shadow-sm transition duration-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 ${inputClassName} ${error ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+          }`}
       />
       {error && (
         <p className={`mt-1 text-sm text-red-600 ${errorClassName}`}>

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
 
-    protected $connection = 'sqlsrv'; // ระบุ connection ให้ตรงกับ Webapp_Emp
+    // protected $connection = 'sqlsrv'; // ระบุ connection ให้ตรงกับ Webapp_Emp
 
     public function up(): void
     {

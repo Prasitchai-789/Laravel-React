@@ -104,6 +104,7 @@ class SalesAGRController extends Controller
                 DB::raw('SUM(s.quantity) as total_quantity')
             )
             ->whereBetween('s.sale_date', [$startDate, $endDate])
+            ->whereNull('s.deleted_at')
             ->groupBy('c.subdistrict', 'p.sku')
             ->get();
 
@@ -161,6 +162,7 @@ class SalesAGRController extends Controller
                 DB::raw('COUNT(*) as transaction_count')
             )
             ->whereBetween('sale_date', [$startDate, $endDate])
+            ->whereNull('deleted_at')
             ->first();
 
         return response()->json([
@@ -193,6 +195,7 @@ class SalesAGRController extends Controller
                 DB::raw('COUNT(*) as total_orders')
             )
             ->whereBetween('s.sale_date', [$startDate, $endDate])
+            ->whereNull('s.deleted_at')
             ->groupBy('c.subdistrict')
             ->orderByDesc('total_quantity')
             ->limit(10)
@@ -233,6 +236,7 @@ class SalesAGRController extends Controller
             ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
                 $query->whereBetween('s.sale_date', [$startDate, $endDate]);
             })
+            ->whereNull('s.deleted_at')
             ->groupBy('p.sku')
             ->get();
         // รวมข้อมูลโดยใช้ชื่อสินค้าเต็ม
@@ -288,6 +292,7 @@ class SalesAGRController extends Controller
                     DB::raw('MIN(p.amount) as min_payment')
                 )
                 ->whereBetween('p.paid_at', [$startDate, $endDate])
+                ->whereNull('p.deleted_at')
                 ->whereNotNull('p.method')
                 ->where('p.method', '!=', '')
                 ->groupBy('p.method')
@@ -302,6 +307,7 @@ class SalesAGRController extends Controller
                     DB::raw('AVG(amount) as avg_payment')
                 )
                 ->whereBetween('paid_at', [$startDate, $endDate])
+                ->whereNull('deleted_at')
                 ->first();
 
             // จัดกลุ่มข้อมูล - ใช้ key เป็น string ตามค่า method ใน database

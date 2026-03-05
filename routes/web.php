@@ -127,7 +127,7 @@ Route::prefix('projects/{project}')->group(function () {
 });
 
 // Chemical Routes
-Route::middleware(['permission:users.view|chemical.view'])->group(function () {
+Route::middleware(['permission:users.view|chemical.view|developer.view'])->group(function () {
     Route::get('chemical', [ChemicalController::class, 'index'])->name('chemical.index');
     Route::get('chemical/{chemical}', [ChemicalController::class, 'show'])->name('chemical.show');
     Route::get('/monthly', [ChemicalController::class, 'monthly'])->name('chemicals.monthly');
@@ -135,24 +135,24 @@ Route::middleware(['permission:users.view|chemical.view'])->group(function () {
     Route::get('/monthly/export-pdf', [ChemicalController::class, 'exportPdf'])->name('monthly.exportPdf');
 });
 
-Route::middleware('permission:users.create')->group(function () {
+Route::middleware('permission:users.create|developer.view')->group(function () {
     Route::get('chemical/create', [ChemicalController::class, 'create'])->name('chemical.create');
     Route::post('chemical', [ChemicalController::class, 'store'])->name('chemical.store');
 });
 
-Route::middleware('permission:users.edit')->group(function () {
+Route::middleware('permission:users.edit|developer.view')->group(function () {
     Route::get('chemical/{chemical}/edit', [ChemicalController::class, 'edit'])->name('chemical.edit');
     Route::put('chemical/{chemical}', [ChemicalController::class, 'update'])->name('chemical.update');
 });
 
-Route::middleware('permission:users.delete')->group(function () {
+Route::middleware('permission:users.delete|developer.view')->group(function () {
     Route::delete('chemical/{chemical}', [ChemicalController::class, 'destroy'])->name('chemical.destroy');
     Route::post('/chemical/delete', [ChemicalController::class, 'destroyMultiple'])->name('chemical.delete.multiple');
     Route::delete('/chemical', [ChemicalController::class, 'destroyBulk'])->name('chemical.destroy.bulk');
 });
 
 // Chemical Order Routes
-Route::prefix('chemicalorder')->group(function () {
+Route::middleware(['permission:users.view|chemical.view|developer.view'])->prefix('chemicalorder')->group(function () {
     Route::get('/', [ChemicalOrderController::class, 'index'])->name('orders.index');
     Route::get('/{order}', [ChemicalOrderController::class, 'show'])->name('orders.show');
     Route::get('/create', [ChemicalOrderController::class, 'create'])->name('orders.create');
@@ -495,6 +495,10 @@ Route::prefix('mar')->name('mar.')->group(function () {
     Route::put('/plan-order/{id}', [SOPlanController::class, 'update'])
         ->middleware(['auth', 'verified'])
         ->name('plan-order.update');
+
+    Route::put('/plan-order/{id}/status', [SOPlanController::class, 'updateStatus'])
+        ->middleware(['auth', 'verified'])
+        ->name('plan-order.update-status');
 
     // Soft Delete
     Route::delete('/plan-order/{id}', [SOPlanController::class, 'destroy'])

@@ -8,7 +8,7 @@ return new class extends Migration
     /**
      * ใช้ connection sqlsrv2 (ฐานข้อมูลภายนอก)
      */
-    protected $connection = 'sqlsrv2';
+    // protected $connection = 'sqlsrv2';
 
     public function up(): void
     {
