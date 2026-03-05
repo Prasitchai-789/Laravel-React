@@ -58,15 +58,15 @@ class RecalculateStockPkn extends Command
             $bigLvl = floatval($d->silo_sale_big_level);
             $smLvl  = floatval($d->silo_sale_small_level);
 
-            // คำนวณด้วยสูตรใหม่ (clamp ค่าลบ)
+            // คำนวณด้วยสูตรใหม่ (อนุญาตค่าลบ)
             $rawBig = (self::CONSTANTS['silo_sale_big'] - $bigLvl) * self::MULTIPLIERS['silo_sale_big'];
-            $big = $rawBig > 0 ? $rawBig : 0;
+            $big = $rawBig;
 
             $rawSm = (self::CONSTANTS['silo_sale_small'] - $smLvl) * self::MULTIPLIERS['silo_sale_small'];
-            $small = $rawSm > 0 ? $rawSm : 0;
+            $small = $rawSm;
 
             $sum = $big + $small;
-            $newPkn = $sum > 0 ? round(($sum / 2) + 12, 3) : 0;
+            $newPkn = round(($sum / 2) + 12, 3);
             $oldPkn = floatval($d->old_pkn);
             $diff = round($newPkn - $oldPkn, 3);
 
