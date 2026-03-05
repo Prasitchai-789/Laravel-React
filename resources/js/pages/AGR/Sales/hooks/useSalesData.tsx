@@ -76,7 +76,7 @@ export function useSalesData({ sales, customers, userPermissions }: UseSalesData
     };
 
     const handleEditWithPermission = (sale: Sale) => {
-        if (userPermissions.includes('arg.edit')) {
+        if (userPermissions.includes('agr.edit')) {
             handleEdit(sale);
         } else {
             Swal.fire({
@@ -89,7 +89,7 @@ export function useSalesData({ sales, customers, userPermissions }: UseSalesData
     };
 
     const handleDeleteWithPermission = (sale: Sale) => {
-        if (userPermissions.includes('arg.delete')) {
+        if (userPermissions.includes('agr.delete')) {
             openDeleteModal(sale.id);
         } else {
             Swal.fire({
