@@ -209,10 +209,6 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 // AGR Routes
 Route::middleware(['auth', 'permission:developer.view|agr.view'])->group(function () {
     Route::resource('sales', SalesController::class)->only(['index', 'show', 'create', 'store']);
-    // AGR Sales edit/delete requires AGR.admin
-    Route::middleware(['permission:developer.view|AGR.admin'])->group(function () {
-        Route::resource('sales', SalesController::class)->only(['edit', 'update', 'destroy']);
-    });
     // Route::post('/sales', [SalesController::class, 'create'])->name('sales.create');
     Route::resource('/products', ProductController::class);
     Route::put('/products/{product}', [ProductController::class, 'updateProduct'])->name('products.updateProduct');
@@ -227,6 +223,11 @@ Route::middleware(['auth', 'permission:developer.view|agr.view'])->group(functio
     Route::post('/stock-agr-product', [ProductController::class, 'storeProduct'])->name('stock.agr.store.product');
     Route::post('/stock-agr', [ProductController::class, 'storeLocation'])->name('stock.agr.store.location');
     Route::delete('/stock-agr/{production}', [ProductController::class, 'destroy'])->name('stock.agr.destroy');
+});
+
+// AGR Sales edit/delete - requires agr.edit permission
+Route::middleware(['auth', 'permission:developer.view|agr.edit'])->group(function () {
+    Route::resource('sales', SalesController::class)->only(['edit', 'update', 'destroy']);
 });
 
 // AGR Reports
