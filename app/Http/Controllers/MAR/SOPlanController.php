@@ -300,6 +300,7 @@ class SOPlanController extends Controller
                     'coa_tank' => $cert ? $cert->coa_tank : null,
                     'inspector' => $cert ? $this->getEmployeeName($cert->coa_user) : null,
                     'coa_user_id' => $cert ? $cert->coa_user : null,
+                    'coa_mgr' => $cert ? $cert->coa_mgr : null,
                     'notes' => $cert ? $cert->coa_remark : null,
                 ]
             ]);
@@ -380,6 +381,7 @@ class SOPlanController extends Controller
                     'spec_kn_moisture' => $cert ? $cert->spec_kn_moisture : null,
                     'inspector' => $cert ? $this->getEmployeeName($cert->coa_user) : null,
                     'coa_user_id' => $cert ? $cert->coa_user : null,
+                    'coa_mgr' => $cert ? $cert->coa_mgr : null,
                     'notes' => $cert ? $cert->coa_remark : null,
                 ];
             });
