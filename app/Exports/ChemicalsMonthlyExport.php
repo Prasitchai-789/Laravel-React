@@ -28,6 +28,23 @@ class ChemicalsMonthlyExport implements FromArray, WithHeadings, WithTitle, With
         $this->headings = $headings;
     }
 
+    /**
+     * คำนวณตัวอักษรคอลัมน์สุดท้ายแบบ dynamic
+     */
+    private function getLastColumn(): string
+    {
+        // data[0] คือ header row → จำนวนคอลัมน์
+        $colCount = !empty($this->data) ? count($this->data[0]) : 1;
+        // แปลงเลขเป็นตัวอักษร (1=A, 2=B, ..., 27=AA, ...)
+        $letter = '';
+        while ($colCount > 0) {
+            $colCount--;
+            $letter = chr(65 + ($colCount % 26)) . $letter;
+            $colCount = intdiv($colCount, 26);
+        }
+        return $letter;
+    }
+
     public function array(): array
     {
         return $this->data;
@@ -39,19 +56,8 @@ class ChemicalsMonthlyExport implements FromArray, WithHeadings, WithTitle, With
             return $this->headings;
         }
 
-        // Headings เริ่มต้นถ้าไม่ได้กำหนดมา
-        return [
-            'วันที่',
-            'ดินขาว (กก.)',
-            'Fogon 3000 (กก.)',
-            'Hexon 4000 (กก.)',
-            'Sumalchlor 50 (กก.)',
-            'PROXITANE (กก.)',
-            'Polymer (กก.)',
-            'Soda Ash (กก.)',
-            'Salt (กก.)',
-            
-        ];
+        // Dynamic headings จาก data row แรก
+        return !empty($this->data) ? $this->data[0] : ['วันที่'];
     }
 
     public function title(): string
@@ -62,101 +68,131 @@ class ChemicalsMonthlyExport implements FromArray, WithHeadings, WithTitle, With
             '07' => 'กรกฎาคม', '08' => 'สิงหาคม', '09' => 'กันยายน',
             '10' => 'ตุลาคม', '11' => 'พฤศจิกายน', '12' => 'ธันวาคม'
         ];
-        
+
         return 'รายงานเดือน_' . ($months[$this->month] ?? $this->month) . '_' . $this->year;
     }
 
     public function styles(Worksheet $sheet)
     {
+        $lastCol = $this->getLastColumn();
         $lastRow = count($this->data) + 1; // +1 เพราะมีหัวข้อ
-        
-        // กำหนดสไตล์สำหรับหัวตาราง
-        $sheet->getStyle('A1:I1')->applyFromArray([
+
+        // === สไตล์ หัวตาราง (แถวที่ 1) ===
+        $sheet->getStyle("A1:{$lastCol}1")->applyFromArray([
             'font' => [
-                'bold' => true, 
+                'bold' => true,
                 'color' => ['rgb' => 'FFFFFF'],
-                'size' => 12
+                'size' => 11,
+                'name' => 'TH Sarabun New',
             ],
             'fill' => [
-                'fillType' => Fill::FILL_SOLID, 
-                'startColor' => ['rgb' => '2E75B6']
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '7C3AED'], // สี violet-600
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
             ],
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => '000000']
-                ]
-            ]
+                    'color' => ['rgb' => '5B21B6'], // สี violet-800
+                ],
+            ],
         ]);
-        
-        // กำหนดความสูงของแถวหัวข้อ
-        $sheet->getRowDimension(1)->setRowHeight(25);
-        
-        // กำหนดสไตล์สำหรับผลรวม (ถ้ามี)
-        if ($lastRow > 2) {
-            $sheet->getStyle('A' . $lastRow . ':I' . $lastRow)->applyFromArray([
-                'font' => ['bold' => true],
+
+        // ความสูงหัวข้อ
+        $sheet->getRowDimension(1)->setRowHeight(30);
+
+        // === สไตล์ แถวข้อมูล (สลับสี) ===
+        for ($row = 2; $row <= $lastRow; $row++) {
+            $bgColor = ($row % 2 === 0) ? 'F5F3FF' : 'FFFFFF'; // violet-50 สลับขาว
+            $sheet->getStyle("A{$row}:{$lastCol}{$row}")->applyFromArray([
                 'fill' => [
-                    'fillType' => Fill::FILL_SOLID, 
-                    'startColor' => ['rgb' => 'E2EFDA']
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => $bgColor],
+                ],
+                'font' => [
+                    'size' => 11,
+                    'name' => 'TH Sarabun New',
                 ],
                 'borders' => [
-                    'top' => ['borderStyle' => Border::BORDER_DOUBLE],
-                    'bottom' => ['borderStyle' => Border::BORDER_DOUBLE]
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => 'DDD6FE'], // สี violet-200
+                    ],
                 ],
             ]);
         }
-        
-        // กำหนดความกว้างคอลัมน์
-        $sheet->getColumnDimension('A')->setWidth(15); // วันที่
-        foreach (range('B', 'I') as $column) {
-            $sheet->getColumnDimension($column)->setWidth(16);
+
+        // === สไตล์ แถวผลรวม (แถวสุดท้าย) ===
+        if ($lastRow > 2) {
+            $sheet->getStyle("A{$lastRow}:{$lastCol}{$lastRow}")->applyFromArray([
+                'font' => [
+                    'bold' => true,
+                    'size' => 11,
+                    'name' => 'TH Sarabun New',
+                    'color' => ['rgb' => '5B21B6'], // สี violet-800
+                ],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'EDE9FE'], // สี violet-100
+                ],
+                'borders' => [
+                    'top' => [
+                        'borderStyle' => Border::BORDER_DOUBLE,
+                        'color' => ['rgb' => '7C3AED'],
+                    ],
+                    'bottom' => [
+                        'borderStyle' => Border::BORDER_DOUBLE,
+                        'color' => ['rgb' => '7C3AED'],
+                    ],
+                ],
+            ]);
         }
-        
-        // กำหนดรูปแบบตัวเลขและจัดกลาง
-        foreach (range('B', 'I') as $column) {
-            for ($row = 2; $row <= $lastRow; $row++) {
-                $sheet->getStyle($column . $row)->applyFromArray([
-                    'alignment' => [
-                        'horizontal' => Alignment::HORIZONTAL_CENTER
-                    ]
-                ]);
+
+        // === ความกว้างคอลัมน์ (dynamic) ===
+        $sheet->getColumnDimension('A')->setWidth(14); // วันที่
+        $colCount = !empty($this->data) ? count($this->data[0]) : 1;
+        for ($i = 1; $i < $colCount; $i++) {
+            $colLetter = chr(65 + $i); // B, C, D, ...
+            if ($i < 26) {
+                $sheet->getColumnDimension($colLetter)->setWidth(16);
             }
         }
-        
-        // กำหนดขอบให้ทั้งตาราง
-        $sheet->getStyle('A1:J' . $lastRow)->applyFromArray([
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => 'D9D9D9']
-                ]
-            ]
-        ]);
-        
-        // จัดกลางข้อมูลในคอลัมน์ A (วันที่)
-        $sheet->getStyle('A2:A' . $lastRow)->applyFromArray([
+
+        // === จัดกลาง ข้อมูลตัวเลข (คอลัมน์ B เป็นต้นไป) ===
+        for ($i = 1; $i < $colCount; $i++) {
+            $colLetter = chr(65 + $i);
+            if ($i < 26) {
+                for ($row = 2; $row <= $lastRow; $row++) {
+                    $sheet->getStyle("{$colLetter}{$row}")->applyFromArray([
+                        'alignment' => [
+                            'horizontal' => Alignment::HORIZONTAL_CENTER,
+                        ],
+                    ]);
+                }
+            }
+        }
+
+        // === จัดกลาง คอลัมน์วันที่ ===
+        $sheet->getStyle("A2:A{$lastRow}")->applyFromArray([
             'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER
-            ]
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+            ],
         ]);
     }
 
     public function columnFormats(): array
     {
-        return [
-            'B' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
-            'C' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
-            'D' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
-            'E' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
-            'F' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
-            'G' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
-            'H' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
-            'I' => NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1,
-                    ];
+        // Dynamic: format ตัวเลขสำหรับทุกคอลัมน์ (ยกเว้น A = วันที่)
+        $formats = [];
+        $colCount = !empty($this->data) ? count($this->data[0]) : 1;
+        for ($i = 1; $i < $colCount && $i < 26; $i++) {
+            $colLetter = chr(65 + $i);
+            $formats[$colLetter] = NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED1;
+        }
+        return $formats;
     }
 }
