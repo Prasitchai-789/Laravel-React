@@ -149,14 +149,14 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
         return num.toFixed(decimalPlaces);
     };
 
-    const calculateQuantity = (level: string | number, multiplier: number, constant: number, extra: number = 0): string => {
+    const calculateQuantity = (level: string | number, multiplier: number, constant: number, extra: number = 0, allowNegative: boolean = false): string => {
         if (!level && level !== 0) return '0.000';
 
         const levelNum = typeof level === 'string' ? parseFloat(level) : level;
         if (isNaN(levelNum)) return '0.000';
 
         const raw = (constant - levelNum) * multiplier;
-        const result = raw > 0 ? raw + extra : 0;
+        const result = allowNegative ? raw + extra : (raw > 0 ? raw + extra : 0);
         return result.toFixed(3);
     };
 
@@ -174,16 +174,16 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
 
         // คำนวณ Sale Total — ใช้ stock_pkn จาก backend เสมอ
         let saleTotal: number;
-        let saleBig: number;
-        let saleSmall: number;
+        let saleBig: number = 0;
+        let saleSmall: number = 0;
 
         if (record.stock_pkn !== undefined && record.stock_pkn !== null) {
             // ใช้ stock_pkn จาก backend โดยตรง
             saleTotal = safeParseFloat(record.stock_pkn);
         } else {
             // fallback: คำนวณจาก silo levels
-            saleBig = safeParseFloat(calculateQuantity(record.silo_sale_big_level, 0.228, 920));
-            saleSmall = safeParseFloat(calculateQuantity(record.silo_sale_small_level, 0.228, 870));
+            saleBig = safeParseFloat(calculateQuantity(record.silo_sale_big_level, 0.228, 920, 0, true));
+            saleSmall = safeParseFloat(calculateQuantity(record.silo_sale_small_level, 0.228, 870, 0, true));
             const saleSum = saleBig + saleSmall;
             saleTotal = saleSum > 0 ? (saleSum / 2) + 12 : 0;
         }
@@ -192,8 +192,8 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
             saleBig = 0;
             saleSmall = 0;
         } else if (record.stock_pkn !== undefined && record.stock_pkn !== null) {
-            saleBig = safeParseFloat(calculateQuantity(record.silo_sale_big_level, 0.228, 920));
-            saleSmall = safeParseFloat(calculateQuantity(record.silo_sale_small_level, 0.228, 870));
+            saleBig = safeParseFloat(calculateQuantity(record.silo_sale_big_level, 0.228, 920, 0, true));
+            saleSmall = safeParseFloat(calculateQuantity(record.silo_sale_small_level, 0.228, 870, 0, true));
         }
 
         // คำนวณ Outside Total
@@ -685,12 +685,12 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
                                                             {
                                                                 level: record.silo_sale_big_level,
                                                                 label: 'ฝาใหญ่',
-                                                                value: calculateQuantity(record.silo_sale_big_level, 0.228, 920),
+                                                                value: calculateQuantity(record.silo_sale_big_level, 0.228, 920, 0, true),
                                                             },
                                                             {
                                                                 level: record.silo_sale_small_level,
                                                                 label: 'ฝาจุก',
-                                                                value: calculateQuantity(record.silo_sale_small_level, 0.228, 870),
+                                                                value: calculateQuantity(record.silo_sale_small_level, 0.228, 870, 0, true),
                                                             },
                                                         ].map((silo, idx) => (
                                                             <div key={idx} className="rounded-2xl border border-purple-100 bg-purple-50/50 p-3">

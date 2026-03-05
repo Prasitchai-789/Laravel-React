@@ -173,13 +173,13 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
         }
     };
 
-    const calculateQuantity = (level, multiplier, constant, extra = 0) => {
+    const calculateQuantity = (level, multiplier, constant, extra = 0, allowNegative = false) => {
         if (!level || level === '') return 0;
         const levelNum = parseFloat(level);
         if (isNaN(levelNum)) return 0;
         
         const raw = (constant - levelNum) * multiplier;
-        return raw > 0 ? raw + extra : 0;
+        return allowNegative ? raw + extra : (raw > 0 ? raw + extra : 0);
     };
 
     const calculateQuantities = (data: Record<string, string>) => {
@@ -194,8 +194,8 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
             nut_silo_3: calculateQuantity(data.nut_silo_3_level, multipliers.nut_silo_3, constants.nut_silo_3, 2.19),
             kernel_silo_1: calculateQuantity(data.kernel_silo_1_level, multipliers.kernel_silo_1, constants.kernel_silo_1, 0.814),
             kernel_silo_2: calculateQuantity(data.kernel_silo_2_level, multipliers.kernel_silo_2, constants.kernel_silo_2, 0.814),
-            silo_sale_big: calculateQuantity(data.silo_sale_big_level, multipliers.silo_sale_big, constants.silo_sale_big),
-            silo_sale_small: calculateQuantity(data.silo_sale_small_level, multipliers.silo_sale_small, constants.silo_sale_small),
+            silo_sale_big: calculateQuantity(data.silo_sale_big_level, multipliers.silo_sale_big, constants.silo_sale_big, 0, true),
+            silo_sale_small: calculateQuantity(data.silo_sale_small_level, multipliers.silo_sale_small, constants.silo_sale_small, 0, true),
             kernel_total: 0,
         };
 
@@ -348,7 +348,7 @@ const SiloRecordForm = ({ record, onSave, onCancel }) => {
     const totalNut = calculatedQuantities.nut_silo_1 + calculatedQuantities.nut_silo_2 + calculatedQuantities.nut_silo_3;
     const totalKernel = calculatedQuantities.kernel_silo_1 + calculatedQuantities.kernel_silo_2;
     const saleSum = calculatedQuantities.silo_sale_big + calculatedQuantities.silo_sale_small;
-    const totalSale = saleSum > 0 ? (saleSum / 2) + 12 : 0;
+    const totalSale = (saleSum / 2) + 12;
 
     const getFieldColor = (type) => {
         switch (type) {
