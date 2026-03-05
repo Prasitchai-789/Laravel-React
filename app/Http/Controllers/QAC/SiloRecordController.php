@@ -15,7 +15,15 @@ class SiloRecordController extends Controller
 {
     public function index()
     {
-        $records = SiloRecord::orderBy('record_date', 'desc')->get();
+        // JOIN stock_products เพื่อส่ง stock_pkn ไปให้ frontend
+        $records = DB::table('silo_records')
+            ->leftJoin('stock_products', function ($join) {
+                $join->on(DB::raw('CAST(silo_records.record_date AS DATE)'), '=', DB::raw('CAST(stock_products.record_date AS DATE)'));
+            })
+            ->select('silo_records.*', 'stock_products.pkn as stock_pkn')
+            ->orderBy('silo_records.record_date', 'desc')
+            ->get();
+
         return Inertia::render('QAC/KernelIndex', [
             'records' => $records,
             'flash' => [
@@ -28,7 +36,14 @@ class SiloRecordController extends Controller
     public function apiRecord()
     {
         try {
-            $records = SiloRecord::orderBy('record_date', 'desc')->get();
+            // JOIN stock_products เพื่อส่ง stock_pkn
+            $records = DB::table('silo_records')
+                ->leftJoin('stock_products', function ($join) {
+                    $join->on(DB::raw('CAST(silo_records.record_date AS DATE)'), '=', DB::raw('CAST(stock_products.record_date AS DATE)'));
+                })
+                ->select('silo_records.*', 'stock_products.pkn as stock_pkn')
+                ->orderBy('silo_records.record_date', 'desc')
+                ->get();
 
             return response()->json([
                 'success' => true,
@@ -114,19 +129,27 @@ class SiloRecordController extends Controller
     ): array {
         // --- สูตรคงที่ (เหมือน Model) ---
         $CONST = [
-            'nut_silo_1'      => 614, 'nut_silo_2'      => 614, 'nut_silo_3'   => 614,
-            'kernel_silo_1'   => 640, 'kernel_silo_2'   => 640,
-            'silo_sale_big'   => 920, 'silo_sale_small' => 870,
+            'nut_silo_1'      => 614,
+            'nut_silo_2'      => 614,
+            'nut_silo_3'   => 614,
+            'kernel_silo_1'   => 640,
+            'kernel_silo_2'   => 640,
+            'silo_sale_big'   => 920,
+            'silo_sale_small' => 870,
         ];
         $MULT = [
-            'nut_silo_1'      => 0.0453, 'nut_silo_2'     => 0.0453, 'nut_silo_3'   => 0.0538,
-            'kernel_silo_1'   => 0.0296, 'kernel_silo_2'  => 0.0296,
-            'silo_sale_big'   => 0.228,  'silo_sale_small' => 0.228,
+            'nut_silo_1'      => 0.0453,
+            'nut_silo_2'     => 0.0453,
+            'nut_silo_3'   => 0.0538,
+            'kernel_silo_1'   => 0.0296,
+            'kernel_silo_2'  => 0.0296,
+            'silo_sale_big'   => 0.228,
+            'silo_sale_small' => 0.228,
         ];
 
         // ฟังก์ชั่น reverse (qty → level), clamp ไว้ใน [0, CONST]
         $toLevel = fn($qty, $key) =>
-            min($CONST[$key], max(0, round($CONST[$key] - ($qty / $MULT[$key]), 2)));
+        min($CONST[$key], max(0, round($CONST[$key] - ($qty / $MULT[$key]), 2)));
 
         // --- [1] stock_products วันก่อนหน้า (authoritative PKN + silo_1/2) ---
         $prevStock = DB::table('stock_products')
@@ -171,8 +194,8 @@ class SiloRecordController extends Controller
                 'nut_silo_3_level'      => round($prevNut3Level, 2),
                 'kernel_silo_1_level'   => round($prevKernel1Level, 2),
                 'kernel_silo_2_level'   => round($prevKernel2Level, 2),
-                'silo_sale_big_level'   => round($prevSaleBig, 2),
-                'silo_sale_small_level' => round($prevSaleSm, 2),
+                'silo_sale_big_level'   => 0,
+                'silo_sale_small_level' => 0,
                 'kernel_outside_pile'   => $kernelOutside,
                 'moisture_percent'      => $prevMoisture,
                 'shell_percent'         => $prevShell,
@@ -220,8 +243,8 @@ class SiloRecordController extends Controller
             'nut_silo_3_level'      => round($prevNut3Level, 2),
             'kernel_silo_1_level'   => $newKernel1Level,
             'kernel_silo_2_level'   => $newKernel2Level,
-            'silo_sale_big_level'   => $newSaleBigLevel,
-            'silo_sale_small_level' => $newSaleSmLevel,
+            'silo_sale_big_level'   => 0,
+            'silo_sale_small_level' => 0,
             'kernel_outside_pile'   => $kernelOutside,
             'moisture_percent'      => $prevMoisture,
             'shell_percent'         => $prevShell,
@@ -266,7 +289,12 @@ class SiloRecordController extends Controller
 
             // คำนวณ silo levels ย้อนกลับ
             $siloData = $this->calcNoProductionSiloLevels(
-                $date, $pkn_sold, $silo1Transfer, $silo2Transfer, $nutOutside, $kernelOutside
+                $date,
+                $pkn_sold,
+                $silo1Transfer,
+                $silo2Transfer,
+                $nutOutside,
+                $kernelOutside
             );
             SiloRecord::create($siloData);
 
@@ -308,7 +336,7 @@ class SiloRecordController extends Controller
             'kernel_silo_1_level'  => 'required|numeric',
             'kernel_silo_2_level'  => 'required|numeric',
             'silo_sale_big_level'  => 'required|numeric',
-            'silo_sale_small_level'=> 'required|numeric',
+            'silo_sale_small_level' => 'required|numeric',
             'kernel_outside_pile'  => 'nullable|numeric',
             'moisture_percent'     => 'nullable|numeric',
             'shell_percent'        => 'nullable|numeric',
@@ -401,7 +429,12 @@ class SiloRecordController extends Controller
 
             // คำนวณ silo levels ย้อนกลับ
             $siloData = $this->calcNoProductionSiloLevels(
-                $date, $pkn_sold, $silo1Transfer, $silo2Transfer, $nutOutside, $kernelOutside
+                $date,
+                $pkn_sold,
+                $silo1Transfer,
+                $silo2Transfer,
+                $nutOutside,
+                $kernelOutside
             );
             $siloRecord->update($siloData);
 
@@ -442,7 +475,7 @@ class SiloRecordController extends Controller
             'kernel_silo_1_level'  => 'required|numeric',
             'kernel_silo_2_level'  => 'required|numeric',
             'silo_sale_big_level'  => 'required|numeric',
-            'silo_sale_small_level'=> 'required|numeric',
+            'silo_sale_small_level' => 'required|numeric',
             'kernel_outside_pile'  => 'nullable|numeric',
             'moisture_percent'     => 'nullable|numeric',
             'shell_percent'        => 'nullable|numeric',
