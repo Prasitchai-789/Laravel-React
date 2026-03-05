@@ -28,7 +28,7 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
         records: mode === 'edit' && data.length ? data : getDefaultChemicals()
     });
 
-    const [inputErrors, setInputErrors] = useState<{[key: string]: string}>({});
+    const [inputErrors, setInputErrors] = useState<{ [key: string]: string }>({});
 
     useEffect(() => {
         if (mode === 'edit' && data.length) {
@@ -199,11 +199,10 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
                                                 value={r.quantityA === 0 ? '' : r.quantityA}
                                                 onChange={e => handleChange(idx, 'quantityA', e.target.value)}
                                                 onBlur={e => handleBlur(idx, 'quantityA', e.target.value)}
-                                                className={`w-full border p-2.5 rounded-lg text-right focus:ring-2 transition-all duration-200 font-medium ${
-                                                    inputErrors[`${idx}-quantityA`]
+                                                className={`w-full border p-2.5 rounded-lg text-right focus:ring-2 transition-all duration-200 font-medium ${inputErrors[`${idx}-quantityA`]
                                                         ? 'border-red-300 focus:ring-red-500 bg-red-50'
                                                         : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                                                } ${r.quantityA > 0 ? 'bg-blue-50 border-blue-200' : ''}`}
+                                                    } ${r.quantityA > 0 ? 'bg-blue-50 border-blue-200' : ''}`}
                                                 placeholder="0.00"
                                             />
                                             {r.quantityA > 0 && (
@@ -227,11 +226,10 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
                                                 value={r.quantityB === 0 ? '' : r.quantityB}
                                                 onChange={e => handleChange(idx, 'quantityB', e.target.value)}
                                                 onBlur={e => handleBlur(idx, 'quantityB', e.target.value)}
-                                                className={`w-full border p-2.5 rounded-lg text-right focus:ring-2 transition-all duration-200 font-medium ${
-                                                    inputErrors[`${idx}-quantityB`]
+                                                className={`w-full border p-2.5 rounded-lg text-right focus:ring-2 transition-all duration-200 font-medium ${inputErrors[`${idx}-quantityB`]
                                                         ? 'border-red-300 focus:ring-red-500 bg-red-50'
                                                         : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                                                } ${r.quantityB > 0 ? 'bg-green-50 border-green-200' : ''}`}
+                                                    } ${r.quantityB > 0 ? 'bg-green-50 border-green-200' : ''}`}
                                                 placeholder="0.00"
                                             />
                                             {r.quantityB > 0 && (
@@ -257,15 +255,13 @@ export default function UseForm({ mode, data = [], shift = 'A', onClose, onSucce
                                             value={shift === 'A' ? (r.quantityA === 0 ? '' : r.quantityA) : (r.quantityB === 0 ? '' : r.quantityB)}
                                             onChange={e => handleChange(idx, shift === 'A' ? 'quantityA' : 'quantityB', e.target.value)}
                                             onBlur={e => handleBlur(idx, shift === 'A' ? 'quantityA' : 'quantityB', e.target.value)}
-                                            className={`w-full border p-2.5 rounded-lg text-right focus:ring-2 transition-all duration-200 font-medium ${
-                                                inputErrors[`${idx}-${shift === 'A' ? 'quantityA' : 'quantityB'}`]
+                                            className={`w-full border p-2.5 rounded-lg text-right focus:ring-2 transition-all duration-200 font-medium ${inputErrors[`${idx}-${shift === 'A' ? 'quantityA' : 'quantityB'}`]
                                                     ? 'border-red-300 focus:ring-red-500 bg-red-50'
                                                     : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                                            } ${
-                                                (shift === 'A' ? r.quantityA > 0 : r.quantityB > 0)
+                                                } ${(shift === 'A' ? r.quantityA > 0 : r.quantityB > 0)
                                                     ? shift === 'A' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'
                                                     : ''
-                                            }`}
+                                                }`}
                                             placeholder="0.00"
                                         />
                                         {(shift === 'A' ? r.quantityA > 0 : r.quantityB > 0) && (

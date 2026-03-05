@@ -354,8 +354,8 @@ export default function ChemicalsIndex({ records, pagination }) {
                                                     onClick={() => handlePagination(link.url)}
                                                     disabled={!link.url || link.active}
                                                     className={`h-10 min-w-[2.5rem] rounded-lg px-3 py-2 font-anuphan text-sm font-medium shadow-xs transition-all duration-200 ${link.active
-                                                            ? 'border border-blue-700 bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-inner'
-                                                            : 'border border-gray-300 bg-white text-gray-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700'
+                                                        ? 'border border-blue-700 bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-inner'
+                                                        : 'border border-gray-300 bg-white text-gray-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700'
                                                         }`}
                                                 >
                                                     {link.label}
@@ -401,10 +401,10 @@ export default function ChemicalsIndex({ records, pagination }) {
                                                 onClick={() => handlePagination(link.url)}
                                                 disabled={!link.url || link.active}
                                                 className={`h-10 min-w-[2.5rem] rounded-lg px-3 py-2 font-anuphan text-sm font-medium shadow-xs transition-all duration-200 ${link.active
-                                                        ? 'border border-blue-700 bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-inner'
-                                                        : link.url
-                                                            ? 'border border-gray-300 bg-white text-gray-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700'
-                                                            : 'cursor-default border border-gray-200 bg-gray-100 text-gray-400'
+                                                    ? 'border border-blue-700 bg-gradient-to-b from-blue-600 to-blue-700 text-white shadow-inner'
+                                                    : link.url
+                                                        ? 'border border-gray-300 bg-white text-gray-700 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700'
+                                                        : 'cursor-default border border-gray-200 bg-gray-100 text-gray-400'
                                                     }`}
                                             >
                                                 {link.label}
