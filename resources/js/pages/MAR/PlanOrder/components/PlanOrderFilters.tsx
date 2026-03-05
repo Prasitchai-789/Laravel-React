@@ -323,14 +323,6 @@ export default function PlanOrderFilters({
     }, [orders]);
 
     useEffect(() => {
-        console.log('🔍 Filters Debug:', {
-            filters,
-            selectedProduct,
-            productCounts,
-            stats,
-            ordersCount: orders.length,
-            dateRangeType,
-        });
     }, [filters, selectedProduct, productCounts, stats, orders, dateRangeType]);
 
     const getDateRange = (type: string) => {

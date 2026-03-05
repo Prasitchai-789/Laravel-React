@@ -599,19 +599,6 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
         };
     }, []);
 
-    // Debug log - แสดงข้อมูลที่ detect ได้
-    useEffect(() => {
-        console.log('🔍 PlanOrderSummary Debug:', {
-            ordersCount: orders.length,
-            productDetails: orders.map(o => ({
-                productType: o.productType,
-                productName: o.productName,
-                detectedType: detectProductType(o)
-            })),
-            products: products.map(p => ({ key: p.key, name: p.name, totalWeight: p.totalWeight }))
-        });
-    }, [orders, products]);
-
     return (
         <div className="relative mb-4 space-y-3">
             {/* Main Stats Cards */}

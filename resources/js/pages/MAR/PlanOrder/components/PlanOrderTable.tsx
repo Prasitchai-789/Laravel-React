@@ -227,9 +227,6 @@ export default function PlanOrderTable({
     onGenerateCOA,
     onEditClick,
 }: Props) {
-    console.log('📦 PlanOrderTable received orders:', orders?.length || 0, 'records');
-
-
     // State สำหรับเรียงลำดับ
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({
         key: 'orderNumber',
