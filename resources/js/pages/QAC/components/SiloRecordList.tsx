@@ -29,7 +29,7 @@ type Flash = { success?: string; error?: string };
 interface SiloRecord {
     id: number;
     record_date: string;
-    is_production?: boolean;
+    is_production?: boolean | number;
     nut_silo_1_level: number | string;
     nut_silo_2_level: number | string;
     nut_silo_3_level: number | string;
@@ -41,6 +41,7 @@ interface SiloRecord {
     outside_nut: number | string;
     moisture_percent?: number | string;
     shell_percent?: number | string;
+    stock_pkn?: number | string;
 }
 
 interface TotalsResult {
@@ -61,6 +62,10 @@ interface TotalsResult {
         kernelOutsidePile: string;
     };
 }
+
+const isNotProduction = (record: SiloRecord): boolean => {
+    return record.is_production == false || record.is_production == 0;
+};
 
 const SiloRecordList = ({ flash }: { flash?: Flash }) => {
     const { records: pageRecords } = usePage().props as { records: SiloRecord[] };
@@ -167,11 +172,29 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
         const kernelSilo2 = safeParseFloat(calculateQuantity(record.kernel_silo_2_level, 0.0296, 640, 0.814));
         const kernelTotal = kernelSilo1 + kernelSilo2;
 
-        // คำนวณ Sale Total
-        const saleBig = safeParseFloat(calculateQuantity(record.silo_sale_big_level, 0.228, 920));
-        const saleSmall = safeParseFloat(calculateQuantity(record.silo_sale_small_level, 0.228, 870));
-        const saleSum = saleBig + saleSmall;
-        const saleTotal = saleSum > 0 ? (saleSum / 2) + 12 : 0;
+        // คำนวณ Sale Total — ใช้ stock_pkn จาก backend เสมอ
+        let saleTotal: number;
+        let saleBig: number;
+        let saleSmall: number;
+
+        if (record.stock_pkn !== undefined && record.stock_pkn !== null) {
+            // ใช้ stock_pkn จาก backend โดยตรง
+            saleTotal = safeParseFloat(record.stock_pkn);
+        } else {
+            // fallback: คำนวณจาก silo levels
+            saleBig = safeParseFloat(calculateQuantity(record.silo_sale_big_level, 0.228, 920));
+            saleSmall = safeParseFloat(calculateQuantity(record.silo_sale_small_level, 0.228, 870));
+            const saleSum = saleBig + saleSmall;
+            saleTotal = saleSum > 0 ? (saleSum / 2) + 12 : 0;
+        }
+
+        if (isNotProduction(record)) {
+            saleBig = 0;
+            saleSmall = 0;
+        } else if (record.stock_pkn !== undefined && record.stock_pkn !== null) {
+            saleBig = safeParseFloat(calculateQuantity(record.silo_sale_big_level, 0.228, 920));
+            saleSmall = safeParseFloat(calculateQuantity(record.silo_sale_small_level, 0.228, 870));
+        }
 
         // คำนวณ Outside Total
         const outsideNut = safeParseFloat(record.outside_nut);
@@ -252,7 +275,7 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
 
     const handleDeleteWithPermission = (id: number): void => {
         const canDelete =
-            userPermissions.includes('Admin.delete') ||
+            userPermissions.includes('admin.delete') ||
             userPermissions.includes('developer.view') ||
             userPermissions.includes('qac.view');
         if (canDelete) {
@@ -569,11 +592,11 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
                                                         </div>
                                                         {/* บาดจ์สถานะการผลิต */}
                                                         <div className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                                            record.is_production === false
+                                                            isNotProduction(record)
                                                                 ? 'bg-red-100 text-red-700'
                                                                 : 'bg-emerald-100 text-emerald-700'
                                                         }`}>
-                                                            {record.is_production === false ? 'ไม่ผลิต' : 'ผลิต'}
+                                                            {isNotProduction(record) ? 'ไม่ผลิต' : 'ผลิต'}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -638,28 +661,48 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
 
                                             {/* Sale Silo */}
                                             <td className="px-2 py-2 align-top">
-                                                <div className="space-y-2">
-                                                    {[
-                                                        {
-                                                            level: record.silo_sale_big_level,
-                                                            label: 'ฝาใหญ่',
-                                                            value: calculateQuantity(record.silo_sale_big_level, 0.228, 920),
-                                                        },
-                                                        {
-                                                            level: record.silo_sale_small_level,
-                                                            label: 'ฝาจุก',
-                                                            value: calculateQuantity(record.silo_sale_small_level, 0.228, 870),
-                                                        },
-                                                    ].map((silo, idx) => (
-                                                        <div key={idx} className="rounded-2xl border border-purple-100 bg-purple-50/50 p-3">
-                                                            <div className="mb-1 text-xs font-medium text-purple-600">{silo.label}</div>
-                                                            <div className="text-sm text-gray-600">
-                                                                ระดับ: {formatDisplayNumber(silo.level, 1)} cm
+                                                {isNotProduction(record) ? (
+                                                    <div className="space-y-2">
+                                                        {[
+                                                            { label: 'ฝาใหญ่' },
+                                                            { label: 'ฝาจุก' },
+                                                        ].map((silo, idx) => (
+                                                            <div key={idx} className="rounded-2xl border border-red-100 bg-red-50/50 p-3">
+                                                                <div className="mb-1 flex items-center justify-between">
+                                                                    <span className="text-xs font-medium text-red-600">{silo.label}</span>
+                                                                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">ไม่ผลิต</span>
+                                                                </div>
+                                                                <div className="text-sm text-gray-600">
+                                                                    ระดับ: 0 cm
+                                                                </div>
+                                                                <div className="mt-1 text-sm font-bold text-red-700">- ตัน</div>
                                                             </div>
-                                                            <div className="mt-1 text-sm font-bold text-purple-700">{silo.value} ตัน</div>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        {[
+                                                            {
+                                                                level: record.silo_sale_big_level,
+                                                                label: 'ฝาใหญ่',
+                                                                value: calculateQuantity(record.silo_sale_big_level, 0.228, 920),
+                                                            },
+                                                            {
+                                                                level: record.silo_sale_small_level,
+                                                                label: 'ฝาจุก',
+                                                                value: calculateQuantity(record.silo_sale_small_level, 0.228, 870),
+                                                            },
+                                                        ].map((silo, idx) => (
+                                                            <div key={idx} className="rounded-2xl border border-purple-100 bg-purple-50/50 p-3">
+                                                                <div className="mb-1 text-xs font-medium text-purple-600">{silo.label}</div>
+                                                                <div className="text-sm text-gray-600">
+                                                                    ระดับ: {formatDisplayNumber(silo.level, 1)} cm
+                                                                </div>
+                                                                <div className="mt-1 text-sm font-bold text-purple-700">{silo.value} ตัน</div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </td>
 
                                             {/* กองนอก */}
@@ -704,7 +747,9 @@ const SiloRecordList = ({ flash }: { flash?: Flash }) => {
                                                         },
                                                         {
                                                             label: 'Sale Total',
-                                                            value: totals.saleTotal,
+                                                            value: record.stock_pkn !== undefined && record.stock_pkn !== null
+                                                                ? formatDisplayNumber(record.stock_pkn)
+                                                                : totals.saleTotal,
                                                             color: 'text-purple-700',
                                                             bg: 'bg-purple-50',
                                                         },

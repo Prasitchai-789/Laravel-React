@@ -75,14 +75,31 @@ export function useSalesData({ sales, customers, userPermissions }: UseSalesData
         setIsEditModalOpen(true);
     };
 
-    const handleEditWithPermission = (sale: Sale, itemIndex?: number) => {
-        // อนุญาตให้แก้ไขได้ชั่วคราว หรือถ้าต้องการใช้ระบบสิทธิ์ให้เช็ค userPermissions.includes('Admin.edit')
-        handleEdit(sale, itemIndex);
+    const handleEditWithPermission = (sale: Sale) => {
+        if (userPermissions.includes('admin.edit')) {
+            handleEdit(sale);
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'ไม่สามารถแก้ไขข้อมูลได้',
+                text: 'คุณไม่มีสิทธิ์ในการแก้ไขข้อมูล',
+                customClass: { popup: 'custom-swal' },
+            });
+        }
     };
 
     const handleDeleteWithPermission = (sale: Sale) => {
-        // อนุญาตให้ลบได้ชั่วคราว หรือถ้าต้องการใช้ระบบสิทธิ์ให้เช็ค userPermissions.includes('Admin.delete')
-        openDeleteModal(sale.id);
+        if (userPermissions.includes('admin.delete')) {
+            openDeleteModal(sale.id);
+        } else {
+            Swal.fire({
+                icon: 'error',
+                customClass: { popup: 'custom-swal' },
+                title: 'ไม่สามารถลบข้อมูลได้',
+                text: 'คุณไม่มีสิทธิ์ในการลบข้อมูล',
+            });
+        }
+
     };
 
     const openDeleteModal = (id: number) => {
