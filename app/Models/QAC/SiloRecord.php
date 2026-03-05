@@ -85,12 +85,12 @@ class SiloRecord extends Model
     public function getSiloSaleBigQuantityAttribute()
     {
         $raw = (self::CONSTANTS['silo_sale_big'] - $this->silo_sale_big_level) * self::MULTIPLIERS['silo_sale_big'];
-        return $raw > 0 ? round($raw, 3) : 0;
+        return round($raw, 3);
     }
 
     public function getSiloSaleSmallQuantityAttribute()
     {
         $raw = (self::CONSTANTS['silo_sale_small'] - $this->silo_sale_small_level) * self::MULTIPLIERS['silo_sale_small'];
-        return $raw > 0 ? round($raw, 3) : 0;
+        return round($raw, 3);
     }
 }
