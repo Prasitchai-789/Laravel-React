@@ -208,7 +208,11 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
 
 // AGR Routes
 Route::middleware(['auth', 'permission:developer.view|agr.view'])->group(function () {
-    Route::resource('sales', SalesController::class);
+    Route::resource('sales', SalesController::class)->only(['index', 'show', 'create', 'store']);
+    // AGR Sales edit/delete requires AGR.admin
+    Route::middleware(['permission:developer.view|AGR.admin'])->group(function () {
+        Route::resource('sales', SalesController::class)->only(['edit', 'update', 'destroy']);
+    });
     // Route::post('/sales', [SalesController::class, 'create'])->name('sales.create');
     Route::resource('/products', ProductController::class);
     Route::put('/products/{product}', [ProductController::class, 'updateProduct'])->name('products.updateProduct');

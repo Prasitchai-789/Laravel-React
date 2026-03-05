@@ -144,9 +144,9 @@ const mapStatus = (dbStatus: string): string => {
 
 // ฟังก์ชันแปลง SOPlanData เป็น PlanOrder
 const convertSOPlanToPlanOrder = (s: SOPlanData, index?: number): PlanOrder => {
-    const netWeight = parseWeight(s.NetWei) || parseWeight(s.IBWei) || parseWeight(s.OBWei) || parseWeight(s.AmntLoad) || 0;
-    const unit = netWeight > 1000 ? 'ตัน' : 'กก.';
-    const displayWeight = netWeight > 1000 ? netWeight / 1000 : netWeight;
+    const netWeight = parseWeight(s.NetWei) || 0;
+    const unit = 'กก.';
+    const displayWeight = netWeight;
 
     const productType = s.productType || mapProductType(s.GoodID, s.GoodName);
     const mappedStatus = mapStatus(s.Status); // แปลงสถานะ

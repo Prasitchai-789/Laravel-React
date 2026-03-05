@@ -47,7 +47,7 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
             name: 'น้ำมันปาล์มดิบ (CPO)',
             icon: <Droplets className="h-5 w-5" />,
             color: 'amber',
-            unit: 'ตัน',
+            unit: 'กก.',
             bgLight: 'bg-amber-50',
             border: 'border-amber-200',
             text: 'text-amber-700',
@@ -56,7 +56,7 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
             name: 'น้ำมันปาล์มบริสุทธิ์',
             icon: <Droplets className="h-5 w-5" />,
             color: 'sky',
-            unit: 'ตัน',
+            unit: 'กก.',
             bgLight: 'bg-sky-50',
             border: 'border-sky-200',
             text: 'text-sky-700',
@@ -74,7 +74,7 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
             name: 'กะลาปาล์ม',
             icon: <Package className="h-5 w-5" />,
             color: 'stone',
-            unit: 'ตัน',
+            unit: 'กก.',
             bgLight: 'bg-stone-50',
             border: 'border-stone-200',
             text: 'text-stone-700',
@@ -83,7 +83,7 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
             name: 'ทะลายสับ (EFB)',
             icon: <Trees className="h-5 w-5" />,
             color: 'lime',
-            unit: 'ตัน',
+            unit: 'กก.',
             bgLight: 'bg-lime-50',
             border: 'border-lime-200',
             text: 'text-lime-700',
@@ -101,7 +101,7 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
             name: 'ปุ๋ยอินทรีย์',
             icon: <Target className="h-5 w-5" />,
             color: 'purple',
-            unit: 'ตัน',
+            unit: 'กก.',
             bgLight: 'bg-purple-50',
             border: 'border-purple-200',
             text: 'text-purple-700',
@@ -110,7 +110,7 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
             name: 'อื่นๆ',
             icon: <Package className="h-5 w-5" />,
             color: 'brown',
-            unit: 'ตัน',
+            unit: 'กก.',
             bgLight: 'bg-amber-100',
             border: 'border-amber-300',
             text: 'text-amber-800',
@@ -123,26 +123,16 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
     };
 
     // ฟังก์ชันจัดรูปแบบน้ำหนัก
-    const formatWeight = (weight: number, unit: string = 'ตัน') => {
+    const formatWeight = (weight: number, unit: string = 'กก.') => {
         if (weight === 0) return '0';
-        
+
         // ถ้าไม่มีน้ำหนัก
         if (!weight) return '-';
-        
-        // ถ้าเป็นกิโลกรัมและมากกว่า 1000 ให้แปลงเป็นตัน
-        if (unit === 'กก.' && weight >= 1000) {
-            return `${(weight / 1000).toFixed(2)} ตัน`;
-        }
-
-        // ถ้าเป็นตันและน้อยกว่า 1 ให้แสดงเป็นกิโลกรัม
-        if (unit === 'ตัน' && weight < 1 && weight > 0) {
-            return `${(weight * 1000).toFixed(0)} กก.`;
-        }
 
         return `${weight.toLocaleString(undefined, {
             minimumFractionDigits: weight % 1 === 0 ? 0 : 2,
             maximumFractionDigits: 2,
-        })} ${unit}`;
+        })} กก.`;
     };
 
     // คำนวณสถิติ
@@ -178,102 +168,102 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
     // แก้ไข normalizeType ให้ return 'palm-kernel' แทน 'kernel'
     const normalizeType = (type: string | undefined): string => {
         if (!type) return 'other';
-        
+
         const typeLower = type.toLowerCase().trim();
-        
+
         // CPO / น้ำมันปาล์มดิบ
         if (typeLower.includes('cpo') || typeLower.includes('น้ำมันปาล์มดิบ') || typeLower.includes('ปาล์มดิบ')) {
             return 'cpo';
         }
-        
+
         // Palm Kernel / เมล็ดในปาล์ม - return 'palm-kernel'
-        if (typeLower.includes('kernel') || 
+        if (typeLower.includes('kernel') ||
             typeLower.includes('เมล็ด') ||
             typeLower.includes('palm-kernel') ||
             typeLower.includes('palm kernel')) {
             return 'palm-kernel';  // เปลี่ยนจาก 'kernel' เป็น 'palm-kernel'
         }
-        
+
         // Palm Oil / น้ำมันปาล์มบริสุทธิ์
-        if (typeLower.includes('palm-oil') || 
-            typeLower.includes('palm oil') || 
+        if (typeLower.includes('palm-oil') ||
+            typeLower.includes('palm oil') ||
             (typeLower.includes('น้ำมัน') && !typeLower.includes('ดิบ'))) {
             return 'palm-oil';
         }
-        
+
         // Shell / กะลา
         if (typeLower.includes('shell') || typeLower.includes('กะลา')) {
             return 'shell';
         }
-        
+
         // Fiber / ใย
         if (typeLower.includes('fiber') || typeLower.includes('ใย')) {
             return 'fiber';
         }
-        
+
         // EFB / ทะลาย
         if (typeLower.includes('efb') || typeLower.includes('ทะลาย')) {
             return 'efb';
         }
-        
+
         // Fertilizer / ปุ๋ย
         if (typeLower.includes('fertilizer') || typeLower.includes('ปุ๋ย')) {
             return 'fertilizer';
         }
-        
+
         return 'other';
     };
 
     // ฟังก์ชันตรวจสอบ product type จากชื่อสินค้าโดยเฉพาะ
     const detectFromProductName = (productName: string | undefined): string | null => {
         if (!productName) return null;
-        
+
         const nameLower = productName.toLowerCase();
-        
+
         // ตรวจสอบเมล็ดในปาล์ม / palm-kernel จากชื่อสินค้า
-        if (nameLower.includes('เมล็ดในปาล์ม') || 
+        if (nameLower.includes('เมล็ดในปาล์ม') ||
             nameLower.includes('palm-kernel') ||
             nameLower.includes('palm kernel') ||
             nameLower.includes('kernel') ||
             (nameLower.includes('เมล็ด') && nameLower.includes('ปาล์ม'))) {
             return 'palm-kernel';  // เปลี่ยนจาก 'kernel' เป็น 'palm-kernel'
         }
-        
+
         // CPO
-        if (nameLower.includes('cpo') || 
+        if (nameLower.includes('cpo') ||
             (nameLower.includes('น้ำมัน') && nameLower.includes('ปาล์ม') && nameLower.includes('ดิบ')) ||
             nameLower.includes('น้ำมันปาล์มดิบ')) {
             return 'cpo';
         }
-        
+
         // น้ำมันปาล์มบริสุทธิ์
         if ((nameLower.includes('น้ำมัน') && nameLower.includes('ปาล์ม') && !nameLower.includes('ดิบ')) ||
             nameLower.includes('palm-oil') ||
             nameLower.includes('palm oil')) {
             return 'palm-oil';
         }
-        
+
         // กะลาปาล์ม
-        if (nameLower.includes('กะลา') || 
+        if (nameLower.includes('กะลา') ||
             nameLower.includes('shell') ||
             (nameLower.includes('กะลา') && nameLower.includes('ปาล์ม'))) {
             return 'shell';
         }
-        
+
         // ใยปาล์ม
-        if (nameLower.includes('ใย') || 
+        if (nameLower.includes('ใย') ||
             nameLower.includes('fiber') ||
             (nameLower.includes('ใย') && nameLower.includes('ปาล์ม'))) {
             return 'fiber';
         }
-        
+
         // ทะลายปาล์ม
-        if (nameLower.includes('ทะลาย') || 
+        if (nameLower.includes('ทะลาย') ||
             nameLower.includes('efb') ||
             (nameLower.includes('ทะลาย') && nameLower.includes('ปาล์ม'))) {
             return 'efb';
         }
-        
+
         return null;
     };
 
@@ -284,17 +274,17 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
             const normalized = normalizeType(order.productType);
             if (normalized !== 'other') return normalized;
         }
-        
+
         // ถ้า productType ไม่ชัดเจน ให้ตรวจสอบจาก productName
         if (order.productName) {
             const detected = detectFromProductName(order.productName);
             if (detected) return detected;
         }
-        
+
         // ถ้ายังไม่เจอ ให้ตรวจสอบจาก productName อีกครั้งแบบละเอียด
         if (order.productName) {
             const nameLower = order.productName.toLowerCase();
-            
+
             // ตรวจสอบคำสำคัญต่างๆ
             if (nameLower.includes('เมล็ด')) return 'palm-kernel';  // เปลี่ยนจาก 'kernel'
             if (nameLower.includes('kernel')) return 'palm-kernel';  // เปลี่ยนจาก 'kernel'
@@ -310,7 +300,7 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
                 return 'palm-oil';
             }
         }
-        
+
         return 'other';
     };
 
@@ -318,7 +308,7 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
     const products = useMemo(() => {
         // ใช้ Map เพื่อจัดกลุ่ม orders ตาม product type
         const productTypeMap = new Map<string, PlanOrder[]>();
-        
+
         orders.forEach(order => {
             const type = detectProductType(order);
             if (!productTypeMap.has(type)) {
@@ -326,12 +316,12 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
             }
             productTypeMap.get(type)!.push(order);
         });
-        
+
         const types = Array.from(productTypeMap.keys());
-        
+
         // ลำดับที่ต้องการให้แสดง - เปลี่ยน 'kernel' เป็น 'palm-kernel'
         const preferredOrder = ['cpo', 'palm-oil', 'palm-kernel', 'shell', 'efb', 'fiber', 'fertilizer', 'other'];
-        
+
         // เรียงลำดับตาม preferredOrder
         types.sort((a, b) => {
             const ai = preferredOrder.indexOf(a);
@@ -348,12 +338,12 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
                     name: key === 'other' ? 'อื่นๆ' : key,
                     icon: <Package className="h-5 w-5" />,
                     color: 'brown',
-                    unit: 'ตัน',
+                    unit: 'กก.',
                     bgLight: 'bg-amber-100',
                     border: 'border-amber-300',
                     text: 'text-amber-800',
                 };
-                
+
                 // กรอง orders ตาม product type
                 const productOrders = productTypeMap.get(key) || [];
 
@@ -442,9 +432,8 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
     // ฟังก์ชันแจ้งเตือน
     const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
         const notification = document.createElement('div');
-        notification.className = `fixed top-4 right-4 p-3 rounded-lg shadow-lg z-50 ${
-            type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'
-        } text-white text-sm animate-slideIn`;
+        notification.className = `fixed top-4 right-4 p-3 rounded-lg shadow-lg z-50 ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+            } text-white text-sm animate-slideIn`;
         notification.textContent = message;
         document.body.appendChild(notification);
 
@@ -614,10 +603,10 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
     useEffect(() => {
         console.log('🔍 PlanOrderSummary Debug:', {
             ordersCount: orders.length,
-            productDetails: orders.map(o => ({ 
-                productType: o.productType, 
+            productDetails: orders.map(o => ({
+                productType: o.productType,
                 productName: o.productName,
-                detectedType: detectProductType(o) 
+                detectedType: detectProductType(o)
             })),
             products: products.map(p => ({ key: p.key, name: p.name, totalWeight: p.totalWeight }))
         });
@@ -791,9 +780,8 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
                                                 handleTransitionEnd();
                                             }, 300);
                                         }}
-                                        className={`h-1.5 rounded-full transition-all ${
-                                            isActive ? 'w-4 bg-blue-500' : 'w-1.5 bg-gray-300 hover:bg-gray-400'
-                                        }`}
+                                        className={`h-1.5 rounded-full transition-all ${isActive ? 'w-4 bg-blue-500' : 'w-1.5 bg-gray-300 hover:bg-gray-400'
+                                            }`}
                                         aria-label={`Go to slide ${index + 1}`}
                                         disabled={isTransitioning}
                                     />
@@ -819,9 +807,8 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
                     {products.map((product) => (
                         <div
                             key={product.key}
-                            className={`grid cursor-pointer grid-cols-7 gap-2 border-b p-2 text-xs transition-colors last:border-0 hover:bg-gray-50 ${
-                                externalSelectedProduct === product.key ? 'bg-blue-50' : ''
-                            }`}
+                            className={`grid cursor-pointer grid-cols-7 gap-2 border-b p-2 text-xs transition-colors last:border-0 hover:bg-gray-50 ${externalSelectedProduct === product.key ? 'bg-blue-50' : ''
+                                }`}
                             onClick={() => handleProductClick(product.key)}
                             title={externalSelectedProduct === product.key ? 'คลิกเพื่อล้างตัวกรอง' : `เลือกเฉพาะ ${product.name}`}
                         >
