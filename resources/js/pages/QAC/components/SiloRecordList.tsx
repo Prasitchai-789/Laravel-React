@@ -64,7 +64,7 @@ interface TotalsResult {
 }
 
 const isNotProduction = (record: SiloRecord): boolean => {
-    return record.is_production === false || record.is_production === 0;
+    return record.is_production == false || record.is_production == 0;
 };
 
 const SiloRecordList = ({ flash }: { flash?: Flash }) => {
