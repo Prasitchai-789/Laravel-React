@@ -917,6 +917,7 @@ export default function MonthlyChemicals({
                     isModalOpen={isModalOpen}
                     onClose={() => setIsOpen(false)}
                     title={`รายละเอียดสารเคมีวันที่ ${selectedDate}`}
+                    size="max-w-6xl w-11/12"
                 >
                     {/* เนื้อหา */}
                     <div className="w-full flex-1 overflow-auto bg-white py-4">

@@ -91,13 +91,13 @@ export default function MonthlyDetail({ month, records }: MonthlyDetailProps) {
   const totalB = tableDataB.reduce((sum, item) => sum + (item.quantity || 0), 0);
   const totalAll = tableDataTotal.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
-  const renderTable = (items: {chemical_name: string, quantity: number | null}[], shift: "A" | "B" | "TOTAL", total: number = 0) => (
+  const renderTable = (items: { chemical_name: string, quantity: number | null }[], shift: "A" | "B" | "TOTAL", total: number = 0) => (
     <div className="border border-gray-300 rounded-lg shadow-sm text-sm h-full flex flex-col font-anuphan">
       <table className="w-full border-collapse flex-1">
         <thead className={
           shift === "A" ? "bg-blue-100" :
-          shift === "B" ? "bg-green-100" :
-          "bg-purple-100"
+            shift === "B" ? "bg-green-100" :
+              "bg-purple-100"
         }>
           <tr>
             <th className="px-4 py-3 text-left font-semibold text-gray-700 border-b border-gray-300">สารเคมี</th>
@@ -121,8 +121,8 @@ export default function MonthlyDetail({ month, records }: MonthlyDetailProps) {
       {/* แถวผลรวม */}
       <div className={
         shift === "A" ? "bg-blue-200" :
-        shift === "B" ? "bg-green-200" :
-        "bg-purple-200"
+          shift === "B" ? "bg-green-200" :
+            "bg-purple-200"
       }>
         <div className="px-4 py-2.5 flex justify-between items-center border-t border-gray-300">
           <span className="font-semibold text-gray-800">รวม</span>
@@ -133,7 +133,7 @@ export default function MonthlyDetail({ month, records }: MonthlyDetailProps) {
   );
 
   return (
-    <div className="p-4 bg-white w-full max-w-5xl font-anuphan">
+    <div className="p-4 bg-white w-full max-w-6xl font-anuphan mx-auto">
       <div className="text-center mb-6 border-b border-gray-200 pb-4">
         <h2 className="text-2xl font-bold text-gray-800">เดือน {monthName}</h2>
         <p className="text-sm text-gray-500 mt-1.5">สรุปการใช้สารเคมี</p>

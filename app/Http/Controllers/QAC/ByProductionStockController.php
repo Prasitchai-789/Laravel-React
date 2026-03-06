@@ -438,8 +438,7 @@ class ByProductionStockController extends Controller
             $stockProduct = StockProduct::where('record_date', $clean)->first();
 
             if ($remaining === 0) {
-// dd($stockProduct);
-                // --- กรณีลบตัวสุดท้ายของวัน ---
+                    // --- กรณีลบตัวสุดท้ายของวัน ---
                 if ($stockProduct) {
                     $stockProduct->update([
                         'efb_fiber' => 0,
