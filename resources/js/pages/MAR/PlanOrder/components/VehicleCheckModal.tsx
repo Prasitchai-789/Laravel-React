@@ -40,10 +40,10 @@ export default function VehicleCheckModal({
     const [isSaving, setIsSaving] = useState(false);
 
     const [form, setForm] = useState({
-        is_clean: false,
-        is_covered: false,
-        is_no_smell: false,
-        is_doc_valid: false,
+        is_clean: true,
+        is_covered: true,
+        is_no_smell: true,
+        is_doc_valid: true,
         remark: '',
         inspector_name: '',
     });
@@ -70,10 +70,10 @@ export default function VehicleCheckModal({
                     } else {
                         // ไม่พบข้อมูล ตั้งค่า Default พร้อมชื่อคนล็อกอิน
                         setForm({
-                            is_clean: false,
-                            is_covered: false,
-                            is_no_smell: false,
-                            is_doc_valid: false,
+                            is_clean: true,
+                            is_covered: true,
+                            is_no_smell: true,
+                            is_doc_valid: true,
                             remark: '',
                             inspector_name: currentUserName,
                         });

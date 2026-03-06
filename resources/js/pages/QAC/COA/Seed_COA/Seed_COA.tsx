@@ -683,6 +683,7 @@ const Seed_COA: React.FC = () => {
     const TableRow = ({ row, index, page, color, showResults = true }: { row: SeedCOAData; index: number; page: number; color: string; showResults: boolean }) => (
         <tr className={`transition-all group hover:scale-[1.01] hover:shadow-lg hover:bg-gray-50`}>
             <td className="px-4 py-3 text-sm font-medium text-gray-900">{(page - 1) * itemsPerPage + index + 1}</td>
+            <td className="px-4 py-3 text-sm text-gray-600">{row.created_at}</td>
             <td className={`px-4 py-3 text-sm font-semibold text-${color}-600`}>{row.coa_no}</td>
             <td className="px-4 py-3 text-sm text-gray-900 font-bold">{row.coa_tank || '-'}</td>
             <td className="px-4 py-3 text-sm text-gray-600">{row.lot_no}</td>
@@ -811,7 +812,10 @@ const Seed_COA: React.FC = () => {
             <div className="bg-white rounded-xl border-2 border-gray-200 p-4 hover:shadow-xl transition-all hover:scale-105 group">
                 <div className="flex justify-between items-start mb-3">
                     <div>
-                        <span className="text-xs text-gray-500">COA No.</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">COA No.</span>
+                            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{row.created_at}</span>
+                        </div>
                         <div className="font-bold text-gray-900">{row.coa_no}</div>
                     </div>
                     <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${config.bg} ${config.text} flex items-center gap-1`}>
@@ -936,6 +940,7 @@ const Seed_COA: React.FC = () => {
                                 <thead className={`bg-gradient-to-r from-${color}-50 to-${color}-100`}>
                                     <tr>
                                         <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">ลำดับ</th>
+                                        <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
                                         <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">COA No.</th>
                                         <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">Tank</th>
                                         <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">LOT No.</th>
@@ -961,7 +966,7 @@ const Seed_COA: React.FC = () => {
                                         pageData.map((row, i) => <TableRow key={row.id} row={row} index={i} page={page} color={color} showResults={showResults} />)
                                     ) : (
                                         <tr>
-                                            <td colSpan={showResults ? 11 : 9} className="px-4 py-12 text-center">
+                                            <td colSpan={showResults ? 13 : 11} className="px-4 py-12 text-center">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <div className="p-4 rounded-xl mb-3 bg-gray-100">
                                                         <FileDown className="w-12 h-12 text-gray-400" />

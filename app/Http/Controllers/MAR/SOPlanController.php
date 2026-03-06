@@ -348,9 +348,76 @@ class SOPlanController extends Controller
             $sopIds = $data->pluck('SOPID')->toArray();
             $certificates = \App\Models\Certificate::whereIn('SOPID', $sopIds)->get()->keyBy('SOPID');
 
-            $mapped = $data->map(function ($s) use ($type, $certificates) {
+            $now = now();
+            $yearBE = $now->year + 543;
+            $month = $now->format('m');
+            $year2 = substr($yearBE, -2);
+            $maxId = \App\Models\Certificate::max(\Illuminate\Support\Facades\DB::raw('TRY_CAST(id as INT)')) ?? 0;
+            $certAutoIdSeq = (int) $maxId;
+
+            // Pre-fetch all coa_numbers this year to prevent duplicate generation
+            $allCertsThisYear = \App\Models\Certificate::where('coa_number', 'like', "%/{$yearBE}")->pluck('coa_number');
+            $certBaseSeq = 0;
+            foreach ($allCertsThisYear as $coa) {
+                if (preg_match('/(\d+)\/' . $yearBE . '/', $coa, $matches)) {
+                    $seqVal = (int) $matches[1];
+                    if ($seqVal > $certBaseSeq) {
+                        $certBaseSeq = $seqVal;
+                    }
+                }
+            }
+
+            $mapped = [];
+            foreach ($data as $s) {
                 $cert = $certificates->get($s->SOPID);
-                return [
+
+                if (!$cert || !$cert->coa_number || $cert->coa_number === '-') {
+                    $prefix = 'CPO';
+                    $gn = strtolower($s->GoodName ?? '');
+                    if (str_contains($gn, 'เมล็ด') || str_contains($gn, 'kernel') || str_contains($gn, 'cpko')) {
+                        $prefix = 'KN';
+                    }
+
+                    $certBaseSeq++;
+                    $coaNumber = $prefix . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT) . "/{$yearBE}";
+                    $coaLot = 'QAC' . $year2 . $month . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT);
+
+                    if (!$cert) {
+                        $certAutoIdSeq++;
+                        $certData = [
+                            'id' => (string) $certAutoIdSeq,
+                            'SOPID' => $s->SOPID,
+                            'date_coa' => $now->format('Y-m-d H:i:s.v'),
+                            'coa_number' => $coaNumber,
+                            'coa_lot' => $coaLot,
+                            'coa_tank' => '-',
+                            'status' => 'pending',
+                            'created_at' => $now->format('d/m/Y H:i:s'),
+                            'updated_at' => $now->format('d/m/Y H:i:s'),
+                        ];
+
+                        if ($prefix === 'KN') {
+                            $certData['spec_shell'] = '< 10.00 %';
+                            $certData['spec_kn_moisture'] = '< 8.00 %';
+                        } else {
+                            $certData['spec_FFA'] = '< 5.00 %';
+                            $certData['spec_moisture'] = '< 0.50 %';
+                            $certData['spec_IV'] = '50 - 55 %';
+                            $certData['spec_dobi'] = '> 2.00';
+                        }
+
+                        $cert = \App\Models\Certificate::create($certData);
+                        $certificates->put($s->SOPID, $cert);
+                    } else {
+                        $cert->coa_number = $coaNumber;
+                        if (!$cert->coa_lot || $cert->coa_lot === '-') {
+                            $cert->coa_lot = $coaLot;
+                        }
+                        $cert->save();
+                    }
+                }
+
+                $mapped[] = [
                     'SOPID' => $s->SOPID,
                     'SOPDate' => $s->SOPDate,
                     'GoodName' => $s->GoodName,
@@ -384,7 +451,7 @@ class SOPlanController extends Controller
                     'coa_mgr' => $cert ? $cert->coa_mgr : null,
                     'notes' => $cert ? $cert->coa_remark : null,
                 ];
-            });
+            }
 
             return response()->json([
                 'success' => true,
