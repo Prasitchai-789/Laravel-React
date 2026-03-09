@@ -73,14 +73,14 @@ interface StatCardProps {
     value: number | string;
     unit?: string;
     color?: 'blue' | 'green' | 'orange' | 'purple' | 'emerald' | 'yellow';
-    icon: React.ComponentType<{ size?: number }>;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
     subtitle?: string;
 }
 
 interface SectionHeaderProps {
     title: string;
     description?: string;
-    icon: React.ComponentType<{ size?: number }>;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
     color?: 'blue' | 'orange' | 'green' | 'purple' | 'red' | 'yellow' | 'emerald' | 'gray';
     children: React.ReactNode;
 }
@@ -171,13 +171,13 @@ const StatCard: React.FC<StatCardProps> = React.memo(({ title, value, unit = '�
     const bg = isNegative
         ? 'from-red-500 to-red-700'
         : {
-              blue: 'from-blue-500 to-blue-600',
-              green: 'from-green-500 to-green-600',
-              orange: 'from-orange-500 to-orange-600',
-              purple: 'from-purple-500 to-purple-600',
-              emerald: 'from-emerald-500 to-emerald-600',
-              yellow: 'from-yellow-500 to-yellow-600',
-          }[color] || 'from-gray-500 to-gray-600';
+            blue: 'from-blue-500 to-blue-600',
+            green: 'from-green-500 to-green-600',
+            orange: 'from-orange-500 to-orange-600',
+            purple: 'from-purple-500 to-purple-600',
+            emerald: 'from-emerald-500 to-emerald-600',
+            yellow: 'from-yellow-500 to-yellow-600',
+        }[color] || 'from-gray-500 to-gray-600';
 
     const IconComponent = icon;
 
@@ -297,8 +297,8 @@ const ByProductionForm: React.FC = () => {
     const userPermissions: string[] = Array.isArray(page.props.auth?.permissions)
         ? page.props.auth.permissions
         : Array.isArray(page.props.auth?.user?.permissions)
-          ? page.props.auth.user.permissions
-          : [];
+            ? page.props.auth.user.permissions
+            : [];
     /* ---------------------------------------------------
         FORMAT DATE FOR API
     --------------------------------------------------- */
@@ -454,7 +454,7 @@ const ByProductionForm: React.FC = () => {
 
             return result;
         },
-       
+
         [sales],
     );
 
@@ -585,58 +585,58 @@ const ByProductionForm: React.FC = () => {
         LOAD DATA ON MOUNT
     --------------------------------------------------- */
 
-const loadInitialData = async () => {
-    try {
-        const stocksRes = await axios.get('/stock/by-products/api');
-        const stocksData = stocksRes.data.records || [];
+    const loadInitialData = async () => {
+        try {
+            const stocksRes = await axios.get('/stock/by-products/api');
+            const stocksData = stocksRes.data.records || [];
 
-        const productionsRes = await axios.get('/stock/productions/api');
-        const productionsData = productionsRes.data.productions || [];
+            const productionsRes = await axios.get('/stock/productions/api');
+            const productionsData = productionsRes.data.productions || [];
 
-        const salesRes = await axios.get('/stock/sales/api');
-        const salesData = salesRes.data.sales || [];
+            const salesRes = await axios.get('/stock/sales/api');
+            const salesData = salesRes.data.sales || [];
 
-        // อัปเดต state ทั้ง 3 อันก่อน
-        setStocks(stocksData);
-        setProductions(productionsData);
-        setSales(salesData);
+            // อัปเดต state ทั้ง 3 อันก่อน
+            setStocks(stocksData);
+            setProductions(productionsData);
+            setSales(salesData);
 
-        // ห้ามคำนวณทันที ❌ เพราะ state ยังไม่อัปเดต
-        // ให้ useEffect ข้างบนคำนวณแทน ✔
-    } catch (error) {
-        console.error('Initial load error:', error);
-    }
-};
+            // ห้ามคำนวณทันที ❌ เพราะ state ยังไม่อัปเดต
+            // ให้ useEffect ข้างบนคำนวณแทน ✔
+        } catch (error) {
+            console.error('Initial load error:', error);
+        }
+    };
 
 
     useEffect(() => {
-    loadInitialData();
-}, []);
+        loadInitialData();
+    }, []);
 
-useEffect(() => {
-    if (!stocks.length || !sales.length || !productions.length) return;
+    useEffect(() => {
+        if (!stocks.length || !sales.length || !productions.length) return;
 
-    const dateParsed = strictDateParser(formData.production_date);
+        const dateParsed = strictDateParser(formData.production_date);
 
-    const salesDay = findSalesByDate(dateParsed);
+        const salesDay = findSalesByDate(dateParsed);
 
-    Promise.all([
-        fetchFFBByDate(dateParsed),
-        fetchPreviousBalanceFromDB(dateParsed),
-    ]).then(([ffbQty, prevBal]) => {
-        setFormData(prev => ({
-            ...prev,
-            initial_palm_quantity: ffbQty,
+        Promise.all([
+            fetchFFBByDate(dateParsed),
+            fetchPreviousBalanceFromDB(dateParsed),
+        ]).then(([ffbQty, prevBal]) => {
+            setFormData(prev => ({
+                ...prev,
+                initial_palm_quantity: ffbQty,
 
-            efb_fiber_sold: salesDay.efb_fiber_sold,
-            efb_sold: salesDay.efb_sold,
-            shell_sold: salesDay.shell_sold,
+                efb_fiber_sold: salesDay.efb_fiber_sold,
+                efb_sold: salesDay.efb_sold,
+                shell_sold: salesDay.shell_sold,
 
-            ...prevBal,
-        }));
-    });
+                ...prevBal,
+            }));
+        });
 
-}, [stocks, sales, productions]);
+    }, [stocks, sales, productions]);
 
     // History pagination & search state
     const [historySearch, setHistorySearch] = useState('');
@@ -944,11 +944,10 @@ useEffect(() => {
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('form')}
-                                    className={`flex-1 px-6 py-4 text-center font-bold transition-all duration-200 ${
-                                        activeTab === 'form'
-                                            ? 'border-b-2 border-blue-500 bg-white text-blue-600 shadow-sm'
-                                            : 'text-gray-500 hover:bg-white/80 hover:text-gray-700'
-                                    }`}
+                                    className={`flex-1 px-6 py-4 text-center font-bold transition-all duration-200 ${activeTab === 'form'
+                                        ? 'border-b-2 border-blue-500 bg-white text-blue-600 shadow-sm'
+                                        : 'text-gray-500 hover:bg-white/80 hover:text-gray-700'
+                                        }`}
                                 >
                                     <div className="flex items-center justify-center gap-2">
                                         <FileText size={20} />
@@ -958,11 +957,10 @@ useEffect(() => {
                                 <button
                                     type="button"
                                     onClick={() => setActiveTab('history')}
-                                    className={`flex-1 px-6 py-4 text-center font-bold transition-all duration-200 ${
-                                        activeTab === 'history'
-                                            ? 'border-b-2 border-blue-500 bg-white text-blue-600 shadow-sm'
-                                            : 'text-gray-500 hover:bg-white/80 hover:text-gray-700'
-                                    }`}
+                                    className={`flex-1 px-6 py-4 text-center font-bold transition-all duration-200 ${activeTab === 'history'
+                                        ? 'border-b-2 border-blue-500 bg-white text-blue-600 shadow-sm'
+                                        : 'text-gray-500 hover:bg-white/80 hover:text-gray-700'
+                                        }`}
                                 >
                                     <div className="flex items-center justify-center gap-2">
                                         <BarChart3 size={20} />
@@ -1255,8 +1253,10 @@ useEffect(() => {
                         {activeTab === 'history' && (() => {
                             const filteredStocks = stocks.filter((s) => {
                                 if (!historySearch) return true;
-                                const d = new Date(s.production_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-                                return d.includes(historySearch);
+                                const parsedDate = strictDateParser(s.production_date);
+                                const d = new Date(parsedDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+                                const searchStr = [s.id?.toString() || '', s.notes, d].join(' ').toLowerCase();
+                                return searchStr.includes(historySearch.toLowerCase());
                             });
                             const historyTotalPages = Math.ceil(filteredStocks.length / historyItemsPerPage);
                             const pagedStocks = filteredStocks.slice((historyPage - 1) * historyItemsPerPage, historyPage * historyItemsPerPage);
@@ -1347,9 +1347,8 @@ useEffect(() => {
                                                             {pagedStocks.map((stock, index) => (
                                                                 <tr
                                                                     key={stock.id}
-                                                                    className={`group transition-all duration-300 hover:bg-gradient-to-r hover:from-emerald-50/30 hover:to-green-50/30 ${
-                                                                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
-                                                                    }`}
+                                                                    className={`group transition-all duration-300 hover:bg-gradient-to-r hover:from-emerald-50/30 hover:to-green-50/30 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'
+                                                                        }`}
                                                                 >
                                                                     {/* วันที่ */}
                                                                     <td className="px-5 py-4 align-top">
@@ -1507,11 +1506,10 @@ useEffect(() => {
                                                                 <button
                                                                     key={pg}
                                                                     onClick={() => setHistoryPage(pg as number)}
-                                                                    className={`rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${
-                                                                        historyPage === pg
-                                                                            ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md'
-                                                                            : 'border border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
-                                                                    }`}
+                                                                    className={`rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${historyPage === pg
+                                                                        ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md'
+                                                                        : 'border border-gray-200 bg-white text-gray-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
+                                                                        }`}
                                                                 >
                                                                     {pg}
                                                                 </button>

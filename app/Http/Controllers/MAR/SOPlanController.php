@@ -316,6 +316,8 @@ class SOPlanController extends Controller
     {
         try {
             $type = $request->get('type'); // 'cpo' หรือ 'palm-kernel'
+            $date = $request->get('date'); // optional YYYY-MM-DD
+            $keyword = $request->get('q'); // search keyword
 
             $query = SOPlan::leftJoin('EMCust as c', 'SOPlan.CustID', '=', 'c.CustID')
                 ->select(
@@ -339,39 +341,138 @@ class SOPlanController extends Controller
                 });
             }
 
-            // ดึงข้อมูลย้อนหลัง 30 วัน
-            $query->whereDate("SOPDate", ">=", now()->subDays(30)->format('Y-m-d'));
+            // Search Keyword (ถ้ามีให้ค้นหาจากทุกที่และไม่จำกัดวันที่)
+            if ($keyword) {
+                $searchSopIds = \App\Models\Certificate::where('coa_number', 'like', "%{$keyword}%")
+                    ->orWhere('coa_lot', 'like', "%{$keyword}%")
+                    ->pluck('SOPID')
+                    ->filter()
+                    ->toArray();
 
-            $data = $query->orderBy("SOPDate", "DESC")->get();
+                $query->where(function ($q) use ($keyword, $searchSopIds) {
+                    $q->where('SOPlan.NumberCar', 'like', "%{$keyword}%")
+                        ->orWhere('SOPlan.DriverName', 'like', "%{$keyword}%")
+                        ->orWhere('SOPlan.Recipient', 'like', "%{$keyword}%")
+                        ->orWhere('SOPlan.GoodName', 'like', "%{$keyword}%")
+                        ->orWhere('SOPlan.SOPID', 'like', "%{$keyword}%")
+                        ->orWhere('c.CustName', 'like', "%{$keyword}%");
+                    
+                    if (!empty($searchSopIds)) {
+                        $realIds = array_filter($searchSopIds, fn($id) => !str_starts_with($id, 'P-'));
+                        $synthIds = array_filter($searchSopIds, fn($id) => str_starts_with($id, 'P-'));
 
-            // Fetch related certificates
-            $sopIds = $data->pluck('SOPID')->toArray();
-            $certificates = \App\Models\Certificate::whereIn('SOPID', $sopIds)->get()->keyBy('SOPID');
+                        if (!empty($realIds)) {
+                            $q->orWhereIn('SOPlan.SOPID', $realIds);
+                        }
+
+                        // สำหรับ synthetic IDs (P-YYYY-MM-DD-Cust-Good-Car-Amnt)
+                        foreach ($synthIds as $sid) {
+                            $parts = explode('-', $sid);
+                            // Index 0=P, 1=Y, 2=M, 3=D, 4=CustID, 5=GoodID, Last=Amnt, middle=Car
+                            if (count($parts) >= 8) {
+                                $sDate = "{$parts[1]}-{$parts[2]}-{$parts[3]}";
+                                $sCust = $parts[4];
+                                $sGood = $parts[5];
+                                $sAmnt = end($parts);
+                                $sCar = implode('-', array_slice($parts, 6, count($parts) - 7));
+
+                                $q->orWhere(function($sub) use ($sDate, $sCust, $sGood, $sCar) {
+                                    $sub->whereDate('SOPlan.SOPDate', $sDate)
+                                        ->where('SOPlan.CustID', $sCust)
+                                        ->where('SOPlan.GoodID', $sGood)
+                                        ->where('SOPlan.NumberCar', $sCar);
+                                });
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Logic กรองวันที่:
+            // 1. ถ้าส่ง date มา -> กรองเทียบ SOPDate หรือ coa_date (จาก certificates)
+            if ($date) {
+                // ต้องดึง SOPIDs จาก certificates (sqlsrv3) มาก่อน เพราะอยู่คนละ connection กับ SOPlan (sqlsrv2)
+                $certSopIds = \App\Models\Certificate::whereDate('date_coa', $date)
+                    ->pluck('SOPID')
+                    ->filter()
+                    ->toArray();
+
+                $query->where(function ($q) use ($date, $certSopIds) {
+                    $q->whereDate("SOPDate", $date);
+                    if (!empty($certSopIds)) {
+                        $q->orWhereIn('SOPID', $certSopIds);
+                    }
+                });
+            } elseif (!$keyword) {
+                // ถ้าไม่มีทั้งวันที่และคำค้นหา ให้ใช้ Recent (60/30 วัน)
+                $query->where(function ($q) {
+                    $q->where(function($sub) {
+                        $sub->whereDate("SOPDate", ">=", now()->subDays(60)->format('Y-m-d'))
+                            ->where(function($s2) {
+                                $s2->whereNull('Status_coa')
+                                   ->orWhere('Status_coa', 'W');
+                            });
+                    })->orWhere(function($sub) {
+                        $sub->whereDate("SOPDate", ">=", now()->subDays(30)->format('Y-m-d'))
+                            ->where('Status_coa', 'A');
+                    });
+                });
+            }
+
+            $data = $query->orderBy("SOPDate", "DESC")->limit(500)->get();
+
+            // Mapping deterministic IDs for records without SOPID
+            $mappedResults = [];
+            $tempSopIds = [];
+            foreach ($data as $index => $s) {
+                if ($s->SOPID) {
+                    $rowId = (string) $s->SOPID;
+                } else {
+                    // Create a deterministic ID: P-{Date}-{CustID}-{GoodID}-{NumberCar}-{Amnt}
+                    $dateKey = $s->SOPDate ? substr($s->SOPDate, 0, 10) : '0000-00-00';
+                    $carKey = trim($s->NumberCar ?: '-');
+                    $rowId = "P-{$dateKey}-{$s->CustID}-{$s->GoodID}-{$carKey}-" . (int)$s->AmntLoad;
+                }
+                $s->synthetic_id = $rowId;
+                $tempSopIds[] = $rowId;
+                $mappedResults[] = $s;
+            }
+
+            // Fetch certificates using BOTH real SOPIDs and synthetic IDs
+            $certificates = !empty($tempSopIds) 
+                ? \App\Models\Certificate::whereIn('SOPID', $tempSopIds)->get()->keyBy('SOPID')
+                : collect();
 
             $now = now();
             $yearBE = $now->year + 543;
             $month = $now->format('m');
             $year2 = substr($yearBE, -2);
+            
+            // Auto-increment logic for new certificates
             $maxId = \App\Models\Certificate::max(\Illuminate\Support\Facades\DB::raw('TRY_CAST(id as INT)')) ?? 0;
             $certAutoIdSeq = (int) $maxId;
 
-            // Pre-fetch all coa_numbers this year to prevent duplicate generation
+            // Base sequence for COA number
             $allCertsThisYear = \App\Models\Certificate::where('coa_number', 'like', "%/{$yearBE}")->pluck('coa_number');
             $certBaseSeq = 0;
             foreach ($allCertsThisYear as $coa) {
                 if (preg_match('/(\d+)\/' . $yearBE . '/', $coa, $matches)) {
                     $seqVal = (int) $matches[1];
-                    if ($seqVal > $certBaseSeq) {
-                        $certBaseSeq = $seqVal;
-                    }
+                    if ($seqVal > $certBaseSeq) $certBaseSeq = $seqVal;
                 }
             }
 
-            $mapped = [];
-            foreach ($data as $s) {
-                $cert = $certificates->get($s->SOPID);
+            $finalData = [];
+            foreach ($mappedResults as $s) {
+                $rowId = $s->synthetic_id;
+                $cert = $certificates->get($rowId);
 
-                if (!$cert || !$cert->coa_number || $cert->coa_number === '-') {
+                // หากยังไม่มีใบ COA ให้สร้างใหม่ (เฉพาะรายการที่รอดำเนินการและเป็นข้อมูลล่าสุด 90 วัน)
+                // เพื่อป้องกันปัญหา Timeout หากดึงข้อมูลเก่าจำนวนมาก
+                $isRecent = $s->SOPDate && strtotime($s->SOPDate) > strtotime('-90 days');
+                $isPending = !$s->Status_coa || $s->Status_coa === 'pending' || $s->Status_coa === 'W';
+
+                if ((!$cert || !$cert->coa_number || $cert->coa_number === '-') && $isRecent && $isPending) {
                     $prefix = 'CPO';
                     $gn = strtolower($s->GoodName ?? '');
                     if (str_contains($gn, 'เมล็ด') || str_contains($gn, 'kernel') || str_contains($gn, 'cpko')) {
@@ -386,7 +487,7 @@ class SOPlanController extends Controller
                         $certAutoIdSeq++;
                         $certData = [
                             'id' => (string) $certAutoIdSeq,
-                            'SOPID' => $s->SOPID,
+                            'SOPID' => $rowId, // ใช้ synthetic ID เป็น Key ในตาราง certificates
                             'date_coa' => $now->format('Y-m-d H:i:s.v'),
                             'coa_number' => $coaNumber,
                             'coa_lot' => $coaLot,
@@ -407,7 +508,7 @@ class SOPlanController extends Controller
                         }
 
                         $cert = \App\Models\Certificate::create($certData);
-                        $certificates->put($s->SOPID, $cert);
+                        $certificates->put($rowId, $cert);
                     } else {
                         $cert->coa_number = $coaNumber;
                         if (!$cert->coa_lot || $cert->coa_lot === '-') {
@@ -417,8 +518,8 @@ class SOPlanController extends Controller
                     }
                 }
 
-                $mapped[] = [
-                    'SOPID' => $s->SOPID,
+                $finalData[] = [
+                    'SOPID' => $rowId,
                     'SOPDate' => $s->SOPDate,
                     'GoodName' => $s->GoodName,
                     'productType' => $type,
@@ -455,7 +556,7 @@ class SOPlanController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $mapped
+                'data' => $finalData
             ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);

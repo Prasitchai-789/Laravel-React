@@ -18,7 +18,7 @@ import {
     FlaskConical, Activity, Gauge, Droplets, Beaker, Thermometer,
     MoreVertical, History, AlertCircle, X, TrendingUp, TrendingDown, Minus,
     ArrowDown, ChevronLeft, ChevronRight, Printer, FileDown, ArrowUp, MoreHorizontal,
-    GanttChartSquare, Leaf, Fuel
+    GanttChartSquare, Leaf, Fuel, Info, UserCheck
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -108,11 +108,20 @@ const parseDateString = (dateStr: string) => {
     return datePart.substring(0, 10);
 };
 
+const formatDisplayDate = (dateStr?: string) => {
+    if (!dateStr) return '-';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [y, m, d] = parts;
+    return `${d}/${m}/${y}`;
+};
+
 const Oil_COA: React.FC = () => {
     const [data, setData] = useState<OilCOAData[]>([]);
+    const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [dateFilter, setDateFilter] = useState('');
+    const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
     const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
     const [currentPage, setCurrentPage] = useState(1);
     const [currentPageBottom, setCurrentPageBottom] = useState(1);
@@ -191,46 +200,52 @@ const Oil_COA: React.FC = () => {
     const [expanded, setExpanded] = useState({ processing: true, others: true });
     const itemsPerPage = 10;
 
-    const fetchData = () => {
-        // ดึงข้อมูลจริงจาก Backend
-        fetch('/mar/plan-order/pending-coa?type=cpo')
-            .then(res => res.json())
-            .then(res => {
-                if (res.success && res.data) {
-                    const mapped: OilCOAData[] = res.data.map((s: any) => ({
-                        id: s.SOPID,
-                        coa_no: s.coa_no || '-',
-                        lot_no: s.coa_lot || '-',
-                        product_name: s.GoodName || 'น้ำมันปาล์มดิบ',
-                        customer_name: s.CustName || '',
-                        license_plate: s.NumberCar || '',
-                        driver_name: s.DriverName || '',
-                        ffa: s.ffa,
-                        m_i: s.m_i,
-                        iv: s.iv,
-                        dobi: s.dobi,
-                        spec_ffa: s.spec_ffa || '< 5.00 %',
-                        spec_moisture: s.spec_moisture || '< 0.50 %',
-                        spec_iv: s.spec_iv || '50 - 55 %',
-                        spec_dobi: s.spec_dobi || '> 2.00',
-                        coa_tank: s.coa_tank,
-                        notes: s.notes,
-                        inspector: s.coa_user_id || s.inspector, // Use ID for dropdown
-                        coa_user: s.inspector, // Keep name here if needed
-                        coa_mgr: s.coa_mgr,   // เพิ่มฟิลด์
-                        status: s.Status_coa || (s.Status === 'p' ? 'processing' : 'pending'), // ✅ ใช้ Status_coa เป็นหลัก
-                        created_at: parseDateString(s.coa_date || s.SOPDate),
-                    }));
-                    setData(mapped);
-                }
-            })
-            .catch(err => console.error('Fetch error:', err));
+    const fetchData = async (date = '', keyword = '') => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`/mar/plan-order/pending-coa?type=cpo${date ? `&date=${date}` : ''}${keyword ? `&q=${keyword}` : ''}`);
+            if (response.data.success && response.data.data) {
+                const mapped: OilCOAData[] = response.data.data.map((s: any) => ({
+                    id: s.SOPID,
+                    coa_no: s.coa_no || '-',
+                    lot_no: s.coa_lot || '-',
+                    product_name: s.GoodName || 'น้ำมันปาล์มดิบ',
+                    customer_name: s.CustName || '',
+                    license_plate: s.NumberCar || '',
+                    driver_name: s.DriverName || '',
+                    ffa: s.ffa,
+                    m_i: s.m_i,
+                    iv: s.iv,
+                    dobi: s.dobi,
+                    spec_ffa: s.spec_ffa || '< 5.00 %',
+                    spec_moisture: s.spec_moisture || '< 0.50 %',
+                    spec_iv: s.spec_iv || '50 - 55 %',
+                    spec_dobi: s.spec_dobi || '> 2.00',
+                    coa_tank: s.coa_tank,
+                    notes: s.notes,
+                    inspector: s.coa_user_id || s.inspector, // Use ID for dropdown
+                    coa_user: s.inspector, // Keep name here if needed
+                    coa_mgr: s.coa_mgr,   // เพิ่มฟิลด์
+                    status: s.Status_coa || (s.Status === 'p' ? 'processing' : 'pending'), // ✅ ใช้ Status_coa เป็นหลัก
+                    created_at: parseDateString(s.coa_date || s.SOPDate),
+                }));
+                setData(mapped);
+            }
+        } catch (err) {
+            console.error('Fetch error:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
-        fetchData();
+        const timer = setTimeout(() => {
+            fetchData(dateFilter, filter);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [dateFilter, filter]);
 
-        // ตรวจสอบ SOPID จาก URL เพื่อดึงข้อมูลอัตโนมัติ
+    useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const sopid = params.get('sopid');
         if (sopid) {
@@ -279,13 +294,12 @@ const Oil_COA: React.FC = () => {
     };
 
     const filteredData = data.filter(item =>
-        (!filter || [item.coa_no, item.lot_no, item.product_name, item.driver_name, item.license_plate].join(' ').toLowerCase().includes(filter.toLowerCase())) &&
-        (statusFilter === 'all' || item.status === statusFilter) &&
-        (!dateFilter || item.created_at === dateFilter)
+        (!filter || [item.coa_no, item.lot_no, item.product_name, item.driver_name, item.license_plate, item.customer_name, item.id?.toString() || ''].join(' ').toLowerCase().includes(filter.toLowerCase())) &&
+        (statusFilter === 'all' || item.status === statusFilter)
     );
 
-    const pendingData = filteredData.filter(item => ['pending', 'processing'].includes(item.status));
-    const processedData = filteredData.filter(item => !['pending', 'processing'].includes(item.status));
+    const pendingData = filteredData.filter(item => ['pending', 'processing', 'W'].includes(item.status));
+    const processedData = filteredData.filter(item => !['pending', 'processing', 'W'].includes(item.status));
 
     const getPaginatedData = (data: OilCOAData[], page: number) =>
         data.slice((page - 1) * itemsPerPage, page * itemsPerPage);
@@ -508,7 +522,7 @@ const Oil_COA: React.FC = () => {
     const TableRow = ({ row, index, page, color, showResults = true }: { row: SharedCOAData; index: number; page: number; color: string; showResults: boolean }) => (
         <tr className={`transition-all group hover:scale-[1.01] hover:shadow-lg hover:bg-gray-50`}>
             <td className="px-4 py-3 text-sm font-medium text-gray-900">{(page - 1) * itemsPerPage + index + 1}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{row.created_at}</td>
+            <td className="px-4 py-3 text-sm text-gray-600">{formatDisplayDate(row.created_at)}</td>
             <td className={`px-4 py-3 text-sm font-semibold text-${color}-600`}>{row.coa_no}</td>
             <td className="px-4 py-3 text-sm text-gray-900 font-bold">{row.coa_tank || '-'}</td>
             <td className="px-4 py-3 text-sm text-gray-600">{row.lot_no}</td>
@@ -546,7 +560,7 @@ const Oil_COA: React.FC = () => {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={() => router.get(`/qac/coa/oil/${row.id}`)}>
+                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={() => Swal.fire({ icon: 'info', title: 'Coming Soon', text: 'This feature is currently under development.' })}>
                                 <Eye className="h-4 w-4 text-blue-500" />
                                 <span>ดูรายละเอียด</span>
                             </DropdownMenuItem>
@@ -556,7 +570,7 @@ const Oil_COA: React.FC = () => {
                                     <span>แก้ไข</span>
                                 </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={() => router.get(`/qac/coa/oil/${row.id}/history`)}>
+                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={() => Swal.fire({ icon: 'info', title: 'Coming Soon', text: 'History view is currently under development.' })}>
                                 <History className="h-4 w-4 text-purple-500" />
                                 <span>ประวัติ</span>
                             </DropdownMenuItem>
@@ -608,7 +622,7 @@ const Oil_COA: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-500">COA No.</span>
-                            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{row.created_at}</span>
+                            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{formatDisplayDate(row.created_at)}</span>
                         </div>
                         <div className="font-bold text-gray-900">{row.coa_no}</div>
                     </div>
@@ -854,6 +868,14 @@ const Oil_COA: React.FC = () => {
                 </div>
 
                 <div className="p-6">
+                    {/* Recent Records Info Label */}
+                    {!dateFilter && !filter && (
+                        <div className="mb-4 flex items-center gap-2 text-xs font-medium text-blue-600 bg-blue-50/50 px-3 py-2 rounded-xl border border-blue-100 w-fit animate-pulse">
+                            <Info className="w-3.5 h-3.5" />
+                            แสดงรายการย้อนหลัง 60 วัน (ระบุวันที่หรือค้นหาเพื่อดูข้อมูลเก่ากว่า)
+                        </div>
+                    )}
+
                     <div className="bg-white/80 rounded-2xl shadow-xl border border-gray-200 p-5 mb-6">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div className="relative">
