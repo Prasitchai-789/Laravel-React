@@ -86,22 +86,42 @@ const CreatePlanOrderModal = ({
     const [loading, setLoading] = useState({ product: false, customer: false, destination: false, vehicle: false });
     const [searchResults, setSearchResults] = useState({ product: [], customer: [], destination: [], vehicle: [] });
     const [vehicleSearchIndex, setVehicleSearchIndex] = useState<number | null>(null);
-    const searchTimeout = useRef<any>();
+    const searchTimeout = useRef<any>(null);
 
     const formatDateForInput = (dateStr: any) => {
         if (!dateStr) return new Date().toISOString().split('T')[0];
-        const base = dateStr.toString().split(' ')[0];
-        if (base.includes('/')) {
-            const parts = base.split('/');
+
+        const str = dateStr.toString();
+
+        // 1. If it's YYYY-MM-DD or YYYY-MM-DD HH:mm:ss
+        if (str.includes('-')) {
+            const datePart = str.split(' ')[0].split('T')[0];
+            const parts = datePart.split('-');
+            if (parts.length === 3 && parts[0].length === 4) {
+                return datePart; // Already YYYY-MM-DD
+            }
+        }
+
+        // 2. If it has / (DD/MM/YYYY)
+        if (str.includes('/')) {
+            const datePart = str.split(' ')[0];
+            const parts = datePart.split('/');
             if (parts.length === 3) {
                 const [d, m, y] = parts;
                 return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
             }
         }
+
+        // 3. Fallback: Parse and format locally (not UTC)
         try {
             const d = new Date(dateStr);
             if (isNaN(d.getTime())) return new Date().toISOString().split('T')[0];
-            return d.toISOString().split('T')[0];
+
+            // Format to YYYY-MM-DD locally
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
         } catch {
             return new Date().toISOString().split('T')[0];
         }
@@ -245,10 +265,18 @@ const CreatePlanOrderModal = ({
                                         <Input type="date" value={formData.receiveDate} onChange={e => setFormData({ ...formData, receiveDate: e.target.value })} className="h-9 text-sm" />
                                     </div>
                                     <div>
-                                        <Label className="text-xs">น้ำหนัก (กก.)</Label>
-                                        <Input type="number" step="0.01" placeholder="0.00" value={formData.loadPlan} onChange={e => setFormData({ ...formData, loadPlan: e.target.value })} className="h-9 text-sm" />
+                                        <Label className="text-xs font-semibold text-blue-700">แผนการโหลด (กก.)</Label>
+                                        <Input type="number" step="0.01" placeholder="0.00" value={formData.loadPlan} onChange={e => setFormData({ ...formData, loadPlan: e.target.value })} className="h-9 text-sm font-bold text-blue-600 border-blue-200 bg-blue-50/30" />
                                     </div>
                                 </div>
+                                {editData && parseFloat(editData.netWeight) > 0 && (
+                                    <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between">
+                                        <Label className="text-xs text-gray-500 font-medium italic">น้ำหนักจริงจากหน้างาน:</Label>
+                                        <div className="text-sm font-bold text-gray-700 bg-gray-100 px-3 py-1 rounded-md border border-gray-200">
+                                            {parseFloat(editData.netWeight).toLocaleString()} กก.
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* สินค้า */}
