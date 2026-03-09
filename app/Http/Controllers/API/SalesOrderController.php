@@ -182,6 +182,81 @@ class SalesOrderController extends Controller
         }
 
 
+
         return response()->json($invoice);
+    }
+
+    /**
+     * ดึงข้อมูล lot การผลิต (PRO) และ FFB lot จาก SOPID
+     */
+    public function getProductionLot($sopid)
+    {
+        try {
+            // 1. ดึง COA info จาก certificates (sqlsrv3)
+            $certificates = DB::connection('sqlsrv3')
+                ->table('certificates')
+                ->where('SOPID', $sopid)
+                ->orderBy('date_coa', 'asc')
+                ->get();
+
+            if ($certificates->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่พบข้อมูล COA สำหรับ SOPID นี้',
+                ]);
+            }
+
+            $coaLot = $certificates->first()->coa_lot;
+            // ตัด prefix ออก เช่น QAC690304 → 690304
+            $coaInfo = substr($coaLot, 3);
+
+            // 2. ดึงเอกสาร PRO จาก ICStockHD (sqlsrv2)
+            $lotNumbers = DB::connection('sqlsrv2')
+                ->table('ICStockHD')
+                ->where('DocuNo', 'like', '%PRO' . $coaInfo . '%')
+                ->orderBy('DocuDate', 'asc')
+                ->get();
+
+            $firstDate = $lotNumbers->pluck('DocuDate')->first();
+            $docuDate = $firstDate ? \Carbon\Carbon::parse($firstDate)->format('d-m-Y') : null;
+            $docuNo = $lotNumbers->pluck('DocuNo')->first();
+            if ($docuNo) {
+                $docuNo = \Illuminate\Support\Str::before($docuNo, '-');
+            }
+
+            // 3. ดึงรายละเอียด FFB lots จาก ICStockDT (sqlsrv2)
+            $docuIds = $lotNumbers->pluck('DocuID')->filter()->unique()->toArray();
+            $palmInputs = [];
+
+            if (!empty($docuIds)) {
+                $stockDetails = DB::connection('sqlsrv2')
+                    ->table('ICStockDT')
+                    ->whereIn('DocuID', $docuIds)
+                    ->get();
+
+                foreach ($lotNumbers as $lotHeader) {
+                    $matchedRows = $stockDetails->where('DocuID', $lotHeader->DocuID);
+                    foreach ($matchedRows as $row) {
+                        $palmInputs[] = [
+                            'LotNo' => $row->LotNo,
+                            'Qty' => $row->GoodStockRemaQty,
+                        ];
+                    }
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'coaLot' => $coaLot,
+                'docuDate' => $docuDate,
+                'docuNo' => $docuNo,
+                'palmInputs' => $palmInputs,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }
