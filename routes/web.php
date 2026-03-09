@@ -394,6 +394,7 @@ Route::middleware(['auth', 'permission:developer.view|mar.view'])->group(functio
     Route::get('orders', [MARSalesController::class, 'salesOrder']);
     Route::get('orders/pending', [SalesOrderController::class, 'getSalesOrder']);
     Route::get('/sales-order/{docuNo}/invoices', [SalesOrderController::class, 'getSalesOrderInvoice']);
+    Route::get('/sales-order/production-lot/{sopid}', [SalesOrderController::class, 'getProductionLot']);
     Route::get('/sales-order', [SalesOrderMarController::class, 'index'])->name('sales.order.index');
     Route::get('/sales-order-summary/api', [SaleMARController::class, 'getSalesOrder'])->name('sales.order.api');
     Route::get('/sales/dashboard', [MARSalesController::class, 'index'])->name('sales.index');

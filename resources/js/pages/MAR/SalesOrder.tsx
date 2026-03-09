@@ -1,4 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
+import axios from 'axios';
 import { BreadcrumbItem } from '@/types';
 import {
     Award,
@@ -12,6 +13,7 @@ import {
     DollarSign,
     Download,
     Eye,
+    Factory,
     FileBarChart,
     FileText,
     FlaskRound,
@@ -62,6 +64,8 @@ interface Invoice {
     plan_recipient_name: string;
     reference_no: string;
     coa_number: string;
+    coa_sopid: number | null;
+    coa_lot: string | null;
     coa_result_ffa: number | string;
     coa_result_moisture: number | string;
     coa_result_iv: number | string;
@@ -69,6 +73,18 @@ interface Invoice {
     coa_result_shell: number | string;
     coa_result_kn_moisture: number | string;
     GoodID: number;
+}
+
+interface PalmInput {
+    LotNo: string;
+    Qty: number;
+}
+
+interface ProductionLotData {
+    coaLot: string;
+    docuDate: string;
+    docuNo: string;
+    palmInputs: PalmInput[];
 }
 
 interface Product {
@@ -96,6 +112,11 @@ export default function SalesOrder() {
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [activeTab, setActiveTab] = useState('cpo');
     const [selectedCode, setSelectedCode] = useState<number>(2147);
+
+    // Production Lot Modal state
+    const [showLotModal, setShowLotModal] = useState(false);
+    const [lotModalData, setLotModalData] = useState<ProductionLotData | null>(null);
+    const [lotModalLoading, setLotModalLoading] = useState(false);
 
     const products: Product[] = [
         { code: 2147, label: 'น้ำมันปาล์มดิบ', tabName: 'cpo' },
@@ -201,6 +222,25 @@ export default function SalesOrder() {
             key,
             direction: sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc',
         });
+    };
+
+    // Production Lot Modal handler
+    const handleShowProductionLot = async (sopid: number | null, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!sopid) return;
+        setLotModalLoading(true);
+        setShowLotModal(true);
+        setLotModalData(null);
+        try {
+            const res = await axios.get(`/sales-order/production-lot/${sopid}`);
+            if (res.data.success) {
+                setLotModalData(res.data);
+            }
+        } catch (err) {
+            console.error('Error fetching production lot:', err);
+        } finally {
+            setLotModalLoading(false);
+        }
     };
 
     const getSortIcon = (key: string) => {
@@ -1053,11 +1093,15 @@ console.log('stats =', stats);
                                                             {/* Quality Results */}
                                                             {hasQualityData && (
                                                                 <div className="space-y-3">
-                                                                    <h4 className="flex items-center space-x-2 text-sm font-bold text-gray-800">
+                                                                    <h4
+                                                                        className="flex items-center space-x-2 text-sm font-bold text-gray-800 cursor-pointer hover:text-blue-700 transition-colors group/coa"
+                                                                        onClick={(e) => handleShowProductionLot(i.coa_sopid, e)}
+                                                                        title="คลิกเพื่อดู Lot การผลิต"
+                                                                    >
                                                                         <FlaskRound size={16} className="text-green-600" />
                                                                         <span>
                                                                             ผลตรวจคุณภาพ
-                                                                            <span className="ml-1 text-xs text-blue-600">
+                                                                            <span className="ml-1 text-xs text-blue-600 group-hover/coa:underline">
                                                                                 COA: {i.coa_number || 'N/A'}
                                                                             </span>
                                                                         </span>
@@ -1185,6 +1229,114 @@ console.log('stats =', stats);
                                             ปิดรายงาน
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Production Lot Modal */}
+                {showLotModal && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gray-300 bg-opacity-20 font-anuphan backdrop-blur-md">
+                        <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl">
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 px-6 py-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="rounded-xl bg-white bg-opacity-20 p-2 shadow-lg">
+                                            <Factory className="h-5 w-5 text-white" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-lg font-bold text-white">ฝ่ายผลิตและวิศวกรรม (PRO)</h2>
+                                            <p className="text-sm text-indigo-200">ข้อมูล Lot การผลิต</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowLotModal(false)}
+                                        className="rounded-full p-1.5 text-white transition-colors hover:bg-white hover:bg-opacity-20"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Body */}
+                            <div className="p-6">
+                                {lotModalLoading ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
+                                        <span className="ml-3 text-gray-600">กำลังโหลดข้อมูล...</span>
+                                    </div>
+                                ) : lotModalData ? (
+                                    <div className="space-y-5">
+                                        {/* PRO Info Cards */}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4">
+                                                <div className="flex items-center space-x-2 mb-2">
+                                                    <Calendar size={14} className="text-indigo-500" />
+                                                    <p className="text-xs font-medium text-gray-500">วันที่ผลิต</p>
+                                                </div>
+                                                <p className="text-lg font-bold text-indigo-700">{lotModalData.docuDate || '-'}</p>
+                                            </div>
+                                            <div className="rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-4">
+                                                <div className="flex items-center space-x-2 mb-2">
+                                                    <ClipboardList size={14} className="text-purple-500" />
+                                                    <p className="text-xs font-medium text-gray-500">PRO Lot Number</p>
+                                                </div>
+                                                <p className="text-lg font-bold text-purple-700">{lotModalData.docuNo || '-'}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* FFB Table */}
+                                        <div>
+                                            <h3 className="flex items-center space-x-2 mb-3 text-sm font-bold text-gray-800">
+                                                <Package size={16} className="text-green-600" />
+                                                <span>ข้อมูลผลปาล์มที่รับเข้า</span>
+                                            </h3>
+                                            {lotModalData.palmInputs.length > 0 ? (
+                                                <div className="overflow-hidden rounded-xl border border-gray-200">
+                                                    <table className="w-full text-sm">
+                                                        <thead>
+                                                            <tr className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
+                                                                <th className="px-4 py-3 text-left font-semibold">Lot Number</th>
+                                                                <th className="px-4 py-3 text-right font-semibold">ปริมาณที่ผลิต</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-100">
+                                                            {lotModalData.palmInputs.map((p, idx) => (
+                                                                <tr key={idx} className="transition-colors hover:bg-green-50">
+                                                                    <td className="px-4 py-3 font-medium text-gray-800">{p.LotNo}</td>
+                                                                    <td className="px-4 py-3 text-right font-bold text-green-700">
+                                                                        {Number(p.Qty).toLocaleString()} กก.
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            ) : (
+                                                <div className="rounded-xl bg-gray-50 py-8 text-center text-gray-500">
+                                                    ไม่พบข้อมูลผลปาล์มที่รับเข้า
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="py-12 text-center text-gray-500">
+                                        ไม่พบข้อมูล Lot การผลิตสำหรับ COA นี้
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="border-t bg-gray-50 px-6 py-3">
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={() => setShowLotModal(false)}
+                                        className="rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:shadow-lg"
+                                    >
+                                        ปิด
+                                    </button>
                                 </div>
                             </div>
                         </div>
