@@ -599,8 +599,14 @@ class SOPlanController extends Controller
             return $this->errorResponse($request, 'กรุณาระบุข้อมูลรถอย่างน้อย 1 คัน', 422);
         }
 
+        // Get the current max SOPID from DB to increment manually (since it's not an IDENTITY column)
+        $maxSopId = (int) SOPlan::selectRaw('MAX(TRY_CAST(SOPID AS INT)) as max_id')->value('max_id') ?: 21589; // Fallback to a safe starting point if table is empty
+
         foreach ($validVehicles as $index => $vehicle) {
+            $currentSopId = $maxSopId + $index + 1;
+            
             $plan = new SOPlan();
+            $plan->SOPID = (string) $currentSopId;
             $plan->SOPDate = $receiveDate;
             $plan->GoodID = $data['goodID'];
             $plan->GoodName = $data['goodName'];

@@ -128,6 +128,7 @@ const mapStatus = (dbStatus: string): string => {
         'p': 'processing',
         'f': 'completed',
         'c': 'cancelled',
+        'W': 'W', // ✅ status 'W' จาก Status_coa
         'pending': 'pending',
         'processing': 'processing',
         'completed': 'completed',
@@ -138,8 +139,7 @@ const mapStatus = (dbStatus: string): string => {
         'ยกเลิก': 'cancelled',
     };
 
-    // ถ้าไม่มีใน map ให้ส่งค่ากลับเป็น pending
-    return statusMap[dbStatus?.toLowerCase()] || 'pending';
+    return statusMap[dbStatus] || statusMap[dbStatus?.toLowerCase()] || 'pending';
 };
 
 // ฟังก์ชันแปลง SOPlanData เป็น PlanOrder
@@ -165,7 +165,7 @@ const convertSOPlanToPlanOrder = (s: SOPlanData, index?: number): PlanOrder => {
         netWeight: displayWeight,
         unit: unit,
         displayWeight: displayWeight.toFixed(2),
-        status: mappedStatus as 'pending' | 'processing' | 'completed' | 'cancelled' | 'confirmed' | 'production',
+        status: (s.Status_coa === 'W' ? 'W' : mappedStatus) as 'pending' | 'processing' | 'completed' | 'cancelled' | 'confirmed' | 'production' | 'W',
         priority: 'normal',
         destination: s.Recipient,
         coaNumber: s.coa_number,

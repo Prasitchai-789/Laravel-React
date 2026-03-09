@@ -73,7 +73,7 @@ export interface PlanOrder {
     coaNumber?: string;
     destination?: string | null;
     priority?: 'high' | 'medium' | 'normal';
-    status: 'pending' | 'processing' | 'completed' | 'cancelled' | 'confirmed' | 'production';
+    status: 'pending' | 'processing' | 'completed' | 'cancelled' | 'confirmed' | 'production' | 'W';
     isInspected?: boolean;
     rawData?: {
         sopId?: string;
@@ -159,6 +159,12 @@ const STATUS_CONFIG = {
         dot: 'bg-rose-500',
         icon: XCircle,
         label: 'ยกเลิก',
+    },
+    W: {
+        color: 'bg-amber-50 text-amber-700 border-amber-200',
+        dot: 'bg-amber-500',
+        icon: Clock,
+        label: 'รออนุมัติ',
     },
 };
 
