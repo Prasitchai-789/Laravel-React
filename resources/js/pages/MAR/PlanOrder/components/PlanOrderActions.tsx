@@ -12,7 +12,7 @@ import {
 import { FileText, CheckCircle, XCircle, Calendar } from 'lucide-react';
 
 interface Props {
-    selectedOrders: number[];
+    selectedOrders: (number | string)[];
     onActionComplete: () => void;
 }
 
@@ -55,13 +55,13 @@ export default function PlanOrderActions({ selectedOrders, onActionComplete }: P
                             ยืนยันการสร้างแผนการผลิตสำหรับคำสั่งซื้อที่เลือก {selectedOrders.length} รายการ
                         </DialogDescription>
                     </DialogHeader>
-                    
+
                     <div className="py-4">
                         <p className="text-sm text-gray-500">
                             ระบบจะสร้างแผนการผลิตจากคำสั่งซื้อที่เลือกทั้งหมด
                         </p>
                     </div>
-                    
+
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowCreatePlan(false)}>
                             ยกเลิก
@@ -88,7 +88,7 @@ export default function PlanOrderActions({ selectedOrders, onActionComplete }: P
                             เลือกสถานะที่ต้องการอัปเดตสำหรับคำสั่งซื้อ {selectedOrders.length} รายการ
                         </DialogDescription>
                     </DialogHeader>
-                    
+
                     <div className="grid grid-cols-2 gap-2 py-4">
                         <Button
                             variant="outline"
@@ -98,7 +98,7 @@ export default function PlanOrderActions({ selectedOrders, onActionComplete }: P
                             <CheckCircle className="h-6 w-6 text-blue-500 mb-2" />
                             <span>ยืนยันคำสั่งซื้อ</span>
                         </Button>
-                        
+
                         <Button
                             variant="outline"
                             className="flex flex-col items-center p-4 h-auto"
@@ -107,7 +107,7 @@ export default function PlanOrderActions({ selectedOrders, onActionComplete }: P
                             <Calendar className="h-6 w-6 text-purple-500 mb-2" />
                             <span>เริ่มการผลิต</span>
                         </Button>
-                        
+
                         <Button
                             variant="outline"
                             className="flex flex-col items-center p-4 h-auto"
@@ -116,7 +116,7 @@ export default function PlanOrderActions({ selectedOrders, onActionComplete }: P
                             <CheckCircle className="h-6 w-6 text-green-500 mb-2" />
                             <span>เสร็จสิ้น</span>
                         </Button>
-                        
+
                         <Button
                             variant="outline"
                             className="flex flex-col items-center p-4 h-auto"
@@ -126,7 +126,7 @@ export default function PlanOrderActions({ selectedOrders, onActionComplete }: P
                             <span>ยกเลิก</span>
                         </Button>
                     </div>
-                    
+
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowUpdateStatus(false)}>
                             ปิด

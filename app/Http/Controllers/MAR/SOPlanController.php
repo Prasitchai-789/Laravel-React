@@ -83,8 +83,12 @@ class SOPlanController extends Controller
             $name = strtolower(($s->GoodName ?? '') . ' ' . ($s->GoodID ?? ''));
 
             $type = 'other';
-            if (str_contains($name, 'cpo') || str_contains($name, 'น้ำมันปาล์มดิบ') || str_contains($name, 'ปาล์มดิบ')) {
-                $type = 'cpo';
+            if (str_contains($name, 'cpo') || str_contains($name, 'น้ำมันปาล์มดิบ') || str_contains($name, 'ปาล์มดิบ') || str_contains($name, 'น้ำมัน') || str_contains($name, 'oil')) {
+                if (str_contains($name, 'บริสุทธิ์') || str_contains($name, 'rbd')) {
+                    $type = 'palm-oil';
+                } else {
+                    $type = 'cpo';
+                }
             } elseif (str_contains($name, 'เมล็ด') || str_contains($name, 'kernel') || str_contains($name, 'palm-kernel')) {
                 $type = 'palm-kernel';
             } elseif (str_contains($name, 'กะลา') || str_contains($name, 'shell')) {
@@ -93,9 +97,8 @@ class SOPlanController extends Controller
                 $type = 'efb';
             } elseif (str_contains($name, 'ใย') || str_contains($name, 'fiber') || str_contains($name, 'palm-fiber')) {
                 $type = 'fiber';
-            } elseif (str_contains($name, 'น้ำมัน') || str_contains($name, 'oil') || str_contains($name, 'palm-oil')) {
-                $type = 'palm-oil';
             }
+
 
             $sopids[] = $s->SOPID;
             $mapped[] = [
@@ -125,17 +128,14 @@ class SOPlanController extends Controller
             ];
         }
 
-        // ดึง coa_number จากตาราง certificates (อยู่คนละ connection, chunk เพื่อไม่เกิน 2100 params)
+        // ดึง coa_number จากตาราง certificates (SOPID ใน certificates)
         if (!empty($sopids)) {
             $certs = [];
-            foreach (array_chunk($sopids, 1000) as $chunk) {
-                $chunkResult = Certificate::whereIn('SOPID', $chunk)->pluck('coa_number', 'SOPID');
-                foreach ($chunkResult as $sopId => $coaNumber) {
-                    $certs[(string) $sopId] = $coaNumber;
-                }
-            }
+            $allCerts = Certificate::whereIn('SOPID', array_map('strval', $sopids))->get()->keyBy('SOPID');
             foreach ($mapped as &$item) {
-                $item['coa_number'] = $certs[(string) $item['SOPID']] ?? null;
+                $cert = $allCerts->get((string)$item['SOPID']);
+                $item['coa_number'] = $cert ? $cert->coa_number : null;
+                $item['Status_coa'] = $cert ? $cert->status : ($item['Status_coa'] ?? 'w');
             }
             unset($item);
         }
@@ -258,11 +258,16 @@ class SOPlanController extends Controller
             // Map product type (logic matches index)
             $name = strtolower(($s->GoodName ?? '') . ' ' . ($s->GoodID ?? ''));
             $type = 'other';
-            if (str_contains($name, 'cpo') || str_contains($name, 'น้ำมันปาล์มดิบ') || str_contains($name, 'ปาล์มดิบ')) {
-                $type = 'cpo';
+            if (str_contains($name, 'cpo') || str_contains($name, 'น้ำมันปาล์มดิบ') || str_contains($name, 'ปาล์มดิบ') || str_contains($name, 'น้ำมัน') || str_contains($name, 'oil')) {
+                if (str_contains($name, 'บริสุทธิ์') || str_contains($name, 'rbd')) {
+                    $type = 'palm-oil';
+                } else {
+                    $type = 'cpo';
+                }
             } elseif (str_contains($name, 'เมล็ด') || str_contains($name, 'kernel') || str_contains($name, 'palm-kernel')) {
                 $type = 'palm-kernel';
             }
+
 
             // Fetch certificate
             $cert = \App\Models\Certificate::where('SOPID', $id)->first();
@@ -331,7 +336,14 @@ class SOPlanController extends Controller
                 $query->where(function ($q) {
                     $q->where('GoodName', 'like', '%cpo%')
                         ->orWhere('GoodName', 'like', '%น้ำมันปาล์มดิบ%')
-                        ->orWhere('GoodName', 'like', '%ปาล์มดิบ%');
+                        ->orWhere('GoodName', 'like', '%ปาล์มดิบ%')
+                        ->orWhere(function($subq) {
+                             $subq->where(function($s2) {
+                                 $s2->where('GoodName', 'like', '%น้ำมัน%')
+                                    ->orWhere('GoodName', 'like', '%oil%');
+                             })->where('GoodName', 'not like', '%บริสุทธิ์%')
+                               ->where('GoodName', 'not like', '%rbd%');
+                        });
                 });
             } elseif ($type === 'palm-kernel') {
                 $query->where(function ($q) {
@@ -421,26 +433,9 @@ class SOPlanController extends Controller
 
             $data = $query->orderBy("SOPDate", "DESC")->limit(500)->get();
 
-            // Mapping deterministic IDs for records without SOPID
-            $mappedResults = [];
-            $tempSopIds = [];
-            foreach ($data as $index => $s) {
-                if ($s->SOPID) {
-                    $rowId = (string) $s->SOPID;
-                } else {
-                    // Create a deterministic ID: P-{Date}-{CustID}-{GoodID}-{NumberCar}-{Amnt}
-                    $dateKey = $s->SOPDate ? substr($s->SOPDate, 0, 10) : '0000-00-00';
-                    $carKey = trim($s->NumberCar ?: '-');
-                    $rowId = "P-{$dateKey}-{$s->CustID}-{$s->GoodID}-{$carKey}-" . (int)$s->AmntLoad;
-                }
-                $s->synthetic_id = $rowId;
-                $tempSopIds[] = $rowId;
-                $mappedResults[] = $s;
-            }
-
-            // Fetch certificates using BOTH real SOPIDs and synthetic IDs
-            $certificates = !empty($tempSopIds) 
-                ? \App\Models\Certificate::whereIn('SOPID', $tempSopIds)->get()->keyBy('SOPID')
+            $sopids = $data->pluck('SOPID')->filter()->map('strval')->toArray();
+            $certificates = !empty($sopids) 
+                ? \App\Models\Certificate::whereIn('SOPID', $sopids)->get()->keyBy('SOPID')
                 : collect();
 
             $now = now();
@@ -448,75 +443,23 @@ class SOPlanController extends Controller
             $month = $now->format('m');
             $year2 = substr($yearBE, -2);
             
-            // Auto-increment logic for new certificates
-            $maxId = \App\Models\Certificate::max(\Illuminate\Support\Facades\DB::raw('TRY_CAST(id as INT)')) ?? 0;
-            $certAutoIdSeq = (int) $maxId;
-
-            // Base sequence for COA number
-            $allCertsThisYear = \App\Models\Certificate::where('coa_number', 'like', "%/{$yearBE}")->pluck('coa_number');
-            $certBaseSeq = 0;
+            // Get the current peak sequence for this year across ALL prefixes
+            // coa_number format: [Prefix][XXXX]/[YearBE]
+            $allCertsThisYear = \App\Models\Certificate::where('coa_number', 'like', "%/$yearBE")->pluck('coa_number');
+            $maxSeq = 0;
             foreach ($allCertsThisYear as $coa) {
-                if (preg_match('/(\d+)\/' . $yearBE . '/', $coa, $matches)) {
+                // Extract digits after prefix but before the slash
+                if (preg_match('/[A-Z]+(\d+)\/' . $yearBE . '/', $coa, $matches)) {
                     $seqVal = (int) $matches[1];
-                    if ($seqVal > $certBaseSeq) $certBaseSeq = $seqVal;
+                    if ($seqVal > $maxSeq) $maxSeq = $seqVal;
                 }
             }
+            $nextSeq = $maxSeq + 1;
 
             $finalData = [];
-            foreach ($mappedResults as $s) {
-                $rowId = $s->synthetic_id;
+            foreach ($data as $s) {
+                $rowId = (string)$s->SOPID;
                 $cert = $certificates->get($rowId);
-
-                // หากยังไม่มีใบ COA ให้สร้างใหม่ (เฉพาะรายการที่รอดำเนินการและเป็นข้อมูลล่าสุด 90 วัน)
-                // เพื่อป้องกันปัญหา Timeout หากดึงข้อมูลเก่าจำนวนมาก
-                $isRecent = $s->SOPDate && strtotime($s->SOPDate) > strtotime('-90 days');
-                $isPending = !$s->Status_coa || $s->Status_coa === 'pending' || $s->Status_coa === 'W';
-
-                if ((!$cert || !$cert->coa_number || $cert->coa_number === '-') && $isRecent && $isPending) {
-                    $prefix = 'CPO';
-                    $gn = strtolower($s->GoodName ?? '');
-                    if (str_contains($gn, 'เมล็ด') || str_contains($gn, 'kernel') || str_contains($gn, 'cpko')) {
-                        $prefix = 'KN';
-                    }
-
-                    $certBaseSeq++;
-                    $coaNumber = $prefix . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT) . "/{$yearBE}";
-                    $coaLot = 'QAC' . $year2 . $month . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT);
-
-                    if (!$cert) {
-                        $certAutoIdSeq++;
-                        $certData = [
-                            'id' => (string) $certAutoIdSeq,
-                            'SOPID' => $rowId, // ใช้ synthetic ID เป็น Key ในตาราง certificates
-                            'date_coa' => $now->format('Y-m-d H:i:s.v'),
-                            'coa_number' => $coaNumber,
-                            'coa_lot' => $coaLot,
-                            'coa_tank' => '-',
-                            'status' => 'pending',
-                            'created_at' => $now->format('d/m/Y H:i:s'),
-                            'updated_at' => $now->format('d/m/Y H:i:s'),
-                        ];
-
-                        if ($prefix === 'KN') {
-                            $certData['spec_shell'] = '< 10.00 %';
-                            $certData['spec_kn_moisture'] = '< 8.00 %';
-                        } else {
-                            $certData['spec_FFA'] = '< 5.00 %';
-                            $certData['spec_moisture'] = '< 0.50 %';
-                            $certData['spec_IV'] = '50 - 55 %';
-                            $certData['spec_dobi'] = '> 2.00';
-                        }
-
-                        $cert = \App\Models\Certificate::create($certData);
-                        $certificates->put($rowId, $cert);
-                    } else {
-                        $cert->coa_number = $coaNumber;
-                        if (!$cert->coa_lot || $cert->coa_lot === '-') {
-                            $cert->coa_lot = $coaLot;
-                        }
-                        $cert->save();
-                    }
-                }
 
                 $finalData[] = [
                     'SOPID' => $rowId,
@@ -528,7 +471,7 @@ class SOPlanController extends Controller
                     'CustName' => $s->CustName,
                     'Recipient' => $s->Recipient,
                     'Status' => $s->Status,
-                    'Status_coa' => $s->Status_coa,
+                    'Status_coa' => $cert ? $cert->status : $s->Status_coa,
                     // Certificate data
                     'coa_date' => $cert ? $cert->date_coa : null,
                     'coa_no' => $cert ? $cert->coa_number : null,
@@ -598,15 +541,18 @@ class SOPlanController extends Controller
         if (count($validVehicles) === 0) {
             return $this->errorResponse($request, 'กรุณาระบุข้อมูลรถอย่างน้อย 1 คัน', 422);
         }
-
-        // Get the current max SOPID from DB to increment manually (since it's not an IDENTITY column)
-        $maxSopId = (int) SOPlan::selectRaw('MAX(TRY_CAST(SOPID AS INT)) as max_id')->value('max_id') ?: 21589; // Fallback to a safe starting point if table is empty
+        // ดึง SOPID สูงสุดที่เป็นตัวเลข (ข้ามค่าที่ไม่ใช่ตัวเลข)
+        $maxIdStr = DB::connection('sqlsrv2')->selectOne("SELECT MAX(TRY_CAST(SOPID AS INT)) as max_id FROM SOPlan");
+        $currentMaxId = $maxIdStr && $maxIdStr->max_id ? (int)$maxIdStr->max_id : 0;
 
         foreach ($validVehicles as $index => $vehicle) {
-            $currentSopId = $maxSopId + $index + 1;
-            
             $plan = new SOPlan();
-            $plan->SOPID = (string) $currentSopId;
+            
+            // สร้าง SOPID ใหม่ด้วยตัวเอง
+            $currentMaxId++;
+            $plan->SOPID = (string)$currentMaxId;
+            
+
             $plan->SOPDate = $receiveDate;
             $plan->GoodID = $data['goodID'];
             $plan->GoodName = $data['goodName'];
@@ -636,8 +582,69 @@ class SOPlanController extends Controller
 
             try {
                 $plan->save();
-                // ✅ ดึง SOPID ที่ระบบ Auto-increment มาใช้
-                $savedPlans[] = ['SOPID' => $plan->SOPID, 'NumberCar' => $plan->NumberCar, 'DriverName' => $plan->DriverName];
+                Log::info("🔹 SOPlan saved: SOPID=" . $plan->SOPID . " for Car=" . $plan->NumberCar);
+                
+                // ==========================================
+                // สร้าง Certificate อัตโนมัติ (ตาม Logic เดิม)
+                // ==========================================
+                $now = now();
+                $yearBE = $now->year + 543;
+                $month = $now->format('m');
+                $year2 = substr($yearBE, -2);
+                
+                $prefix = 'CPO';
+                $gn = strtolower($plan->GoodName ?? '');
+                if (str_contains($gn, 'เมล็ด') || str_contains($gn, 'kernel') || str_contains($gn, 'cpko')) {
+                    $prefix = 'KN';
+                }
+
+                // หาลำดับ COA Number ของปีนี้
+                $allCertsThisYear = \App\Models\Certificate::where('coa_number', 'like', "%/{$yearBE}")->pluck('coa_number');
+                $certBaseSeq = 0;
+                foreach ($allCertsThisYear as $coa) {
+                    if (preg_match('/[A-Z]+(\d+)\/' . $yearBE . '/', $coa, $matches)) {
+                        $seqVal = (int) $matches[1];
+                        if ($seqVal > $certBaseSeq) $certBaseSeq = $seqVal;
+                    }
+                }
+                $certBaseSeq++;
+                $coaNumber = $prefix . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT) . "/{$yearBE}";
+                $coaLot = 'QAC' . $year2 . $month . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT);
+
+                $maxId = \App\Models\Certificate::max(\Illuminate\Support\Facades\DB::raw('TRY_CAST(id as INT)')) ?? 0;
+                $certAutoIdSeq = (int)$maxId + 1;
+
+                $certData = [
+                    'id' => (string)$certAutoIdSeq,
+                    'SOPID' => (string)$plan->SOPID,
+                    'date_coa' => $now->format('Y-m-d H:i:s.v'),
+                    'coa_number' => $coaNumber,
+                    'coa_lot' => $coaLot,
+                    'coa_tank' => '-',
+                    'status' => 'pending',
+                    'created_at' => $now->format('d/m/Y H:i:s'),
+                    'updated_at' => $now->format('d/m/Y H:i:s'),
+                ];
+
+                if ($prefix === 'KN') {
+                    $certData['spec_shell'] = '< 10.00 %';
+                    $certData['spec_kn_moisture'] = '< 8.00 %';
+                } else {
+                    $certData['spec_FFA'] = '< 5.00 %';
+                    $certData['spec_moisture'] = '< 0.50 %';
+                    $certData['spec_IV'] = '50 - 55 %';
+                    $certData['spec_dobi'] = '> 2.00';
+                }
+
+                \App\Models\Certificate::create($certData);
+                Log::info("🔹 Certificate auto-created for SOPID=" . $plan->SOPID . " CoaNo=" . $coaNumber);
+                // ==========================================
+
+                $savedPlans[] = [
+                    'SOPID' => (string)$plan->SOPID, 
+                    'NumberCar' => $plan->NumberCar, 
+                    'DriverName' => $plan->DriverName
+                ];
             } catch (\Exception $e) {
                 Log::error('❌ Error saving vehicle ' . ($index + 1) . ': ' . $e->getMessage());
                 return $this->errorResponse(
@@ -650,86 +657,12 @@ class SOPlanController extends Controller
 
         Log::info('✅ All vehicles saved', ['count' => count($savedPlans)]);
 
-        // ============================================================
-        // สร้างใบ Certificate อัตโนมัติหลังบันทึกแผน
-        // ============================================================
-        try {
-            $now = now();
-            $yearBE = $now->year + 543;
-            $month = $now->format('m');
-            $year2 = substr($yearBE, -2);
-
-            // 1. Get Prefix
-            $prefix = 'CPO';
-            $gn = strtolower($data['goodName'] ?? '');
-            if (str_contains($gn, 'เมล็ด') || str_contains($gn, 'kernel') || str_contains($gn, 'cpko')) {
-                $prefix = 'KN';
-            }
-
-            // 2. Get Global sequence for coa_number (reset yearly)
-            // Fetch all coa_numbers for this year and parse the max sequence in PHP to avoid TRY_CAST errors
-            $allCertsThisYear = Certificate::where('coa_number', 'like', "%/{$yearBE}")->pluck('coa_number');
-            $certBaseSeq = 0;
-            foreach ($allCertsThisYear as $coa) {
-                // Extract digits before the slash, ignoring any letter prefix (like CPO, KN, ISP_KN, etc)
-                if (preg_match('/(\d+)\/' . $yearBE . '/', $coa, $matches)) {
-                    $seqVal = (int) $matches[1];
-                    if ($seqVal > $certBaseSeq) {
-                        $certBaseSeq = $seqVal;
-                    }
-                }
-            }
-
-            // 3. Get Global max ID (nvarchar)
-            $maxId = Certificate::max(DB::raw('TRY_CAST(id as INT)')) ?? 0;
-            $idBaseSeq = (int) $maxId;
-
-            foreach ($savedPlans as $idx => $planInfo) {
-                $seq = $certBaseSeq + $idx + 1;
-                $certId = (string) ($idBaseSeq + $idx + 1);
-
-                $coaNumber = $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT) . "/{$yearBE}";
-                $coaLot = 'QAC' . $year2 . $month . str_pad($seq, 4, '0', STR_PAD_LEFT);
-
-                $certData = [
-                    'id' => $certId,
-                    'SOPID' => $planInfo['SOPID'],
-                    'date_coa' => $now->format('Y-m-d H:i:s.v'),
-                    'coa_number' => $coaNumber,
-                    'coa_lot' => $coaLot,
-                    'coa_tank' => '-',
-                    'status' => 'pending',
-                    'created_at' => $now->format('d/m/Y H:i:s'),
-                    'updated_at' => $now->format('d/m/Y H:i:s'),
-                ];
-
-                if ($prefix === 'KN') {
-                    // เมล็ด: เฉพาะ Shell + KN Moisture
-                    $certData['spec_shell'] = '< 10.00 %';
-                    $certData['spec_kn_moisture'] = '< 8.00 %';
-                } else {
-                    // น้ำมัน: เฉพาะ FFA + M&I + IV + Dobi
-                    $certData['spec_FFA'] = '< 5.00 %';
-                    $certData['spec_moisture'] = '< 0.50 %';
-                    $certData['spec_IV'] = '50 - 55 %';
-                    $certData['spec_dobi'] = '> 2.00';
-                }
-
-                Certificate::create($certData);
-            }
-        } catch (\Exception $e) {
-            Log::error('❌ Error creating automatic certificates: ' . $e->getMessage());
-            // ไม่ขัดจังหวะการบันทึกแผนหลัก แต่ Log ไว้
-        }
+        // ย้ายการสร้าง COA ออกไปให้ Index หรือ Manual จัดการแทนตามเดิม
 
         $vehicleCount = count($savedPlans);
         $message = $vehicleCount > 1
             ? "บันทึกแผนการขนส่งเรียบร้อย {$vehicleCount} รายการ (SOPID: " . implode(', ', array_column($savedPlans, 'SOPID')) . ")"
             : "บันทึกแผนการขนส่งเรียบร้อย (SOPID: {$savedPlans[0]['SOPID']})";
-
-        if ($request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => $message, 'data' => $savedPlans], 201);
-        }
 
         return redirect()->back()->with('success', $message);
     }
@@ -804,14 +737,6 @@ class SOPlanController extends Controller
             DB::commit();
 
             Log::info('✅ SOPlan updated', ['SOPID' => $id]);
-
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'แก้ไขข้อมูลเรียบร้อย (SOPID: ' . $id . ')',
-                    'data' => ['SOPID' => $id, 'NumberCar' => $plan->NumberCar, 'DriverName' => $plan->DriverName, 'Status' => $plan->Status],
-                ], 200);
-            }
 
             return redirect()->back()->with('success', 'แก้ไขข้อมูลเรียบร้อย (SOPID: ' . $id . ')');
 
@@ -973,5 +898,97 @@ class SOPlanController extends Controller
         }
 
         return redirect()->back()->with('error', $message);
+    }
+
+    // ============================================================
+    // GENERATE COA — สร้างใบ Certificate / COA No. แบบ Manual
+    // ============================================================
+    public function generateCoa(Request $request, $id)
+    {
+        Log::info('📄 SOPlan generate COA request:', ['id' => $id]);
+
+        try {
+            $plan = SOPlan::where('SOPID', $id)->first();
+            if (!$plan) {
+                return response()->json(['success' => false, 'message' => 'ไม่พบข้อมูลแผน (SOPID: ' . $id . ')'], 404);
+            }
+
+            // Check if certificate already exists
+            $cert = \App\Models\Certificate::where('SOPID', $id)->first();
+            if ($cert && $cert->coa_number && $cert->coa_number !== '-') {
+                return response()->json(['success' => true, 'message' => 'มีเลข COA อยู่แล้ว', 'coa_no' => $cert->coa_number]);
+            }
+
+            $now = now();
+            $yearBE = $now->year + 543;
+            $month = $now->format('m');
+            $year2 = substr($yearBE, -2);
+
+            // Sequence logic (Base sequence for COA number)
+            $allCertsThisYear = \App\Models\Certificate::where('coa_number', 'like', "%/{$yearBE}")->pluck('coa_number');
+            $certBaseSeq = 0;
+            foreach ($allCertsThisYear as $coa) {
+                if (preg_match('/(\d+)\/' . $yearBE . '/', $coa, $matches)) {
+                    $seqVal = (int) $matches[1];
+                    if ($seqVal > $certBaseSeq) $certBaseSeq = $seqVal;
+                }
+            }
+            $certBaseSeq++;
+
+            $prefix = 'CPO';
+            $gn = strtolower($plan->GoodName ?? '');
+            if (str_contains($gn, 'เมล็ด') || str_contains($gn, 'kernel') || str_contains($gn, 'cpko')) {
+                $prefix = 'KN';
+            }
+
+            $coaNumber = $prefix . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT) . "/{$yearBE}";
+            $coaLot = 'QAC' . $year2 . $month . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT);
+
+            if (!$cert) {
+                $maxId = \App\Models\Certificate::max(\Illuminate\Support\Facades\DB::raw('TRY_CAST(id as INT)')) ?? 0;
+                $certAutoIdSeq = (int)$maxId + 1;
+
+                $certData = [
+                    'id' => (string)$certAutoIdSeq,
+                    'SOPID' => $id,
+                    'date_coa' => $now->format('Y-m-d H:i:s.v'),
+                    'coa_number' => $coaNumber,
+                    'coa_lot' => $coaLot,
+                    'coa_tank' => '-',
+                    'status' => 'pending',
+                    'created_at' => $now->format('d/m/Y H:i:s'),
+                    'updated_at' => $now->format('d/m/Y H:i:s'),
+                ];
+
+                if ($prefix === 'KN') {
+                    $certData['spec_shell'] = '< 10.00 %';
+                    $certData['spec_kn_moisture'] = '< 8.00 %';
+                } else {
+                    $certData['spec_FFA'] = '< 5.00 %';
+                    $certData['spec_moisture'] = '< 0.50 %';
+                    $certData['spec_IV'] = '50 - 55 %';
+                    $certData['spec_dobi'] = '> 2.00';
+                }
+
+                $cert = \App\Models\Certificate::create($certData);
+            } else {
+                $cert->coa_number = $coaNumber;
+                if (!$cert->coa_lot || $cert->coa_lot === '-') {
+                    $cert->coa_lot = $coaLot;
+                }
+                $cert->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'สร้างเลข COA เรียบร้อย',
+                'coa_no' => $coaNumber,
+                'coa_lot' => $coaLot
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error generating COA: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()], 500);
+        }
     }
 }

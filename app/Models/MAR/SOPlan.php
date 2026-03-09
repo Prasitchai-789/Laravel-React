@@ -18,6 +18,8 @@ class SOPlan extends Model
 
     protected $table = 'SOPlan';
     protected $primaryKey = 'SOPID';
+    public $incrementing = false;
+    protected $keyType = 'string';
     public $timestamps = false;
 
     /**

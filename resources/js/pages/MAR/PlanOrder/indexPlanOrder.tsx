@@ -69,6 +69,7 @@ const PRODUCT_TYPE_MAP: { [key: string]: string } = {
     'น้ำมันปาล์มดิบ': 'cpo',
     'RBD': 'palm-oil',
     'น้ำมันปาล์มบริสุทธิ์': 'palm-oil',
+    'น้ำมัน': 'cpo',
     'Kernel': 'palm-kernel',
     'PKE': 'palm-kernel',
     'เมล็ดในปาล์ม': 'palm-kernel',
@@ -152,8 +153,8 @@ const convertSOPlanToPlanOrder = (s: SOPlanData, index?: number): PlanOrder => {
     const mappedStatus = mapStatus(s.Status); // แปลงสถานะ
 
     return {
-        id: parseInt(s.SOPID) || (index || 0) + 1,
-        orderNumber: s.SOPID || `SOP-${String((index || 0) + 1).padStart(3, '0')}`,
+        id: (s.SOPID !== null && s.SOPID !== undefined && s.SOPID !== '') ? s.SOPID : `TEMP-${String((index || 0) + 1).padStart(3, '0')}`,
+        orderNumber: (s.SOPID !== null && s.SOPID !== undefined && s.SOPID !== '') ? s.SOPID : `TEMP-${String((index || 0) + 1).padStart(3, '0')}`,
         orderDate: s.ReceivedDate || s.SOPDate || new Date().toISOString().split('T')[0],
         productType: productType,
         productName: s.GoodName || 'ไม่ระบุสินค้า',
@@ -162,7 +163,8 @@ const convertSOPlanToPlanOrder = (s: SOPlanData, index?: number): PlanOrder => {
         customerName: s.CustName || s.Recipient || s.CustID || 'ไม่ระบุลูกค้า',
         customerCode: s.CustCode || '',
         customerID: s.CustID || '',
-        netWeight: displayWeight,
+        netWeight: netWeight,
+        plannedWeight: parseWeight(s.AmntLoad) || 0,
         unit: unit,
         displayWeight: displayWeight.toFixed(2),
         status: (s.Status_coa === 'W' ? 'W' : mappedStatus) as 'pending' | 'processing' | 'completed' | 'cancelled' | 'confirmed' | 'production' | 'W',
@@ -203,6 +205,7 @@ const mockOrders: PlanOrder[] = [
         licensePlate: '1กข 1234',
         driverName: 'นายสมชาย รักดี',
         netWeight: 30000,
+        plannedWeight: 30000,
         unit: 'กก.',
         status: 'pending',
         priority: 'high',
@@ -219,6 +222,7 @@ const mockOrders: PlanOrder[] = [
         licensePlate: '2คก 5678',
         driverName: 'นายสมปอง สุดยอด',
         netWeight: 15000,
+        plannedWeight: 15000,
         unit: 'กก.',
         status: 'processing',
         priority: 'normal',
@@ -310,7 +314,7 @@ interface PageProps {
 
 export default function IndexPlanOrder({ soplans = [], selectedYear, availableYears = [], allProducts = [], allCustomers = [], allDestinations = [], allVehicles = [] }: PageProps) {
     const { props } = usePage<any>();
-    const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
+    const [selectedOrders, setSelectedOrders] = useState<(number | string)[]>([]);
     const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -355,6 +359,7 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
             router.visit('/qac/coa/seed?sopid=' + (order.rawData?.sopId || order.orderNumber));
         }
     }, []);
+
 
     // ฟังก์ชันสำหรับสร้าง PDF จากหน้าตารางโดยตรง ไม่ต้องเข้าไปใน Modal
     const handleGeneratePDF = useCallback(async (order: PlanOrder, type: string) => {
@@ -541,7 +546,7 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
         });
     }, [orders, filters]);
 
-    const handleSelectOrder = (orderId: number) => {
+    const handleSelectOrder = (orderId: number | string) => {
         setSelectedOrders(prev =>
             prev.includes(orderId) ? prev.filter(id => id !== orderId) : [...prev, orderId]
         );
@@ -697,7 +702,7 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
         setIsLoading(true);
 
         if (!data.id && editingOrder) {
-            data.id = editingOrder.id;
+            data.id = editingOrder.id as any;
         }
 
         console.log('📝 Submitting edit:', data);
@@ -710,8 +715,8 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
                 const newData = response.props.soplans as SOPlanData[];
 
                 if (newData && newData.length > 0) {
-                    // หาข้อมูลที่เพิ่งแก้ไข
-                    const updated = newData.find(item => parseInt(item.SOPID) === data.id);
+                    // หาข้อมูลที่เพิ่งแก้ไขใน props.soplans (ข้อมูลที่ผ่าน Filter ปัจจุบัน)
+                    const updated = newData.find(item => item.SOPID === String(data.id));
 
                     if (updated) {
                         const updatedOrder = convertSOPlanToPlanOrder(updated);
@@ -722,6 +727,12 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
                                 order.id === data.id ? updatedOrder : order
                             )
                         );
+                    } else if ((response.props.flash as any)?.data) {
+                        // หากหาไม่เจอใน newData (อาจเพราะถูก Filter ออก เช่น เปลี่ยนวันที่)
+                        // แต่เราได้รับข้อมูลล่าสุดจาก flash data (ถ้ามี) หรือใช้ข้อมูลที่เพิ่งส่งไปอัปเดตเบื้องต้น
+                        console.log('ℹ️ Updated record filtered out from current view');
+                        // ลบออกจากรายการปัจจุบันเพราะไม่ตรง Filter แล้ว
+                        setOrders(prev => prev.filter(order => order.id !== data.id));
                     }
                 }
 

@@ -57,7 +57,7 @@ import { useMemo, useState } from 'react';
 import Swal from 'sweetalert2';
 
 export interface PlanOrder {
-    id: number;
+    id: number | string;
     orderNumber: string;
     orderDate: string;
     productName: string;
@@ -67,7 +67,8 @@ export interface PlanOrder {
     customerID?: string | null;
     licensePlate?: string | null;
     driverName?: string | null;
-    netWeight: number;
+    netWeight: number; // Actual weight
+    plannedWeight: number; // Planned weight
     unit: string;
     displayWeight?: string;
     coaNumber?: string;
@@ -96,8 +97,8 @@ export interface PlanOrder {
 
 interface Props {
     orders: PlanOrder[];
-    selectedOrders?: number[];
-    onSelectOrder?: (orderId: number) => void;
+    selectedOrders?: (number | string)[];
+    onSelectOrder?: (orderId: number | string) => void;
     onSelectAll?: () => void;
     stats?: {
         total: number;
@@ -478,12 +479,12 @@ export default function PlanOrderTable({
                                     <TableHead>ขนส่ง</TableHead>
 
                                     <TableHead
-                                        className="w-[130px] cursor-pointer text-right transition-colors hover:bg-gray-200/80"
+                                        className="w-[150px] cursor-pointer text-right transition-colors hover:bg-gray-200/80"
                                         onClick={() => requestSort('netWeight')}
                                     >
                                         <div className="flex items-center justify-end gap-1.5 font-medium text-gray-700">
                                             <Scale className="h-4 w-4 text-gray-500" />
-                                            <span>น้ำหนัก</span>
+                                            <span>น้ำหนัก (กก.)</span>
                                             {sortConfig?.key === 'netWeight' && (
                                                 <ArrowUpDown
                                                     className={`h-3.5 w-3.5 text-blue-600 transition-transform duration-300 ${sortConfig.direction === 'desc' ? 'rotate-180' : ''
@@ -608,8 +609,15 @@ export default function PlanOrderTable({
                                                 </TableCell>
 
                                                 <TableCell className="text-right">
-                                                    <div className="text-sm font-semibold text-gray-900">
-                                                        {formatWeight(order.netWeight, order.unit)}
+                                                    <div className="flex flex-col items-end">
+                                                        <div className="text-sm font-bold text-gray-900 leading-tight">
+                                                            <span className="text-[10px] text-gray-400 font-normal mr-1">จริง:</span>
+                                                            {formatWeight(order.netWeight, '')}
+                                                        </div>
+                                                        <div className="text-[11px] text-gray-500 font-medium">
+                                                            <span className="text-[9px] text-gray-400 font-normal mr-1">แผน:</span>
+                                                            {formatWeight(order.plannedWeight, '')}
+                                                        </div>
                                                     </div>
                                                 </TableCell>
 

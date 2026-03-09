@@ -515,6 +515,10 @@ Route::prefix('mar')->name('mar.')->group(function () {
         ->middleware(['auth', 'verified'])
         ->name('plan-order.update-status');
 
+    Route::post('/plan-order/{id}/generate-coa', [SOPlanController::class, 'generateCoa'])
+        ->middleware(['auth', 'verified'])
+        ->name('plan-order.generate-coa');
+
     // Soft Delete
     Route::delete('/plan-order/{id}', [SOPlanController::class, 'destroy'])
         ->middleware(['auth', 'verified'])
