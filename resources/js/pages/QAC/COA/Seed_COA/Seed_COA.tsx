@@ -160,11 +160,21 @@ const parseDateString = (dateStr: string) => {
     return datePart.substring(0, 10);
 };
 
+const formatDisplayDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    // dateStr is expected to be YYYY-MM-DD from parseDateString
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const [y, m, d] = parts;
+    return `${d}/${m}/${y}`;
+};
+
 const Seed_COA: React.FC = () => {
     const [data, setData] = useState<SeedCOAData[]>([]);
+    const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [dateFilter, setDateFilter] = useState('');
+    const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
     const [currentPage, setCurrentPage] = useState(1);
     const [currentPageBottom, setCurrentPageBottom] = useState(1);
     const [labModal, setLabModal] = useState<{ open: boolean; data: SeedCOAData | null }>({ open: false, data: null });
@@ -287,7 +297,7 @@ const Seed_COA: React.FC = () => {
                 coa_user_id: auth?.user?.employee_id || '-',
             };
 
-            // ดึงข้อมูล Inspection
+            // ดึงข้อมูล
             try {
                 const res = await axios.get(`/mar/vehicle-inspections/${sopId}`);
                 if (res.data.success && res.data.data) {
@@ -348,44 +358,53 @@ const Seed_COA: React.FC = () => {
     const [expanded, setExpanded] = useState({ processing: true, others: true });
     const itemsPerPage = 10;
 
-    const fetchData = () => {
-        fetch('/mar/plan-order/pending-coa?type=palm-kernel')
-            .then(res => res.json())
-            .then(res => {
-                if (res.success && res.data) {
-                    const mapped: SeedCOAData[] = res.data.map((s: any) => ({
-                        id: s.SOPID,
-                        coa_no: s.coa_no || '-',
-                        lot_no: s.coa_lot || '-',
-                        product_name: s.GoodName || 'เมล็ดปาล์ม',
-                        customer_name: s.CustName || '',
-                        license_plate: s.NumberCar || '',
-                        driver_name: s.DriverName || '',
-                        ffa: s.ffa,
-                        m_i: s.m_i,
-                        iv: s.iv,
-                        dobi: s.dobi,
-                        result_shell: s.result_shell,
-                        result_kn_moisture: s.result_kn_moisture,
-                        spec_shell: s.spec_shell,
-                        spec_kn_moisture: s.spec_kn_moisture,
-                        coa_tank: s.coa_tank,
-                        notes: s.notes,
-                        inspector: s.coa_user_id || s.inspector,
-                        coa_user: s.inspector, // ดึงข้อมูล coa_user
-                        coa_mgr: s.coa_mgr,   // ดึงข้อมูล coa_mgr
-                        status: s.Status_coa || (s.Status === 'p' ? 'processing' : 'pending'),
-                        created_at: parseDateString(s.coa_date || s.SOPDate),
-                    }));
-                    setData(mapped);
-                }
-            })
-            .catch(err => console.error('Fetch error:', err));
+    const fetchData = async (date = '', keyword = '') => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`/mar/plan-order/pending-coa?type=palm-kernel${date ? `&date=${date}` : ''}${keyword ? `&q=${keyword}` : ''}`);
+            if (response.data.success && response.data.data) {
+                const mapped: SeedCOAData[] = response.data.data.map((s: any) => ({
+                    id: s.SOPID,
+                    coa_no: s.coa_no || '-',
+                    lot_no: s.coa_lot || '-',
+                    product_name: s.GoodName || 'เมล็ดปาล์ม',
+                    customer_name: s.CustName || '',
+                    license_plate: s.NumberCar || '',
+                    driver_name: s.DriverName || '',
+                    ffa: s.ffa,
+                    m_i: s.m_i,
+                    iv: s.iv,
+                    dobi: s.dobi,
+                    result_shell: s.result_shell,
+                    result_kn_moisture: s.result_kn_moisture,
+                    spec_shell: s.spec_shell,
+                    spec_kn_moisture: s.spec_kn_moisture,
+                    coa_tank: s.coa_tank,
+                    notes: s.notes,
+                    inspector: s.coa_user_id || s.inspector,
+                    coa_user: s.inspector, // ดึงข้อมูล coa_user
+                    coa_mgr: s.coa_mgr,   // ดึงข้อมูล coa_mgr
+                    status: s.Status_coa || (s.Status === 'p' ? 'processing' : 'pending'),
+                    created_at: parseDateString(s.coa_date || s.SOPDate),
+                }));
+                setData(mapped);
+            }
+        } catch (err) {
+            console.error('Fetch error:', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
-        fetchData();
+        const timer = setTimeout(() => {
+            fetchData(dateFilter, filter);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [dateFilter, filter]);
 
+    useEffect(() => {
+        // ตรวจสอบ SOPID จาก URL เพื่อดึงข้อมูลอัตโนมัติ
         const params = new URLSearchParams(window.location.search);
         const sopid = params.get('sopid');
         if (sopid) {
@@ -474,7 +493,7 @@ const Seed_COA: React.FC = () => {
 
             const res = response.data;
             if (res.success) {
-                await fetchData();
+                await fetchData(dateFilter);
                 setLabModal({ open: false, data: null });
                 Swal.fire({
                     icon: 'success',
@@ -522,7 +541,7 @@ const Seed_COA: React.FC = () => {
         if (result.isConfirmed) {
             try {
                 await axios.post('/qac/coa/cancel', { SOPID: id });
-                fetchData();
+                fetchData(dateFilter);
                 Swal.fire({
                     icon: 'success',
                     title: 'ยกเลิกข้อมูลสำเร็จ',
@@ -539,13 +558,12 @@ const Seed_COA: React.FC = () => {
     };
 
     const filteredData = data.filter(item =>
-        (!filter || [item.coa_no, item.lot_no, item.product_name, item.driver_name, item.license_plate].join(' ').toLowerCase().includes(filter.toLowerCase())) &&
-        (statusFilter === 'all' || item.status === statusFilter) &&
-        (!dateFilter || item.created_at === dateFilter)
+        (!filter || [item.coa_no, item.lot_no, item.product_name, item.driver_name, item.license_plate, item.customer_name, item.id?.toString() || ''].join(' ').toLowerCase().includes(filter.toLowerCase())) &&
+        (statusFilter === 'all' || item.status === statusFilter)
     );
 
-    const pendingData = filteredData.filter(item => ['pending', 'processing'].includes(item.status));
-    const processedData = filteredData.filter(item => !['pending', 'processing'].includes(item.status));
+    const pendingData = filteredData.filter(item => ['pending', 'processing', 'W'].includes(item.status));
+    const processedData = filteredData.filter(item => !['pending', 'processing', 'W'].includes(item.status));
 
     const getPaginatedData = (data: SeedCOAData[], page: number) =>
         data.slice((page - 1) * itemsPerPage, page * itemsPerPage);
@@ -658,7 +676,7 @@ const Seed_COA: React.FC = () => {
                         coa_mgr: 'ประภาพร เชื่อพระซอง' // บังคับใช้ชื่อนี้เสมอ
                     })
                 ));
-                fetchData();
+                fetchData(dateFilter);
                 setSelectedRows([]);
                 setSelectAll(false);
                 Swal.fire({
@@ -683,7 +701,7 @@ const Seed_COA: React.FC = () => {
     const TableRow = ({ row, index, page, color, showResults = true }: { row: SeedCOAData; index: number; page: number; color: string; showResults: boolean }) => (
         <tr className={`transition-all group hover:scale-[1.01] hover:shadow-lg hover:bg-gray-50`}>
             <td className="px-4 py-3 text-sm font-medium text-gray-900">{(page - 1) * itemsPerPage + index + 1}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{row.created_at}</td>
+            <td className="px-4 py-3 text-sm text-gray-600">{formatDisplayDate(row.created_at)}</td>
             <td className={`px-4 py-3 text-sm font-semibold text-${color}-600`}>{row.coa_no}</td>
             <td className="px-4 py-3 text-sm text-gray-900 font-bold">{row.coa_tank || '-'}</td>
             <td className="px-4 py-3 text-sm text-gray-600">{row.lot_no}</td>
@@ -746,7 +764,7 @@ const Seed_COA: React.FC = () => {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={() => router.get(`/qac/coa/seed/${row.id}`)}>
+                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={() => Swal.fire({ icon: 'info', title: 'Coming Soon', text: 'This feature is currently under development.' })}>
                                 <Eye className="h-4 w-4 text-blue-500" />
                                 <span>ดูรายละเอียด</span>
                             </DropdownMenuItem>
@@ -756,7 +774,7 @@ const Seed_COA: React.FC = () => {
                                     <span>แก้ไข</span>
                                 </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={() => router.get(`/qac/coa/seed/${row.id}/history`)}>
+                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={() => Swal.fire({ icon: 'info', title: 'Coming Soon', text: 'History view is currently under development.' })}>
                                 <History className="h-4 w-4 text-purple-500" />
                                 <span>ประวัติ</span>
                             </DropdownMenuItem>
@@ -814,7 +832,7 @@ const Seed_COA: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-500">COA No.</span>
-                            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{row.created_at}</span>
+                            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{formatDisplayDate(row.created_at)}</span>
                         </div>
                         <div className="font-bold text-gray-900">{row.coa_no}</div>
                     </div>
@@ -1092,6 +1110,13 @@ const Seed_COA: React.FC = () => {
 
                 {/* Main Content */}
                 <div className="p-6">
+                    {/* Recent Records Info Label */}
+                    {!dateFilter && !filter && (
+                        <div className="mb-4 flex items-center gap-2 text-xs font-medium text-green-600 bg-green-50/50 px-3 py-2 rounded-xl border border-green-100 w-fit animate-pulse">
+                            <Info className="w-3.5 h-3.5" />
+                            แสดงรายการย้อนหลัง 60 วัน (ระบุวันที่หรือค้นหาเพื่อดูข้อมูลเก่ากว่า)
+                        </div>
+                    )}
                     {/* Filters */}
                     <div className="bg-white/80 rounded-2xl shadow-xl border border-gray-200 p-5 mb-6">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
