@@ -298,8 +298,8 @@ const Oil_COA: React.FC = () => {
         (statusFilter === 'all' || item.status === statusFilter)
     );
 
-    const pendingData = filteredData.filter(item => ['pending', 'processing', 'W'].includes(item.status));
-    const processedData = filteredData.filter(item => !['pending', 'processing', 'W'].includes(item.status));
+    const pendingData = filteredData.filter(item => ['pending', 'processing'].includes(item.status));
+    const processedData = filteredData.filter(item => !['pending', 'processing'].includes(item.status));
 
     const getPaginatedData = (data: OilCOAData[], page: number) =>
         data.slice((page - 1) * itemsPerPage, page * itemsPerPage);
