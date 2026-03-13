@@ -611,12 +611,7 @@ export default function PlanOrderTable({
                                                 <TableCell className="text-right">
                                                     <div className="flex flex-col items-end">
                                                         <div className="text-sm font-bold text-gray-900 leading-tight">
-                                                            <span className="text-[10px] text-gray-400 font-normal mr-1">จริง:</span>
                                                             {formatWeight(order.netWeight, '')}
-                                                        </div>
-                                                        <div className="text-[11px] text-gray-500 font-medium">
-                                                            <span className="text-[9px] text-gray-400 font-normal mr-1">แผน:</span>
-                                                            {formatWeight(order.plannedWeight, '')}
                                                         </div>
                                                     </div>
                                                 </TableCell>
