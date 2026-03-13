@@ -564,19 +564,8 @@ class SOPlanController extends Controller
             $numberCar = $vehicle['numberCar'] ?? '';
             $driverName = $vehicle['driverName'] ?? '';
 
-            // จัดการรถพ่วง (เช่น "82-0994สน / 68-4049กท")
-            if (preg_match('/(.+?)\s*\/\s*(.+)/', $numberCar, $matches)) {
-                $headTruck = trim($matches[1]);
-                $trailer = trim($matches[2]);
-                $plan->NumberCar = $headTruck;
-                $remarks = $data['notes'] ?? '';
-                $plan->Remarks = $remarks
-                    ? $remarks . " (รถพ่วง: {$trailer})"
-                    : "รถพ่วง: {$trailer}";
-            } else {
-                $plan->NumberCar = $numberCar;
-                $plan->Remarks = $data['notes'] ?? null;
-            }
+            $plan->NumberCar = $numberCar;
+            $plan->Remarks = $data['notes'] ?? null;
 
             $plan->DriverName = $driverName;
 
@@ -713,18 +702,8 @@ class SOPlanController extends Controller
                 $numberCar = $vehicle['numberCar'] ?? '';
                 $driverName = $vehicle['driverName'] ?? '';
 
-                if (preg_match('/(.+?)\s*\/\s*(.+)/', $numberCar, $matches)) {
-                    $headTruck = trim($matches[1]);
-                    $trailer = trim($matches[2]);
-                    $plan->NumberCar = $headTruck;
-                    $remarks = $data['notes'] ?? '';
-                    $plan->Remarks = $remarks
-                        ? $remarks . " (รถพ่วง: {$trailer})"
-                        : "รถพ่วง: {$trailer}";
-                } else {
-                    $plan->NumberCar = $numberCar;
-                    $plan->Remarks = $data['notes'] ?? null;
-                }
+                $plan->NumberCar = $numberCar;
+                $plan->Remarks = $data['notes'] ?? null;
 
                 $plan->DriverName = $driverName;
             } else {
