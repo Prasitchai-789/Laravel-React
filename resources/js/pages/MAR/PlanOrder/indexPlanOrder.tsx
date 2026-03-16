@@ -113,9 +113,10 @@ const mapProductType = (goodId: string, goodName: string): string => {
     return 'other';
 };
 
-const parseWeight = (weightStr: string): number => {
-    if (!weightStr) return 0;
-    const cleaned = weightStr.replace(/,/g, '');
+const parseWeight = (weightStr: any): number => {
+    if (weightStr === null || weightStr === undefined || weightStr === '') return 0;
+    if (typeof weightStr === 'number') return weightStr;
+    const cleaned = String(weightStr).replace(/,/g, '');
     const num = parseFloat(cleaned);
     return isNaN(num) ? 0 : num;
 };
