@@ -98,16 +98,16 @@ const StoreNavItems: NavItem[] = [
 ];
 
 const ITNavItem: NavItem[] = [
-    {
-        title: 'Projects',
-        href: '/projects',
-        icon: FolderOpenDot,
-    },
-    {
-        title: 'Community',
-        href: '/community',
-        icon: Handshake,
-    },
+    // {
+    //     title: 'Projects',
+    //     href: '/projects',
+    //     icon: FolderOpenDot,
+    // },
+    // {
+    //     title: 'Community',
+    //     href: '/community',
+    //     icon: Handshake,
+    // },
     {
         title: 'บันทึกเอกสาร',
         href: '/memo/documents',
@@ -431,7 +431,7 @@ export function AppSidebar() {
                 <NavMain items={mainNavItems} />
 
                 <hr className="border-t border-gray-200 my-1" />
-                <SidebarGroupLabel>Menu</SidebarGroupLabel>
+                <SidebarGroupLabel>ISP</SidebarGroupLabel>
 
                 {/* IT - Developer จะเห็นหมด */}
                 {(isDeveloper() || filterItemsByPermission(ITNavItem).length > 0) && (
@@ -464,7 +464,7 @@ export function AppSidebar() {
                                 <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
                                     <ChartNoAxesCombined className="h-6 w-6" />
                                     <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
-                                        ฝ่ายผลิต
+                                        ฝ่ายผลิตและวิศวกรรม
                                     </span>
                                     <ChevronDown className="ml-auto h-4 w-4" />
                                 </SidebarMenuButton>
@@ -502,70 +502,7 @@ export function AppSidebar() {
                     </DropdownMenu>
                 )}
 
-                {/* STORE - Developer จะเห็นหมด */}
-                {(isDeveloper() || filterItemsByPermission(StoreNavItems).length > 0) && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
-                                    <Warehouse className="h-6 w-6" />
-                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
-                                        Store
-                                    </span>
-                                    <ChevronDown className="ml-auto h-4 w-4" />
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
-                            <DropdownMenuGroup>
-                                <SidebarGroupLabel>Store</SidebarGroupLabel>
-                                <NavMain items={filterItemsByPermission(StoreNavItems)} />
-                            </DropdownMenuGroup>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )}
 
-                {/* AGR - Developer จะเห็นหมด */}
-                {(isDeveloper() || filterItemsByPermission(AGRNavItems).length > 0) && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
-                                    <Fence className="h-6 w-6" />
-                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">ฝ่ายสวนและต้นกล้า</span>
-                                    <ChevronDown className="ml-auto h-4 w-4" />
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
-                            <DropdownMenuGroup>
-                                <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                                <NavMain items={filterItemsByPermission(AGRNavItems)} />
-                            </DropdownMenuGroup>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )}
-
-                {/* FER - Developer จะเห็นหมด */}
-                {(isDeveloper() || filterItemsByPermission(FerNavItems).length > 0) && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
-                                    <Factory className="h-6 w-6" />
-                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">โรงปุ๋ย</span>
-                                    <ChevronDown className="ml-auto h-4 w-4" />
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
-                            <DropdownMenuGroup>
-                                <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                                <NavMain items={filterItemsByPermission(FerNavItems)} />
-                            </DropdownMenuGroup>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )}
 
                 {/* QAC - Developer จะเห็นหมด */}
                 {(isDeveloper() || filterItemsByPermission(QACNavItems).length > 0) && (
@@ -589,7 +526,7 @@ export function AppSidebar() {
                 )}
 
                 {/* ERP - Developer จะเห็นหมด */}
-                {(isDeveloper() || filterItemsByPermission(ERPItems).length > 0) && (
+                {/* {(isDeveloper() || filterItemsByPermission(ERPItems).length > 0) && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -606,6 +543,29 @@ export function AppSidebar() {
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>ERP</SidebarGroupLabel>
                                 <NavMain items={filterItemsByPermission(ERPItems)} />
+                            </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )} */}
+
+                {/* STORE - Developer จะเห็นหมด */}
+                {(isDeveloper() || filterItemsByPermission(StoreNavItems).length > 0) && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
+                                    <Warehouse className="h-6 w-6" />
+                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
+                                        จัดซื้อทั่วไป/สโตร์
+                                    </span>
+                                    <ChevronDown className="ml-auto h-4 w-4" />
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                            <DropdownMenuGroup>
+                                <SidebarGroupLabel>Store</SidebarGroupLabel>
+                                <NavMain items={filterItemsByPermission(StoreNavItems)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -634,6 +594,51 @@ export function AppSidebar() {
                     </DropdownMenu>
                 )}
             </SidebarContent>
+
+            <hr className="border-t border-gray-200 my-1" />
+            <SidebarGroupLabel>MUN</SidebarGroupLabel>
+
+            {/* FER - Developer จะเห็นหมด */}
+            {(isDeveloper() || filterItemsByPermission(FerNavItems).length > 0) && (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
+                                <Factory className="h-6 w-6" />
+                                <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">โรงปุ๋ย</span>
+                                <ChevronDown className="ml-auto h-4 w-4" />
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                        <DropdownMenuGroup>
+                            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+                            <NavMain items={filterItemsByPermission(FerNavItems)} />
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
+
+            {/* AGR - Developer จะเห็นหมด */}
+            {(isDeveloper() || filterItemsByPermission(AGRNavItems).length > 0) && (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton className="flex w-full items-center hover:text-blue-800">
+                                <Fence className="h-6 w-6" />
+                                <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">ฝ่ายสวนและต้นกล้า</span>
+                                <ChevronDown className="ml-auto h-4 w-4" />
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
+                        <DropdownMenuGroup>
+                            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+                            <NavMain items={filterItemsByPermission(AGRNavItems)} />
+                        </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
 
             <hr className="border-t border-gray-200 my-1" />
 

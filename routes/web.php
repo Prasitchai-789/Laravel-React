@@ -462,6 +462,10 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
     Route::get('/cpo/previous/date/{date}', [StockReportController::class, 'getStockCpoByDatePrevious']);
     Route::get('/report/stock-cpo/historical', [StockReportController::class, 'getHistoricalData'])->name('report.stock-cpo.historical');
     Route::get('/report/productions/summary', [StockProductController::class, 'apiProduction']);
+    Route::get('/report/productions2/summary', [StockProductController::class, 'apiProductionReport2']);
+    Route::get('/stock/production-report', function () {
+        return \Inertia\Inertia::render('QAC/ProductionReport2', []);
+    })->name('stock.production-report');
 });
 
 

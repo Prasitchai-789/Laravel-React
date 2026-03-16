@@ -421,7 +421,7 @@ export default function PlanOrderTable({
                             <TableHeader>
                                 <TableRow className="border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100/80">
                                     <TableHead
-                                        className="w-[110px] cursor-pointer transition-colors hover:bg-gray-200/80"
+                                        className="w-[110px] cursor-pointer transition-colors hover:bg-gray-200/80 text-center"
                                         onClick={() => requestSort('orderDate')}
                                     >
                                         <div className="flex items-center gap-1.5 font-medium text-gray-700">
@@ -437,12 +437,12 @@ export default function PlanOrderTable({
                                     </TableHead>
 
 
-                                    <TableHead>
+                                    {/* <TableHead>
                                         <div className="flex items-center gap-1.5 font-medium text-gray-700">
                                             <FileCheck className="h-4 w-4 text-gray-500" />
                                             <span>COA No.</span>
                                         </div>
-                                    </TableHead>
+                                    </TableHead> */}
 
                                     <TableHead
                                         className="cursor-pointer transition-colors hover:bg-gray-200/80"
@@ -543,15 +543,18 @@ export default function PlanOrderTable({
                                                 </TableCell>
 
 
-                                                <TableCell>
-                                                    <div className="inline-block rounded-lg bg-emerald-50/50 px-2 py-1 font-mono text-xs font-medium text-emerald-600">
-                                                        {order.rawData?.coaNumber || '-'}
-                                                    </div>
-                                                </TableCell>
 
                                                 <TableCell>
-                                                    <div>
-                                                        <div className="text-sm font-medium text-gray-900">{order.productName || '-'}</div>
+                                                     <div className="space-y-1">
+                                                            <div className="flex items-center gap-1.5 text-[12px]">
+                                                               <div className="text-sm font-medium text-gray-900 truncate">{order.productName || '-'}</div>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 text-[10px]">
+                                                                <span className="truncate text-blue-600">
+                                                                     {order.rawData?.coaNumber || '-'}
+                                                                </span>
+                                                            </div>
+                                                        
                                                     </div>
                                                 </TableCell>
 
@@ -562,7 +565,7 @@ export default function PlanOrderTable({
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
                                                                     <div
-                                                                        className="max-w-[200px] truncate text-sm font-medium"
+                                                                        className="truncate text-sm font-medium"
                                                                         title={order.customerName || ''}
                                                                     >
                                                                         {order.customerName || 'ไม่ระบุลูกค้า'}
@@ -579,9 +582,9 @@ export default function PlanOrderTable({
                                                 <TableCell>
                                                     <div className="space-y-1">
                                                         {order.licensePlate && (
-                                                            <div className="flex items-center gap-1.5 text-[10px]">
+                                                            <div className="flex items-center gap-1.5 text-[12px]">
                                                                 <Truck className="h-3 w-3 shrink-0 text-gray-500" />
-                                                                <span className="max-w-[100px] truncate text-gray-700" title={order.licensePlate}>
+                                                                <span className="max-w-[200px] truncate text-gray-700" title={order.licensePlate}>
                                                                     {order.licensePlate}
                                                                 </span>
                                                             </div>
@@ -589,19 +592,19 @@ export default function PlanOrderTable({
                                                         {order.driverName && (
                                                             <div className="flex items-center gap-1.5 text-[10px]">
                                                                 <User className="h-3 w-3 shrink-0 text-gray-500" />
-                                                                <span className="max-w-[100px] truncate text-gray-700" title={order.driverName}>
+                                                                <span className="max-w-[200px] truncate text-gray-700" title={order.driverName}>
                                                                     {order.driverName}
                                                                 </span>
                                                             </div>
                                                         )}
-                                                        {order.destination && (
+                                                        {/* {order.destination && (
                                                             <div className="flex items-center gap-1.5 text-[10px]">
                                                                 <MapPin className="h-3 w-3 shrink-0 text-gray-500" />
                                                                 <span className="max-w-[100px] truncate text-gray-700" title={order.destination}>
                                                                     {order.destination}
                                                                 </span>
                                                             </div>
-                                                        )}
+                                                        )} */}
                                                         {!order.licensePlate && !order.driverName && (
                                                             <span className="text-[10px] text-gray-400">-</span>
                                                         )}

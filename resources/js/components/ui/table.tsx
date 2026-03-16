@@ -79,7 +79,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      "p-4 align-middle [&:has([role=checkbox])]:pr-0",
+      "p-3 align-middle [&:has([role=checkbox])]:pr-0",
       "border-r border-gray-100 last:border-r-0", // เส้นขอบระหว่างคอลัมน์
       className
     )}

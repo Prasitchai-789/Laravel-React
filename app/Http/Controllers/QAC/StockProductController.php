@@ -203,6 +203,185 @@ class StockProductController extends Controller
         ]);
     }
 
+    /**
+     * รายงานการผลิต (Version 2) — ใช้ loop_back แทน skim
+     */
+    public function apiProductionReport2(Request $request)
+    {
+        $date = $request->query('date');
+        $date = $this->normalizeDate($date);
+
+        if (!$date) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Missing or invalid date'
+            ]);
+        }
+
+        // 1) Stock CPO วันที่เลือก
+        $current = DB::table('cpo_data')
+            ->whereDate('date', $date)
+            ->first();
+
+        if (!$current) {
+            return response()->json([
+                'success' => false,
+                'message' => "No stock data for date {$date}"
+            ]);
+        }
+
+        $currentCPO = (float) $current->total_cpo;
+        $ffa_cpo = (float) $current->ffa_cpo;
+        $dobi_cpo = (float) $current->dobi_cpo;
+
+        // 2) Stock CPO วันก่อนหน้า
+        $previous = DB::table('cpo_data')
+            ->whereDate('date', '<', $date)
+            ->orderBy('date', 'desc')
+            ->first();
+
+        $previousCPO = $previous ? (float) $previous->total_cpo : 0;
+
+        // 3) ยอดขาย GoodID 2147
+        $salesCPO = DB::connection('sqlsrv2')
+            ->table('SOPlan')
+            ->selectRaw('SUM(NetWei) AS total_netwei')
+            ->whereDate('SOPDate', $date)
+            ->where('GoodID', 2147)
+            ->first();
+
+        $salesCPOTons = $salesCPO ? ((float) $salesCPO->total_netwei / 1000) : 0;
+
+        // Stock silo วันที่เลือก
+        $currentSilo = DB::table('silo_records')
+            ->whereDate('record_date', $date)
+            ->first();
+
+        if (!$currentSilo) {
+            return response()->json([
+                'success' => false,
+                'message' => "No stock silo data for date {$date}"
+            ]);
+        }
+
+        $moisture_percent = (float) $currentSilo->moisture_percent;
+        $dirt_percent = (float) $currentSilo->shell_percent;
+
+        // Stock KN วันที่เลือก
+        $currentProducts = DB::table('stock_products')
+            ->whereDate('record_date', $date)
+            ->first();
+
+        if (!$currentProducts) {
+            return response()->json([
+                'success' => false,
+                'message' => "No stock data for date {$date}"
+            ]);
+        }
+
+        $currentKN = (float) $currentProducts->pkn;
+        $currentKNOut = (float) $currentProducts->pkn_out;
+        $currentEFBFiber = (float) $currentProducts->efb_fiber;
+        $currentShell = (float) $currentProducts->shell;
+        $currentEFB = (float) $currentProducts->efb;
+        $currentNUT = (float) $currentProducts->nut;
+        $currentNUTOut = (float) $currentProducts->nut_out;
+        $currentSilo1 = (float) $currentProducts->silo_1;
+        $currentSilo2 = (float) $currentProducts->silo_2;
+
+        // Stock KN วันก่อนหน้า
+        $previousKN = DB::table('stock_products')
+            ->whereDate('record_date', '<', $date)
+            ->orderBy('record_date', 'desc')
+            ->first();
+
+        $previousKN = $previousKN ? (float) $previousKN->pkn : 0;
+
+        // ยอดขาย GoodID 2152
+        $salesKN = DB::connection('sqlsrv2')
+            ->table('SOPlan')
+            ->selectRaw('SUM(NetWei) AS total_netwei')
+            ->whereDate('SOPDate', $date)
+            ->where('GoodID', 2152)
+            ->first();
+
+        $salesKNTons = $salesKN ? ((float) $salesKN->total_netwei / 1000) : 0;
+
+        // ปาล์มเข้าผลิต
+        $prod = DB::connection('sqlsrv3')
+            ->table('productions')
+            ->whereDate('Date', $date)
+            ->first();
+
+        $ffbGoodQty = $prod ? (float) $prod->FFBGoodQty : 0;
+        $ffbPurchase = $prod ? (float) $prod->FFBPurchase : 0;
+        $ffbForward = $prod ? (float) $prod->FFBForward : 0;
+        $ffbRemain = $prod ? (float) $prod->FFBRemain : 0;
+
+        $ffbGoodQtyOfMonth = $this->getMonthlyFFBSum($date);
+        $ffbPurchaseOfMonth = $this->getMonthlyFFBPurchaseSum($date);
+
+        // ★ ใช้ loop_back แทน skim
+        $loopBack = $current->loop_back ?? 0;
+
+        // สูตร Yield (ใช้ loop_back)
+        $yield = 0;
+        if ($ffbGoodQty > 0) {
+            $numerator = $currentCPO - ($previousCPO - $salesCPOTons);
+            $yield = (($numerator - $loopBack) / $ffbGoodQty) * 100;
+        }
+
+        $result = $this->calculateProductionSummary([
+            'currentCPO'    => $currentCPO,
+            'previousCPO'   => $previousCPO,
+            'salesCPOTons'  => $salesCPOTons,
+            'skim'          => $loopBack, // ใช้ loop_back ในสูตรเดียวกัน
+            'ffbGoodQty'    => $ffbGoodQty,
+            'currentKN'     => $currentKN,
+            'previousKN'    => $previousKN,
+            'salesKNTons'   => $salesKNTons,
+        ]);
+
+        $cpo_data_tank = $this->getCpoData($date);
+        $ffbTrend7Days = $this->getFFBTrend7Days($date);
+
+        return response()->json([
+            'success' => true,
+            'date' => $date,
+            'total_cpo' => round($currentCPO, 3),
+            'ffa_cpo' => round($ffa_cpo, 3),
+            'dobi_cpo' => round($dobi_cpo, 3),
+            'previous_total_cpo' => round($previousCPO, 3),
+            'sales_cpo_tons' => round($salesCPOTons, 3),
+            'ffb_good_qty' => round($ffbGoodQty, 3),
+            'yield_percent' => round($yield, 3),
+            'loop_back' => round((float) $loopBack, 3),
+            'ffb_good_qty_month' => round($ffbGoodQtyOfMonth, 3),
+            'ffb_purchase_month' => round($ffbPurchaseOfMonth, 3),
+            'ffb_forward' => round($ffbForward, 3),
+            'ffb_remain' => round($ffbRemain, 3),
+            'ffb_purchase' => round($ffbPurchase, 3),
+
+            'total_kn' => round($currentKN, 3),
+            'moisture_percent' => round($moisture_percent, 3),
+            'dirt_percent' => round($dirt_percent, 3),
+            'previous_total_kn' => round($previousKN, 3),
+            'sales_kn_tons' => round($salesKNTons, 3),
+
+            'kn_out' => round($currentKNOut, 3),
+            'efb_fiber' => round($currentEFBFiber, 3),
+            'shell' => round($currentShell, 3),
+            'efb' => round($currentEFB, 3),
+            'nut' => round($currentNUT, 3),
+            'nut_out' => round($currentNUTOut, 3),
+            'silo_1' => round($currentSilo1, 3),
+            'silo_2' => round($currentSilo2, 3),
+            'result' => $result,
+            'cpo_data_tank' => $cpo_data_tank,
+            'ffb_trend_7days' => $ffbTrend7Days,
+        ]);
+    }
+
     private function normalizeDate($dateInput)
     {
         if ($dateInput === 'latest') {
