@@ -139,6 +139,7 @@ class StockProductController extends Controller
         $ffbPurchaseOfMonth = $this->getMonthlyFFBPurchaseSum($date);
 
         $skim =  $current->skim ?? 0;
+        
         // -------------------
         // 5) สูตร Yield
         // -------------------
@@ -171,6 +172,7 @@ class StockProductController extends Controller
             'ffa_cpo' => round($ffa_cpo, 3),
             'dobi_cpo' => round($dobi_cpo, 3),
             'previous_total_cpo' => round($previousCPO, 3),
+            'product_cpo' => round((float) ($current->product_cpo ?? 0), 3),
             'sales_cpo_tons' => round($salesCPOTons, 3),
             'ffb_good_qty' => round($ffbGoodQty, 3),
             'yield_percent' => round($yield, 3),
@@ -230,7 +232,7 @@ class StockProductController extends Controller
             ]);
         }
 
-        $currentCPO = (float) $current->total_cpo;
+        $currentCPO = (float) $current->p_cpo;
         $ffa_cpo = (float) $current->ffa_cpo;
         $dobi_cpo = (float) $current->dobi_cpo;
 
@@ -240,7 +242,7 @@ class StockProductController extends Controller
             ->orderBy('date', 'desc')
             ->first();
 
-        $previousCPO = $previous ? (float) $previous->total_cpo : 0;
+        $previousCPO = $previous ? (float) $previous->p_cpo : 0;
 
         // 3) ยอดขาย GoodID 2147
         $salesCPO = DB::connection('sqlsrv2')
@@ -316,7 +318,8 @@ class StockProductController extends Controller
         $ffbGoodQty = $prod ? (float) $prod->FFBGoodQty : 0;
         $ffbPurchase = $prod ? (float) $prod->FFBPurchase : 0;
         $ffbForward = $prod ? (float) $prod->FFBForward : 0;
-        $ffbRemain = $prod ? (float) $prod->FFBRemain : 0;
+        //ยอดยกไป
+        $ffbRemain = $prod ? (float) $prod->FFBRemain : 0;  
 
         $ffbGoodQtyOfMonth = $this->getMonthlyFFBSum($date);
         $ffbPurchaseOfMonth = $this->getMonthlyFFBPurchaseSum($date);
@@ -324,11 +327,13 @@ class StockProductController extends Controller
         // ★ ใช้ loop_back แทน skim
         $loopBack = $current->loop_back ?? 0;
 
+        $productCPO =  $current->product_cpo ?? 0;
+
         // สูตร Yield (ใช้ loop_back)
         $yield = 0;
         if ($ffbGoodQty > 0) {
             $numerator = $currentCPO - ($previousCPO - $salesCPOTons);
-            $yield = (($numerator - $loopBack) / $ffbGoodQty) * 100;
+            $yield = (($productCPO + $loopBack) / $ffbGoodQty) * 100;
         }
 
         $result = $this->calculateProductionSummary([
@@ -352,6 +357,7 @@ class StockProductController extends Controller
             'ffa_cpo' => round($ffa_cpo, 3),
             'dobi_cpo' => round($dobi_cpo, 3),
             'previous_total_cpo' => round($previousCPO, 3),
+            'product_cpo' => round((float) ($current->product_cpo ?? 0), 3),
             'sales_cpo_tons' => round($salesCPOTons, 3),
             'ffb_good_qty' => round($ffbGoodQty, 3),
             'yield_percent' => round($yield, 3),
