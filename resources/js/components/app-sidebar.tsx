@@ -347,6 +347,12 @@ const QACNavItems: NavItem[] = [
         icon: ScrollText,
         permission: ['qac.view'],
     },
+    {
+        title: 'รายงานพาณิชย์',
+        href: '/stock/production-report',
+        icon: ScrollText,
+        permission: ['qac.view'],
+    },
 ];
 
 const CarUsageNavItems: NavItem[] = [

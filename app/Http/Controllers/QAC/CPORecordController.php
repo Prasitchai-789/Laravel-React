@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use App\Models\QAC\CpoRecord;
 use App\Models\QAC\CpoOilRoom;
 use App\Models\QAC\CpoTankInfo;
+use App\Models\MAR\SOPlan;
 use App\Models\QAC\StockProduct;
 use App\Models\QAC\CpoDensityRef;
 use Illuminate\Http\JsonResponse;
@@ -185,9 +186,24 @@ class CPORecordController extends Controller
 
         $calculatedCPO = $calculatedData['total_cpo'];
         $skim = floatval($validated['oil_room']['skim'] ?? 0);
+        $loop_back = floatval($validated['oil_room']['loop_back'] ?? 0);
 
         $totalStock = round($calculatedCPO, 3);
+        
+        $sales = SOPlan::whereDate('SOPDate', $formattedDate)
+            ->where('GoodID', 2147)
+            ->sum('NetWei');
+        $totalSales = $sales ? (floatval($sales) / 1000) : 0;
 
+        // คำนวณ product_cpo และ p_cpo
+        $previousRecord = CPOData::where('date', '<', $formattedDate)->orderBy('date', 'desc')->first();
+        $previousTotalCpo = $previousRecord ? floatval($previousRecord->total_cpo) : 0;
+        $previousPCpo = $previousRecord ? floatval($previousRecord->p_cpo) : 0;
+
+        $productCpo = $totalStock - ($previousTotalCpo - $totalSales) - $skim;
+        $pCpo = $previousPCpo + $productCpo + $loop_back - $totalSales;
+
+        
         if ($existingRecord) {
             // Update ข้อมูลที่มีอยู่
             $existingRecord->update([
@@ -249,6 +265,8 @@ class CPORecordController extends Controller
                 'skim' => $validated['oil_room']['skim'],
                 'mix' => $validated['oil_room']['mix'],
                 'loop_back' => $validated['oil_room']['loop_back'],
+                'product_cpo' => $productCpo,
+                'p_cpo' => $pCpo,
             ]);
 
             $cpoData = $existingRecord;
@@ -315,6 +333,8 @@ class CPORecordController extends Controller
                 'skim' => $validated['oil_room']['skim'],
                 'mix' => $validated['oil_room']['mix'],
                 'loop_back' => $validated['oil_room']['loop_back'],
+                'product_cpo' => $productCpo,
+                'p_cpo' => $pCpo,
             ]);
         }
 
@@ -446,8 +466,24 @@ class CPORecordController extends Controller
 
         $calculatedCPO = $calculatedData['total_cpo'];
         $skim = floatval($validated['oil_room']['skim'] ?? 0);
-
+        $loop_back = floatval($validated['oil_room']['loop_back'] ?? 0) ;
         $totalStock = round($calculatedCPO, 3);
+        
+        $formattedNewDate = date('Y-m-d', strtotime($newDate));
+        $sales = SOPlan::whereDate('SOPDate', $formattedNewDate)
+            ->where('GoodID', 2147)
+            ->sum('NetWei');
+        $totalSales = $sales ? (floatval($sales) / 1000) : 0;
+
+        // คำนวณ product_cpo และ p_cpo สำหรับ update (อิงจากวันก่อนหน้า)
+        $previousRecord = CPOData::where('date', '<', $formattedNewDate)->orderBy('date', 'desc')->first();
+        $previousTotalCpo = $previousRecord ? floatval($previousRecord->total_cpo) : 0;
+        $previousPCpo = $previousRecord ? floatval($previousRecord->p_cpo) : 0;
+
+       
+        $productCpo = $totalStock - ($previousTotalCpo - $totalSales) - $skim;
+        $pCpo = $previousPCpo + $productCpo + $loop_back - $totalSales;
+
         // อัพเดทข้อมูล CPOData
         $cpoData->update([
             'date' => $newDate,
@@ -510,6 +546,8 @@ class CPORecordController extends Controller
             'skim' => $validated['oil_room']['skim'],
             'mix' => $validated['oil_room']['mix'],
             'loop_back' => $validated['oil_room']['loop_back'],
+            'product_cpo' => $productCpo,
+            'p_cpo' => $pCpo,
         ]);
 
         // แปลงรูปแบบวันที่ให้ตรงกับ SQL Server

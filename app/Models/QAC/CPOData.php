@@ -31,7 +31,8 @@ class CPOData extends Model
         'tank4_bottom_ffa', 'tank4_bottom_moisture', 'tank4_bottom_dobi', 'tank4_sale',
         // Oil Room
         'total_cpo', 'ffa_cpo', 'dobi_cpo', 'cs1_cm',
-        'undilute_1', 'undilute_2', 'setting', 'clean_oil' ,'skim','mix','loop_back'
+        'undilute_1', 'undilute_2', 'setting', 'clean_oil' ,'skim','mix','loop_back',
+        'product_cpo', 'p_cpo'
     ];
 
 

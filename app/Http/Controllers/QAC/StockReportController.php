@@ -386,7 +386,8 @@ class StockReportController extends Controller
             ->orderBy('date', 'desc')
             ->first();
 
-        $previousCPO = $previous ? (float) $previous->total_cpo : 0;
+        $previousCPO = $previous ? (float) $previous->p_cpo : 0;
+        $productCPO = $current ? (float) $current->product_cpo : 0;
 
         // -------------------
         // 3) ยอดขาย GoodID 2147
@@ -417,8 +418,8 @@ class StockReportController extends Controller
         // -------------------
         $yield = 0;
         if ($ffbGoodQty > 0) {
-            $numerator = $currentCPO - ($previousCPO - $salesTons);
-            $yield = (($numerator - $skim) / $ffbGoodQty) * 100;
+            $loopBack = $current ? (float) $current->loop_back : 0;
+            $yield = (($loopBack + $productCPO) / $ffbGoodQty) * 100;
         }
 
         return response()->json([
@@ -426,10 +427,12 @@ class StockReportController extends Controller
             'date' => $date,
             'total_cpo' => round($currentCPO, 3),
             'previous_total_cpo' => round($previousCPO, 3),
+            'product_cpo' => round($productCPO, 3),
             'sales_tons' => round($salesTons, 3),
             'ffb_good_qty' => round($ffbGoodQty, 3),
             'yield_percent' => round($yield, 3),
             'skim' => round($skim, 3),
+            'loop_back' => $current ? round((float) $current->loop_back, 3) : 0,
         ]);
     }
 
