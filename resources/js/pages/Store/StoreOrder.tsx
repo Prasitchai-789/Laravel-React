@@ -14,6 +14,7 @@ interface Good {
     ProductType?: string;
     DeptID?: string;
     availableQty?: number;
+    reservedQty?: number;
 }
 
 interface CartItem extends Good {
@@ -207,11 +208,12 @@ export default function StoreOrder({ goods = [], flash }: Props) {
         if (!item) return;
 
         // ถ้าเกิน stock ให้บังคับเป็น stock
-        if (qty > item.availableQty) {
-            qty = item.availableQty;
+        const availableQty = item.availableQty ?? 0;
+        if (qty > availableQty) {
+            qty = availableQty;
             Swal.fire({
                 icon: 'warning',
-                title: `จำนวนสินค้าสูงสุดคือ ${item.availableQty}`,
+                title: `จำนวนสินค้าสูงสุดคือ ${availableQty.toFixed(2)}`,
                 timer: 1200,
                 showConfirmButton: false,
                 customClass: { popup: 'rounded-2xl font-anuphan' },
@@ -359,7 +361,7 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                 onSuccess: (page) => {
                     Swal.close();
 
-                    const flashData = page.props.flash;
+                    const flashData = page.props.flash as any;
 
                     Swal.fire({
                         icon: "success",
@@ -564,10 +566,10 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                                             <td className="p-4 text-center font-medium">
                                                 {g.availableQty && g.availableQty > 0 ? (
                                                     <span className="text-green-600">
-                                                        {g.availableQty.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} {g.GoodStockUnitName || 'หน่วย'}
+                                                        {g.availableQty.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {g.GoodStockUnitName || 'หน่วย'}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-red-500 font-semibold">0</span>
+                                                    <span className="text-red-500 font-semibold">0.00</span>
                                                 )}
                                             </td>
 
@@ -738,7 +740,7 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                                                             </div>
                                                         )}
                                                         <div className="text-xs text-gray-400 mt-1">
-                                                            พร้อมเบิก: {item.availableQty} {item.GoodStockUnitName || 'หน่วย'}
+                                                            พร้อมเบิก: {item.availableQty?.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) || '0.00'} {item.GoodStockUnitName || 'หน่วย'}
                                                         </div>
                                                     </td>
                                                     <td className="p-3 text-center">
@@ -746,7 +748,7 @@ export default function StoreOrder({ goods = [], flash }: Props) {
                                                            
                                                             <input
                                                                 type="number"
-                                                                step="0.1"
+                                                                step="0.01"
                                                                 min="0"
                                                                 value={item.qty}
                                                                 onChange={(e) => handleQtyChange(item.GoodID, e.target.value)}
