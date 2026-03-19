@@ -195,10 +195,10 @@ class StoreOrderController extends Controller
                 'GoodCode' => $item->good_code,
                 'GoodName' => $goodName,
                 'GoodStockUnitName' => $unitName,
-                'stock_qty' => $stockQty,
-                'safety_stock' => $safetyStock,
-                'reservedQty' => $reservedQty,
-                'availableQty' => $availableQty,
+                'stock_qty' => round($stockQty, 2),
+                'safety_stock' => round($safetyStock, 2),
+                'reservedQty' => round($reservedQty, 2),
+                'availableQty' => round($availableQty, 2),
                 'price' => $item->price,
                 'movements_count' => $movements->count(),
                 'initial_stock' => $item->stock_qty,
@@ -207,7 +207,7 @@ class StoreOrderController extends Controller
                     'movement_type' => $m->movement_type,
                     'type' => $m->type,
                     'status' => $m->status,
-                    'quantity' => floatval($m->quantity)
+                    'quantity' => round(floatval($m->quantity), 2)
                 ])->toArray()
             ];
         });
@@ -300,9 +300,9 @@ class StoreOrderController extends Controller
                         'id' => $item->ListNo,
                         'product_name' => $item->product_name,
                         'product_type' => $item->product_type,
-                        'stock_qty' => $item->stock_qty,
-                        'reserved_qty' => $item->reserved_qty,
-                        'remaining_qty' => $item->remaining_qty,
+                        'stock_qty' => round($item->stock_qty, 2),
+                        'reserved_qty' => round($item->reserved_qty, 2),
+                        'remaining_qty' => round($item->remaining_qty, 2),
                     ];
                 })->values(),
             ]);
@@ -780,10 +780,10 @@ class StoreOrderController extends Controller
                 'GoodCode' => $item->good_code,
                 'GoodName' => $goodName,
                 'GoodStockUnitName' => $unitName,
-                'stock_qty' => $stockQty,
-                'safety_stock' => $safetyStock,
-                'reservedQty' => $reservedQty,
-                'availableQty' => $availableQty,
+                'stock_qty' => round($stockQty, 2),
+                'safety_stock' => round($safetyStock, 2),
+                'reservedQty' => round($reservedQty, 2),
+                'availableQty' => round($availableQty, 2),
                 'price' => $item->price,
                 'movements_count' => $movements->count(),
             ];
@@ -1305,9 +1305,9 @@ class StoreOrderController extends Controller
 
             return [
                 'GoodCode' => $item->good_code,
-                'stock_qty' => $stockQty,
-                'reservedQty' => $reservedQty,
-                'availableQty' => $availableQty,
+                'stock_qty' => round($stockQty, 2),
+                'reservedQty' => round($reservedQty, 2),
+                'availableQty' => round($availableQty, 2),
                 'GoodStockUnitName' => $unitName,
                 'GoodName' => $goodName,
             ];
@@ -1645,9 +1645,9 @@ class StoreOrderController extends Controller
                 'GoodCode' => $item->good_code,
                 'GoodName' => $goodName,
                 'GoodStockUnitName' => $unitName,
-                'stock_qty' => $stockQty,
-                'reservedQty' => $reservedQty,
-                'availableQty' => $availableQty,
+                'stock_qty' => round($stockQty, 2),
+                'reservedQty' => round($reservedQty, 2),
+                'availableQty' => round($availableQty, 2),
                 'price' => $item->price,
             ];
         });
