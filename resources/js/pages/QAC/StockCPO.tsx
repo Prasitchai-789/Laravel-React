@@ -343,6 +343,8 @@ export default function StockCPO() {
             cleanOil: safeTon(apiData.clean_oil),
             ffa_cpo: safeTon(apiData.ffa_cpo),
             dobi_cpo: safeTon(apiData.dobi_cpo),
+            purgeSystem: safeTon(apiData.purge_system),
+            adjustment: safeTon(apiData.adjustment),
         });
     };
 
@@ -838,7 +840,7 @@ export default function StockCPO() {
                     </div>
 
                     {/* Parameters Section */}
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-6">
                         {/* Undilute & Settings Card */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -946,6 +948,25 @@ export default function StockCPO() {
 
                             <p className="mt-1 text-xs text-rose-600">CPO T1,2 → Crude Oil</p>
                         </motion.div>
+
+                        {/* ไล่ระบบ */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.8 }}
+                            whileHover={{ scale: 1.02 }}
+                            className="rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 to-rose-50 p-5 shadow-sm"
+                        >
+                            <div className="mb-2 flex items-center justify-between">
+                                <p className="font-semibold text-gray-700">ไล่ระบบ</p>
+                                <Info className="h-4 w-4 text-red-500" />
+                            </div>
+                            <p className="text-3xl font-bold text-red-700">{safeFixed(data.purgeSystem, 3)}</p>
+
+                            <p className="mt-1 text-xs text-red-600">ปริมาณไล่ระบบ (ตัน)</p>
+                        </motion.div>
+
+                       
                     </div>
                 </motion.div>
             </div>

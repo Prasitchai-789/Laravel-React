@@ -166,6 +166,8 @@ class CPORecordController extends Controller
             'oil_room.skim' => 'nullable|numeric',
             'oil_room.mix' => 'nullable|numeric',
             'oil_room.loop_back' => 'nullable|numeric',
+            'oil_room.purge_system' => 'nullable|numeric',
+            'oil_room.adjustment' => 'nullable|numeric',
         ]);
 
         $productionMode = $validated['production_mode'] ?? 'production';
@@ -186,7 +188,7 @@ class CPORecordController extends Controller
 
         $calculatedCPO = $calculatedData['total_cpo'];
         $skim = floatval($validated['oil_room']['skim'] ?? 0);
-        $loop_back = floatval($validated['oil_room']['loop_back'] ?? 0);
+        $purge_system = floatval($validated['oil_room']['purge_system'] ?? 0);
 
         $totalStock = round($calculatedCPO, 3);
         
@@ -201,7 +203,7 @@ class CPORecordController extends Controller
         $previousPCpo = $previousRecord ? floatval($previousRecord->p_cpo) : 0;
 
         $productCpo = $totalStock - ($previousTotalCpo - $totalSales) - $skim;
-        $pCpo = $previousPCpo + $productCpo + $loop_back - $totalSales;
+        $pCpo = $previousPCpo + $productCpo + $purge_system - $totalSales;
 
         
         if ($existingRecord) {
@@ -265,6 +267,8 @@ class CPORecordController extends Controller
                 'skim' => $validated['oil_room']['skim'],
                 'mix' => $validated['oil_room']['mix'],
                 'loop_back' => $validated['oil_room']['loop_back'],
+                'purge_system' => $validated['oil_room']['purge_system'],
+                'adjustment' => $validated['oil_room']['adjustment'],
                 'product_cpo' => $productCpo,
                 'p_cpo' => $pCpo,
             ]);
@@ -333,6 +337,8 @@ class CPORecordController extends Controller
                 'skim' => $validated['oil_room']['skim'],
                 'mix' => $validated['oil_room']['mix'],
                 'loop_back' => $validated['oil_room']['loop_back'],
+                'purge_system' => $validated['oil_room']['purge_system'],
+                'adjustment' => $validated['oil_room']['adjustment'],
                 'product_cpo' => $productCpo,
                 'p_cpo' => $pCpo,
             ]);
@@ -445,6 +451,8 @@ class CPORecordController extends Controller
             'oil_room.skim' => 'nullable|numeric',
             'oil_room.mix' => 'nullable|numeric',
             'oil_room.loop_back' => 'nullable|numeric',
+            'oil_room.purge_system' => 'nullable|numeric',
+            'oil_room.adjustment' => 'nullable|numeric',
         ]);
 
         $productionMode = $validated['production_mode'] ?? 'production';
@@ -466,7 +474,7 @@ class CPORecordController extends Controller
 
         $calculatedCPO = $calculatedData['total_cpo'];
         $skim = floatval($validated['oil_room']['skim'] ?? 0);
-        $loop_back = floatval($validated['oil_room']['loop_back'] ?? 0) ;
+        $purge_system = floatval($validated['oil_room']['purge_system'] ?? 0) ;
         $totalStock = round($calculatedCPO, 3);
         
         $formattedNewDate = date('Y-m-d', strtotime($newDate));
@@ -482,7 +490,7 @@ class CPORecordController extends Controller
 
        
         $productCpo = $totalStock - ($previousTotalCpo - $totalSales) - $skim;
-        $pCpo = $previousPCpo + $productCpo + $loop_back - $totalSales;
+        $pCpo = $previousPCpo + $productCpo + $purge_system - $totalSales;
 
         // อัพเดทข้อมูล CPOData
         $cpoData->update([
@@ -545,7 +553,8 @@ class CPORecordController extends Controller
             'clean_oil' => $validated['oil_room']['clean_oil'],
             'skim' => $validated['oil_room']['skim'],
             'mix' => $validated['oil_room']['mix'],
-            'loop_back' => $validated['oil_room']['loop_back'],
+            'purge_system' => $validated['oil_room']['purge_system'],
+            'adjustment' => $validated['oil_room']['adjustment'],
             'product_cpo' => $productCpo,
             'p_cpo' => $pCpo,
         ]);

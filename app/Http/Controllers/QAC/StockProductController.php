@@ -176,7 +176,7 @@ class StockProductController extends Controller
             'sales_cpo_tons' => round($salesCPOTons, 3),
             'ffb_good_qty' => round($ffbGoodQty, 3),
             'yield_percent' => round($yield, 3),
-            'skim' => round($skim, 3),
+            'skim' => round((float) $skim, 3),
             'ffb_good_qty_month' => round($ffbGoodQtyOfMonth, 3),
             'ffb_purchase_month' => round($ffbPurchaseOfMonth, 3),
             'ffb_forward' => round($ffbForward, 3),
@@ -206,7 +206,7 @@ class StockProductController extends Controller
     }
 
     /**
-     * รายงานการผลิต (Version 2) — ใช้ loop_back แทน skim
+     * รายงานการผลิต (Version 2) — ใช้ purge_system แทน skim
      */
     public function apiProductionReport2(Request $request)
     {
@@ -324,23 +324,23 @@ class StockProductController extends Controller
         $ffbGoodQtyOfMonth = $this->getMonthlyFFBSum($date);
         $ffbPurchaseOfMonth = $this->getMonthlyFFBPurchaseSum($date);
 
-        // ★ ใช้ loop_back แทน skim
-        $loopBack = $current->loop_back ?? 0;
+        // ★ ใช้ purge_system แทน skim
+        $purgeSystem = $current->purge_system ?? 0;
 
         $productCPO =  $current->product_cpo ?? 0;
 
-        // สูตร Yield (ใช้ loop_back)
+        // สูตร Yield (ใช้ purge_system)
         $yield = 0;
         if ($ffbGoodQty > 0) {
             $numerator = $currentCPO - ($previousCPO - $salesCPOTons);
-            $yield = (($productCPO + $loopBack) / $ffbGoodQty) * 100;
+            $yield = (($productCPO + $purgeSystem) / $ffbGoodQty) * 100;
         }
 
         $result = $this->calculateProductionSummary([
             'currentCPO'    => $currentCPO,
             'previousCPO'   => $previousCPO,
             'salesCPOTons'  => $salesCPOTons,
-            'skim'          => $loopBack, // ใช้ loop_back ในสูตรเดียวกัน
+            'skim'          => $purgeSystem, // ใช้ purge_system ในสูตรเดียวกัน
             'ffbGoodQty'    => $ffbGoodQty,
             'currentKN'     => $currentKN,
             'previousKN'    => $previousKN,
@@ -361,7 +361,7 @@ class StockProductController extends Controller
             'sales_cpo_tons' => round($salesCPOTons, 3),
             'ffb_good_qty' => round($ffbGoodQty, 3),
             'yield_percent' => round($yield, 3),
-            'loop_back' => round((float) $loopBack, 3),
+            'purge_system' => round((float) $purgeSystem, 3),
             'ffb_good_qty_month' => round($ffbGoodQtyOfMonth, 3),
             'ffb_purchase_month' => round($ffbPurchaseOfMonth, 3),
             'ffb_forward' => round($ffbForward, 3),
