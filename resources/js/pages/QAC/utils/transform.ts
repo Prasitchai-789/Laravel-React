@@ -46,6 +46,8 @@ export const transformRecordData = (record: CPORecord) => {
             skim: r.skim ?? "",
             mix: r.mix ?? "",
             loop_back: r.loop_back ?? "",
+            purge_system: r.purge_system ?? "",
+            adjustment: r.adjustment ?? "",
         },
     };
 };

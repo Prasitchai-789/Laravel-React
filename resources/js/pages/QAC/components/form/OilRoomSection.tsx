@@ -120,6 +120,26 @@ export default function OilRoomSection({ oilRoom, onChange }: Props) {
                     onChange={(v) => onChange("loop_back", v)}
                     focusColor="teal"
                 />
+
+                {/* ปริมาณไล่ระบบ */}
+                <OilRoomItem
+                    label="ไล่ระบบ (ตัน)"
+                    iconBg="from-red-500 to-rose-500"
+                    icon={Beaker}
+                    value={oilRoom.purge_system}
+                    onChange={(v) => onChange("purge_system", v)}
+                    focusColor="rose"
+                />
+
+                {/* ปรับ/+- */}
+                <OilRoomItem
+                    label="ระบบ (ตัน)"
+                    iconBg="from-violet-500 to-purple-500"
+                    icon={Beaker}
+                    value={oilRoom.adjustment}
+                    onChange={(v) => onChange("adjustment", v)}
+                    focusColor="violet"
+                />
             </div>
         </motion.div>
     );

@@ -32,6 +32,7 @@ class CPOData extends Model
         // Oil Room
         'total_cpo', 'ffa_cpo', 'dobi_cpo', 'cs1_cm',
         'undilute_1', 'undilute_2', 'setting', 'clean_oil' ,'skim','mix','loop_back',
+        'purge_system', 'adjustment',
         'product_cpo', 'p_cpo'
     ];
 

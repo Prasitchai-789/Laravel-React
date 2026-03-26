@@ -125,6 +125,8 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
                 skim: '',
                 mix: '',
                 loop_back: '',
+                purge_system: '',
+                adjustment: '',
             },
         };
     };
@@ -392,6 +394,8 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
             skim: record.skim ?? '',
             mix: record.mix ?? '',
             loop_back: record.loop_back ?? '',
+            purge_system: record.purge_system ?? '',
+            adjustment: record.adjustment ?? '',
         };
 
         // ---- SET FORM ----

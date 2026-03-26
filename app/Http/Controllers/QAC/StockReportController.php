@@ -411,9 +411,9 @@ class StockReportController extends Controller
         $ffbGoodQty = $prod ? (float) $prod->FFBGoodQty : 0;
 
 
-        $skim =  $current->skim ?? 0;
+         $skim =  $current->skim ?? 0;
         // -------------------
-        // 5) สูตร Yield (เหมือน stock/report)
+        // 5) สูตร Yield (ใช้ purge_system)
         // -------------------
         $yield = 0;
         if ($ffbGoodQty > 0) {

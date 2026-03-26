@@ -14,6 +14,8 @@ export default function OilRoomCard({ oil }: Props) {
         { label: "Clean Oil", value: oil.clean_oil, color: "text-green-700" },
         { label: "Mix (Ton)", value: oil.mix, color: "text-red-700" },
         { label: "Loop Back (Ton)", value: oil.loop_back, color: "text-red-700" },
+        { label: "ไล่ระบบ (Ton)", value: oil.purge_system, color: "text-red-700" },
+        { label: "ระบบ (Ton)", value: oil.adjustment, color: "text-violet-700" },
     ];
 
     return (
