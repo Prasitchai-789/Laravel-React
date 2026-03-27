@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\SalesOrderController;
 use App\Http\Controllers\QAC\SiloRecordController;
 use App\Http\Controllers\QAC\StockReportController;
 use App\Http\Controllers\QAC\StockProductController;
+use App\Http\Controllers\QAC\SkimMixRecordController;
 use App\Http\Controllers\Store\StoreOrderController;
 use App\Http\Controllers\RPO\PurchaseSummaryController;
 use App\Http\Controllers\Store\StoreMovementController;
@@ -432,6 +433,15 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
     Route::put('/cpo/{id}', [CPORecordController::class, 'update'])->name('cpo.update');
     Route::delete('/cpo/{id}', [CPORecordController::class, 'destroy'])->name('cpo.destroy');
     Route::get('/cpo/api', [CPORecordController::class, 'apiRecord'])->name('cpo.api');
+
+    // Skim/Mix Record
+    Route::get('/skim-mix', [SkimMixRecordController::class, 'index'])->name('skim-mix.index');
+    Route::post('/skim-mix', [SkimMixRecordController::class, 'store'])->name('skim-mix.store');
+    Route::get('/skim-mix/api', [SkimMixRecordController::class, 'apiRecords'])->name('skim-mix.api');
+    Route::get('/skim-mix/summary', [SkimMixRecordController::class, 'apiSummary'])->name('skim-mix.summary');
+    Route::get('/skim-mix/prefill', [SkimMixRecordController::class, 'apiPrefillData'])->name('skim-mix.prefill');
+    Route::put('/skim-mix/{id}', [SkimMixRecordController::class, 'update'])->name('skim-mix.update');
+    Route::delete('/skim-mix/{id}', [SkimMixRecordController::class, 'destroy'])->name('skim-mix.destroy');
 
     Route::get('/stock/kernel', [SiloRecordController::class, 'index'])->name('stock.kernel.index');
     Route::post('/stock/kernel', [SiloRecordController::class, 'store']);
