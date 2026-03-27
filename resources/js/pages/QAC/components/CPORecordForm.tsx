@@ -1,4 +1,5 @@
 import { usePage } from '@inertiajs/react';
+import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Beaker, CheckSquare, Filter, FlaskConical, Save } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -408,6 +409,59 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
         const tanksSelected = tankNumbers.filter((no) => record[`tank${no}_oil_level`] !== null && record[`tank${no}_oil_level`] !== undefined);
         setSelectedTanks(tanksSelected);
     }, [record]);
+
+    // ดึงข้อมูล Skim/Mix prefill เมื่อสร้างใหม่ (ไม่ใช่ edit)
+    const loadSkimMixPrefill = async (date: string) => {
+        try {
+            const res = await axios.get('/skim-mix/prefill', { params: { date } });
+            if (res.data.success && res.data.has_data) {
+                setFormData((prev) => {
+                    const updatedTanks = [...prev.tanks];
+                    // อัพเดท Tank 1
+                    const tank1Index = updatedTanks.findIndex((t) => t.tank_no === 1);
+                    if (tank1Index !== -1 && res.data.tank1_oil_level !== null) {
+                        const oilLevel = String(res.data.tank1_oil_level);
+                        const temperature = String(res.data.tank1_temperature);
+                        const cpoVolume = res.data.tank1_cpo_volume ? Number(res.data.tank1_cpo_volume).toFixed(3) : '';
+                        updatedTanks[tank1Index] = {
+                            ...updatedTanks[tank1Index],
+                            oil_level: oilLevel,
+                            temperature: temperature,
+                            cpo_volume: cpoVolume,
+                        };
+                    }
+
+                    // คำนวณ totalCPO ใหม่
+                    const totalCPO = updatedTanks
+                        .filter((tank) => selectedTanks.includes(Number(tank.tank_no)))
+                        .reduce((sum, tank) => {
+                            const v = safeParseNumber(tank.cpo_volume);
+                            return sum + (v === null ? 0 : v);
+                        }, 0);
+
+                    return {
+                        ...prev,
+                        tanks: updatedTanks,
+                        oil_room: {
+                            ...prev.oil_room,
+                            total_cpo: totalCPO > 0 ? totalCPO.toFixed(3) : '',
+                            skim: res.data.skim_total ? String(res.data.skim_total) : '',
+                            mix: res.data.mix_total ? String(res.data.mix_total) : '',
+                        },
+                    };
+                });
+            }
+        } catch (err) {
+            console.error('loadSkimMixPrefill error', err);
+        }
+    };
+
+    // เรียก prefill เมื่อสร้างใหม่ หรือเมื่อเปลี่ยนวันที่ (เฉพาะ create mode)
+    useEffect(() => {
+        if (!record && formData.date) {
+            loadSkimMixPrefill(formData.date);
+        }
+    }, [record, formData.date]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
