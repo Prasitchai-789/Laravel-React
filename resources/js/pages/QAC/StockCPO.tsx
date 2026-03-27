@@ -14,7 +14,11 @@ const safeNum = (value: any) => {
 
 const safeFixed = (value: any, digits: number = 3) => {
     const n = safeNum(value);
-    return n.toFixed(digits);
+    return Number(n).toLocaleString('en-US', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+        minimumIntegerDigits: 1,
+    });
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
