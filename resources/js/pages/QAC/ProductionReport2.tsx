@@ -122,7 +122,7 @@ export default function ProductionReport2() {
                 <div className="mb-1 flex flex-row items-start justify-between border-b border-blue-200/50 pb-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 className="bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-lg font-bold text-transparent sm:text-xl">
-                            รายงานการผลิต
+                            รายงานการผลิต (พาณิชย์)
                         </h2>
                         <p className="mt-0.5 flex items-center text-xs text-gray-500">
                             <BarChart3 size={12} className="mr-1" />
@@ -355,7 +355,7 @@ export default function ProductionReport2() {
                 <div className="mb-1 flex flex-row items-start justify-between border-b border-blue-200/50 pb-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h2 className="bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-lg font-bold text-transparent sm:text-xl">
-                            รายงานการผลิต
+                            รายงานการผลิต (พาณิชย์)
                         </h2>
                         <p className="mt-0.5 flex items-center text-xs text-gray-500">
                             <BarChart3 size={12} className="mr-1" />
