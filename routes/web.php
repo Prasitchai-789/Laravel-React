@@ -443,10 +443,24 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
     Route::put('/skim-mix/{id}', [SkimMixRecordController::class, 'update'])->name('skim-mix.update');
     Route::delete('/skim-mix/{id}', [SkimMixRecordController::class, 'destroy'])->name('skim-mix.destroy');
 
-    // Yield Report
     Route::get('/yield-report', [\App\Http\Controllers\QAC\YieldReportController::class, 'index'])->name('yield-report.index');
     Route::get('/yield-report/api', [\App\Http\Controllers\QAC\YieldReportController::class, 'apiData'])->name('yield-report.api');
     Route::get('/yield-report/monthly', [\App\Http\Controllers\QAC\YieldReportController::class, 'apiMonthlyYield'])->name('yield-report.monthly');
+
+    // CCTV Preventive Maintenance
+    // CCTV
+    Route::get('/cctv-inspection', [\App\Http\Controllers\CCTV\CctvController::class, 'index'])->name('cctv.index');
+    Route::get('/cctv-inspection/form/{id}', [\App\Http\Controllers\CCTV\CctvController::class, 'form'])->name('cctv.form');
+    Route::get('/cctv-inspection/api', [\App\Http\Controllers\CCTV\CctvController::class, 'apiData'])->name('cctv.api');
+    Route::get('/cctv-inspection/api/{id}', [\App\Http\Controllers\CCTV\CctvController::class, 'show'])->name('cctv.show');
+    Route::post('/cctv-inspection', [\App\Http\Controllers\CCTV\CctvController::class, 'store'])->name('cctv.store');
+
+    // DVR Management
+    Route::get('/dvrs', [\App\Http\Controllers\CCTV\DvrController::class, 'index'])->name('dvrs.index');
+    Route::get('/dvrs/api', [\App\Http\Controllers\CCTV\DvrController::class, 'apiIndex'])->name('dvrs.api');
+    Route::post('/dvrs', [\App\Http\Controllers\CCTV\DvrController::class, 'store'])->name('dvrs.store');
+    Route::put('/dvrs/{dvr}', [\App\Http\Controllers\CCTV\DvrController::class, 'update'])->name('dvrs.update');
+    Route::delete('/dvrs/{dvr}', [\App\Http\Controllers\CCTV\DvrController::class, 'destroy'])->name('dvrs.destroy');
 
     Route::get('/stock/kernel', [SiloRecordController::class, 'index'])->name('stock.kernel.index');
     Route::post('/stock/kernel', [SiloRecordController::class, 'store']);

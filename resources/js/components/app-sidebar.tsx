@@ -53,6 +53,7 @@ import {
     CloudDownload,
     Car,
     Weight,
+    Camera as CameraIcon,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -112,6 +113,16 @@ const ITNavItem: NavItem[] = [
         title: 'บันทึกเอกสาร',
         href: '/memo/documents',
         icon: FileText,
+    },
+    {
+        title: 'CCTV Inspection',
+        href: '/cctv-inspection',
+        icon: CameraIcon,
+    },
+    {
+        title: 'ตั้งค่าเครื่องบันทึก DVR',
+        href: '/dvrs',
+        icon: CameraIcon,
     },
 ];
 
@@ -400,11 +411,13 @@ const isDeveloper = () => can('developer.view');
 
 // Helper function to filter items based on permissions or developer role
 const filterItemsByPermission = (items: NavItem[]) => {
-    return items.filter(item =>
-        !item.permission || // ไม่มี permission กำหนด
-        isDeveloper() || // เป็น developer เห็นหมด
-        item.permission.some(p => can(p)) // มี permission ตามที่กำหนด
-    );
+    return items.filter(item => {
+        if (!item.permission) return true; // ไม่มี permission กำหนด
+        if (isDeveloper()) return true; // เป็น developer เห็นหมด
+        
+        const perms = Array.isArray(item.permission) ? item.permission : [item.permission];
+        return perms.some((p: string) => can(p)); // มี permission ตามที่กำหนด
+    });
 };
 
 export function AppSidebar() {
