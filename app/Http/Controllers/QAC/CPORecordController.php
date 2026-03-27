@@ -205,7 +205,19 @@ class CPORecordController extends Controller
         $productCpo = $totalStock - ($previousTotalCpo - $totalSales) - $skim;
         $pCpo = $previousPCpo + $productCpo + $purge_system - $totalSales;
 
-        
+        // คำนวณ cpo_oil_room จาก oil room
+        $undilute1Val = floatval($validated['oil_room']['undilute_1'] ?? 0);
+        $undilute2Val = floatval($validated['oil_room']['undilute_2'] ?? 0);
+        $settingVal = floatval($validated['oil_room']['setting'] ?? 0);
+        $cleanOilVal = floatval($validated['oil_room']['clean_oil'] ?? 0);
+        $adjustmentVal = floatval($validated['oil_room']['adjustment'] ?? 0);
+
+        $cpoOilRoom = ($undilute1Val * 3.5)
+                    + ($undilute2Val * 3.5)
+                    + ($settingVal * 3.5)
+                    + (($cleanOilVal * 3.5) + 1.5)
+                    + $adjustmentVal;
+        $cpoOilRoom = round($cpoOilRoom, 3);
         if ($existingRecord) {
             // Update ข้อมูลที่มีอยู่
             $existingRecord->update([
@@ -269,6 +281,7 @@ class CPORecordController extends Controller
                 'loop_back' => $validated['oil_room']['loop_back'],
                 'purge_system' => $validated['oil_room']['purge_system'],
                 'adjustment' => $validated['oil_room']['adjustment'],
+                'cpo_oil_room' => $cpoOilRoom,
                 'product_cpo' => $productCpo,
                 'p_cpo' => $pCpo,
             ]);
@@ -339,6 +352,7 @@ class CPORecordController extends Controller
                 'loop_back' => $validated['oil_room']['loop_back'],
                 'purge_system' => $validated['oil_room']['purge_system'],
                 'adjustment' => $validated['oil_room']['adjustment'],
+                'cpo_oil_room' => $cpoOilRoom,
                 'product_cpo' => $productCpo,
                 'p_cpo' => $pCpo,
             ]);
@@ -558,6 +572,22 @@ class CPORecordController extends Controller
             'product_cpo' => $productCpo,
             'p_cpo' => $pCpo,
         ]);
+
+        // คำนวณ cpo_oil_room จาก oil room
+        $undilute1Val = floatval($validated['oil_room']['undilute_1'] ?? 0);
+        $undilute2Val = floatval($validated['oil_room']['undilute_2'] ?? 0);
+        $settingVal = floatval($validated['oil_room']['setting'] ?? 0);
+        $cleanOilVal = floatval($validated['oil_room']['clean_oil'] ?? 0);
+        $adjustmentVal = floatval($validated['oil_room']['adjustment'] ?? 0);
+
+        $cpoOilRoom = ($undilute1Val * 3.5)
+                    + ($undilute2Val * 3.5)
+                    + ($settingVal * 3.5)
+                    + (($cleanOilVal * 3.5) + 1.5)
+                    + $adjustmentVal;
+        $cpoOilRoom = round($cpoOilRoom, 3);
+
+        $cpoData->update(['cpo_oil_room' => $cpoOilRoom]);
 
         // แปลงรูปแบบวันที่ให้ตรงกับ SQL Server
         $formattedOldDate = date('Y-m-d', strtotime($oldDate));

@@ -324,6 +324,12 @@ const QACNavItems: NavItem[] = [
         permission: ['qac.view'],
     },
     {
+        title: 'บันทึก Skim / Mix',
+        href: '/skim-mix',
+        icon: Beaker,
+        permission: ['qac.view'],
+    },
+    {
         title: 'บันทึกข้อมูล Kernel',
         href: '/stock/kernel',
         icon: Beaker,
@@ -350,6 +356,12 @@ const QACNavItems: NavItem[] = [
     {
         title: 'รายงานพาณิชย์',
         href: '/stock/production-report',
+        icon: ScrollText,
+        permission: ['qac.view'],
+    },
+    {
+        title: 'รายงาน % Yield',
+        href: '/yield-report',
         icon: ScrollText,
         permission: ['qac.view'],
     },
