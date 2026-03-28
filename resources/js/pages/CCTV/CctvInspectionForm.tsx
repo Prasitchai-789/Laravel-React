@@ -41,10 +41,11 @@ export default function CctvInspectionForm({ dvr_id }: PageProps) {
     const [dvrRemark, setDvrRemark] = useState<string>("");
     const [checkedBy, setCheckedBy] = useState<string>("");
     
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [existingImage, setExistingImage] = useState<string | null>(null);
+    const [existingImages, setExistingImages] = useState<{path: string, url: string}[]>([]);
+    const [removedImages, setRemovedImages] = useState<string[]>([]);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [activeTab, setActiveTab] = useState<'cameras' | 'details'>('cameras');
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -80,9 +81,10 @@ export default function CctvInspectionForm({ dvr_id }: PageProps) {
                 
                 setDvrRemark(fetchedInsp?.dvr_remark || "");
                 setCheckedBy(fetchedInsp?.checked_by || userName);
-                setExistingImage(fetchedInsp?.image_path || null);
-                setImagePreview(null);
-                setSelectedFile(null);
+                setExistingImages(fetchedInsp?.images || []);
+                setRemovedImages([]);
+                setSelectedFiles([]);
+                setImagePreviews([]);
             }
         } catch (err: any) {
             console.error(err);
@@ -138,25 +140,41 @@ export default function CctvInspectionForm({ dvr_id }: PageProps) {
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (file.size > 2 * 1024 * 1024) {
-                Swal.fire("Error", "ขนาดไฟล์ต้องไม่เกิน 2MB", "error");
-                return;
-            }
-            setSelectedFile(file);
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+        
+        const totalImages = existingImages.filter(img => !removedImages.includes(img.path)).length + selectedFiles.length + files.length;
+        if (totalImages > 5) {
+            Swal.fire("Error", "อัปโหลดได้รวมสูงสุด 5 ภาพ", "error");
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            return;
+        }
+
+        const validFiles = files.filter(f => f.size <= 5 * 1024 * 1024);
+        if (validFiles.length < files.length) {
+            Swal.fire("Error", "บางไฟล์มีขนาดเกิน 5MB และถูกตัดออก", "warning");
+        }
+
+        setSelectedFiles(prev => [...prev, ...validFiles]);
+
+        validFiles.forEach(file => {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setImagePreview(reader.result as string);
+                setImagePreviews(prev => [...prev, reader.result as string]);
             };
             reader.readAsDataURL(file);
-        }
+        });
+        
+        if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    const handleRemoveImage = () => {
-        setSelectedFile(null);
-        setImagePreview(null);
-        if (fileInputRef.current) fileInputRef.current.value = "";
+    const handleRemovePreview = (index: number) => {
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+        setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleRemoveExisting = (path: string) => {
+        setRemovedImages(prev => [...prev, path]);
     };
 
     const handleSave = async () => {
@@ -189,7 +207,10 @@ export default function CctvInspectionForm({ dvr_id }: PageProps) {
             formData.append('camera_data', JSON.stringify(cameras));
             formData.append('checked_by', checkedBy);
             if (dvrRemark) formData.append('dvr_remark', dvrRemark);
-            if (selectedFile) formData.append('image', selectedFile);
+            if (removedImages.length > 0) formData.append('removed_images', JSON.stringify(removedImages));
+            selectedFiles.forEach((file) => {
+                formData.append(`images[]`, file);
+            });
 
             const res = await axios.post("/cctv-inspection", formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
@@ -520,53 +541,57 @@ export default function CctvInspectionForm({ dvr_id }: PageProps) {
                                             >
                                                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                                                     <Image className="h-5 w-5 text-indigo-600" />
-                                                    ภาพถ่ายหลักฐาน
+                                                    ภาพถ่ายหลักฐาน (สูงสุด 5 ภาพ)
                                                 </h3>
                                                 
-                                                <div className="mt-2">
-                                                    {existingImage && !imagePreview && !selectedFile ? (
-                                                        <div className="relative group rounded-xl overflow-hidden border-2 border-gray-200 bg-gray-50 aspect-video">
-                                                            <img src={existingImage} alt="Proof" className="object-cover w-full h-full" />
-                                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                                                                <a href={existingImage} target="_blank" rel="noreferrer" className="p-2.5 bg-white/20 rounded-full hover:bg-white/40 text-white backdrop-blur-sm transition-all">
-                                                                    <Eye className="h-5 w-5" />
+                                                <div className="mt-2 text-sm text-gray-500 mb-2 flex items-center gap-2">
+                                                    <span>(PNG, JPG - ขนาดไม่เกิน 5MB)</span>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3 mb-4">
+                                                    {existingImages.filter(img => !removedImages.includes(img.path)).map((img, idx) => (
+                                                        <div key={`exist-${idx}`} className="relative group rounded-xl overflow-hidden border-2 border-gray-200 bg-gray-50 aspect-video">
+                                                            <img src={img.url} alt="Proof" className="object-cover w-full h-full" />
+                                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                <a href={img.url} target="_blank" rel="noreferrer" className="p-2 bg-white/20 rounded-full hover:bg-white/40 text-white backdrop-blur-sm transition-all shadow-sm">
+                                                                    <Eye className="h-4 w-4" />
                                                                 </a>
-                                                                <button onClick={() => setExistingImage(null)} className="p-2.5 bg-red-500/80 rounded-full hover:bg-red-600 text-white backdrop-blur-sm transition-all">
-                                                                    <Trash2 className="h-5 w-5" />
+                                                                <button type="button" onClick={() => handleRemoveExisting(img.path)} className="p-2 bg-red-500/80 rounded-full hover:bg-red-600 text-white backdrop-blur-sm transition-all shadow-sm">
+                                                                    <Trash2 className="h-4 w-4" />
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                    ) : imagePreview ? (
-                                                        <div className="relative group rounded-xl overflow-hidden border-2 border-gray-200 bg-gray-50 aspect-video">
-                                                            <img src={imagePreview} alt="Preview" className="object-cover w-full h-full" />
+                                                    ))}
+                                                    
+                                                    {imagePreviews.map((preview, idx) => (
+                                                        <div key={`preview-${idx}`} className="relative group rounded-xl overflow-hidden border-2 border-gray-200 bg-gray-50 aspect-video">
+                                                            <img src={preview} alt="Preview" className="object-cover w-full h-full" />
                                                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                                <button onClick={handleRemoveImage} className="p-2.5 bg-red-500 rounded-full hover:bg-red-600 text-white transition-all">
-                                                                    <Trash2 className="h-5 w-5" />
+                                                                <button type="button" onClick={() => handleRemovePreview(idx)} className="p-2 bg-red-500 rounded-full hover:bg-red-600 text-white transition-all shadow-sm">
+                                                                    <Trash2 className="h-4 w-4" />
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                    ) : (
+                                                    ))}
+                                                    
+                                                    {(existingImages.filter(img => !removedImages.includes(img.path)).length + selectedFiles.length) < 5 && (
                                                         <div 
                                                             onClick={() => fileInputRef.current?.click()}
-                                                            className="flex justify-center rounded-xl border-2 border-dashed border-gray-300 px-6 py-8 hover:border-indigo-400 hover:bg-indigo-50/50 cursor-pointer transition-all group"
+                                                            className="flex flex-col justify-center items-center rounded-xl border-2 border-dashed border-gray-300 aspect-video hover:border-indigo-400 hover:bg-indigo-50/50 cursor-pointer transition-all group p-2"
                                                         >
-                                                            <div className="text-center">
-                                                                <UploadCloud className="mx-auto h-12 w-12 text-gray-400 group-hover:text-indigo-500 transition-colors" />
-                                                                <div className="mt-3 text-sm">
-                                                                    <span className="font-semibold text-indigo-600">คลิกเพื่ออัปโหลด</span>
-                                                                    <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF (สูงสุด 2MB)</p>
-                                                                </div>
-                                                            </div>
+                                                            <UploadCloud className="h-6 w-6 text-gray-400 group-hover:text-indigo-500 transition-colors" />
+                                                            <span className="mt-1 text-xs font-semibold text-indigo-600 text-center">เพิ่มรูปภาพ</span>
                                                         </div>
                                                     )}
-                                                    <input
-                                                        type="file"
-                                                        ref={fileInputRef}
-                                                        onChange={handleFileChange}
-                                                        accept="image/png, image/jpeg, image/gif"
-                                                        className="hidden"
-                                                    />
                                                 </div>
+                                                <input
+                                                    type="file"
+                                                    multiple
+                                                    ref={fileInputRef}
+                                                    onChange={handleFileChange}
+                                                    accept="image/png, image/jpeg, image/gif"
+                                                    className="hidden"
+                                                />
                                                 
                                                 <div className="mt-4">
                                                     <label className="block text-sm font-medium text-gray-700 mb-2">

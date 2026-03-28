@@ -24,6 +24,7 @@ interface DVRData {
     broken_count: number;
     no_signal_count: number;
     inspection_image: string | null;
+    inspection_images: string[];
     checked_by: string | null;
 }
 
@@ -240,18 +241,24 @@ export default function CctvInspection() {
                                                         )}
                                                     </div>
                                                     
-                                                    {dvr.inspection_image && (
-                                                        <button 
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                window.open(dvr.inspection_image!, '_blank');
-                                                            }}
-                                                            className="flex items-center gap-1.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border border-indigo-100 hover:scale-105"
-                                                        >
-                                                            <ImageIcon className="h-4 w-4" />
-                                                            ดูรูปแนบ
-                                                        </button>
+                                                    {dvr.inspection_images && dvr.inspection_images.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 justify-end max-w-[150px]">
+                                                            {dvr.inspection_images.map((imgUrl, i) => (
+                                                                <button 
+                                                                    key={i}
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        window.open(imgUrl, '_blank');
+                                                                    }}
+                                                                    className="flex items-center gap-1 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded text-[10px] font-bold transition-all border border-indigo-100 hover:scale-105"
+                                                                    title={`ดูรูปแนบที่ ${i + 1}`}
+                                                                >
+                                                                    <ImageIcon className="h-3 w-3" />
+                                                                    รูป {i + 1}
+                                                                </button>
+                                                            ))}
+                                                        </div>
                                                     )}
                                                 </div>
                                             </motion.button>
