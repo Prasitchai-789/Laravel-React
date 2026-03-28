@@ -784,8 +784,8 @@ const ByProductionForm: React.FC = () => {
         setFormData({
             production_date: parsedDate,
             initial_palm_quantity: Number(stock.initial_palm_quantity) || 0,
-            efb_fiber_percentage: Number(stock.efb_fiber_percentage) || 16,
-            efb_percentage: Number(stock.efb_percentage) || 19,
+            efb_fiber_percentage: Number(stock.efb_fiber_percentage) || 13,
+            efb_percentage: Number(stock.efb_percentage) || 16,
             shell_percentage: Number(stock.shell_percentage) || 5,
             efb_fiber_previous_balance: Number(stock.efb_fiber_previous_balance) || 0,
             efb_previous_balance: Number(stock.efb_previous_balance) || 0,
