@@ -27,3 +27,13 @@ Route::post('/citizens/clear', function () {
 
 
 
+use App\Http\Controllers\Api\MonitoringController;
+
+Route::prefix('monitoring')->group(function () {
+    Route::post('/agent/report', [MonitoringController::class, 'reportMetrics']);
+    Route::get('/dashboard/overview', [MonitoringController::class, 'getOverview']);
+    Route::get('/dashboard/map', [MonitoringController::class, 'getMapData']);
+    Route::get('/devices', [MonitoringController::class, 'getDevices']);
+    Route::get('/devices/{id}', [MonitoringController::class, 'getDeviceDetail']);
+    Route::post('/checklist/submit', [MonitoringController::class, 'submitChecklist']);
+});
