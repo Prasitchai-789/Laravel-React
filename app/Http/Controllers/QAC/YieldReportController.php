@@ -31,7 +31,10 @@ class YieldReportController extends Controller
             }
 
             // ===== 1. ข้อมูลวันล่าสุด =====
-            $latestCpo = CPOData::orderBy('date', 'desc')->first();
+            $latestCpo = CPOData::whereDate('date', '>=', $startDate)
+                ->whereDate('date', '<=', $endDate)
+                ->orderBy('date', 'desc')
+                ->first();
             $latestDate = null;
             if ($latestCpo && $latestCpo->date) {
                 $rawDate = str_replace([':AM', ':PM'], [' AM', ' PM'], $latestCpo->date);
@@ -39,16 +42,18 @@ class YieldReportController extends Controller
             }
 
             $latestProductCpo = 0;
+            $latestCpoOilRoom = 0;
             $latestFfb = 0;
             $latestYield = 0;
 
             if ($latestDate) {
                 $latestProductCpo = floatval($latestCpo->product_cpo ?? 0);
+                $latestCpoOilRoom = floatval($latestCpo->cpo_oil_room ?? 0);
 
                 $latestProd = Production::whereDate('Date', $latestDate)->first();
                 $latestFfb = $latestProd ? floatval($latestProd->FFBGoodQty ?? 0) : 0;
 
-                $latestYield = $latestFfb > 0 ? round(($latestProductCpo / $latestFfb) * 100, 2) : 0;
+                $latestYield = $latestFfb > 0 ? round((($latestProductCpo + $latestCpoOilRoom) / $latestFfb) * 100, 2) : 0;
             }
 
             // ===== 2-5. ข้อมูลช่วงเวลา =====
@@ -57,7 +62,9 @@ class YieldReportController extends Controller
                 ->get();
 
             $rangeProductCpo = $cpoRecords->sum(fn($r) => floatval($r->product_cpo ?? 0));
-            $rangeCpoOilRoom = $cpoRecords->sum(fn($r) => floatval($r->cpo_oil_room ?? 0));
+            // CPO Oil Room uses data from the latest date in the selected range
+            $latestRecordInRange = $cpoRecords->sortByDesc('date')->first();
+            $rangeCpoOilRoom = $latestRecordInRange ? floatval($latestRecordInRange->cpo_oil_room ?? 0) : 0;
             $rangeSkim = round($cpoRecords->sum(fn($r) => floatval($r->skim ?? 0)), 3);
             $rangeMix = round($cpoRecords->sum(fn($r) => floatval($r->mix ?? 0)), 3);
 
@@ -80,6 +87,7 @@ class YieldReportController extends Controller
                 // Card 1: วันล่าสุด
                 'latest_date' => $latestDate,
                 'latest_product_cpo' => round($latestProductCpo, 3),
+                'latest_cpo_oil_room' => round($latestCpoOilRoom, 3),
                 'latest_ffb' => round($latestFfb, 3),
                 'latest_yield' => $latestYield,
                 // Card 2: %Yield ช่วงเวลา
@@ -131,10 +139,11 @@ class YieldReportController extends Controller
                 $productCpo = floatval($record->product_cpo ?? 0);
                 $cpoOilRoom = floatval($record->cpo_oil_room ?? 0);
 
-                // หา FFB ของวันนั้น
+                // FFB ของวันนั้น
                 $prod = Production::whereDate('Date', $dateStr)->first();
                 $ffb = $prod ? floatval($prod->FFBGoodQty ?? 0) : 0;
 
+                // Yield แบบธรรมดา vs Yield + Oil Room ของวันนั้น
                 $yield = $ffb > 0 ? round(($productCpo / $ffb) * 100, 2) : 0;
                 $yieldWithOilRoom = $ffb > 0 ? round((($productCpo + $cpoOilRoom) / $ffb) * 100, 2) : 0;
 
@@ -144,7 +153,7 @@ class YieldReportController extends Controller
                     'product_cpo' => round($productCpo, 3),
                     'cpo_oil_room' => round($cpoOilRoom, 3),
                     'ffb' => round($ffb, 3),
-                    'yield' => $yield,
+                    'yield' => $yield, // กราฟจะแสดงค่าที่รวม Oil Room ตาม Yield ปกติแล้ว
                     'yield_oil_room' => $yieldWithOilRoom,
                 ];
             }
