@@ -24,12 +24,23 @@ class ProcessDeviceMetrics implements ShouldQueue
 
     public function handle()
     {
-        $device = Device::where('mac_address', $this->data['mac_address'])->first();
+        // Auto-register device if not exists
+        $device = Device::firstOrCreate(
+            ['mac_address' => $this->data['mac_address']],
+            [
+                'name' => 'Device-' . substr($this->data['mac_address'], -4),
+                'ip_address' => $this->data['ip_address'] ?? null,
+                'type' => 'computer',
+                'status' => 'online',
+                'last_seen' => now(),
+            ]
+        );
 
         if ($device) {
             $device->update([
                 'status' => 'online',
                 'last_seen' => now(),
+                'ip_address' => $this->data['ip_address'] ?? $device->ip_address,
             ]);
 
             DeviceMetric::create([
