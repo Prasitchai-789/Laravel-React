@@ -12,12 +12,17 @@ class MonitoringController extends Controller
 {
     public function reportMetrics(Request $request)
     {
+        \Log::info('Agent Report Hit:', $request->all());
+
         $data = $request->validate([
             'mac_address' => 'required|string',
             'cpu' => 'numeric',
             'ram' => 'numeric',
             'disk' => 'numeric',
         ]);
+
+        // Access ip_address if provided (not validated but used)
+        $data['ip_address'] = $request->ip_address;
 
         // Dispatch to Queue for High Performance
         ProcessDeviceMetrics::dispatch($data);
