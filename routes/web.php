@@ -447,6 +447,20 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
     Route::get('/yield-report/api', [\App\Http\Controllers\QAC\YieldReportController::class, 'apiData'])->name('yield-report.api');
     Route::get('/yield-report/monthly', [\App\Http\Controllers\QAC\YieldReportController::class, 'apiMonthlyYield'])->name('yield-report.monthly');
 
+    // Computer Preventive Maintenance
+    Route::get('/computer-checklists', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'index'])->name('computer-checklists.index');
+    Route::get('/computer-checklists/api', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'apiIndex']);
+    Route::post('/computer-checklists', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'store']);
+    Route::put('/computer-checklists/{id}', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'update']);
+    Route::delete('/computer-checklists/{id}', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'destroy']);
+    Route::post('/computer-checklists/reorder', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'reorder']);
+
+    Route::get('/computer-inspection', [\App\Http\Controllers\Computer\ComputerController::class, 'index'])->name('computer.index');
+    Route::get('/computer-inspection/form/{id}', [\App\Http\Controllers\Computer\ComputerController::class, 'form'])->name('computer.form');
+    Route::get('/computer-inspection/api', [\App\Http\Controllers\Computer\ComputerController::class, 'apiData'])->name('computer.api');
+    Route::get('/computer-inspection/api/{id}', [\App\Http\Controllers\Computer\ComputerController::class, 'show'])->name('computer.show');
+    Route::post('/computer-inspection', [\App\Http\Controllers\Computer\ComputerController::class, 'store'])->name('computer.store');
+
     // CCTV Preventive Maintenance
     // CCTV
     Route::get('/cctv-inspection', [\App\Http\Controllers\CCTV\CctvController::class, 'index'])->name('cctv.index');

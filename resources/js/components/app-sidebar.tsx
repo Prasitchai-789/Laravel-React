@@ -124,6 +124,11 @@ const ITNavItem: NavItem[] = [
         href: '/dvrs',
         icon: CameraIcon,
     },
+    {
+        title: 'Computer Inspection',
+        href: '/computer-inspection',
+        icon: MonitorSmartphone,
+    },
 ];
 
 const PRONavItem: NavItem[] = [
