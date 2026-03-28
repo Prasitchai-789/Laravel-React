@@ -357,6 +357,22 @@ Route::middleware(['auth', 'permission:users.view'])->prefix('memo')->group(func
 // Route::get('/stock', [StockOrderController::class, 'index'])->name('stock.index');
 // Route::post('/api/storeorder', [StockOrderController::class, 'store']);
 
+// Monitoring Routes
+Route::middleware(['auth'])->prefix('monitoring')->group(function () {
+    Route::get('/dashboard', function () { return Inertia::render('Monitoring/DashboardOverview'); })->name('monitoring.dashboard');
+    Route::get('/devices', function () { return Inertia::render('Monitoring/DeviceList'); })->name('monitoring.devices');
+    Route::get('/devices/{id}', function ($id) { return Inertia::render('Monitoring/DeviceDetail', ['deviceId' => $id]); })->name('monitoring.device.detail');
+    Route::get('/map', function () { return Inertia::render('Monitoring/MapPage'); })->name('monitoring.map');
+    // For Checklist Page, we can reuse it
+    Route::get('/checklist', function (\Illuminate\Http\Request $request) { 
+        return Inertia::render('Monitoring/ChecklistPage', [
+            'deviceId' => $request->deviceId,
+            'deviceName' => $request->deviceName,
+            'items' => \App\Models\ChecklistItem::where('checklist_id', $request->checklistId)->get()
+        ]); 
+    })->name('monitoring.checklist');
+});
+
 // errors pages
 Route::fallback(function () {
     return Inertia::render('Errors/404')->toResponse(request())->setStatusCode(404);
