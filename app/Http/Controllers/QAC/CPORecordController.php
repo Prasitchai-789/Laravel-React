@@ -212,10 +212,10 @@ class CPORecordController extends Controller
         $cleanOilVal = floatval($validated['oil_room']['clean_oil'] ?? 0);
         $adjustmentVal = floatval($validated['oil_room']['adjustment'] ?? 0);
 
-        $cpoOilRoom = ($undilute1Val * 3.5)
-                    + ($undilute2Val * 3.5)
+        $cpoOilRoom = ((($undilute1Val * 3.5)+1.5)*0.5)
+                    + ((($undilute2Val * 3.5)+1.5)*0.5)
                     + ($settingVal * 3.5)
-                    + (($cleanOilVal * 3.5) + 1.5)
+                    + (($cleanOilVal * 3.5) + 1)
                     + $adjustmentVal;
         $cpoOilRoom = round($cpoOilRoom, 3);
         if ($existingRecord) {
@@ -580,10 +580,10 @@ class CPORecordController extends Controller
         $cleanOilVal = floatval($validated['oil_room']['clean_oil'] ?? 0);
         $adjustmentVal = floatval($validated['oil_room']['adjustment'] ?? 0);
 
-        $cpoOilRoom = ($undilute1Val * 3.5)
-                    + ($undilute2Val * 3.5)
+        $cpoOilRoom = ((($undilute1Val * 3.5)+1.5)*0.5)
+                    + ((($undilute2Val * 3.5)+1.5)*0.5)
                     + ($settingVal * 3.5)
-                    + (($cleanOilVal * 3.5) + 1.5)
+                    + (($cleanOilVal * 3.5) + 1)
                     + $adjustmentVal;
         $cpoOilRoom = round($cpoOilRoom, 3);
 

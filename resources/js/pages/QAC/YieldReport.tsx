@@ -34,6 +34,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 interface YieldData {
     latest_date: string | null;
     latest_product_cpo: number;
+    latest_cpo_oil_room: number;
     latest_ffb: number;
     latest_yield: number;
     range_product_cpo: number;
@@ -48,6 +49,7 @@ interface YieldData {
 const defaultData: YieldData = {
     latest_date: null,
     latest_product_cpo: 0,
+    latest_cpo_oil_room: 0,
     latest_ffb: 0,
     latest_yield: 0,
     range_product_cpo: 0,
@@ -225,9 +227,9 @@ export default function YieldReport() {
                                         </p>
                                         <div className="mt-3 flex gap-4 text-xs text-gray-500">
                                             <span>
-                                                CPO:{' '}
+                                                CPO+OilRoom:{' '}
                                                 <span className="font-semibold text-gray-700">
-                                                    {fmt(data.latest_product_cpo)}
+                                                    {fmt(data.latest_product_cpo + data.latest_cpo_oil_room)}
                                                 </span>
                                             </span>
                                             <span>
