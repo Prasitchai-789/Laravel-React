@@ -19,15 +19,23 @@ class MonitoringController extends Controller
             'cpu' => 'numeric',
             'ram' => 'numeric',
             'disk' => 'numeric',
+            'ip_address' => 'nullable|string'
         ]);
 
-        // Access ip_address if provided (not validated but used)
-        $data['ip_address'] = $request->ip_address;
+        // Smart IP detection: Use payload IP, fallback to request IP
+        $detectedIp = $request->ip_address ?? $request->ip();
+        
+        // If it's localhost (127.0.0.1) but we have a better IP from the request, use it.
+        if ($detectedIp === '127.0.0.1' || $detectedIp === '::1') {
+            $detectedIp = $request->ip();
+        }
+
+        $data['ip_address'] = $detectedIp;
 
         // Dispatch to Queue for High Performance
         ProcessDeviceMetrics::dispatch($data);
 
-        return response()->json(['status' => 'queued']);
+        return response()->json(['status' => 'success']);
     }
 
     public function getOverview()
