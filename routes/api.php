@@ -39,3 +39,6 @@ Route::prefix('monitoring')->group(function () {
     Route::get('/dashboard/status', [MonitoringController::class, 'getStatus']);
     Route::post('/dashboard/toggle', [MonitoringController::class, 'toggleStatus']);
 });
+
+use App\Http\Controllers\Dashboard\ProductionDashboardController;
+Route::get('/dashboard/production', [ProductionDashboardController::class, 'apiData']);

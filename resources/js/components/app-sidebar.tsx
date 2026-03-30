@@ -142,6 +142,11 @@ const PRONavItem: NavItem[] = [
         href: '/chemical-master',
         icon: Beaker,
     },
+    {
+        title: 'Production Monitor',
+        href: '/production-dashboard',
+        icon: Factory,
+    },
 ];
 
 const ERPItems: NavItem[] = [

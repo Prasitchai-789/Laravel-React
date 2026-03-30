@@ -5,6 +5,7 @@ namespace App\Http\Controllers\QAC;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 
 class StockProductController extends Controller
@@ -176,7 +177,7 @@ class StockProductController extends Controller
             'sales_cpo_tons' => round($salesCPOTons, 3),
             'ffb_good_qty' => round($ffbGoodQty, 3),
             'yield_percent' => round($yield, 3),
-            'skim' => round((float) $skim, 3),
+            'skim' => round($skim, 3),
             'ffb_good_qty_month' => round($ffbGoodQtyOfMonth, 3),
             'ffb_purchase_month' => round($ffbPurchaseOfMonth, 3),
             'ffb_forward' => round($ffbForward, 3),
@@ -324,23 +325,21 @@ class StockProductController extends Controller
         $ffbGoodQtyOfMonth = $this->getMonthlyFFBSum($date);
         $ffbPurchaseOfMonth = $this->getMonthlyFFBPurchaseSum($date);
 
-        // ★ ใช้ purge_system แทน skim
-        $purgeSystem = $current->purge_system ?? 0;
+        // ★ กลับมาใช้ skim ตามสูตรเดิม
+        $skim = $current->skim ?? 0;
+        $productCPO = $current->product_cpo ?? 0;
 
-        $productCPO =  $current->product_cpo ?? 0;
-
-        // สูตร Yield (ใช้ purge_system)
+        // สูตร Yield (ใช้ skim)
         $yield = 0;
         if ($ffbGoodQty > 0) {
-            $numerator = $currentCPO - ($previousCPO - $salesCPOTons);
-            $yield = (($productCPO + $purgeSystem) / $ffbGoodQty) * 100;
+            $yield = (($productCPO) / $ffbGoodQty) * 100;
         }
 
         $result = $this->calculateProductionSummary([
             'currentCPO'    => $currentCPO,
             'previousCPO'   => $previousCPO,
             'salesCPOTons'  => $salesCPOTons,
-            'skim'          => $purgeSystem, // ใช้ purge_system ในสูตรเดียวกัน
+            'skim'          => $skim,
             'ffbGoodQty'    => $ffbGoodQty,
             'currentKN'     => $currentKN,
             'previousKN'    => $previousKN,
@@ -361,7 +360,7 @@ class StockProductController extends Controller
             'sales_cpo_tons' => round($salesCPOTons, 3),
             'ffb_good_qty' => round($ffbGoodQty, 3),
             'yield_percent' => round($yield, 3),
-            'purge_system' => round((float) $purgeSystem, 3),
+            'skim' => round((float) $skim, 3), 
             'ffb_good_qty_month' => round($ffbGoodQtyOfMonth, 3),
             'ffb_purchase_month' => round($ffbPurchaseOfMonth, 3),
             'ffb_forward' => round($ffbForward, 3),
@@ -399,31 +398,24 @@ class StockProductController extends Controller
         }
 
         try {
-            // ⭐ แก้ไขตรงนี้: ลบส่วนเวลาและคำว่า AM/PM ออก
-            $cleanDate = preg_replace('/\s*12:00:00:AM\s*/i', '', $dateInput);
-            $cleanDate = preg_replace('/\s*00:00:00\s*/i', '', $cleanDate);
+            // ⭐ Handle SQL Server format like 'Mar 29 2026 12:00:00:AM'
+            $cleanDate = preg_replace('/(\d{2}:\d{2}:\d{2}):(AM|PM)/i', '$1 $2', $dateInput);
+            $cleanDate = preg_replace('/\s+12:00:00\s+(AM|PM)\s*/i', '', $cleanDate);
+            $cleanDate = preg_replace('/\s+00:00:00\s*/i', '', $cleanDate);
             $cleanDate = trim($cleanDate);
 
-            // Debug: ดูค่าวันที่ก่อนและหลังทำความสะอาด
-            \Log::info('Date normalization:', [
-                'input' => $dateInput,
-                'clean' => $cleanDate
-            ]);
-
-            // ลองแปลงด้วย Carbon
             $date = Carbon::parse($cleanDate);
-
             if ($date->isValid()) {
                 return $date->format('Y-m-d');
             }
         } catch (\Exception $e) {
-            \Log::warning('Date parsing failed:', [
+            // Log if unexpected format
+            Log::warning('StockProductController: Date parsing failed', [
                 'input' => $dateInput,
                 'error' => $e->getMessage()
             ]);
         }
 
-        // Fallback: ใช้วันที่ล่าสุดจาก database
         return $this->getLatestAvailableDate();
     }
 
@@ -439,9 +431,12 @@ class StockProductController extends Controller
 
         if ($latestDate) {
             try {
-                return Carbon::parse($latestDate)->format('Y-m-d');
+                // Handle SQL Server extra colon: 12:00:00:AM -> 12:00:00 AM
+                $clean = preg_replace('/(\d{2}:\d{2}:\d{2}):(AM|PM)/i', '$1 $2', $latestDate);
+                $parsed = Carbon::parse($clean)->format('Y-m-d');
+                return $parsed;
             } catch (\Exception $e) {
-                \Log::warning('Failed to parse latest date from cpo_data:', [
+                Log::warning('StockProductController: Failed to parse latest date from cpo_data', [
                     'date' => $latestDate,
                     'error' => $e->getMessage()
                 ]);

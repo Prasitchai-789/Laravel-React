@@ -7,13 +7,19 @@ import { initializeTheme } from './hooks/use-appearance';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
+import { MotionConfig } from 'framer-motion';
+
 createInertiaApp({
     title: (title) => title ? `${title} - ${appName}` : appName,
     resolve: (name) => resolvePageComponent(`./pages/${name}.tsx`, import.meta.glob('./pages/**/*.tsx')),
     setup({ el, App, props }) {
         const root = createRoot(el);
 
-        root.render(<App {...props} />);
+        root.render(
+            <MotionConfig transition={{ duration: 0, type: 'tween' }}>
+                <App {...props} />
+            </MotionConfig>
+        );
     },
     progress: {
         color: '#4B5563',

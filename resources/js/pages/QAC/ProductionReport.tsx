@@ -198,8 +198,8 @@ export default function ProductionReport() {
 
                                                 const label = d.date
                                                     ? new Date(d.date).toLocaleDateString('th-TH', {
-                                                          day: '2-digit',
-                                                      })
+                                                        day: '2-digit',
+                                                    })
                                                     : '';
 
                                                 return (
@@ -221,10 +221,10 @@ export default function ProductionReport() {
                                 )}
                             </div>
                         </motion.div>
-                                <div className="grid grid-cols-2 gap-2">
-                        {/* Monthly Summary Mobile */}
-                        <MobileCardNumberVertical title="ยอดรับเข้า" value={fmt(prod?.ffb_purchase_month, 2)} tone="emerald" />
-                        <MobileCardNumberVertical title="ยอดเบิกผลิต" value={fmt(prod?.ffb_good_qty_month, 2)} tone="teal" />
+                        <div className="grid grid-cols-2 gap-2">
+                            {/* Monthly Summary Mobile */}
+                            <MobileCardNumberVertical title="ยอดรับเข้า" value={fmt(prod?.ffb_purchase_month, 2)} tone="emerald" />
+                            <MobileCardNumberVertical title="ยอดเบิกผลิต" value={fmt(prod?.ffb_good_qty_month, 2)} tone="teal" />
                         </div>
                     </div>
                 </div>
@@ -437,9 +437,9 @@ export default function ProductionReport() {
 
                                             const label = d.date
                                                 ? new Date(d.date).toLocaleDateString('th-TH', {
-                                                      day: '2-digit',
-                                                      month: '2-digit',
-                                                  })
+                                                    day: '2-digit',
+                                                    month: '2-digit',
+                                                })
                                                 : '';
 
                                             return (
