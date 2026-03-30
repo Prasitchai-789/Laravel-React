@@ -7,11 +7,17 @@ use Illuminate\Http\Request;
 use App\Models\Device;
 use App\Models\ChecklistLog;
 use App\Jobs\ProcessDeviceMetrics;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class MonitoringController extends Controller
 {
     public function reportMetrics(Request $request)
     {
+        if (!\Illuminate\Support\Facades\Cache::get('monitoring_active', true)) {
+            return response()->json(['status' => 'disabled'], 503);
+        }
+
         \Log::info('Agent Report Hit:', $request->all());
 
         $data = $request->validate([
@@ -90,5 +96,20 @@ class MonitoringController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    public function getStatus()
+    {
+        return response()->json([
+            'active' => \Illuminate\Support\Facades\Cache::get('monitoring_active', true)
+        ]);
+    }
+
+    public function toggleStatus(Request $request)
+    {
+        $active = $request->input('active', true);
+        \Illuminate\Support\Facades\Cache::forever('monitoring_active', $active);
+        
+        return response()->json(['success' => true, 'active' => $active]);
     }
 }
