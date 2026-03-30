@@ -490,7 +490,7 @@ export default function ProductionReport2() {
                             rows={[
                                 { label: 'ยอดยกมา', value: fmt(prod?.previous_total_cpo), className: 'bg-white/70' },
                                 { label: 'ผลิตได้', value: fmt(prod?.product_cpo), className: 'bg-amber-100/70 text-amber-800 font-bold' },
-                                { label: 'ไล่ระบบ', value: fmt(prod?.purge_system), className: 'bg-red-100/60 text-red-700 font-bold' },
+                                { label: 'ไล่ระบบ', value: fmt(prod?.skim), className: 'bg-red-100/60 text-red-700 font-bold' },
                                 { label: 'ขาย', value: fmt(prod?.sales_cpo_tons), className: 'bg-emerald-100/70 text-emerald-800 font-bold' },
                                 { label: 'ยกไป', value: fmt(prod?.total_cpo), className: 'bg-amber-100/70 text-amber-800 font-bold' },
                             ]}

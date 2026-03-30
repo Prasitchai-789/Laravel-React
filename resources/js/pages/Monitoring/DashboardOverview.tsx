@@ -58,13 +58,12 @@ export default function DashboardOverview() {
                             </div>
                         </div>
 
-                        <button 
+                        <button
                             onClick={toggleMonitoring}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-md active:scale-95 ${
-                                isActive 
-                                ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200' 
-                                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
-                            }`}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-md active:scale-95 ${isActive
+                                    ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200'
+                                    : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
+                                }`}
                         >
                             {isActive ? (
                                 <><XCircle className="w-5 h-5" /> Stop Monitoring</>
@@ -84,7 +83,7 @@ export default function DashboardOverview() {
                                 <Monitor className="w-12 h-12 text-blue-100" />
                             </div>
                         </motion.div>
-                        
+
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-emerald-500 hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-center">
                                 <div>

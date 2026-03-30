@@ -373,6 +373,11 @@ Route::middleware(['auth'])->prefix('monitoring')->group(function () {
     })->name('monitoring.checklist');
 });
 
+Route::middleware(['auth'])->get('/production-dashboard', function () { 
+    return Inertia::render('Production/Dashboard'); 
+})->name('production.dashboard');
+
+
 // errors pages
 Route::fallback(function () {
     return Inertia::render('Errors/404')->toResponse(request())->setStatusCode(404);
