@@ -36,4 +36,6 @@ Route::prefix('monitoring')->group(function () {
     Route::get('/devices', [MonitoringController::class, 'getDevices']);
     Route::get('/devices/{id}', [MonitoringController::class, 'getDeviceDetail']);
     Route::post('/checklist/submit', [MonitoringController::class, 'submitChecklist']);
+    Route::get('/dashboard/status', [MonitoringController::class, 'getStatus']);
+    Route::post('/dashboard/toggle', [MonitoringController::class, 'toggleStatus']);
 });

@@ -7,6 +7,8 @@ use App\Models\Device;
 use App\Models\Alert;
 use App\Events\DeviceStatusUpdated;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class CheckOfflineDevices extends Command
 {
@@ -15,6 +17,11 @@ class CheckOfflineDevices extends Command
 
     public function handle()
     {
+        if (!\Illuminate\Support\Facades\Cache::get('monitoring_active', true)) {
+            $this->info('Monitoring is globally disabled. Skipping...');
+            return;
+        }
+
         $threshold = now()->subMinutes(2);
 
         $offlineDevices = Device::where('status', 'online')
