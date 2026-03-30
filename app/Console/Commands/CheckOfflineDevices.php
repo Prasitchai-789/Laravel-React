@@ -40,12 +40,20 @@ class CheckOfflineDevices extends Command
             $message = "\n🚨 Device Offline\nName: {$device->name}\nIP: {$device->ip_address}\nLast Seen: {$lastSeenStr}";
 
             // Send via new reusable LINE Notify service
-            $lineService = new \App\Services\LineNotifyService();
-            $lineService->send($message);
+            try {
+                $lineService = new \App\Services\LineNotifyService();
+                $lineService->send($message);
+            } catch (\Exception $e) {
+                \Log::error("Line Notify failed: " . $e->getMessage());
+            }
 
             // Send via Telegram ITE as implied in requirements
-            $telegramService = new \App\Http\Controllers\Notifications\TelegramService();
-            $telegramService->sendToTelegramITE($message);
+            try {
+                $telegramService = new \App\Http\Controllers\Notifications\TelegramService();
+                $telegramService->sendToTelegramITE($message);
+            } catch (\Exception $e) {
+                \Log::error("Telegram Notify failed: " . $e->getMessage());
+            }
         }
     }
 }
