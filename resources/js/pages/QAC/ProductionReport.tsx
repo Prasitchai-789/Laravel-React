@@ -29,11 +29,14 @@ const fmt = (v: any, digits: number = 3): string => {
 /* ------------------------------------------
    Helper สี FFA / DOBI
 ------------------------------------------- */
-const getQualityColor = (type: 'ffa' | 'dobi', value: number | string): string => {
+const getQualityColor = (type: 'ffa' | 'dobi' | 'cpo_yield' | 'kn_yield', value: number | string): string => {
     const num = Number(value);
     if (isNaN(num)) return 'text-gray-600';
-    if (type === 'ffa') return num > 5 ? 'text-red-600 font-bold' : 'text-gray-600';
-    return num < 2 ? 'text-red-600 font-bold' : 'text-gray-600';
+    if (type === 'ffa') return num > 5 ? 'text-red-600 font-bold' : 'text-blue-600 font-bold';
+    if (type === 'dobi') return num < 2 ? 'text-red-600 font-bold' : 'text-blue-600 font-bold';
+    if (type === 'cpo_yield') return num >= 18 ? 'text-blue-800 font-bold' : 'text-red-600 font-bold';
+    if (type === 'kn_yield') return num >= 5 ? 'text-blue-800 font-bold' : 'text-red-600 font-bold';
+    return 'text-gray-600';
 };
 
 export default function ProductionReport() {
@@ -241,7 +244,7 @@ export default function ProductionReport() {
                             { label: 'ยกไป', value: fmt(prod?.total_cpo), className: 'bg-amber-100/70 text-amber-800 font-bold' },
                         ]}
                         metrics={[
-                            { label: '%Yield', value: fmt(prod?.yield_percent, 2), color: 'text-amber-700 font-bold', bg: 'bg-amber-100/70' },
+                            { label: '%Yield', value: fmt(prod?.yield_percent, 2), color: getQualityColor('cpo_yield', prod?.yield_percent), bg: 'bg-amber-100/70' },
                             { label: '%FFA', value: fmt(prod?.ffa_cpo, 2), color: getQualityColor('ffa', prod?.ffa_cpo), bg: 'bg-yellow-100/70' },
                             { label: 'DOBI', value: fmt(prod?.dobi_cpo, 2), color: getQualityColor('dobi', prod?.dobi_cpo), bg: 'bg-orange-100/70' },
                         ]}
@@ -259,7 +262,7 @@ export default function ProductionReport() {
                             { label: 'ยกไป', value: fmt(prod?.total_kn), className: 'bg-teal-100/70 text-teal-800 font-bold' },
                         ]}
                         metrics={[
-                            { label: '%Yield', value: fmt(prod?.result?.kn_yield, 2), color: 'text-emerald-700 font-bold', bg: 'bg-emerald-100/70' },
+                            { label: '%Yield', value: fmt(prod?.result?.kn_yield, 2), color: getQualityColor('kn_yield', prod?.result?.kn_yield), bg: 'bg-emerald-100/70' },
                             { label: '%Moist', value: fmt(prod?.moisture_percent, 2), color: 'text-teal-700 font-bold', bg: 'bg-teal-100/70' },
                             { label: '%Dirt', value: fmt(prod?.dirt_percent, 2), color: 'text-cyan-700 font-bold', bg: 'bg-cyan-100/70' },
                         ]}
@@ -495,7 +498,7 @@ export default function ProductionReport() {
                                 { label: 'ยกไป', value: fmt(prod?.total_cpo), className: 'bg-amber-100/70 text-amber-800 font-bold' },
                             ]}
                             metrics={[
-                                { label: '%Yield', value: fmt(prod?.yield_percent, 2), color: 'text-amber-700 font-bold', bg: 'bg-amber-100/70' },
+                                { label: '%Yield', value: fmt(prod?.yield_percent, 2), color: getQualityColor('cpo_yield', prod?.yield_percent), bg: 'bg-amber-100/70' },
                                 { label: '%FFA', value: fmt(prod?.ffa_cpo, 2), color: getQualityColor('ffa', prod?.ffa_cpo), bg: 'bg-yellow-100/70' },
                                 {
                                     label: 'DOBI',
@@ -527,7 +530,7 @@ export default function ProductionReport() {
                                 {
                                     label: '%Yield',
                                     value: fmt(prod?.result?.kn_yield, 2),
-                                    color: 'text-emerald-700 font-bold',
+                                    color: getQualityColor('kn_yield', prod?.result?.kn_yield),
                                     bg: 'bg-emerald-100/70',
                                 },
                                 { label: '%Moist', value: fmt(prod?.moisture_percent, 2), color: 'text-teal-700 font-bold', bg: 'bg-teal-100/70' },

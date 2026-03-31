@@ -207,7 +207,7 @@ class StockProductController extends Controller
     }
 
     /**
-     * รายงานการผลิต (Version 2) — ใช้ purge_system แทน skim
+     * รายงานการผลิต (Version 2) — ใช้ purge_system
      */
     public function apiProductionReport2(Request $request)
     {
@@ -325,14 +325,15 @@ class StockProductController extends Controller
         $ffbGoodQtyOfMonth = $this->getMonthlyFFBSum($date);
         $ffbPurchaseOfMonth = $this->getMonthlyFFBPurchaseSum($date);
 
-        // ★ กลับมาใช้ skim ตามสูตรเดิม
+        
         $skim = $current->skim ?? 0;
+        $purge_system = $current->purge_system ?? 0;
         $productCPO = $current->product_cpo ?? 0;
 
-        // สูตร Yield (ใช้ skim)
+        // สูตร Yield (ใช้ purge_system)
         $yield = 0;
         if ($ffbGoodQty > 0) {
-            $yield = (($productCPO) / $ffbGoodQty) * 100;
+            $yield = (($productCPO+$purge_system) / $ffbGoodQty) * 100;
         }
 
         $result = $this->calculateProductionSummary([
@@ -340,6 +341,7 @@ class StockProductController extends Controller
             'previousCPO'   => $previousCPO,
             'salesCPOTons'  => $salesCPOTons,
             'skim'          => $skim,
+            'purge_system'  => $purge_system,
             'ffbGoodQty'    => $ffbGoodQty,
             'currentKN'     => $currentKN,
             'previousKN'    => $previousKN,
@@ -360,7 +362,7 @@ class StockProductController extends Controller
             'sales_cpo_tons' => round($salesCPOTons, 3),
             'ffb_good_qty' => round($ffbGoodQty, 3),
             'yield_percent' => round($yield, 3),
-            'skim' => round((float) $skim, 3), 
+            'purge_system' => round((float) $purge_system, 3), 
             'ffb_good_qty_month' => round($ffbGoodQtyOfMonth, 3),
             'ffb_purchase_month' => round($ffbPurchaseOfMonth, 3),
             'ffb_forward' => round($ffbForward, 3),
