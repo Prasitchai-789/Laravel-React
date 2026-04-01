@@ -323,10 +323,10 @@ export default function StockCPO() {
         setData({
             date: validDate
                 ? validDate.toLocaleDateString('th-TH', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                  })
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                })
                 : '-',
             originalDate: apiData.date,
             normalizedDate: normalized || null, // เก็บไว้เผื่อ debug
@@ -519,10 +519,10 @@ export default function StockCPO() {
                 date: d ? d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) : '-',
                 fullDate: d
                     ? d.toLocaleDateString('th-TH', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                      })
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                    })
                     : '-',
                 value,
                 percentage,
@@ -569,12 +569,186 @@ export default function StockCPO() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 font-anuphan md:p-6">
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-2 font-anuphan sm:p-4 md:p-6">
+                {/* ==========================================
+                    MOBILE-PORTRAIT VIEW (sm:hidden)
+                   ========================================== */}
+                <div className="space-y-3 md:hidden">
+                    {/* Compact Mobile Header */}
+                    <div className="flex items-center gap-2 border-t border-gray-50 pt-2">
+                        <div className="flex flex-1 items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-1.5">
+                            <Calendar className="h-3 w-3 text-gray-400" />
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={handleDateChange}
+                                className="bg-transparent text-[11px] font-semibold focus:outline-none"
+                            />
+                        </div>
+                        <button
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                            className="flex h-8 items-center justify-center rounded-xl bg-blue-600 px-3 text-white shadow-sm disabled:opacity-50"
+                        >
+                            <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        </button>
+                    </div>
+                    <div className="flex flex-col space-y-2 rounded-2xl pl-2 mb-0">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-lg font-bold text-blue-600">Stock CPO</h1>
+                                <span className="text-[10px] font-medium text-gray-400">อัพเดตล่าสุด:</span>
+                                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600">
+                                    {data.date}
+                                </span>
+                                {data.ffbGoodQty > 0 && (
+                                    <p className="text-[10px] font-medium text-green-600">
+                                        ผลิต: <span className="text-xs font-bold">{safeFixed(data.ffbGoodQty, 2)}</span> Tons
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Total & Yield Cards (Portrait Mobile) */}
+                    <div className="grid grid-cols-3 gap-1 mb-1">
+                        <div className="rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 p-3 text-white shadow-md">
+                            <p className="text-[12px] font-medium opacity-80">Total CPO</p>
+                            <p className="mt-1 text-[28px] font-black">{safeFixed(data.totalCPO, 2)}</p>
+                            <div className="mt-2 border-t border-white/20 pt-1 text-[10px] opacity-70">
+                                FFA: {safeFixed(data.ffa_cpo, 2)} | DOBI: {safeFixed(data.dobi_cpo, 2)}
+                            </div>
+                        </div>
+                        <div className="flex flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-green-500 p-3 text-center text-white shadow-md">
+                            <p className="text-[12px] font-medium opacity-80">% Yield</p>
+                            <p className="mt-1 text-[28px] font-black">{data.yield !== undefined ? safeFixed(data.yield, 2) : '0.00'}</p>
+                            <div className="mt-2 h-1 w-full rounded-full bg-white/20">
+                                <div
+                                    className="h-1 rounded-full bg-white transition-all duration-1000"
+                                    style={{ width: `${Math.min(data.yield !== undefined ? data.yield : 0, 18)}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                        {/* History Chart (Portrait Mobile) - Micro Version */}
+                        <div className="rounded-2xl border border-blue-50 bg-white p-2 shadow-sm flex flex-col justify-between">
+                            <div className="flex items-center justify-between text-[8px] font-bold text-gray-400">
+                                <span>7D Trend</span>
+                                {usingSampleData && <span className="text-amber-500">Sample</span>}
+                            </div>
+                            <div className="flex h-12 items-end justify-between space-x-0.5 pt-1">
+                                {chartData.map((item: any, i: number) => (
+                                    <div key={i} className="flex-1 h-full flex items-end">
+                                        <div
+                                            className={`w-full rounded-t-[1px] transition-all duration-700 ${i === chartData.length - 1 ? 'bg-blue-500' : 'bg-blue-100'
+                                                }`}
+                                            style={{ height: `${item.percentage * 0.8}%`, minHeight: '1.5px' }}
+                                        ></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    {/* Tanks - 2 Columns (Portrait Mobile) */}
+                    <div className="grid grid-cols-4 gap-1 mb-1">
+                        {data.tanks.map((tank: any) => (
+                            <div key={tank.id} className="rounded-2xl border border-blue-50 bg-white p-3 shadow-sm">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-gray-400">Tank {tank.id}</span>
+                                    <span className="text-[10px] text-gray-500">{tank.temp}°C</span>
+                                </div>
+                                <p className="mt-1 text-lg font-bold text-blue-700">{safeFixed(tank.tons, 2)}</p>
+                                <div className="mt-1 flex items-center justify-between text-[9px]">
+                                    <span className="text-red-600">FFA: {tank.id === 1 ? tank.ffa : tank.ffa_top}</span>
+                                    <span className="text-green-600">DOBI: {tank.id === 1 ? tank.dobi : tank.dobi_top}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Parameters - 2 Columns (Portrait Mobile) */}
+                    <div className="grid grid-cols-6 gap-1">
+                        {/* Undilute & Settings Card */}
+                        <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-1.5 shadow-sm">
+                            <div className="grid grid-cols-2 text-[8px]">
+                                <div className="flex items-center font-bold text-gray-500">
+                                    <div className="text-gray-500 text-[6px]"></div>
+                                    Undilute 1
+                                </div>
+                                <div className="rounded p-1 text-center">
+                                    <span className="font-bold text-blue-700 text-[12px]">
+                                        {safeFixed(data.undilute_1, 2)} <span className="text-gray-500 text-[6px]"> แผ่น</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1 text-[8px]">
+                                <div className="flex items-center font-bold text-gray-500">
+                                    <div className="text-gray-500 text-[6px]"></div>
+                                    Undilute 2
+                                </div>
+                                <div className="rounded p-1 text-center">
+                                    <span className="font-bold text-blue-700 text-[12px]">
+                                        {safeFixed(data.undilute_2, 2)}
+                                        <span className="text-gray-500 text-[6px]"> แผ่น</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-1.5 shadow-sm">
+                            <div className="grid grid-cols-2 gap-2 text-[8px]">
+                                <div className="flex items-center font-bold text-gray-500">
+                                    <div className="text-gray-500 "></div>
+                                    Setting
+                                </div>
+                                <div className="rounded p-1 text-center">
+                                    <span className="font-bold text-blue-700 text-[12px]">
+                                        {safeFixed(data.setting, 2)}
+                                        <span className="text-gray-500 text-[6px]"> แผ่น</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="mb-1 grid grid-cols-2 gap-2 text-[8px]">
+                                <div className="flex items-center font-bold text-gray-500">
+                                    <div className="text-gray-500"></div>
+                                    Clean Oil
+                                </div>
+                                <div className="rounded p-1 text-center">
+                                    <span className="font-bold text-blue-700 text-[12px]">
+                                        {safeFixed(data.cleanOil, 2)}
+                                        <span className="text-gray-500 text-[6px]"> แผ่น</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="rounded-2xl bg-green-200 p-3">
+                            <p className="text-[10px] font-bold text-green-600">Skim</p>
+                            <p className="mt-1 text-lg font-bold text-green-800">{safeFixed(data.skim, 2)}</p>
+                        </div>
+                        <div className="rounded-2xl bg-amber-50 p-3">
+                            <p className="text-[10px] font-bold text-amber-600">Mix</p>
+                            <p className="mt-1 text-lg font-bold text-amber-800">{safeFixed(data.mix, 2)}</p>
+                        </div>
+                        <div className="rounded-2xl bg-rose-50 p-3">
+                            <p className="text-[10px] font-bold text-rose-600">Loop Back</p>
+                            <p className="mt-1 text-lg font-bold text-rose-800">{safeFixed(data.loopBack, 2)}</p>
+                        </div>
+                        <div className="rounded-2xl bg-red-50 p-3">
+                            <p className="text-[10px] font-bold text-red-600">ไล่ระบบ</p>
+                            <p className="mt-1 text-lg font-bold text-red-800">{safeFixed(data.purgeSystem, 2)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ==========================================
+                    DESKTOP & LANDSCAPE-MOBILE VIEW (hidden sm:block)
+                   ========================================== */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="mx-auto max-w-6xl space-y-2"
+                    className="mx-auto hidden max-w-6xl space-y-2 md:block"
                 >
                     {/* Header */}
                     <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
@@ -625,7 +799,7 @@ export default function StockCPO() {
                     </div>
 
                     {/* Total + Yield + Chart */}
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                         {/* Total CPO Card */}
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
@@ -642,7 +816,7 @@ export default function StockCPO() {
 
                                 <p className="mt-1 text-sm opacity-90">Tons</p>
                                 <div className="mt-2 text-xs opacity-80">
-                                   %FFA: {safeFixed(data.ffa_cpo, 2)} | DOBI: {safeFixed(data.dobi_cpo, 2)}
+                                    %FFA: {safeFixed(data.ffa_cpo, 2)} | DOBI: {safeFixed(data.dobi_cpo, 2)}
                                 </div>
                             </div>
                         </motion.div>
@@ -684,7 +858,7 @@ export default function StockCPO() {
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.3 }}
-                            className="rounded-2xl border border-gray-100 bg-white p-2 shadow-lg"
+                            className="col-span-2 rounded-2xl border border-gray-100 bg-white p-2 shadow-lg sm:col-span-1"
                         >
                             <div className="mb-4 flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-gray-700">ปริมาณน้ำมันปาล์มดิบ 7 วันย้อนหลัง</h2>
@@ -722,22 +896,20 @@ export default function StockCPO() {
                                                                     type: 'spring',
                                                                     stiffness: 60,
                                                                 }}
-                                                                className={`relative w-full rounded-t-lg transition-all duration-300 ${
-                                                                    isToday
-                                                                        ? 'bg-gradient-to-t from-blue-600 to-blue-400 shadow-lg'
-                                                                        : isHighest
-                                                                          ? 'bg-gradient-to-t from-green-500 to-green-300 shadow-lg'
-                                                                          : isLowest
+                                                                className={`relative w-full rounded-t-lg transition-all duration-300 ${isToday
+                                                                    ? 'bg-gradient-to-t from-blue-600 to-blue-400 shadow-lg'
+                                                                    : isHighest
+                                                                        ? 'bg-gradient-to-t from-green-500 to-green-300 shadow-lg'
+                                                                        : isLowest
                                                                             ? 'bg-gradient-to-t from-red-500 to-red-300 shadow-md'
                                                                             : 'bg-gradient-to-t from-blue-300 to-blue-200'
-                                                                } group-hover:shadow-xl group-hover:brightness-110`}
+                                                                    } group-hover:shadow-xl group-hover:brightness-110`}
                                                             >
                                                                 <div
-                                                                    className={`absolute -top-6 left-1/2 -translate-x-1/2 transform text-xs font-bold ${
-                                                                        isToday || isHighest || isLowest
-                                                                            ? 'text-gray-800 opacity-100'
-                                                                            : 'text-gray-600 opacity-0 group-hover:opacity-100'
-                                                                    } whitespace-nowrap transition-opacity duration-200`}
+                                                                    className={`absolute -top-6 left-1/2 -translate-x-1/2 transform text-[10px] font-bold sm:text-xs ${isToday || isHighest || isLowest
+                                                                        ? 'text-gray-800 opacity-100'
+                                                                        : 'text-gray-600 opacity-0 group-hover:opacity-100'
+                                                                        } whitespace-nowrap transition-opacity duration-200`}
                                                                 >
                                                                     {safeFixed(item.value, 1)}T
                                                                 </div>
@@ -762,7 +934,7 @@ export default function StockCPO() {
                     </div>
 
                     {/* Tanks Section */}
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                         {data.tanks.map((tank: any, index: number) => (
                             <motion.div
                                 key={tank.id}
@@ -770,7 +942,7 @@ export default function StockCPO() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: 0.1 * index }}
                                 whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                                className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm transition-all duration-300"
+                                className="rounded-2xl border border-blue-100 bg-white p-2 shadow-sm transition-all duration-300 sm:p-3 md:p-4"
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">
@@ -790,16 +962,16 @@ export default function StockCPO() {
 
                                 {/* Quality Data - Tank 1 */}
                                 {tank.id === 1 && (
-                                    <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs font-medium">
-                                        <div className="rounded-lg bg-red-50 p-2">
+                                    <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[10px] font-medium sm:gap-2 sm:text-xs">
+                                        <div className="rounded-lg bg-red-50 p-1 sm:p-2">
                                             <p className="text-gray-500">%FFA</p>
                                             <p className="font-bold text-red-600">{tank.ffa ?? '-'}</p>
                                         </div>
-                                        <div className="rounded-lg bg-blue-50 p-2">
+                                        <div className="rounded-lg bg-blue-50 p-1 sm:p-2">
                                             <p className="text-gray-500">%Moist</p>
                                             <p className="font-bold text-blue-600">{tank.moisture ?? '-'}</p>
                                         </div>
-                                        <div className="rounded-lg bg-green-50 p-2">
+                                        <div className="rounded-lg bg-green-50 p-1 sm:p-2">
                                             <p className="text-gray-500">DOBI</p>
                                             <p className="font-bold text-green-600">{tank.dobi ?? '-'}</p>
                                         </div>
@@ -808,8 +980,8 @@ export default function StockCPO() {
 
                                 {/* Quality Data - Tanks 2,3,4 */}
                                 {tank.id !== 1 && (
-                                    <div className="rounded-lg bg-gray-50 p-3 text-xs font-medium">
-                                        <div className="mb-1 grid grid-cols-4 gap-2 text-gray-600">
+                                    <div className="rounded-lg bg-gray-50 p-2 text-[10px] font-medium sm:p-3 sm:text-xs">
+                                        <div className="mb-1 grid grid-cols-4 gap-1 text-gray-600 sm:gap-2">
                                             <div></div>
                                             <div className="text-center">%FFA</div>
                                             <div className="text-center">%Moist</div>
@@ -817,25 +989,25 @@ export default function StockCPO() {
                                         </div>
 
                                         {/* Top */}
-                                        <div className="mb-1 grid grid-cols-4 gap-2">
+                                        <div className="mb-1 grid grid-cols-4 gap-1 sm:gap-2">
                                             <div className="flex items-center text-gray-500">
-                                                <div className="mr-2 h-2 w-2 rounded-full bg-blue-500"></div>
+                                                <div className="mr-1 h-2 w-2 rounded-full bg-blue-500 sm:mr-2"></div>
                                                 บน
                                             </div>
-                                            <div className="rounded bg-red-50 p-1 text-center">{tank.ffa_top ?? '-'}</div>
-                                            <div className="rounded bg-blue-50 p-1 text-center">{tank.moisture_top ?? '-'}</div>
-                                            <div className="rounded bg-green-50 p-1 text-center">{tank.dobi_top ?? '-'}</div>
+                                            <div className="rounded bg-red-50 p-0.5 text-center sm:p-1">{tank.ffa_top ?? '-'}</div>
+                                            <div className="rounded bg-blue-50 p-0.5 text-center sm:p-1">{tank.moisture_top ?? '-'}</div>
+                                            <div className="rounded bg-green-50 p-0.5 text-center sm:p-1">{tank.dobi_top ?? '-'}</div>
                                         </div>
 
                                         {/* Bottom */}
-                                        <div className="grid grid-cols-4 gap-2">
+                                        <div className="grid grid-cols-4 gap-1 sm:gap-2">
                                             <div className="flex items-center text-gray-500">
-                                                <div className="mr-2 h-2 w-2 rounded-full bg-amber-500"></div>
+                                                <div className="mr-1 h-2 w-2 rounded-full bg-amber-500 sm:mr-2"></div>
                                                 ล่าง
                                             </div>
-                                            <div className="rounded bg-red-50 p-1 text-center">{tank.ffa_bottom ?? '-'}</div>
-                                            <div className="rounded bg-blue-50 p-1 text-center">{tank.moisture_bottom ?? '-'}</div>
-                                            <div className="rounded bg-green-50 p-1 text-center">{tank.dobi_bottom ?? '-'}</div>
+                                            <div className="rounded bg-red-50 p-0.5 text-center sm:p-1">{tank.ffa_bottom ?? '-'}</div>
+                                            <div className="rounded bg-blue-50 p-0.5 text-center sm:p-1">{tank.moisture_bottom ?? '-'}</div>
+                                            <div className="rounded bg-green-50 p-0.5 text-center sm:p-1">{tank.dobi_bottom ?? '-'}</div>
                                         </div>
                                     </div>
                                 )}
@@ -844,7 +1016,7 @@ export default function StockCPO() {
                     </div>
 
                     {/* Parameters Section */}
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-6">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6">
                         {/* Undilute & Settings Card */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -872,7 +1044,7 @@ export default function StockCPO() {
                                 <div className="rounded p-1 text-center">
                                     <span className="font-bold text-blue-700">
                                         {safeFixed(data.undilute_2, 2)}
- <span className="text-xs font-normal text-gray-500"> แผ่น</span>
+                                        <span className="text-xs font-normal text-gray-500"> แผ่น</span>
                                     </span>
                                 </div>
                             </div>
@@ -884,7 +1056,7 @@ export default function StockCPO() {
                                 <div className="rounded p-1 text-center">
                                     <span className="font-bold text-blue-700">
                                         {safeFixed(data.setting, 2)}
- <span className="text-xs font-normal text-gray-500"> แผ่น</span>
+                                        <span className="text-xs font-normal text-gray-500"> แผ่น</span>
                                     </span>
                                 </div>
                             </div>
@@ -896,7 +1068,7 @@ export default function StockCPO() {
                                 <div className="rounded p-1 text-center">
                                     <span className="font-bold text-blue-700">
                                         {safeFixed(data.cleanOil, 2)}
- <span className="text-xs font-normal text-gray-500"> แผ่น</span>
+                                        <span className="text-xs font-normal text-gray-500"> แผ่น</span>
                                     </span>
                                 </div>
                             </div>
@@ -908,15 +1080,15 @@ export default function StockCPO() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.5 }}
                             whileHover={{ scale: 1.02 }}
-                            className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 shadow-sm"
+                            className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-3 shadow-sm sm:p-5"
                         >
-                            <div className="mb-2 flex items-center justify-between">
-                                <p className="font-semibold text-gray-700">Skim</p>
-                                <Info className="h-4 w-4 text-blue-500" />
+                            <div className="mb-1 flex items-center justify-between sm:mb-2">
+                                <p className="text-xs font-semibold text-gray-700 sm:text-base">Skim</p>
+                                <Info className="h-3 w-3 text-blue-500 sm:h-4 sm:w-4" />
                             </div>
-                            <p className="text-3xl font-bold text-blue-700">{safeFixed(data.skim, 3)}</p>
+                            <p className="text-xl font-bold text-blue-700 sm:text-3xl">{safeFixed(data.skim, 3)}</p>
 
-                            <p className="mt-1 text-xs text-gray-500">Skim CS → CPO T1</p>
+                            <p className="mt-1 hidden text-[10px] text-gray-500 sm:block sm:text-xs">Skim CS → CPO T1</p>
                         </motion.div>
 
                         {/* Mix */}
@@ -925,15 +1097,15 @@ export default function StockCPO() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.6 }}
                             whileHover={{ scale: 1.02 }}
-                            className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-yellow-50 p-5 shadow-sm"
+                            className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-yellow-50 p-3 shadow-sm sm:p-5"
                         >
-                            <div className="mb-2 flex items-center justify-between">
-                                <p className="font-semibold text-gray-700">Mix</p>
-                                <Info className="h-4 w-4 text-amber-500" />
+                            <div className="mb-1 flex items-center justify-between sm:mb-2">
+                                <p className="text-xs font-semibold text-gray-700 sm:text-base">Mix</p>
+                                <Info className="h-3 w-3 text-amber-500 sm:h-4 sm:w-4" />
                             </div>
-                            <p className="text-3xl font-bold text-amber-700">{safeFixed(data.mix, 3)}</p>
+                            <p className="text-xl font-bold text-amber-700 sm:text-3xl">{safeFixed(data.mix, 3)}</p>
 
-                            <p className="mt-1 text-xs text-gray-500">Mix T1 → T2</p>
+                            <p className="mt-1 hidden text-[10px] text-gray-500 sm:block sm:text-xs">Mix T1 → T2</p>
                         </motion.div>
 
                         {/* Loop Back */}
@@ -942,15 +1114,15 @@ export default function StockCPO() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.7 }}
                             whileHover={{ scale: 1.02 }}
-                            className="rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 to-red-50 p-5 shadow-sm"
+                            className="rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 to-red-50 p-3 shadow-sm sm:p-5"
                         >
-                            <div className="mb-2 flex items-center justify-between">
-                                <p className="font-semibold text-gray-700">Loop Back</p>
-                                <Info className="h-4 w-4 text-rose-500" />
+                            <div className="mb-1 flex items-center justify-between sm:mb-2">
+                                <p className="text-xs font-semibold text-gray-700 sm:text-base">Loop Back</p>
+                                <Info className="h-3 w-3 text-rose-500 sm:h-4 sm:w-4" />
                             </div>
-                            <p className="text-3xl font-bold text-rose-700">{safeFixed(data.loopBack, 3)}</p>
+                            <p className="text-xl font-bold text-rose-700 sm:text-3xl">{safeFixed(data.loopBack, 3)}</p>
 
-                            <p className="mt-1 text-xs text-rose-600">CPO T1,2 → Crude Oil</p>
+                            <p className="mt-1 hidden text-[10px] text-rose-600 sm:block sm:text-xs">CPO T1,2 → Crude Oil</p>
                         </motion.div>
 
                         {/* ไล่ระบบ */}
@@ -959,18 +1131,18 @@ export default function StockCPO() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.8 }}
                             whileHover={{ scale: 1.02 }}
-                            className="rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 to-rose-50 p-5 shadow-sm"
+                            className="rounded-2xl border border-red-100 bg-gradient-to-br from-red-50 to-rose-50 p-3 shadow-sm sm:p-5"
                         >
-                            <div className="mb-2 flex items-center justify-between">
-                                <p className="font-semibold text-gray-700">ไล่ระบบ</p>
-                                <Info className="h-4 w-4 text-red-500" />
+                            <div className="mb-1 flex items-center justify-between sm:mb-2">
+                                <p className="text-xs font-semibold text-gray-700 sm:text-base">ไล่ระบบ</p>
+                                <Info className="h-3 w-3 text-red-500 sm:h-4 sm:w-4" />
                             </div>
-                            <p className="text-3xl font-bold text-red-700">{safeFixed(data.purgeSystem, 3)}</p>
+                            <p className="text-xl font-bold text-red-700 sm:text-3xl">{safeFixed(data.purgeSystem, 3)}</p>
 
-                            <p className="mt-1 text-xs text-red-600">ปริมาณไล่ระบบ (ตัน)</p>
+                            <p className="mt-1 hidden text-[10px] text-red-600 sm:block sm:text-xs">ปริมาณไล่ระบบ (ตัน)</p>
                         </motion.div>
 
-                       
+
                     </div>
                 </motion.div>
             </div>
