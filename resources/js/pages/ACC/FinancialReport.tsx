@@ -190,34 +190,59 @@ export default function FinancialReport() {
             setTotalAmount(totalAmount);
             setAvgPrice(avgPrice);
 
-            // 3. จัดการ Split สำหรับ 422003 (EFB vs Chopped EFB)
-            let processedAccounts = [...rawAccounts];
-            const efbAcc = processedAccounts.find((a) => a.AccCode === '422003');
+            // 3. จัดการ Split รายได้สำหรับบัญชีที่แชร์ร่วมกัน (เช่น 422003 ทะลายปาล์ม และ ทะลายสับ)
+            let processedAccounts: Account[] = [];
+            const rawIncomeAccounts = rawAccounts.filter((acc) => Object.keys(incomeMap).includes(acc.AccCode));
+            const otherAccounts = rawAccounts.filter((acc) => !Object.keys(incomeMap).includes(acc.AccCode));
 
-            if (efbAcc) {
-                const sales2149 = rawSalesWin.find((s) => s.GoodID === 2149)?.total_amount || 0;
-                const sales9012 = rawSalesWin.find((s) => s.GoodID === 9012)?.total_amount || 0;
-                const totalSales = sales2149 + sales9012;
+            // สร้างโครงสร้างย้อนกลับจาก IncomeMap/IncomeGoodMap เพื่อหาว่า AccCode ไหนแชร์ GoodID ไหนบ้าง
+            const accToGoods: { [accCode: string]: number[] } = {};
+            Object.keys(incomeGoodMap).forEach((key) => {
+                const accCode = key.split('_')[0]; // ตัด _chopped ออกถ้ามี
+                if (!accToGoods[accCode]) accToGoods[accCode] = [];
+                accToGoods[accCode].push(incomeGoodMap[key]);
+            });
 
-                if (totalSales > 0 && sales9012 > 0) {
-                    const ratio9012 = sales9012 / totalSales;
-                    const amount9012 = efbAcc.total_amount * ratio9012;
-                    const amount2149 = efbAcc.total_amount - amount9012;
+            rawIncomeAccounts.forEach((acc) => {
+                const goods = accToGoods[acc.AccCode] || [];
+                if (goods.length > 1) {
+                    // มีการแชร์ Account -> ต้องแบ่งสัดส่วน
+                    const goodsSales = goods.map((gid) => ({
+                        gid,
+                        amount: rawSalesWin.find((s) => Number(s.GoodID) === gid)?.total_amount || 0,
+                    }));
+                    const totalSubSales = goodsSales.reduce((sum, g) => sum + g.amount, 0);
 
-                    processedAccounts.push({
-                        AccCode: '422003_chopped',
-                        AccName: 'รายได้จากการขาย - ทะลายปาล์มสับ',
-                        total_amount: amount9012,
-                    });
-                    efbAcc.total_amount = amount2149;
+                    if (totalSubSales > 0) {
+                        goodsSales.forEach((g, idx) => {
+                            // หา Virtual Key สำหรับ IncomeMap (เช่น 422003 หรือ 422003_chopped)
+                            const mappingKey =
+                                Object.keys(incomeGoodMap).find((k) => incomeGoodMap[k] === g.gid && k.startsWith(acc.AccCode)) || acc.AccCode;
+
+                            const ratio = g.amount / totalSubSales;
+                            processedAccounts.push({
+                                AccCode: mappingKey,
+                                AccName: idx === 0 ? acc.AccName : `${acc.AccName} (${incomeMap[mappingKey]})`,
+                                total_amount: acc.total_amount * ratio,
+                            });
+                        });
+                    } else {
+                        // ถ้าไม่มีข้อมูลใน Sub-ledger เลย ให้เอาลงอันแรก (ตัวหลัก)
+                        processedAccounts.push(acc);
+                    }
+                } else {
+                    processedAccounts.push(acc);
                 }
-            }
+            });
+
+            // รวมบัญชีรายจ่าย (ไม่ทำ split เพราะส่วนใหญ่แชร์กันคนละแบบ)
+            processedAccounts = [...processedAccounts, ...otherAccounts];
 
             // 4. จัดกลุ่มรายได้/รายจ่าย
-            const incomeAccounts = processedAccounts
+            const incomeAccountsFinal = processedAccounts
                 .filter((acc) => Object.keys(incomeMap).includes(acc.AccCode))
                 .sort((a, b) => b.total_amount - a.total_amount);
-            const expenseAccounts = processedAccounts
+            const expenseAccountsFinal = processedAccounts
                 .filter((acc) => !Object.keys(incomeMap).includes(acc.AccCode))
                 .sort((a, b) => b.total_amount - a.total_amount);
 
@@ -237,8 +262,8 @@ export default function FinancialReport() {
                 return Object.values(grouped);
             };
 
-            setIncomeData(groupAccounts(incomeAccounts, incomeMap));
-            setReportData(groupAccounts(expenseAccounts, categoryMap));
+            setIncomeData(groupAccounts(incomeAccountsFinal, incomeMap));
+            setReportData(groupAccounts(expenseAccountsFinal, categoryMap));
         } catch (error) {
             console.error('Fetch Error:', error);
             alert('เกิดข้อผิดพลาดในการโหลดข้อมูล');
