@@ -49,6 +49,7 @@ export default function FinancialReport() {
     const [endDate, setEndDate] = useState(getCurrentDate());
     const [reportData, setReportData] = useState<Category[]>([]);
     const [salesDataWeb, setSalesDataWeb] = useState<SaleMar[]>([]);
+    const [salesDataWin, setSalesDataWin] = useState<SaleMarWinRe[]>([]);
     const [salesDataWinRe, setSalesDataWinRe] = useState<SaleMarWinRe[]>([]);
     const [POInvData, setPOInvData] = useState<POInvWin[]>([]);
     const [totalQty, setTotalQty] = useState(0);
@@ -66,6 +67,7 @@ export default function FinancialReport() {
         '412001': 'เมล็ดใน',
         '422001': 'กะลาปาล์ม (เพียว)',
         '422003': 'ทะลายปาล์ม',
+        '422003_chopped': 'ทะลายปาล์มสับ',
         '422004': 'ใยปาล์ม',
         // '417000': 'รับคืนสินค้า',
     };
@@ -75,6 +77,7 @@ export default function FinancialReport() {
         '412001': 2152, // เมล็ดใน
         '422001': 2151, // กะลาปาล์ม
         '422003': 2149, // ทะลายปาล์ม
+        '422003_chopped': 9012, // ทะลายปาล์มสับ
         '422004': 2150, // ใยปาล์ม
     };
 
@@ -155,27 +158,66 @@ export default function FinancialReport() {
         '523034': 'ค่าใช้จ่าย อื่นๆ',
     };
 
-    useEffect(() => {
-        if (startDate && endDate) {
-            fetchData();
-            fetchDataSalesWeb();
-            fetchDataSalesWin();
-            fetchDataPOInvWin();
-        }
-    }, [startDate, endDate]);
-
-    const fetchData = async () => {
+    const fetchAllData = async () => {
         setSummaryLoading(true);
+        setLoading(true);
         try {
-            const response = await axios.get('/accounts/api', {
-                params: { start_date: startDate, end_date: endDate },
-            });
+            // ดึงข้อมูลพร้อมกันทั้งหมดเพื่อป้องกัน race condition
+            const [accRes, salesWebRes, salesWinRes, poRes] = await Promise.all([
+                axios.get('/accounts/api', { params: { start_date: startDate, end_date: endDate } }),
+                axios.get('/sales-mar/api', { params: { start_date: startDate, end_date: endDate } }),
+                axios.get('/sales-mar-win/api', { params: { start_date: startDate, end_date: endDate } }),
+                axios.get('/poinv-win-summary/api', { params: { start_date: startDate, end_date: endDate } }),
+            ]);
 
-            const accounts: Account[] = response.data.data;
-            const incomeAccounts = accounts
+            // 1. เก็บข้อมูลดิบ
+            const rawAccounts: Account[] = accRes.data.data || [];
+            const rawSalesWeb: SaleMar[] = salesWebRes.data.data || [];
+            const rawSalesWin: SaleMarWinRe[] = salesWinRes.data.sales || [];
+            const rawReturnsWin: SaleMarWinRe[] = salesWinRes.data.returns || [];
+            const rawPOInv: POInvWin[] = poRes.data.data || [];
+
+            setSalesDataWeb(rawSalesWeb);
+            setSalesDataWin(rawSalesWin);
+            setSalesDataWinRe(rawReturnsWin);
+
+            // 2. คำนวณ PO Summary
+            const totalQty = rawPOInv.reduce((sum, item) => sum + (item.total_qty || 0), 0);
+            const totalAmount = rawPOInv.reduce((sum, item) => sum + (item.total_amount || 0), 0);
+            const avgPrice = totalQty > 0 ? totalAmount / totalQty : 0;
+            setPOInvData(rawPOInv);
+            setTotalQty(totalQty);
+            setTotalAmount(totalAmount);
+            setAvgPrice(avgPrice);
+
+            // 3. จัดการ Split สำหรับ 422003 (EFB vs Chopped EFB)
+            let processedAccounts = [...rawAccounts];
+            const efbAcc = processedAccounts.find((a) => a.AccCode === '422003');
+
+            if (efbAcc) {
+                const sales2149 = rawSalesWin.find((s) => s.GoodID === 2149)?.total_amount || 0;
+                const sales9012 = rawSalesWin.find((s) => s.GoodID === 9012)?.total_amount || 0;
+                const totalSales = sales2149 + sales9012;
+
+                if (totalSales > 0 && sales9012 > 0) {
+                    const ratio9012 = sales9012 / totalSales;
+                    const amount9012 = efbAcc.total_amount * ratio9012;
+                    const amount2149 = efbAcc.total_amount - amount9012;
+
+                    processedAccounts.push({
+                        AccCode: '422003_chopped',
+                        AccName: 'รายได้จากการขาย - ทะลายปาล์มสับ',
+                        total_amount: amount9012,
+                    });
+                    efbAcc.total_amount = amount2149;
+                }
+            }
+
+            // 4. จัดกลุ่มรายได้/รายจ่าย
+            const incomeAccounts = processedAccounts
                 .filter((acc) => Object.keys(incomeMap).includes(acc.AccCode))
                 .sort((a, b) => b.total_amount - a.total_amount);
-            const expenseAccounts = accounts
+            const expenseAccounts = processedAccounts
                 .filter((acc) => !Object.keys(incomeMap).includes(acc.AccCode))
                 .sort((a, b) => b.total_amount - a.total_amount);
 
@@ -198,69 +240,20 @@ export default function FinancialReport() {
             setIncomeData(groupAccounts(incomeAccounts, incomeMap));
             setReportData(groupAccounts(expenseAccounts, categoryMap));
         } catch (error) {
-            console.error(error);
-            alert('เกิดข้อผิดพลาดในการดึงข้อมูล');
+            console.error('Fetch Error:', error);
+            alert('เกิดข้อผิดพลาดในการโหลดข้อมูล');
         } finally {
             setSummaryLoading(false);
-        }
-    };
-
-    const fetchDataSalesWeb = async () => {
-        setSummaryLoading(true);
-
-        try {
-            const response = await axios.get('/sales-mar/api', {
-                params: { start_date: startDate, end_date: endDate },
-            });
-            const saleMar: SaleMar[] = response.data.data || [];
-            setSalesDataWeb(saleMar);
-        } catch (error) {
-            console.error(error);
-            alert('เกิดข้อผิดพลาดในการดึงข้อมูล');
-        } finally {
             setLoading(false);
         }
     };
-    const fetchDataSalesWin = async () => {
-        setLoading(true);
-        try {
-            const response = await axios.get('/sales-mar-win/api', {
-                params: { start_date: startDate, end_date: endDate },
-            });
-            const saleMarWinRe: SaleMarWinRe[] = response.data.returns || [];
-            setSalesDataWinRe(saleMarWinRe);
-        } catch (error) {
-            console.error(error);
-            alert('เกิดข้อผิดพลาดในการดึงข้อมูล');
-        } finally {
-            setSummaryLoading(false);
+
+    useEffect(() => {
+        if (startDate && endDate) {
+            fetchAllData();
         }
-    };
+    }, [startDate, endDate]);
 
-    const fetchDataPOInvWin = async () => {
-        setSummaryLoading(true);
-        try {
-            const response = await axios.get('/poinv-win-summary/api', {
-                params: { start_date: startDate, end_date: endDate },
-            });
-            const POInvWin: POInvWin[] = response.data.data || [];
-
-            // ใช้ POInvWin ที่เพิ่งดึงมา
-            const totalQty = POInvWin.reduce((sum, item) => sum + (item.total_qty || 0), 0);
-            const totalAmount = POInvWin.reduce((sum, item) => sum + (item.total_amount || 0), 0);
-            const avgPrice = totalQty > 0 ? totalAmount / totalQty : 0;
-
-            setPOInvData(POInvWin);
-            setTotalQty(totalQty);
-            setTotalAmount(totalAmount);
-            setAvgPrice(avgPrice);
-        } catch (error) {
-            console.error(error);
-            alert('เกิดข้อผิดพลาดในการดึงข้อมูล');
-        } finally {
-            setSummaryLoading(false);
-        }
-    };
 
     const sumColumn = (data: any[], field: string) => {
         if (!data || !Array.isArray(data)) return 0;
@@ -308,8 +301,8 @@ export default function FinancialReport() {
 
     const filteredReportData = reportData.filter(
         (cat) =>
-            cat.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            cat.accounts.some((acc) => acc.AccName.toLowerCase().includes(searchTerm.toLowerCase()) || acc.AccCode.includes(searchTerm)),
+            cat.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            cat.accounts.some((acc) => acc.AccName?.toLowerCase().includes(searchTerm.toLowerCase()) || acc.AccCode?.includes(searchTerm)),
     );
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -425,7 +418,7 @@ export default function FinancialReport() {
                                 />
                             </div>
                             <button
-                                onClick={fetchData}
+                                onClick={fetchAllData}
                                 disabled={loading}
                                 className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3 font-medium text-white shadow-lg transition-all transition-transform duration-200 duration-300 hover:scale-[1.02] hover:from-blue-700 hover:to-blue-800 hover:shadow-xl disabled:from-gray-400 disabled:to-gray-500 disabled:hover:shadow-lg"
                             >
