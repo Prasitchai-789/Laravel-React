@@ -334,7 +334,7 @@ class ChemicalController extends Controller
     public function exportExcel(Request $request)
     {
         $month = $request->input('month', now()->format('m'));
-        $year = now()->format('Y');
+        $year = $request->input('year', now()->format('Y'));
 
         $data = $this->getMonthlyData($month, $year);
 
@@ -370,7 +370,7 @@ class ChemicalController extends Controller
         $exportData[] = array_merge(['รวมทั้งเดือน'], array_values($monthlyTotals));
 
         return Excel::download(
-            new ChemicalsMonthlyExport($exportData, $month, $year),
+            new ChemicalsMonthlyExport($exportData, $month, $year, $header),
             'chemicals-monthly-' . $year . '-' . $month . '.xlsx'
         );
     }
