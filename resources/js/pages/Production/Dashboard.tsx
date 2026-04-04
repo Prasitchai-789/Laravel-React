@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CountUp from 'react-countup';
+import CycleTimeMonitor from '@/components/Production/CycleTimeMonitor';
 import { 
     LineChart, Line, BarChart, Bar, AreaChart, Area, 
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
@@ -245,13 +246,44 @@ export default function ProductionDashboard() {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [lastUpdate, setLastUpdate] = useState(new Date());
+    const [cycleTimeData, setCycleTimeData] = useState<any>(null);
+    const [cycleTimeLoading, setCycleTimeLoading] = useState(false);
 
     const fetchData = async () => {
         try {
             setLoading(true);
-            const res = await axios.get('/api/dashboard/production');
-            setData(res.data);
+            const [prodRes, cycleRes] = await Promise.all([
+                axios.get('/api/dashboard/production'),
+                axios.get('/api/dashboard/cycle-time')
+            ]);
+            
+            setData(prodRes.data);
+            setCycleTimeData(cycleRes.data.data);
             setLastUpdate(new Date());
+
+            // Handle Real-time Alerts
+            const latest = cycleRes.data.data.kpis;
+            if (latest.latest_status === 'DOWNTIME') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ตรวจพบเครื่องหยุดทำงาน!',
+                    text: `การผลิตหยุดนิ่งเป็นเวลา ${latest.latest_diff} วินาที`,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 5000
+                });
+            } else if (latest.latest_status === 'SLOW') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ระบบทำงานช้าลง',
+                    text: `รอบปัจจุบันใช้เวลา: ${latest.latest_diff} วินาที`,
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            }
         } catch (e) {
             console.error('Error fetching production data', e);
             Swal.fire({
@@ -457,6 +489,22 @@ export default function ProductionDashboard() {
                                 </div>
                             </GlassCard>
                         </div>
+
+                        {/* Cycle Time Analysis Section */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.4 }}
+                            className="space-y-6"
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="p-2 bg-gradient-to-br from-slate-700 to-slate-900 rounded-xl shadow-lg">
+                                    <Clock className="w-5 h-5 text-white" />
+                                </div>
+                                <h2 className="text-2xl font-black text-slate-800">ประสิทธิภาพการทำงาน</h2>
+                            </div>
+                            <CycleTimeMonitor data={cycleTimeData} loading={cycleTimeLoading} />
+                        </motion.div>
 
                         {/* Enhanced Flow Diagram */}
                         <GlassCard className="overflow-hidden" delay={0.35}>

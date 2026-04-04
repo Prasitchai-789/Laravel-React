@@ -9,7 +9,7 @@ use App\Models\CCTV\Dvr;
 use App\Models\CCTV\Camera;
 use App\Models\CCTV\CctvInspection;
 use Carbon\Carbon;
-
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class CctvController extends Controller
@@ -22,6 +22,11 @@ class CctvController extends Controller
     public function form($id)
     {
         return Inertia::render('CCTV/CctvInspectionForm', ['dvr_id' => $id]);
+    }
+
+    public function monthlyOverviewPage()
+    {
+        return Inertia::render('CCTV/CctvMonthlyOverview');
     }
 
     /**
@@ -177,4 +182,90 @@ class CctvController extends Controller
             'message' => 'Inspection saved successfully.',
         ]);
     }
+
+    /**
+     * API — Monthly Overview: matrix of all DVRs × all dates in a month
+     * Query params: month=YYYY-MM (default: current month)
+     */
+    public function getMonthlyOverview(Request $request)
+    {
+        try {
+            $month = $request->query('month', now()->format('Y-m'));
+            $startDate = Carbon::parse($month . '-01')->startOfMonth();
+            $endDate   = $startDate->copy()->endOfMonth();
+
+            $dvrs = Dvr::orderBy('name')->get();
+
+            // Fetch all inspections for this month using raw query to avoid MSSQL date format issues
+            $rawInspections = DB::table('cctv_inspections')
+                ->selectRaw("dvr_id, checked_by, dvr_remark, camera_data, FORMAT(inspection_date, 'yyyy-MM-dd') as insp_date")
+                ->whereBetween(DB::raw("FORMAT(inspection_date, 'yyyy-MM-dd')"), [
+                    $startDate->toDateString(),
+                    $endDate->toDateString(),
+                ])
+                ->get();
+
+            // Group by "date_dvrId" key
+            $inspections = $rawInspections->groupBy(fn($i) => $i->insp_date . '_' . $i->dvr_id);
+
+            // Build list of dates in the month
+            $dates = [];
+            $cursor = $startDate->copy();
+            while ($cursor->lte($endDate)) {
+                $dates[] = $cursor->toDateString();
+                $cursor->addDay();
+            }
+
+            // Build matrix
+            $rows = collect($dates)->map(function ($date) use ($dvrs, $inspections) {
+                $cells = $dvrs->map(function ($dvr) use ($date, $inspections) {
+                    $key = $date . '_' . $dvr->id;
+                    $inspection = $inspections->get($key)?->first();
+
+                    $broken   = 0;
+                    $noSignal = 0;
+                    if ($inspection) {
+                        $camData = is_array($inspection->camera_data)
+                            ? $inspection->camera_data
+                            : json_decode($inspection->camera_data, true) ?? [];
+                        foreach ($camData as $cam) {
+                            if (($cam['status'] ?? '') === 'broken')    $broken++;
+                            if (($cam['status'] ?? '') === 'no_signal') $noSignal++;
+                        }
+                    }
+
+                    return [
+                        'dvr_id'          => $dvr->id,
+                        'is_inspected'    => $inspection !== null,
+                        'broken_count'    => $broken,
+                        'no_signal_count' => $noSignal,
+                        'checked_by'      => $inspection->checked_by ?? null,
+                        'remark'          => $inspection->dvr_remark ?? null,
+                    ];
+                })->values();
+
+                return [
+                    'date'  => $date,
+                    'cells' => $cells,
+                ];
+            });
+
+            // Summary stats
+            $totalSlots    = count($dates) * $dvrs->count();
+            $inspectedSlots = $inspections->count();
+
+            return response()->json([
+                'success'      => true,
+                'month'        => $month,
+                'dates'        => $dates,
+                'dvrs'         => $dvrs->map(fn($d) => ['id' => $d->id, 'name' => $d->name, 'camera_count' => $d->camera_count])->values(),
+                'rows'         => $rows,
+                'total_slots'  => $totalSlots,
+                'inspected_slots' => $inspectedSlots,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 }
+

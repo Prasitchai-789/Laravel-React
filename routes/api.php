@@ -41,4 +41,9 @@ Route::prefix('monitoring')->group(function () {
 });
 
 use App\Http\Controllers\Dashboard\ProductionDashboardController;
+use App\Http\Controllers\Api\Dashboard\CycleTimeController;
+use App\Http\Controllers\Api\Dashboard\PalmAnalyticsController;
+
 Route::get('/dashboard/production', [ProductionDashboardController::class, 'apiData']);
+Route::get('/dashboard/cycle-time', [CycleTimeController::class, 'index']);
+Route::get('/dashboard/palm-analytics', [PalmAnalyticsController::class, 'intake']);

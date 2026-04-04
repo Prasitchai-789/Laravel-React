@@ -123,12 +123,10 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'encrypt' => 'yes',
-    'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE_2', true),
-
-            // 'options' => [
-            //     PDO::SQLSRV_ATTR_QUERY_TIMEOUT => 60,
-            //     'TrustServerCertificate' => env('DB_TRUST_SERVER_CERTIFICATE_2', true),
-            // ],
+            'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE_2', true),
+            'options' => [
+                (defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT') ? \PDO::SQLSRV_ATTR_QUERY_TIMEOUT : 1001) => 120,
+            ],
         ],
         'sqlsrv3' => [
             'driver' => 'sqlsrv',

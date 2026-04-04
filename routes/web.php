@@ -377,6 +377,10 @@ Route::middleware(['auth'])->get('/production-dashboard', function () {
     return Inertia::render('Production/Dashboard'); 
 })->name('production.dashboard');
 
+Route::middleware(['auth'])->get('/palm/analytics', function () { 
+    return Inertia::render('Production/PalmAnalytics'); 
+})->name('palm.analytics');
+
 
 // errors pages
 Route::fallback(function () {
@@ -483,11 +487,12 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
     Route::post('/computer-inspection', [\App\Http\Controllers\Computer\ComputerController::class, 'store'])->name('computer.store');
 
     // CCTV Preventive Maintenance
-    // CCTV
     Route::get('/cctv-inspection', [\App\Http\Controllers\CCTV\CctvController::class, 'index'])->name('cctv.index');
+    Route::get('/cctv-inspection/overview', [\App\Http\Controllers\CCTV\CctvController::class, 'monthlyOverviewPage'])->name('cctv.overview');
     Route::get('/cctv-inspection/form/{id}', [\App\Http\Controllers\CCTV\CctvController::class, 'form'])->name('cctv.form');
     Route::get('/cctv-inspection/api', [\App\Http\Controllers\CCTV\CctvController::class, 'apiData'])->name('cctv.api');
     Route::get('/cctv-inspection/api/{id}', [\App\Http\Controllers\CCTV\CctvController::class, 'show'])->name('cctv.show');
+    Route::get('/cctv-inspection/monthly-api', [\App\Http\Controllers\CCTV\CctvController::class, 'getMonthlyOverview'])->name('cctv.monthly.api');
     Route::post('/cctv-inspection', [\App\Http\Controllers\CCTV\CctvController::class, 'store'])->name('cctv.store');
 
     // DVR Management

@@ -115,6 +115,11 @@ const ITNavItem: NavItem[] = [
         icon: FileText,
     },
     {
+        title: 'ภาพรวม CCTV รายเดือน',
+        href: '/cctv-inspection/overview',
+        icon: ChartNoAxesCombined,
+    },
+    {
         title: 'CCTV Inspection',
         href: '/cctv-inspection',
         icon: CameraIcon,
@@ -256,6 +261,12 @@ const DevNavItems: NavItem[] = [
         title: 'รายงานการขายสินค้า',
         href: '/sales-order',
         icon: BadgeDollarSign,
+        permission: ['developer.view'],
+    },
+    {
+        title: 'วิเคราะห์การรับซื้อปาล์ม',
+        href: '/palm/analytics',
+        icon: ChartLine,
         permission: ['developer.view'],
     },
 ];
