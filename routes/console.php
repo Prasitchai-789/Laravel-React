@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 
 use Illuminate\Support\Facades\Schedule;
 Schedule::command('devices:check-offline')->everyMinute();
+Schedule::command('forecast:palm-intake')->dailyAt('00:00');

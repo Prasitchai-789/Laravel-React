@@ -12,8 +12,9 @@ class CctvInspection extends Model
     ];
 
     protected $casts = [
-        'camera_data' => 'array',
-        'image_paths' => 'array',
+        'camera_data'     => 'array',
+        'image_paths'     => 'array',
+        'inspection_date' => 'date:Y-m-d',
     ];
 
     public function dvr()

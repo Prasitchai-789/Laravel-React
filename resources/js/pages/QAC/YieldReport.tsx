@@ -213,8 +213,8 @@ export default function YieldReport() {
                                                     <TrendingUp className="h-5 w-5 text-white" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-bold text-gray-800">% Yield วันล่าสุด</p>
-                                                    <p className="text-[11px] text-gray-500">
+                                                    <p className="text-sm font-bold text-gray-800">% Yield</p>
+                                                    <p className="text-xs font-medium text-gray-700">
                                                         {thaiDate(data.latest_date)}
                                                     </p>
                                                 </div>
@@ -225,16 +225,16 @@ export default function YieldReport() {
                                             {fmt(data.latest_yield, 2)}
                                             <span className="ml-1 text-lg font-semibold text-amber-400">%</span>
                                         </p>
-                                        <div className="mt-3 flex gap-4 text-xs text-gray-500">
+                                        <div className="mt-3 flex gap-4 text-sm font-medium text-gray-700">
                                             <span>
                                                 CPO+OilRoom:{' '}
-                                                <span className="font-semibold text-gray-700">
+                                                <span className="font-bold text-gray-900">
                                                     {fmt(data.latest_product_cpo + data.latest_cpo_oil_room)}
                                                 </span>
                                             </span>
                                             <span>
                                                 FFB:{' '}
-                                                <span className="font-semibold text-gray-700">
+                                                <span className="font-bold text-gray-900">
                                                     {fmt(data.latest_ffb)}
                                                 </span>
                                             </span>
@@ -258,7 +258,7 @@ export default function YieldReport() {
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-bold text-gray-800">% Yield ช่วงเวลา</p>
-                                                    <p className="text-[11px] text-gray-500">{thaiDate(startDate)} — {thaiDate(endDate)}</p>
+                                                    <p className="text-xs font-medium text-gray-700">{thaiDate(startDate)} — {thaiDate(endDate)}</p>
                                                 </div>
                                             </div>
                                             <Percent className="h-6 w-6 text-blue-300" />
@@ -267,16 +267,16 @@ export default function YieldReport() {
                                             {fmt(data.range_yield, 2)}
                                             <span className="ml-1 text-lg font-semibold text-blue-400">%</span>
                                         </p>
-                                        <div className="mt-3 flex gap-4 text-xs text-gray-500">
+                                        <div className="mt-3 flex gap-4 text-sm font-medium text-gray-700">
                                             <span>
                                                 CPO:{' '}
-                                                <span className="font-semibold text-gray-700">
+                                                <span className="font-bold text-gray-900">
                                                     {fmt(data.range_product_cpo)}
                                                 </span>
                                             </span>
                                             <span>
                                                 FFB:{' '}
-                                                <span className="font-semibold text-gray-700">
+                                                <span className="font-bold text-gray-900">
                                                     {fmt(data.range_ffb)}
                                                 </span>
                                             </span>
@@ -302,7 +302,7 @@ export default function YieldReport() {
                                                     <p className="text-sm font-bold text-gray-800">
                                                         % Yield + Oil Room
                                                     </p>
-                                                    <p className="text-[11px] text-gray-500">
+                                                    <p className="text-xs font-medium text-gray-700">
                                                         {thaiDate(startDate)} — {thaiDate(endDate)}
                                                     </p>
                                                 </div>
@@ -313,16 +313,16 @@ export default function YieldReport() {
                                             {fmt(data.range_yield_with_oil_room, 2)}
                                             <span className="ml-1 text-lg font-semibold text-purple-400">%</span>
                                         </p>
-                                        <div className="mt-3 flex gap-4 text-xs text-gray-500">
+                                        <div className="mt-3 flex gap-4 text-sm font-medium text-gray-700">
                                             <span>
                                                 CPO+OilRoom:{' '}
-                                                <span className="font-semibold text-gray-700">
+                                                <span className="font-bold text-gray-900">
                                                     {fmt(data.range_product_cpo + data.range_cpo_oil_room)}
                                                 </span>
                                             </span>
                                             <span>
                                                 FFB:{' '}
-                                                <span className="font-semibold text-gray-700">
+                                                <span className="font-bold text-gray-900">
                                                     {fmt(data.range_ffb)}
                                                 </span>
                                             </span>
@@ -348,7 +348,7 @@ export default function YieldReport() {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold text-gray-800">ผลรวม Skim</p>
-                                                <p className="text-[11px] text-gray-500">
+                                                <p className="text-xs font-medium text-gray-700">
                                                     {thaiDate(startDate)} — {thaiDate(endDate)}
                                                 </p>
                                             </div>
@@ -357,7 +357,7 @@ export default function YieldReport() {
                                             {fmt(data.range_skim)}
                                         </p>
                                         <div className="mt-2 flex items-center gap-3">
-                                            <p className="text-xs font-medium text-gray-500">ตัน</p>
+                                            <p className="text-sm font-bold text-gray-700">ตัน</p>
                                             <span className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-600">
                                                 {data.range_ffb > 0
                                                     ? fmt((data.range_skim / data.range_ffb) * 100, 2)
@@ -383,7 +383,7 @@ export default function YieldReport() {
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold text-gray-800">ผลรวม Mix</p>
-                                                <p className="text-[11px] text-gray-500">
+                                                <p className="text-xs font-medium text-gray-700">
                                                     {thaiDate(startDate)} — {thaiDate(endDate)}
                                                 </p>
                                             </div>
@@ -391,7 +391,7 @@ export default function YieldReport() {
                                         <p className="text-4xl font-extrabold tracking-tight text-emerald-600">
                                             {fmt(data.range_mix)}
                                         </p>
-                                        <p className="mt-1 text-xs font-medium text-gray-500">ตัน</p>
+                                        <p className="mt-1 text-sm font-bold text-gray-700">ตัน</p>
                                     </div>
                                 </motion.div>
                             </div>
@@ -410,7 +410,7 @@ export default function YieldReport() {
                                         </div>
                                         <div>
                                             <h3 className="text-sm font-bold text-gray-800">สรุปข้อมูลช่วงเวลา</h3>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-xs font-semibold text-gray-700">
                                                 {thaiDate(startDate)} — {thaiDate(endDate)}
                                             </p>
                                         </div>
@@ -425,14 +425,14 @@ export default function YieldReport() {
                                         { label: '% Yield + Oil Room', value: `${fmt(data.range_yield_with_oil_room, 2)}%`, unit: '', color: 'text-violet-700' },
                                     ].map((item) => (
                                         <div key={item.label} className="bg-white p-4 text-center">
-                                            <p className="text-[11px] font-medium tracking-wider text-gray-400 uppercase">
+                                            <p className="text-xs font-bold tracking-wider text-gray-600 uppercase">
                                                 {item.label}
                                             </p>
-                                            <p className={`mt-1 text-lg font-bold ${item.color}`}>
+                                            <p className={`mt-1 text-xl font-bold ${item.color}`}>
                                                 {item.value}
                                             </p>
                                             {item.unit && (
-                                                <p className="text-[10px] text-gray-400">{item.unit}</p>
+                                                <p className="text-xs font-semibold text-gray-600">{item.unit}</p>
                                             )}
                                         </div>
                                     ))}
@@ -484,44 +484,48 @@ export default function YieldReport() {
                                         </div>
                                     ) : (
                                         <ResponsiveContainer width="100%" height={400}>
-                                            <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                            <BarChart data={chartData} margin={{ top: 24, right: 20, left: 0, bottom: 5 }} barCategoryGap="10%">
+                                                <defs>
+                                                    <linearGradient id="yieldGradient" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                                                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.8} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                                                 <XAxis
                                                     dataKey="day"
-                                                    tick={{ fontSize: 12, fill: '#6b7280' }}
+                                                    tick={{ fontSize: 12, fill: '#374151', fontWeight: 600 }}
                                                     tickLine={false}
-                                                    axisLine={{ stroke: '#e5e7eb' }}
+                                                    axisLine={{ stroke: '#d1d5db' }}
                                                 />
                                                 <YAxis
-                                                    tick={{ fontSize: 12, fill: '#6b7280' }}
+                                                    tick={{ fontSize: 12, fill: '#374151', fontWeight: 600 }}
                                                     tickLine={false}
-                                                    axisLine={{ stroke: '#e5e7eb' }}
+                                                    axisLine={false}
                                                     unit="%"
+                                                    domain={[0, 'auto']}
                                                 />
                                                 <Tooltip
                                                     contentStyle={{
                                                         borderRadius: '12px',
                                                         border: '1px solid #e5e7eb',
-                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                                                        fontSize: '13px',
+                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.10)',
+                                                        fontSize: '14px',
+                                                        fontWeight: 600,
                                                     }}
-                                                    formatter={(value: any) => [
-                                                        `${Number(value).toFixed(2)}%`,
-                                                        '% Yield',
-                                                    ]}
+                                                    formatter={(value: any) =>
+                                                        Number(value) > 0
+                                                            ? [`${Number(value).toFixed(2)}%`, '% Yield']
+                                                            : ['ไม่มีข้อมูล', '% Yield']
+                                                    }
                                                     labelFormatter={(label) => `วันที่ ${label}`}
                                                 />
-                                                <Bar
-                                                    dataKey="yield"
-                                                    fill="#3b82f6"
-                                                    radius={[4, 4, 0, 0]}
-                                                    maxBarSize={32}
-                                                >
+                                                <Bar dataKey="yield" radius={[4, 4, 0, 0]} fill="url(#yieldGradient)">
                                                     <LabelList
                                                         dataKey="yield"
                                                         position="top"
-                                                        formatter={(v: any) => `${Number(v).toFixed(2)}`}
-                                                        style={{ fontSize: '10px', fill: '#4b5563', fontWeight: 600 }}
+                                                        formatter={(v: any) => Number(v) > 0 ? `${Number(v).toFixed(2)}` : ''}
+                                                        style={{ fontSize: '10px', fill: '#1e40af', fontWeight: 700 }}
                                                     />
                                                 </Bar>
                                             </BarChart>

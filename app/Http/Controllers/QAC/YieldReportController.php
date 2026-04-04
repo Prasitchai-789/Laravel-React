@@ -110,7 +110,7 @@ class YieldReportController extends Controller
     }
 
     /**
-     * API — ข้อมูล %Yield รายวัน ตามเดือนที่เลือก
+     * API — ข้อมูล %Yield รายวัน ตามเดือนที่เลือก (ครบทุกวันในเดือน)
      */
     public function apiMonthlyYield(Request $request)
     {
@@ -121,45 +121,60 @@ class YieldReportController extends Controller
             }
 
             $year = intval(substr($month, 0, 4));
-            $mon = intval(substr($month, 5, 2));
+            $mon  = intval(substr($month, 5, 2));
 
-            // ดึง cpo_data ทั้งเดือน
+            // สร้างลิสต์วันทุกวันของเดือน
+            $startOfMonth = Carbon::createFromDate($year, $mon, 1)->startOfDay();
+            $endOfMonth   = $startOfMonth->copy()->endOfMonth();
+
+            // ดึง cpo_data ทั้งเดือน แล้ว index ด้วย วัน YYYY-MM-DD
             $cpoRecords = CPOData::whereYear('date', $year)
                 ->whereMonth('date', $mon)
                 ->orderBy('date')
-                ->get();
+                ->get()
+                ->keyBy(function ($r) {
+                    $raw = str_replace([':AM', ':PM'], [' AM', ' PM'], $r->date);
+                    return Carbon::parse($raw)->format('Y-m-d');
+                });
+
+            // ดึง Production เฉพาะเดือนนั้น แล้ว index ด้วย วัน YYYY-MM-DD
+            $productions = Production::whereDate('Date', '>=', $startOfMonth->format('Y-m-d'))
+                ->whereDate('Date', '<=', $endOfMonth->format('Y-m-d'))
+                ->get()
+                ->keyBy(fn($p) => Carbon::parse($p->Date)->format('Y-m-d'));
 
             $chartData = [];
+            $current = $startOfMonth->copy();
 
-            foreach ($cpoRecords as $record) {
-                $rawDate = str_replace([':AM', ':PM'], [' AM', ' PM'], $record->date);
-                $dateStr = Carbon::parse($rawDate)->format('Y-m-d');
-                $day = Carbon::parse($rawDate)->format('j'); // day number
+            while ($current->lte($endOfMonth)) {
+                $dateStr = $current->format('Y-m-d');
+                $day     = $current->day; // 1..31
 
-                $productCpo = floatval($record->product_cpo ?? 0);
-                $cpoOilRoom = floatval($record->cpo_oil_room ?? 0);
+                $record     = $cpoRecords->get($dateStr);
+                $prod       = $productions->get($dateStr);
 
-                // FFB ของวันนั้น
-                $prod = Production::whereDate('Date', $dateStr)->first();
-                $ffb = $prod ? floatval($prod->FFBGoodQty ?? 0) : 0;
+                $productCpo   = $record ? floatval($record->product_cpo  ?? 0) : 0;
+                $cpoOilRoom   = $record ? floatval($record->cpo_oil_room ?? 0) : 0;
+                $ffb          = $prod   ? floatval($prod->FFBGoodQty     ?? 0) : 0;
 
-                // Yield แบบธรรมดา vs Yield + Oil Room ของวันนั้น
-                $yield = $ffb > 0 ? round(($productCpo / $ffb) * 100, 2) : 0;
+                $yield            = $ffb > 0 ? round(($productCpo / $ffb) * 100, 2) : 0;
                 $yieldWithOilRoom = $ffb > 0 ? round((($productCpo + $cpoOilRoom) / $ffb) * 100, 2) : 0;
 
                 $chartData[] = [
-                    'date' => $dateStr,
-                    'day' => $day,
-                    'product_cpo' => round($productCpo, 3),
-                    'cpo_oil_room' => round($cpoOilRoom, 3),
-                    'ffb' => round($ffb, 3),
-                    'yield' => $yield, // กราฟจะแสดงค่าที่รวม Oil Room ตาม Yield ปกติแล้ว
+                    'date'          => $dateStr,
+                    'day'           => $day,
+                    'product_cpo'   => round($productCpo, 3),
+                    'cpo_oil_room'  => round($cpoOilRoom, 3),
+                    'ffb'           => round($ffb, 3),
+                    'yield'         => $yield,
                     'yield_oil_room' => $yieldWithOilRoom,
                 ];
+
+                $current->addDay();
             }
 
             return response()->json([
-                'success' => true,
+                'success'    => true,
                 'chart_data' => $chartData,
             ]);
         } catch (\Exception $e) {
