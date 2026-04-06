@@ -221,12 +221,14 @@ class SalesController extends Controller
             $firstItem = $items[0];
             $productModel = $productsToUpdate[$firstItem['product_id']]['model'];
 
+            $totalQuantity = collect($items)->sum('quantity');
+
             // Create ONE Sale Header
             $saleData = array_merge($validated, [
                 'invoice_no' => $invoiceNo,
                 'product_id' => $firstItem['product_id'],
                 'custom_product_id' => $firstItem['custom_product_id'] ?? null,
-                'quantity' => $firstItem['quantity'],
+                'quantity' => $totalQuantity,
                 'price' => $firstItem['price'],
                 'shipping_cost' => $shippingCost,
                 'total_amount' => $totalAmount,
@@ -543,7 +545,7 @@ class SalesController extends Controller
             $saleDataUpdate = array_merge($validated, [
                 'product_id' => $firstItem['product_id'],
                 'custom_product_id' => $firstItem['custom_product_id'] ?? null,
-                'quantity' => $firstItem['quantity'],
+                'quantity' => $itemsQuantity,
                 'price' => $firstItem['price'],
                 'invoice_no' => $newInvoiceNo,
                 'shipping_cost' => $shippingCost,

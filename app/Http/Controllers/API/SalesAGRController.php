@@ -95,16 +95,18 @@ class SalesAGRController extends Controller
         ];
 
         $rows = DB::connection('sqlsrv')
-            ->table('agr_sales as s')
-            ->join('agr_products as p', 's.product_id', '=', 'p.id')
+            ->table('agr_sale_items as si')
+            ->join('agr_sales as s', 'si.sale_id', '=', 's.id')
+            ->join('agr_products as p', 'si.product_id', '=', 'p.id')
             ->join('agr_customers as c', 's.customer_id', '=', 'c.id')
             ->select(
                 'c.subdistrict',
                 'p.sku',
-                DB::raw('SUM(s.quantity) as total_quantity')
+                DB::raw('SUM(si.quantity) as total_quantity')
             )
             ->whereBetween('s.sale_date', [$startDate, $endDate])
             ->whereNull('s.deleted_at')
+            ->whereNull('si.deleted_at')
             ->groupBy('c.subdistrict', 'p.sku')
             ->get();
 
@@ -186,16 +188,18 @@ class SalesAGRController extends Controller
             ->map(fn($c) => $c->SubDistrictName);
 
         $areas = DB::connection('sqlsrv')
-            ->table('agr_sales as s')
+            ->table('agr_sale_items as si')
+            ->join('agr_sales as s', 'si.sale_id', '=', 's.id')
             ->join('agr_customers as c', 's.customer_id', '=', 'c.id')
             ->select(
                 'c.subdistrict',
-                DB::raw('SUM(s.quantity) as total_quantity'),
-                DB::raw('SUM(s.total_amount) as total_amount'),
-                DB::raw('COUNT(*) as total_orders')
+                DB::raw('SUM(si.quantity) as total_quantity'),
+                DB::raw('SUM(si.line_total) as total_amount'), // หรือใช้ s.total_amount ตามความเหมาะสม
+                DB::raw('COUNT(DISTINCT s.id) as total_orders')
             )
             ->whereBetween('s.sale_date', [$startDate, $endDate])
             ->whereNull('s.deleted_at')
+            ->whereNull('si.deleted_at')
             ->groupBy('c.subdistrict')
             ->orderByDesc('total_quantity')
             ->limit(10)
@@ -226,17 +230,19 @@ class SalesAGRController extends Controller
 
         // ดึงข้อมูลการขายทั้งหมด (ภายในช่วงวันที่)
         $sales = DB::connection('sqlsrv')
-            ->table('agr_sales as s')
-            ->join('agr_products as p', 's.product_id', '=', 'p.id')
+            ->table('agr_sale_items as si')
+            ->join('agr_sales as s', 'si.sale_id', '=', 's.id')
+            ->join('agr_products as p', 'si.product_id', '=', 'p.id')
             ->select(
                 'p.sku',
-                DB::raw('SUM(s.quantity) as total_qty'),
-                DB::raw('SUM(s.total_amount) as total_amount')
+                DB::raw('SUM(si.quantity) as total_qty'),
+                DB::raw('SUM(si.line_total) as total_amount')
             )
             ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
                 $query->whereBetween('s.sale_date', [$startDate, $endDate]);
             })
             ->whereNull('s.deleted_at')
+            ->whereNull('si.deleted_at')
             ->groupBy('p.sku')
             ->get();
         // รวมข้อมูลโดยใช้ชื่อสินค้าเต็ม
