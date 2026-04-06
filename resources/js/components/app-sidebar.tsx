@@ -216,6 +216,12 @@ const adminNavItems: NavItem[] = [
 
 const DevNavItems: NavItem[] = [
     {
+        title: 'Executive Report',
+        href: '/purchase/executive-report',
+        icon: LayoutDashboard,
+        permission: ['developer.view'],
+    },
+    {
         title: 'ปริมาณผลปาล์ม',
         href: '/palm/table',
         icon: ShoppingBasket,
@@ -225,6 +231,12 @@ const DevNavItems: NavItem[] = [
         title: 'ปริมาณผลปาล์มรายวัน',
         href: '/palm/daily',
         icon: ChartNoAxesCombined,
+        permission: ['developer.view'],
+    },
+    {
+        title: 'รายงานรับซื้อผลปาล์ม',
+        href: '/purchase/po-invoice-dashboard',
+        icon: ShoppingCart,
         permission: ['developer.view'],
     },
     {
