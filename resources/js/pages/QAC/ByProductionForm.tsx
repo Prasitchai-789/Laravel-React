@@ -779,7 +779,7 @@ const ByProductionForm: React.FC = () => {
         EDIT RECORD
     --------------------------------------------------- */
     const handleEdit = useCallback((stock: any) => {
-        const parsedDate = strictDateParser(stock.production_date);
+        const parsedDate = stock.production_date_clean || strictDateParser(stock.production_date);
 
         setFormData({
             production_date: parsedDate,
