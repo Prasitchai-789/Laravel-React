@@ -4,6 +4,13 @@ import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
+
+// Extend dayjs
+dayjs.extend(buddhistEra);
+dayjs.locale('th');
 import {
     TrendingUp, Package, Factory, Droplets,
     CircleDollarSign, Percent, BarChart3, CalendarDays,
@@ -148,6 +155,11 @@ export default function ExecutiveReport() {
         fetchCPOSummary();
     }, [startDate, endDate]);
 
+    const formatDateThai = (date: string) => {
+        if (!date) return '-';
+        return dayjs(date).format('D MMM BBBB');
+    };
+
     const calculateTotalSalesRevenue = () => {
         let total = 0;
         salesItems.forEach(itemConfig => {
@@ -225,14 +237,20 @@ export default function ExecutiveReport() {
                         transition={{ duration: 0.5 }}
                         className="relative z-10"
                     >
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
                                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
                                     <TrendingUp className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Executive Report</h1>
-                                    <p className="text-sm text-slate-500">ภาพรวมธุรกิจแบบเรียลไทม์</p>
+                                    <h1 className="text-2xl md:text-1xl font-black text-slate-800 tracking-tight mb-2">รายงานข้อมูลการขายสินค้า</h1>
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                                        {/* <p className="text-sm text-slate-500 font-medium whitespace-nowrap">ภาพรวมธุรกิจตามช่วงเวลาที่เลือก</p> */}
+
+                                        <p className="text-md sm:text-md font-bold text-indigo-600 py-0.5 ">
+                                            {formatDateThai(startDate)} - {formatDateThai(endDate)}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -256,13 +274,13 @@ export default function ExecutiveReport() {
                                         />
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 bg-emerald-50/80 backdrop-blur-md rounded-full px-3 py-2 border border-emerald-100">
+                                {/* <div className="flex items-center gap-2 bg-emerald-50/80 backdrop-blur-md rounded-full px-3 py-2 border border-emerald-100">
                                     <div className="relative flex h-2 w-2">
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                     </div>
                                     <span className="text-emerald-700 font-black text-xs tracking-wider">LIVE</span>
-                                </div>
+                                </div> */}
                             </div>
                         </div>
                     </motion.div>
@@ -272,11 +290,11 @@ export default function ExecutiveReport() {
                         variants={containerVariants}
                         initial="hidden"
                         animate="show"
-                        className="grid grid-cols-1 lg:grid-cols-12 gap-4 relative z-10"
+                        className="grid grid-cols-1 lg:grid-cols-12 gap-2 relative z-10"
                     >
 
                         {/* LEFT COLUMN - 5 cols */}
-                        <div className="lg:col-span-5 flex flex-col gap-4">
+                        <div className="lg:col-span-5 flex flex-col gap-2">
 
                             {/* ปริมาณรับซื้อ */}
                             <motion.div variants={itemVariants} className="bg-white/80 backdrop-blur-xl rounded-2xl md:rounded-3xl p-4 md:p-5 lg:p-6 shadow-xl shadow-slate-200/40 border border-white flex justify-between items-center relative overflow-hidden group">
@@ -622,16 +640,20 @@ export default function ExecutiveReport() {
                                 </div>
                                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5" />
                                 <div className="relative z-10">
-                                    <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-sm mb-4">
+                                     <div className="flex items-center gap-3 relative z-10 bg-white/10 px-4 py-2 rounded-full border border-white/20 backdrop-blur-sm mb-4">
                                         <Zap className="w-4 h-4 text-yellow-300" />
                                         <p className="font-black text-white text-xs uppercase tracking-wider">% YIELD Monthly</p>
                                     </div>
+                                    {/* <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-sm mb-4">
+                                        <Zap className="w-4 h-4 text-yellow-300" />
+                                        <p className="font-black text-white text-xs uppercase tracking-wider">% YIELD Monthly</p>
+                                    </div> */}
                                     <span className="text-5xl font-black text-white tracking-tighter font-mono pr-2">
                                         {loadingCPOSummary ? (
                                             <span className="animate-pulse text-3xl">...</span>
                                         ) : (
                                             <CountUp end={cpoSummary?.yield_period ?? 0} decimals={2} duration={2.5} />
-                                        )}
+                                        )} <span className="text-3xl">%</span>
                                     </span>
                                     {/* <div className="inline-flex items-center gap-1 mt-3 bg-black/20 rounded-lg px-3 py-1">
                                         <ArrowUpRight className="w-3 h-3 text-emerald-200" />
