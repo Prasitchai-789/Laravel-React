@@ -14,6 +14,7 @@ use App\Http\Controllers\ChemicalMasterController;
 use App\Http\Controllers\AGR\SalesController;
 use App\Http\Controllers\AGR\StockController;
 use App\Http\Controllers\Api\POInvController;
+use App\Http\Controllers\Api\SOInvController;
 use App\Http\Controllers\ERP\ShiftController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
@@ -38,6 +39,7 @@ use App\Http\Controllers\RPO\PurchaseSummaryController;
 use App\Http\Controllers\Store\StoreMovementController;
 use App\Http\Controllers\Store\DashboardStoreController;
 use App\Http\Controllers\Api\PurchaseDashboardController;
+use App\Http\Controllers\Dashboard\POInvDashboardController;
 use App\Http\Controllers\QAC\ByProductionStockController;
 use App\Http\Controllers\Dashboard\CostAnalysisController;
 use App\Models\MAR\SOPlan;
@@ -209,10 +211,19 @@ Route::middleware(['auth'])->group(function () {
 
 // Dashboard Routes
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {
+    Route::get('/developer/components', function () {
+        return \Inertia\Inertia::render('Developer/ComponentGallery');
+    })->name('developer.components');
+
     Route::get('palm/table', [TableTotalPalmController::class, 'index'])->name('palm.table.index');
     Route::get('palm/daily', [DailyBarCharController::class, 'index'])->name('palm.daily.index');
     Route::get('palm/production', [PalmProductionController::class, 'index'])->name('palm.production.index');
+    Route::get('palm/production/summary-card/api', [PalmProductionController::class, 'getProductionSummaryCardApi'])->name('palm.production.summary.card.api');
     Route::get('palm/dashboard', [PalmDashboardController::class, 'index'])->name('palm.dashboard.index');
+
+    Route::get('/purchase/po-invoice-dashboard', [POInvDashboardController::class, 'index'])->name('poinv.dashboard.index');
+    Route::get('/purchase/po-invoice-dashboard/api', [POInvDashboardController::class, 'apiData'])->name('poinv.dashboard.api');
+
     Route::get('sales/dashboard', [MARSalesController::class, 'index'])->name('sales.dashboard.index');
     Route::get('cost-analysis/dashboard', [CostAnalysisController::class, 'index'])->name('cost-analysis.dashboard.index');
 });
@@ -395,6 +406,11 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
     Route::get('purchase/dashboard', [PurchaseDashboardController::class, 'index']);
     Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'apiIndex']);
     Route::get('/purchase/dashboard/api', [PurchaseDashboardController::class, 'apiPOinvByDept'])->name('purchase.dashboard.api');
+    
+    // Executive Summary Layout preview
+    Route::get('/purchase/executive-report', function () { 
+        return \Inertia\Inertia::render('Dashboard/ExecutiveReport'); 
+    })->name('executive.report');
 });
 
 
@@ -413,6 +429,9 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
     Route::get('/sales-mar-win/api', [SaleMARController::class, 'getSalesWin'])->name('sales.mar.win.api');
     Route::get('/poinv-win-summary/api', [POInvController::class, 'getPOInvSummary'])->name('poinv.win.summary.api');
     Route::get('/poinv-win-monthly/api', [POInvController::class, 'getPOInvMonthly'])->name('poinv.win.monthly.api');
+    Route::get('/purchase/summary-card/api', [POInvController::class, 'getPurchaseSummaryCardApi'])->name('purchase.summary.card.api');
+    Route::get('/sales/summary-card/api', [SOInvController::class, 'getSalesSummaryCardApi'])->name('sales.summary.card.api');
+    Route::get('/palm/cpo/summary-card/api', [PalmProductionController::class, 'getCPOSummaryApi'])->name('palm.cpo.summary.card.api');
 });
 
 // MAR Routes
