@@ -58,7 +58,7 @@ class SOInvController extends Controller
             $periodPlan = $basePlanQuery()
                 ->whereDate('SOPDate', '>=', $startDate)
                 ->whereDate('SOPDate', '<=', $endDate)
-                ->sum('AmntLoad') ?? 0;
+                ->sum('NetWei') ?? 0;
 
             // 2. Today Stats
             $todayStats = $baseQuery()
@@ -66,7 +66,7 @@ class SOInvController extends Controller
                 ->select(DB::raw('ISNULL(SUM(GoodAmnt), 0) as total_bath'))->first();
             $todayPlan = $basePlanQuery()
                 ->whereDate('SOPDate', $endDate)
-                ->sum('AmntLoad') ?? 0;
+                ->sum('NetWei') ?? 0;
 
             // 3. Monthly Stats
             $monthStats = $baseQuery()
@@ -76,7 +76,7 @@ class SOInvController extends Controller
             $monthPlan = $basePlanQuery()
                 ->whereYear('SOPDate', $currentYear)
                 ->whereMonth('SOPDate', $currentMonth)
-                ->sum('AmntLoad') ?? 0;
+                ->sum('NetWei') ?? 0;
 
             // 4. Yearly Stats
             $yearStats = $baseQuery()
@@ -84,7 +84,7 @@ class SOInvController extends Controller
                 ->select(DB::raw('ISNULL(SUM(GoodAmnt), 0) as total_bath'))->first();
             $yearPlan = $basePlanQuery()
                 ->whereYear('SOPDate', $currentYear)
-                ->sum('AmntLoad') ?? 0;
+                ->sum('NetWei') ?? 0;
 
             return response()->json([
                 'status' => 'success',

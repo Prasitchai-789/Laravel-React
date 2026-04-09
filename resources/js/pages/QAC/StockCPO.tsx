@@ -669,7 +669,7 @@ export default function StockCPO() {
                     </div>
 
                     {/* Parameters - 2 Columns (Portrait Mobile) */}
-                    <div className="grid grid-cols-6 gap-1">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4">
                         {/* Undilute & Settings Card */}
                         <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-1.5 shadow-sm">
                             <div className="grid grid-cols-2 text-[8px]">
@@ -722,22 +722,25 @@ export default function StockCPO() {
                                 </div>
                             </div>
                         </div>
-                        <div className="rounded-2xl bg-green-200 p-3">
-                            <p className="text-[10px] font-bold text-green-600">Skim</p>
-                            <p className="mt-1 text-lg font-bold text-green-800">{safeFixed(data.skim, 2)}</p>
-                        </div>
-                        <div className="rounded-2xl bg-amber-50 p-3">
-                            <p className="text-[10px] font-bold text-amber-600">Mix</p>
-                            <p className="mt-1 text-lg font-bold text-amber-800">{safeFixed(data.mix, 2)}</p>
-                        </div>
-                        <div className="rounded-2xl bg-rose-50 p-3">
-                            <p className="text-[10px] font-bold text-rose-600">Loop Back</p>
-                            <p className="mt-1 text-lg font-bold text-rose-800">{safeFixed(data.loopBack, 2)}</p>
-                        </div>
-                        <div className="rounded-2xl bg-red-50 p-3">
+                        <div className='col-span-2 grid grid-cols-3 gap-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3'>
+                            <div className="rounded-2xl bg-green-200 p-3">
+                                <p className="text-[10px] font-bold text-green-600">Skim</p>
+                                <p className="mt-1 text-lg font-bold text-green-800">{safeFixed(data.skim, 2)}</p>
+                            </div>
+                            <div className="rounded-2xl bg-amber-50 p-3">
+                                <p className="text-[10px] font-bold text-amber-600">Mix</p>
+                                <p className="mt-1 text-lg font-bold text-amber-800">{safeFixed(data.mix, 2)}</p>
+                            </div>
+                            <div className="rounded-2xl bg-rose-50 p-3">
+                                <p className="text-[10px] font-bold text-rose-600">Loop Back</p>
+                                <p className="mt-1 text-lg font-bold text-rose-800">{safeFixed(data.loopBack, 2)}</p>
+                            </div>
+                            {/* <div className="rounded-2xl bg-red-50 p-3">
                             <p className="text-[10px] font-bold text-red-600">ไล่ระบบ</p>
                             <p className="mt-1 text-lg font-bold text-red-800">{safeFixed(data.purgeSystem, 2)}</p>
+                        </div> */}
                         </div>
+
                     </div>
                 </div>
 
@@ -1016,7 +1019,7 @@ export default function StockCPO() {
                     </div>
 
                     {/* Parameters Section */}
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4">
                         {/* Undilute & Settings Card */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -1126,7 +1129,7 @@ export default function StockCPO() {
                         </motion.div>
 
                         {/* ไล่ระบบ */}
-                        <motion.div
+                        {/* <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.8 }}
@@ -1140,7 +1143,7 @@ export default function StockCPO() {
                             <p className="text-xl font-bold text-red-700 sm:text-3xl">{safeFixed(data.purgeSystem, 3)}</p>
 
                             <p className="mt-1 hidden text-[10px] text-red-600 sm:block sm:text-xs">ปริมาณไล่ระบบ (ตัน)</p>
-                        </motion.div>
+                        </motion.div> */}
 
 
                     </div>

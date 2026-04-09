@@ -15,7 +15,7 @@ import {
     TrendingUp, Package, Factory, Droplets,
     CircleDollarSign, Percent, CalendarDays,
     ArrowUpRight, ArrowDownRight, Leaf, Flame, Zap,
-    Wallet, Gauge, ChartNoAxesCombined, Ship, Truck
+    Wallet, Gauge, ChartNoAxesCombined, Ship, Truck, Eye
 } from 'lucide-react';
 
 export default function ExecutiveReport() {
@@ -182,39 +182,68 @@ export default function ExecutiveReport() {
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="flex flex-col md:flex-row md:items-center justify-between gap-4"
+                        transition={{ duration: 0.6 }}
+                        className="relative"
                     >
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
-                                <TrendingUp className="w-6 h-6 text-white" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-transparent to-purple-500/5 rounded-3xl blur-3xl" />
+
+                        <div className="relative flex flex-col xl:flex-row xl:items-end justify-between gap-4">
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="relative group">
+                                        <div className="relative bg-gradient-to-br from-blue-900 to-blue-800 p-4 rounded-2xl shadow-2xl border border-white/10">
+                                            <Truck className="w-8 h-8 text-white" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h1 className="text-3xl xl:text-4xl font-black tracking-tight">
+                                            <span className="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
+                                                ISANPALM
+                                            </span>
+                                            <span className="text-blue-600 text-2xl"> Report</span>
+
+                                        </h1>
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-1 w-8 bg-gradient-to-r from-blue-500 to-blue-800 rounded-full" />
+                                            <div className="flex items-center gap-2 py-1.5">
+                                                <span className="text-lg font-medium text-slate-600">
+                                                    {formatDateThai(startDate)} — {formatDateThai(endDate)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-1">
+                                                <Eye className="w-3 h-3" />
+                                                <span>Last updated: {dayjs().format('HH:mm')} น.</span>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <h1 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">ISANPALM Report</h1>
-                                {/* <div className="flex items-center gap-2 mt-1">
-                                    <CalendarDays className="w-4 h-4 text-indigo-500" />
-                                    <p className="text-sm font-semibold text-indigo-600">
-                                        {formatDateThai(startDate)} - {formatDateThai(endDate)}
-                                    </p>
-                                </div> */}
+
+                            <div className="flex flex-wrap items-center gap-2">
+                                <div className="backdrop-blur-xl bg-white/70 rounded-2xl border border-white/50 shadow-lg px-5 py-2.5">
+                                    <div className="flex items-center gap-4">
+                                        <CalendarDays className="w-5 h-5 text-indigo-500" />
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="date"
+                                                value={startDate}
+                                                onChange={(e) => setStartDate(e.target.value)}
+                                                className="bg-transparent border-none text-sm font-semibold text-slate-700 focus:ring-0 p-0 cursor-pointer"
+                                            />
+                                            <ArrowUpRight className="w-3 h-3 text-slate-400" />
+                                            <input
+                                                type="date"
+                                                value={endDate}
+                                                onChange={(e) => setEndDate(e.target.value)}
+                                                className="bg-transparent border-none text-sm font-semibold text-slate-700 focus:ring-0 p-0 cursor-pointer"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3 bg-white rounded-2xl px-4 py-2 shadow-sm border border-slate-200">
-                            <span className="text-sm font-medium text-slate-500">ช่วงวันที่</span>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                            />
-                            <span className="text-slate-400">—</span>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                            />
-                        </div>
+
                     </motion.div>
 
                     {/* Main Grid */}
@@ -230,12 +259,12 @@ export default function ExecutiveReport() {
 
                             {/* ปริมาณรับซื้อรวม - Big Card */}
                             <motion.div variants={itemVariants}
-                                className="group relative bg-white rounded-3xl overflow-hidden shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all duration-500"
+                                className="group relative bg-white rounded-3xl overflow-hidden shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all duration-500 border border-rose-100"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-br from-rose-50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                 <div className="absolute -right-20 -top-20 w-64 h-64 bg-gradient-to-br from-rose-200/30 to-transparent rounded-full blur-2xl" />
 
-                                <div className="relative p-6 md:p-6">
+                                <div className="relative px-4 py-2 md:px-6 md:py-4 md:pr-10">
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex items-center gap-3">
                                             <div className="w-14 h-14 bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-lg shadow-rose-200">
@@ -257,24 +286,24 @@ export default function ExecutiveReport() {
                                                 <span className="text-3xl font-black text-rose-600 font-mono">
                                                     {loadingPurchase ? '...' : <CountUp end={purchaseData?.period?.avg_price || 0} decimals={2} duration={1.5} />}
                                                 </span>
-                                                <span className="text-sm text-slate-600">บาท</span>
+                                                <span className="text-sm text-slate-600">Baht</span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-baseline justify-between border-t border-slate-100 pt-2.5">
+                                    <div className="flex items-baseline justify-between border-t border-slate-100 pt-2">
                                         <div>
                                             <div className="flex items-baseline gap-2">
                                                 <span className="text-5xl md:text-6xl font-black text-slate-800 tracking-tight font-mono">
                                                     {loadingPurchase ? '...' : <CountUp end={purchaseData?.period?.volume_ton || 0} decimals={2} duration={1.8} separator="," />}
                                                 </span>
-                                                <span className="text-base text-slate-700">ตัน</span>
+                                                <span className="text-base text-slate-700">Tons</span>
                                             </div>
                                             <p className="text-sm text-slate-700 mt-2 flex items-center gap-1">
                                                 <Wallet className="w-4 h-4" />
                                                 มูลค่า {loadingPurchase ? '...' :
                                                     <span className="font-bold text-slate-700">
-                                                        {formatNumber((purchaseData?.period?.amount_bath || 0) / 1000000, 2)} ล้านบาท
+                                                        {formatNumber((purchaseData?.period?.amount_bath || 0) / 1000000, 2)} MB
                                                     </span>
                                                 }
                                             </p>
@@ -288,7 +317,7 @@ export default function ExecutiveReport() {
 
                             {/* ยอดขายสินค้า - Enhanced Table */}
                             <motion.div variants={itemVariants}
-                                className="bg-white rounded-3xl shadow-xl shadow-slate-400/50 overflow-hidden flex flex-col"
+                                className="bg-white rounded-3xl shadow-xl shadow-slate-400/50 overflow-hidden flex flex-col border border-emerald-200"
                             >
                                 <div className="px-6 pt-2 pb-2 border-b border-slate-100 mt-2">
                                     <div className="flex items-center gap-3 mb-2">
@@ -306,9 +335,9 @@ export default function ExecutiveReport() {
                                     {/* Table Header */}
                                     <div className="grid grid-cols-4 gap-2 pb-3 border-b-2 border-slate-100 text-xs font-black text-slate-900 uppercase tracking-wider">
                                         <div className="col-span-1">สินค้า</div>
-                                        <div className="text-right">ปริมาณ (ตัน)</div>
+                                        <div className="text-right">ปริมาณ (Tons)</div>
                                         <div className="text-right">ราคาเฉลี่ย</div>
-                                        <div className="text-right">มูลค่า (ล้านบาท)</div>
+                                        <div className="text-right">มูลค่า (MB)</div>
                                     </div>
 
                                     {/* Table Body */}
@@ -322,7 +351,7 @@ export default function ExecutiveReport() {
                                                     animate={{ opacity: 1, x: 0 }}
                                                     transition={{ delay: 0.2 + idx * 0.08 }}
                                                     key={idx}
-                                                    className="grid grid-cols-4 gap-1 py-2.5 hover:bg-slate-50/80 transition-all rounded-xl px-2 -mx-2"
+                                                    className="grid grid-cols-4 gap-1 py-2 hover:bg-slate-50/80 transition-all rounded-xl px-2 -mx-2"
                                                 >
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-10 h-10 bg-gradient-to-br ${item.iconBg} rounded-xl flex items-center justify-center shadow-md`}>
@@ -379,7 +408,7 @@ export default function ExecutiveReport() {
                                                 <span className="font-black text-5xl text-emerald-400 tracking-tight font-mono">
                                                     {loadingSales ? '...' : <CountUp end={calculateTotalSalesRevenue()} decimals={2} duration={2} />}
                                                 </span>
-                                                <span className="font-bold text-emerald-400/70 text-sm">ล้านบาท</span>
+                                                <span className="font-bold text-emerald-400/70 text-sm">MB</span>
                                             </div>
                                         </div>
                                     </div>
@@ -393,7 +422,7 @@ export default function ExecutiveReport() {
                             {/* Production & Stock Row */}
                             <div className="grid grid-cols-2 gap-2">
                                 <motion.div variants={itemVariants}
-                                    className="bg-white rounded-2xl p-4 shadow-lg shadow-slate-200/50 border border-slate-100 hover:shadow-xl transition-all"
+                                    className="bg-white rounded-2xl p-4 shadow-lg shadow-slate-200/50 hover:shadow-xl transition-all border border-blue-100"
                                 >
                                     <div className="flex items-center gap-3 mb-6">
                                         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-md shadow-blue-200">
@@ -412,7 +441,7 @@ export default function ExecutiveReport() {
                                                 <span className="text-3xl font-black text-slate-800 tracking-tight font-mono">
                                                     <CountUp end={cpoSummary?.period_good_qty ?? 0} decimals={2} duration={2} separator="," />
                                                 </span>
-                                                <span className="text-sm text-slate-400">ตัน</span>
+                                                <span className="text-sm text-slate-400">Tons</span>
                                             </>
                                         )}
                                     </div>
@@ -438,7 +467,7 @@ export default function ExecutiveReport() {
                                                 <span className="text-3xl font-black text-emerald-800 tracking-tight font-mono">
                                                     <CountUp end={productionData?.today?.ffb_remain || 0} decimals={2} duration={2} separator="," />
                                                 </span>
-                                                <span className="text-sm text-emerald-400">ตัน</span>
+                                                <span className="text-sm text-emerald-400">Tons</span>
                                             </>
                                         )}
                                     </div>
@@ -465,10 +494,10 @@ export default function ExecutiveReport() {
                                                 </p>
                                             </div>
                                             <div className="flex items-baseline gap-3">
-                                                <span className="text-6xl font-black text-amber-400 tracking-tight font-mono">
+                                                <span className="text-5xl font-black text-amber-400 tracking-tight font-mono">
                                                     {loadingCPOSummary ? '...' : <CountUp end={cpoSummary?.total_stock || 0} decimals={2} duration={2.5} separator="," />}
                                                 </span>
-                                                <span className="text-base font-bold text-amber-400">ตัน</span>
+                                                <span className="text-sm font-bold text-amber-400">Tons</span>
                                             </div>
                                         </div>
                                         <div className="bg-white/5 backdrop-blur-md rounded-xl p-3 border border-white/10">
@@ -483,7 +512,7 @@ export default function ExecutiveReport() {
                                     </div>
 
                                     {/* Sparkline Chart */}
-                                    <div className="mt-6 mb-4 h-16 w-full">
+                                    <div className="mt-6 mb-4 h-16 w-full -ml-7 -mr-7">
                                         {loadingCPOSummary ? (
                                             <div className="w-full h-full bg-white/5 rounded-lg animate-pulse" />
                                         ) : (
@@ -494,7 +523,7 @@ export default function ExecutiveReport() {
                                                         <stop offset="100%" stopColor="#fbbf24" stopOpacity="1" />
                                                     </linearGradient>
                                                     <linearGradient id="gradFill" x1="0%" y1="0%" x2="0%" y2="100%">
-                                                        <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.25" />
+                                                        <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.4" />
                                                         <stop offset="100%" stopColor="#fbbf24" stopOpacity="0" />
                                                     </linearGradient>
                                                 </defs>
@@ -503,7 +532,7 @@ export default function ExecutiveReport() {
                                                     animate={{ pathLength: 1, opacity: 1 }}
                                                     transition={{ duration: 2, delay: 0.5, ease: "easeInOut" }}
                                                     d={generateSparklinePath(cpoSummary?.history || [], 100, 20)}
-                                                    fill="none" stroke="url(#gradPath)" strokeWidth="2.5" strokeLinecap="round"
+                                                    fill="none" stroke="url(#gradPath)" strokeWidth="1.5" strokeLinecap="round"
                                                 />
                                                 <motion.path
                                                     initial={{ opacity: 0 }}
@@ -520,7 +549,7 @@ export default function ExecutiveReport() {
                                                         transition={{ delay: 2.2 }}
                                                         cx="100"
                                                         cy={20 - 2 - ((cpoSummary.history[cpoSummary.history.length - 1].volume - Math.min(...cpoSummary.history.map((d: any) => d.volume))) / (Math.max(...cpoSummary.history.map((d: any) => d.volume)) - Math.min(...cpoSummary.history.map((d: any) => d.volume)) || 1)) * 16}
-                                                        r="2.5"
+                                                        r="1.5"
                                                         fill="#fff"
                                                         className="drop-shadow-[0_0_8px_rgba(251,191,36,1)]"
                                                     />
@@ -567,6 +596,12 @@ export default function ExecutiveReport() {
 
                                     {/* Footer Stats */}
                                     <div className="flex justify-between items-center pt-4 border-t border-white/10">
+                                        <div className="text-right">
+                                            <p className="text-xs text-slate-200">Oil Room</p>
+                                            <p className="text-3xl font-black text-amber-400 font-mono">
+                                                {loadingCPOSummary ? '...' : <CountUp end={cpoSummary?.tanks?.oil_room || 0} decimals={2} duration={2} />}
+                                            </p>
+                                        </div>
                                         <div>
                                             <p className="text-xs text-slate-200 flex items-center gap-1">
                                                 <Zap className="w-3 h-3 text-emerald-400" /> Yield + Oil Room
@@ -575,12 +610,7 @@ export default function ExecutiveReport() {
                                                 {loadingCPOSummary ? '...' : <CountUp end={cpoSummary?.yield_oil_room || 0} decimals={2} duration={2} />}%
                                             </p>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-xs text-slate-200">Oil Room</p>
-                                            <p className="text-3xl font-black text-amber-400 font-mono">
-                                                {loadingCPOSummary ? '...' : <CountUp end={cpoSummary?.tanks?.oil_room || 0} decimals={2} duration={2} />}
-                                            </p>
-                                        </div>
+
                                     </div>
                                 </div>
                             </motion.div>
@@ -627,7 +657,7 @@ export default function ExecutiveReport() {
                                                     decimals={2} duration={2} />
                                             }
                                         </span>
-                                        <span className="text-sm text-slate-500">บาท</span>
+                                        <span className="text-sm text-slate-500">Baht</span>
                                     </div>
                                     <p className="text-xs text-slate-700 mt-2">ต่อหน่วย CPO</p>
                                 </motion.div>
@@ -643,7 +673,7 @@ export default function ExecutiveReport() {
                                                     decimals={2} duration={2} />
                                             }
                                         </span>
-                                        <span className="text-sm text-slate-500">บาท</span>
+                                        <span className="text-sm text-slate-500">Baht</span>
                                     </div>
                                     <p className="text-xs text-slate-700 mt-2">อิงราคาวันนี้</p>
                                 </motion.div>

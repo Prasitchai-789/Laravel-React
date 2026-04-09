@@ -130,15 +130,15 @@ class ExecutiveProductionService
             ->orderBy($dateColumn, 'desc')
             ->value($column) ?? 0;
 
-        // Sold Quantity during period (from SOInvDT in sqlsrv2)
-        $soldQty = $this->sqlsrv2->table('SOInvDT')
-            ->join('SOInvHD', 'SOInvDT.SOInvID', '=', 'SOInvHD.SOInvID')
-            ->where('SOInvDT.GoodID', $goodId)
-            ->whereBetween('SOInvHD.DocuDate', [$start->toDateString(), $end->toDateString()])
-            ->whereIn('SOInvHD.DocuType', [107, 108])
-            ->sum('GoodStockQty') ?? 0;
+        // Sold Quantity during period (from SOPlan in sqlsrv2) - Using NetWei as per user request
+        $soldQty = $this->sqlsrv2->table('SOPlan')
+            ->where('GoodID', $goodId)
+            ->whereBetween('SOPDate', [$start->startOfDay()->toDateTimeString(), $end->endOfDay()->toDateTimeString()])
+            ->whereNull('deleted_at')
+            ->sum('NetWei') ?? 0;
 
-        // Formula: Production = (Stock_End - Stock_Start) + Sold
+        // Formula: Production = (Stock_End - Stock_Start) + (Sold / 1000)
+        // Since NetWei is likely in KG (consistent with AmntLoad/total_qty in other areas), we divide by 1000 to get Tons.
         return (float)$stockEnd - (float)$stockStart + ((float)$soldQty / 1000);
     }
 

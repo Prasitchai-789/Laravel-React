@@ -380,9 +380,9 @@ export default function ExecutiveProductionReport() {
 
                         {/* MIDDLE SECTION - Product Metrics (4 cols) */}
                         <div className="lg:col-span-4">
-                            <motion.div variants={itemVariants} className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden group">
+                            <motion.div variants={itemVariants} className="bg-white rounded-3xl shadow-xl border border-indigo-100 overflow-hidden group">
                                 {/* Header with Premium Design */}
-                                <div className="relative p-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-indigo-50/30">
+                                <div className="relative p-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-indigo-50/30 ">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl" />
                                     <div className="relative flex items-center gap-3">
                                         <div className="relative">
