@@ -84,7 +84,7 @@ const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
         let startDate: string | undefined;
         let endDate: string | undefined;
         let finalDateMode = 'monthly';
-        let finalTimeRange = timeRange || 'month';
+        const finalTimeRange = timeRange || 'month';
 
         // ✅ ตรวจสอบ timeRange ก่อน dateMode
         if (timeRange === 'year') {

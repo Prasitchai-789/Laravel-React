@@ -361,7 +361,7 @@ export default function StockCPO() {
             setError(null);
             setUsingSampleData(false);
 
-            let date = rawDate ?? selectedDate;
+            const date = rawDate ?? selectedDate;
 
             if (!date || date.trim() === '') {
                 console.warn('⚠ fetchDataByDate: date is EMPTY → เรียก fetchLatestData()');

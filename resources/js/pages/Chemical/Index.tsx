@@ -364,7 +364,7 @@ export default function ChemicalsIndex({ records, pagination }) {
                                         }
 
                                         // ถ้ามากกว่า 7 หน้าแสดงเฉพาะบางหน้า
-                                        let visiblePages = [];
+                                        const visiblePages = [];
 
                                         // หน้าแรก
                                         visiblePages.push(links[0]);

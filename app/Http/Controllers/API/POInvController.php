@@ -136,6 +136,25 @@ class POInvController extends Controller
                     DB::raw('CASE WHEN SUM(GoodStockQty) > 0 THEN SUM(GoodAmnt) / SUM(GoodStockQty) ELSE 0 END as avg_price')
                 )->first();
 
+            // Yesterday (วันก่อนหน้า end_date)
+            $yesterdayDate = Carbon::parse($endDate)->subDay()->format('Y-m-d');
+            $yesterdayStats = $baseQuery()
+                ->whereDate('POInvHD.DocuDate', $yesterdayDate)
+                ->select(
+                    DB::raw('ISNULL(SUM(GoodAmnt), 0) as total_bath'),
+                    DB::raw('CASE WHEN SUM(GoodStockQty) > 0 THEN SUM(GoodAmnt) / SUM(GoodStockQty) ELSE 0 END as avg_price')
+                )->first();
+
+            $priceChange = 0;
+            if ($yesterdayStats && $yesterdayStats->avg_price > 0) {
+                $priceChange = (($todayStats->avg_price - $yesterdayStats->avg_price) / $yesterdayStats->avg_price) * 100;
+            }
+
+            $amountChange = 0;
+            if ($yesterdayStats && $yesterdayStats->total_bath > 0) {
+                $amountChange = (($todayStats->total_bath - $yesterdayStats->total_bath) / $yesterdayStats->total_bath) * 100;
+            }
+
             // Monthly
             $monthStats = $baseQuery()
                 ->whereYear('POInvHD.DocuDate', $currentYear)
@@ -145,6 +164,26 @@ class POInvController extends Controller
                     DB::raw('ISNULL(SUM(GoodAmnt), 0) as total_bath'),
                     DB::raw('CASE WHEN SUM(GoodStockQty) > 0 THEN SUM(GoodAmnt) / SUM(GoodStockQty) ELSE 0 END as avg_price')
                 )->first();
+
+            // Monthly Last Year (เดือนเดียวกันปีก่อนหน้า)
+            $lastYear = $currentYear - 1;
+            $lastYearMonthStats = $baseQuery()
+                ->whereYear('POInvHD.DocuDate', $lastYear)
+                ->whereMonth('POInvHD.DocuDate', $currentMonth)
+                ->select(
+                    DB::raw('ISNULL(SUM(GoodAmnt), 0) as total_bath'),
+                    DB::raw('CASE WHEN SUM(GoodStockQty) > 0 THEN SUM(GoodAmnt) / SUM(GoodStockQty) ELSE 0 END as avg_price')
+                )->first();
+
+            $yoyPriceChange = 0;
+            if ($lastYearMonthStats && $lastYearMonthStats->avg_price > 0) {
+                $yoyPriceChange = (($monthStats->avg_price - $lastYearMonthStats->avg_price) / $lastYearMonthStats->avg_price) * 100;
+            }
+
+            $yoyAmountChange = 0;
+            if ($lastYearMonthStats && $lastYearMonthStats->total_bath > 0) {
+                $yoyAmountChange = (($monthStats->total_bath - $lastYearMonthStats->total_bath) / $lastYearMonthStats->total_bath) * 100;
+            }
 
             // Yearly
             $yearStats = $baseQuery()
@@ -168,12 +207,16 @@ class POInvController extends Controller
                     'today' => [
                         'volume_ton' => round((float)$todayStats->total_ton, 3),
                         'amount_bath' => round((float)$todayStats->total_bath, 2),
-                        'avg_price' => round((float)$todayStats->avg_price, 2)
+                        'avg_price' => round((float)$todayStats->avg_price, 2),
+                        'price_change_percent' => round((float)$priceChange, 2),
+                        'amount_change_percent' => round((float)$amountChange, 2)
                     ],
                     'monthly' => [
                         'volume_ton' => round((float)$monthStats->total_ton, 3),
                         'amount_bath' => round((float)$monthStats->total_bath, 2),
-                        'avg_price' => round((float)$monthStats->avg_price, 2)
+                        'avg_price' => round((float)$monthStats->avg_price, 2),
+                        'yoy_price_change_percent' => round((float)$yoyPriceChange, 2),
+                        'yoy_amount_change_percent' => round((float)$yoyAmountChange, 2)
                     ],
                     'yearly' => [
                         'volume_ton' => round((float)$yearStats->total_ton, 3),

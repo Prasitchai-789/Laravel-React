@@ -35,7 +35,7 @@ const OvertimeRequestForm: React.FC<OvertimeRequestFormProps> = ({
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const startTotalMinutes = startHour * 60 + startMinute;
     const endTotalMinutes = startTotalMinutes + (hours * 60);
-    let endHour = Math.floor(endTotalMinutes / 60) % 24;
+    const endHour = Math.floor(endTotalMinutes / 60) % 24;
     const endMinute = endTotalMinutes % 60;
     return `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
   };

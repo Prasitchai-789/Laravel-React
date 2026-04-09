@@ -55,6 +55,7 @@ use App\Http\Controllers\MUN\FertilizerProductionController;
 use App\Http\Controllers\WO\WorkOrderController;
 use App\Http\Controllers\QAC\COA\COAController;
 use App\Http\Controllers\MAR\SOPlanController;
+use App\Http\Controllers\Dashboard\ExecutiveProductionController;
 use App\Http\Controllers\Population\SummaryControllder;
 use App\Http\Controllers\SeederStatusController;
 use App\Http\Controllers\Api\VehicleInspectionController;
@@ -411,6 +412,13 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
     Route::get('/purchase/executive-report', function () { 
         return \Inertia\Inertia::render('Dashboard/ExecutiveReport'); 
     })->name('executive.report');
+
+    Route::get('/purchase/executive-production-report', function () { 
+        return \Inertia\Inertia::render('Dashboard/ExecutiveProductionReport'); 
+    })->name('executive.production.report');
+
+    Route::get('/api/purchase/executive-production-report', [ExecutiveProductionController::class, 'getProductionReportApi'])->name('api.executive.production.report');
+    Route::get('/api/purchase/executive-soplan-report', [ExecutiveProductionController::class, 'getSOPlanApi'])->name('api.executive.soplan.report');
 });
 
 

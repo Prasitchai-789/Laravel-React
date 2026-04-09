@@ -80,7 +80,8 @@ class PalmProductionController extends Controller
                 ->select(
                     DB::raw('ISNULL(SUM(TotalFFB), 0) as total_ffb'),
                     DB::raw('ISNULL(SUM(FFBGoodQty), 0) as good_qty'),
-                    DB::raw('ISNULL(SUM(FFBPurchase), 0) as purchase_qty')
+                    DB::raw('ISNULL(SUM(FFBPurchase), 0) as purchase_qty'),
+                    DB::raw('ISNULL(SUM(ShiftA + ShiftB + Shift3 + PickupRemain + RamRemain), 0) as total_bins')
                 )->first();
 
             // Today (ใช้วันที่ end_date) - ดึง FFBRemain ของวันนั้นมาด้วย
@@ -90,7 +91,8 @@ class PalmProductionController extends Controller
                     DB::raw('ISNULL(SUM(TotalFFB), 0) as total_ffb'),
                     DB::raw('ISNULL(SUM(FFBGoodQty), 0) as good_qty'),
                     DB::raw('ISNULL(SUM(FFBPurchase), 0) as purchase_qty'),
-                    DB::raw('ISNULL(MAX(FFBRemain), 0) as ffb_remain')
+                    DB::raw('ISNULL(MAX(FFBRemain), 0) as ffb_remain'),
+                    DB::raw('ISNULL(SUM(ShiftA + ShiftB + Shift3 + PickupRemain + RamRemain), 0) as total_bins')
                 )->first();
 
             // ถ้าวันนี้ไม่มีข้อมูล ให้หา FFBRemain ล่าสุดที่มี
@@ -132,13 +134,15 @@ class PalmProductionController extends Controller
                     'period' => [
                         'total_ffb' => round((float)$periodStats->total_ffb, 3),
                         'good_qty' => round((float)$periodStats->good_qty, 3),
-                        'purchase_qty' => round((float)$periodStats->purchase_qty, 3)
+                        'purchase_qty' => round((float)$periodStats->purchase_qty, 3),
+                        'avg_weight_per_bin' => round((float)($periodStats->total_bins > 0 ? $periodStats->total_ffb / $periodStats->total_bins : 0), 3)
                     ],
                     'today' => [
                         'total_ffb' => round((float)$todayStats->total_ffb, 3),
                         'good_qty' => round((float)$todayStats->good_qty, 3),
                         'purchase_qty' => round((float)$todayStats->purchase_qty, 3),
-                        'ffb_remain' => round((float)($todayStats->ffb_remain ?? 0), 3)
+                        'ffb_remain' => round((float)($todayStats->ffb_remain ?? 0), 3),
+                        'avg_weight_per_bin' => round((float)($todayStats->total_bins > 0 ? $todayStats->total_ffb / $todayStats->total_bins : 0), 3)
                     ],
                     'monthly' => [
                         'total_ffb' => round((float)$monthStats->total_ffb, 3),
@@ -306,6 +310,13 @@ class PalmProductionController extends Controller
      */
     private function getCPOSparklineHistory($endDate, $allCpoData)
     {
+        $startDate = (clone $endDate)->subDays(6);
+        $ffbHistoryRaw = DB::connection('sqlsrv3')
+            ->table('productions')
+            ->whereDate('Date', '>=', $startDate->format('Y-m-d'))
+            ->whereDate('Date', '<=', $endDate->format('Y-m-d'))
+            ->get();
+
         $history = [];
         for ($i = 6; $i >= 0; $i--) {
             // โคลน Carbon object เพื่อไม่ให้กระทบค่าเดิม
@@ -325,10 +336,22 @@ class PalmProductionController extends Controller
                     continue;
                 }
             }
+            $foundFFB = null;
+            foreach ($ffbHistoryRaw as $row) {
+                try {
+                    $rowDate = Carbon::parse($row->Date);
+                    if ($rowDate->isSameDay($targetDate)) {
+                        $foundFFB = $row;
+                        break;
+                    }
+                } catch (\Exception $e) { continue; }
+            }
 
             $history[] = [
                 'date' => $targetDate->format('Y-m-d'),
-                'volume' => $foundData ? (float)$foundData->total_cpo : 0
+                'volume' => $foundData ? (float)$foundData->total_cpo : 0,
+                'production' => $foundData ? (float)$foundData->product_cpo : 0,
+                'ffb_good_qty' => $foundFFB ? (float)$foundFFB->FFBGoodQty : 0
             ];
         }
         return $history;
