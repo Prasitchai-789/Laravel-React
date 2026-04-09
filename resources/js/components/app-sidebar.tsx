@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/sidebar';
 import { can } from '@/lib/can';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import {
     BookOpen,
@@ -99,16 +99,6 @@ const StoreNavItems: NavItem[] = [
 ];
 
 const ITNavItem: NavItem[] = [
-    // {
-    //     title: 'Projects',
-    //     href: '/projects',
-    //     icon: FolderOpenDot,
-    // },
-    // {
-    //     title: 'Community',
-    //     href: '/community',
-    //     icon: Handshake,
-    // },
     {
         title: 'บันทึกเอกสาร',
         href: '/memo/documents',
@@ -216,9 +206,21 @@ const adminNavItems: NavItem[] = [
 
 const DevNavItems: NavItem[] = [
     {
+        title: 'รายงานรับซื้อผลปาล์ม',
+        href: '/purchase/po-invoice-dashboard',
+        icon: ShoppingCart,
+        permission: ['developer.view'],
+    },
+    {
         title: 'Executive Report',
         href: '/purchase/executive-report',
         icon: LayoutDashboard,
+        permission: ['developer.view'],
+    },
+    {
+        title: 'Executive Production',
+        href: '/purchase/executive-production-report',
+        icon: Factory,
         permission: ['developer.view'],
     },
     {
@@ -233,12 +235,7 @@ const DevNavItems: NavItem[] = [
         icon: ChartNoAxesCombined,
         permission: ['developer.view'],
     },
-    {
-        title: 'รายงานรับซื้อผลปาล์ม',
-        href: '/purchase/po-invoice-dashboard',
-        icon: ShoppingCart,
-        permission: ['developer.view'],
-    },
+    
     {
         title: 'ต้นทุนการขาย',
         href: '/cost-analysis/dashboard',
@@ -348,7 +345,6 @@ const FerNavItems: NavItem[] = [
 ];
 
 const QACNavItems: NavItem[] = [
-    // primary COA links come first
     {
         title: 'Oil COA',
         href: '/qac/coa/oil',
@@ -426,34 +422,26 @@ const CarUsageNavItems: NavItem[] = [
     },
 ];
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
-];
-
 // Helper function to check if user is developer
-const isDeveloper = () => can('developer.view');
+const checkIsDeveloper = (permissions: string[]) => permissions.includes('developer.view');
 
 // Helper function to filter items based on permissions or developer role
-const filterItemsByPermission = (items: NavItem[]) => {
+const filterItemsByPermission = (items: NavItem[], permissions: string[]) => {
+    const isDev = checkIsDeveloper(permissions);
     return items.filter(item => {
-        if (!item.permission) return true; // ไม่มี permission กำหนด
-        if (isDeveloper()) return true; // เป็น developer เห็นหมด
+        if (!item.permission) return true;
+        if (isDev) return true;
         
         const perms = Array.isArray(item.permission) ? item.permission : [item.permission];
-        return perms.some((p: string) => can(p)); // มี permission ตามที่กำหนด
+        return perms.some((p: string) => permissions.includes(p));
     });
 };
 
 export function AppSidebar() {
+    const { auth } = usePage().props as any;
+    const permissions = auth.permissions || [];
+    const isDev = checkIsDeveloper(permissions);
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -471,8 +459,8 @@ export function AppSidebar() {
             <SidebarContent>
                 <SidebarGroupLabel>Report Present</SidebarGroupLabel>
 
-                {/* Developer Menu - จะแสดงถ้ามี permission developer.view */}
-                {isDeveloper() && (
+                {/* Developer Menu */}
+                {isDev && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -486,7 +474,7 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                                <NavMain items={filterItemsByPermission(DevNavItems)} />
+                                <NavMain items={filterItemsByPermission(DevNavItems, permissions)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -497,8 +485,8 @@ export function AppSidebar() {
                 <hr className="border-t border-gray-200 my-1" />
                 <SidebarGroupLabel>ISP</SidebarGroupLabel>
 
-                {/* IT - Developer จะเห็นหมด */}
-                {(isDeveloper() || filterItemsByPermission(ITNavItem).length > 0) && (
+                {/* IT */}
+                {(isDev || filterItemsByPermission(ITNavItem, permissions).length > 0) && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -514,14 +502,14 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>IT</SidebarGroupLabel>
-                                <NavMain items={filterItemsByPermission(ITNavItem)} />
+                                <NavMain items={filterItemsByPermission(ITNavItem, permissions)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
 
-                {/* PRO - Developer จะเห็นหมด */}
-                {(isDeveloper() || filterItemsByPermission(PRONavItem).length > 0) && (
+                {/* PRO */}
+                {(isDev || filterItemsByPermission(PRONavItem, permissions).length > 0) && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -537,14 +525,14 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>PRO</SidebarGroupLabel>
-                                <NavMain items={filterItemsByPermission(PRONavItem)} />
+                                <NavMain items={filterItemsByPermission(PRONavItem, permissions)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
 
-                {/* MAR - Developer จะเห็นหมด */}
-                {(isDeveloper() || filterItemsByPermission(MARNavItems).length > 0) && (
+                {/* MAR */}
+                {(isDev || filterItemsByPermission(MARNavItems, permissions).length > 0) && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -560,16 +548,14 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>MAR</SidebarGroupLabel>
-                                <NavMain items={filterItemsByPermission(MARNavItems)} />
+                                <NavMain items={filterItemsByPermission(MARNavItems, permissions)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
 
-
-
-                {/* QAC - Developer จะเห็นหมด */}
-                {(isDeveloper() || filterItemsByPermission(QACNavItems).length > 0) && (
+                {/* QAC */}
+                {(isDev || filterItemsByPermission(QACNavItems, permissions).length > 0) && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -583,37 +569,14 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>QAC</SidebarGroupLabel>
-                                <NavMain items={filterItemsByPermission(QACNavItems)} />
+                                <NavMain items={filterItemsByPermission(QACNavItems, permissions)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
 
-                {/* ERP - Developer จะเห็นหมด */}
-                {/* {(isDeveloper() || filterItemsByPermission(ERPItems).length > 0) && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <SidebarMenuItem>
-                                <SidebarMenuButton className="flex w-full items-center">
-                                    <UsersRound className="h-6 w-6" />
-                                    <span className="flex-1 font-anuphan font-medium text-gray-700">
-                                        ERP
-                                    </span>
-                                    <ChevronDown className="ml-auto h-4 w-4" />
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
-                            <DropdownMenuGroup>
-                                <SidebarGroupLabel>ERP</SidebarGroupLabel>
-                                <NavMain items={filterItemsByPermission(ERPItems)} />
-                            </DropdownMenuGroup>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )} */}
-
-                {/* STORE - Developer จะเห็นหมด */}
-                {(isDeveloper() || filterItemsByPermission(StoreNavItems).length > 0) && (
+                {/* STORE */}
+                {(isDev || filterItemsByPermission(StoreNavItems, permissions).length > 0) && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -629,14 +592,14 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Store</SidebarGroupLabel>
-                                <NavMain items={filterItemsByPermission(StoreNavItems)} />
+                                <NavMain items={filterItemsByPermission(StoreNavItems, permissions)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 )}
 
-                {/* Car Usage - Developer จะเห็นหมด */}
-                {(isDeveloper() || filterItemsByPermission(CarUsageNavItems).length > 0) && (
+                {/* Car Usage */}
+                {(isDev || filterItemsByPermission(CarUsageNavItems, permissions).length > 0) && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -652,7 +615,7 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Car Usage</SidebarGroupLabel>
-                                <NavMain items={filterItemsByPermission(CarUsageNavItems)} />
+                                <NavMain items={filterItemsByPermission(CarUsageNavItems, permissions)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -662,8 +625,8 @@ export function AppSidebar() {
             <hr className="border-t border-gray-200 my-1" />
             <SidebarGroupLabel>MUN</SidebarGroupLabel>
 
-            {/* FER - Developer จะเห็นหมด */}
-            {(isDeveloper() || filterItemsByPermission(FerNavItems).length > 0) && (
+            {/* FER */}
+            {(isDev || filterItemsByPermission(FerNavItems, permissions).length > 0) && (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuItem>
@@ -677,14 +640,14 @@ export function AppSidebar() {
                     <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                         <DropdownMenuGroup>
                             <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                            <NavMain items={filterItemsByPermission(FerNavItems)} />
+                            <NavMain items={filterItemsByPermission(FerNavItems, permissions)} />
                         </DropdownMenuGroup>
                     </DropdownMenuContent>
                 </DropdownMenu>
             )}
 
-            {/* AGR - Developer จะเห็นหมด */}
-            {(isDeveloper() || filterItemsByPermission(AGRNavItems).length > 0) && (
+            {/* AGR */}
+            {(isDev || filterItemsByPermission(AGRNavItems, permissions).length > 0) && (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <SidebarMenuItem>
@@ -698,7 +661,7 @@ export function AppSidebar() {
                     <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                         <DropdownMenuGroup>
                             <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                            <NavMain items={filterItemsByPermission(AGRNavItems)} />
+                            <NavMain items={filterItemsByPermission(AGRNavItems, permissions)} />
                         </DropdownMenuGroup>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -706,9 +669,9 @@ export function AppSidebar() {
 
             <hr className="border-t border-gray-200 my-1" />
 
-            {/* ADMIN - Developer จะเห็นหมด */}
             <SidebarFooter>
-                {(isDeveloper() || filterItemsByPermission(adminNavItems).length > 0) && (
+                {/* ADMIN */}
+                {(isDev || filterItemsByPermission(adminNavItems, permissions).length > 0) && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
@@ -722,7 +685,7 @@ export function AppSidebar() {
                         <DropdownMenuContent className="w-56 rounded-md bg-white p-1 font-anuphan shadow-lg">
                             <DropdownMenuGroup>
                                 <SidebarGroupLabel>Platform</SidebarGroupLabel>
-                                <NavMain items={filterItemsByPermission(adminNavItems)} />
+                                <NavMain items={filterItemsByPermission(adminNavItems, permissions)} />
                             </DropdownMenuGroup>
                         </DropdownMenuContent>
                     </DropdownMenu>

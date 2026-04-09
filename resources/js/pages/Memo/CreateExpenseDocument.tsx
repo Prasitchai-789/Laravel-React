@@ -46,7 +46,7 @@ export default function CreateExpenseDocument() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const data = new FormData();
-        for (let key in form) {
+        for (const key in form) {
             data.append(key, form[key]);
         }
 

@@ -26,7 +26,7 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
         if (value === null || value === undefined) return null;
 
         // แปลง input เป็น string ปลอดภัย
-        let v = String(value).replace(/,/g, '').trim();
+        const v = String(value).replace(/,/g, '').trim();
 
         // ป้องกัน 'null', '-', ''
         if (v === '' || v.toLowerCase() === 'null' || v === '-') return null;

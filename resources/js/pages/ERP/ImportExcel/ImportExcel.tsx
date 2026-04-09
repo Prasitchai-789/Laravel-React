@@ -434,8 +434,8 @@ export default function ImportExcel() {
                                 formattedData
                             );
 
-                            let finalShift = shiftValidation.shift;
-                            let finalShiftName = shiftValidation.shiftName;
+                            const finalShift = shiftValidation.shift;
+                            const finalShiftName = shiftValidation.shiftName;
 
                             const record: EmployeeRecord = {
                                 id: recordId++,
