@@ -210,62 +210,62 @@ const DevNavItems: NavItem[] = [
         title: 'รายงานรับซื้อผลปาล์ม',
         href: '/purchase/po-invoice-dashboard',
         icon: ShoppingCart,
-        permission: ['developer.view'],
+        permission: ['developer.view', 'gm.view'],
     },
     {
         title: 'Executive Report',
         href: '/purchase/executive-report',
         icon: LayoutDashboard,
-        permission: ['developer.view'],
+        permission: ['developer.view', 'gm.view'],
     },
     {
         title: 'Executive Production',
         href: '/purchase/executive-production-report',
         icon: Factory,
-        permission: ['developer.view'],
+        permission: ['developer.view', 'gm.view'],
     },
     {
         title: 'Stock Report',
         href: '/stock/valuation-report',
         icon: Database,
-        permission: ['developer.view'],
+        permission: ['developer.view', 'gm.view'],
     },
     {
         title: 'ปริมาณผลปาล์ม',
         href: '/palm/table',
         icon: ShoppingBasket,
-        permission: ['developer.view'],
+        permission: ['developer.view', 'gm.view'],
     },
     {
         title: 'ปริมาณผลปาล์มรายวัน',
         href: '/palm/daily',
         icon: ChartNoAxesCombined,
-        permission: ['developer.view'],
+        permission: ['developer.view', 'gm.view'],
     },
     
     {
         title: 'ต้นทุนการขาย',
         href: '/cost-analysis/dashboard',
         icon: ChartCandlestick,
-        permission: ['developer.view'],
+        permission: ['developer.view', 'gm.view'],
     },
     {
         title: 'รายงานการขาย',
         href: '/sales/dashboard',
         icon: Truck,
-        permission: ['developer.view'],
+        permission: ['developer.view', 'gm.view'],
     },
     {
         title: 'รายการใบสั่งซื้อ',
         href: '/purchase/po',
         icon: ScrollText,
-        permission: ['developer.view'],
+        permission: ['developer.view', 'gm.view'],
     },
     {
         title: 'สรุปค่าใช้จ่าย',
         href: '/purchase/dashboard',
         icon: CreditCard,
-        permission: ['developer.view'],
+        permission: ['developer.view', 'gm.view'],
     },
     {
         title: 'งบทดลองเบื้องต้น',
@@ -277,7 +277,7 @@ const DevNavItems: NavItem[] = [
         title: 'รายงานการขายสินค้า',
         href: '/sales-order',
         icon: BadgeDollarSign,
-        permission: ['developer.view'],
+        permission: ['developer.view', 'gm.view'],
     },
     {
         title: 'วิเคราะห์การรับซื้อปาล์ม',
@@ -430,7 +430,7 @@ const CarUsageNavItems: NavItem[] = [
 ];
 
 // Helper function to check if user is developer
-const checkIsDeveloper = (permissions: string[]) => permissions.includes('developer.view','gm.view');
+const checkIsDeveloper = (permissions: string[]) => permissions.includes('developer.view');
 
 // Helper function to filter items based on permissions or developer role
 const filterItemsByPermission = (items: NavItem[], permissions: string[]) => {
