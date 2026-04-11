@@ -441,7 +441,7 @@ Route::fallback(function () {
 });
 
 // Dash Board
-Route::middleware(['auth', 'permission:developer.view'])->group(function () {
+Route::middleware(['auth', 'permission:developer.view|gm.view'])->group(function () {
 
     Route::get('purchase/po', [POController::class, 'index']);
     Route::get('/purchase/po/api', [POController::class, 'apiIndex']);
@@ -489,7 +489,7 @@ Route::middleware(['auth', 'permission:developer.view|gm.view'])->group(function
 
 
 // MAR Routes
-Route::middleware(['auth', 'permission:developer.view|mar.view'])->group(function () {
+Route::middleware(['auth', 'permission:developer.view|mar.view|gm.view'])->group(function () {
     Route::get('orders', [MARSalesController::class, 'salesOrder']);
     Route::get('orders/pending', [SalesOrderController::class, 'getSalesOrder']);
     Route::get('/sales-order/{docuNo}/invoices', [SalesOrderController::class, 'getSalesOrderInvoice']);
@@ -507,7 +507,7 @@ Route::middleware(['auth', 'permission:developer.view|mar.view'])->group(functio
 
 
 // QAC Routes
-Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(function () {
+Route::middleware(['auth', 'permission:developer.view|qac.view|gm.view'])->group(function () {
     // redirect base COA path to oil page
     Route::redirect('/qac/coa', '/qac/coa/oil');
 
@@ -565,7 +565,7 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
 });
 
 // Dashboard QAC Routes
-Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(function () {
+Route::middleware(['auth', 'permission:developer.view|qac.view|gm.view'])->group(function () {
     Route::get('/report/sales/api', [StockReportController::class, 'apiSummarySales'])->name('report.sales.api');
     Route::get('/report/productions/api', [StockReportController::class, 'apiProductions'])->name('report.productions.api');
     Route::get('/report/stock-cpo/api', [StockReportController::class, 'apiStockCPO'])->name('report.stock-cpo.api');
