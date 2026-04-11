@@ -48,6 +48,7 @@ use App\Http\Controllers\Dashboard\SaleOrderMarController;
 use App\Http\Controllers\Dashboard\PalmDashboardController;
 use App\Http\Controllers\Dashboard\SalesOrderMarController;
 use App\Http\Controllers\Dashboard\PalmProductionController;
+use App\Http\Controllers\Dashboard\ProductStockReportController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Dashboard\ActivityController;
 use App\Http\Controllers\Memo\MemoExpenseDocumentController;
@@ -416,6 +417,12 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
     Route::get('/purchase/executive-production-report', function () { 
         return \Inertia\Inertia::render('Dashboard/ExecutiveProductionReport'); 
     })->name('executive.production.report');
+
+    Route::get('/stock/valuation-report', function () { 
+        return \Inertia\Inertia::render('Dashboard/Stock/ProductStockReport'); 
+    })->name('stock.valuation.report');
+
+    Route::get('/api/stock/valuation-summary', [ProductStockReportController::class, 'getProductStockSummary'])->name('api.stock.valuation.summary');
 
     Route::get('/api/purchase/executive-production-report', [ExecutiveProductionController::class, 'getProductionReportApi'])->name('api.executive.production.report');
     Route::get('/api/purchase/executive-soplan-report', [ExecutiveProductionController::class, 'getSOPlanApi'])->name('api.executive.soplan.report');

@@ -653,7 +653,7 @@ export default function ExecutiveReport() {
                                     <div className="flex items-baseline gap-1">
                                         <span className="text-4xl font-black text-rose-600 tracking-tight font-mono">
                                             {loadingCPOSummary || loadingPurchase ? '...' :
-                                                <CountUp end={cpoSummary?.yield_period > 0 ? ((purchaseData?.period?.avg_price ?? 0) / cpoSummary.yield_period) * 100 : 0}
+                                                <CountUp end={cpoSummary?.yield_period_no_oil_room > 0 ? ((purchaseData?.period?.avg_price ?? 0) / cpoSummary.yield_period_no_oil_room) * 100 : 0}
                                                     decimals={2} duration={2} />
                                             }
                                         </span>
@@ -669,13 +669,13 @@ export default function ExecutiveReport() {
                                     <div className="flex items-baseline gap-1">
                                         <span className="text-4xl font-black text-slate-800 tracking-tight font-mono">
                                             {loadingCPOSummary || loadingPurchase ? '...' :
-                                                <CountUp end={cpoSummary?.yield_percent > 0 ? ((purchaseData?.today?.avg_price ?? 0) / cpoSummary.yield_percent) * 100 : 0}
+                                                <CountUp end={cpoSummary?.yield_period_no_oil_room > 0 ? ((purchaseData?.today?.avg_price ?? 0) / cpoSummary.yield_period_no_oil_room) * 100 : 0}
                                                     decimals={2} duration={2} />
                                             }
                                         </span>
                                         <span className="text-sm text-slate-500">Baht</span>
                                     </div>
-                                    <p className="text-xs text-slate-700 mt-2">อิงราคาวันนี้</p>
+                                    <p className="text-xs text-slate-700 mt-2">อิงราคาวันที่ล่าสุด</p>
                                 </motion.div>
                             </div>
 
@@ -704,17 +704,23 @@ export default function ExecutiveReport() {
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-white/10 flex justify-between">
                                         <span className="text-xs text-slate-400">เปรียบเทียบกับต้นทุน</span>
-                                        <span className="text-sm font-bold text-emerald-400 flex items-center gap-1">
-                                            <ArrowUpRight className="w-3.5 h-3.5" />
-                                            {loadingCPOSummary || loadingPurchase ? '...' :
-                                                (() => {
-                                                    const cost = (purchaseData?.period?.avg_price ?? 0) / (cpoSummary?.yield_period || 1) * 100;
-                                                    const price = salesData?.cpo?.period?.avg_price || 0;
-                                                    if (cost === 0) return "0.00%";
-                                                    return `${(((price - cost) / cost) * 100).toFixed(2)}%`;
-                                                })()
-                                            }
-                                        </span>
+                                        {loadingCPOSummary || loadingPurchase || loadingSales ? (
+                                            <span className="text-sm font-bold text-slate-400">...</span>
+                                        ) : (
+                                            (() => {
+                                                const cost = (purchaseData?.period?.avg_price ?? 0) / (cpoSummary?.yield_period_no_oil_room || 1) * 100;
+                                                const price = salesData?.cpo?.period?.avg_price || 0;
+                                                const isProfit = price >= cost;
+                                                const diff = cost > 0 ? ((price - cost) / cost) * 100 : 0;
+
+                                                return (
+                                                    <span className={`text-sm font-bold flex items-center gap-1 ${isProfit ? 'text-emerald-400' : 'text-rose-500'}`}>
+                                                        {isProfit ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+                                                        {diff.toFixed(2)}%
+                                                    </span>
+                                                );
+                                            })()
+                                        )}
                                     </div>
                                 </div>
                             </motion.div>
