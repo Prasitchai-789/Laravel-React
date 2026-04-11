@@ -149,9 +149,9 @@ export default function POInvDashboard() {
               {/* ── COL LEFT: Today Stats (Light & Clean Cards) ── */}
               <div className="col-span-3 flex flex-col gap-1.5">
                 {[
-                  { key: 'vol', title: 'ปริมาณวันนี้', value: data.today.volume, unit: 'ตัน', color: '#10b981', bg: 'bg-emerald-50', text: 'text-emerald-700', dataKey: 'volume' },
-                  { key: 'amt', title: 'ยอดเงินวันนี้', value: data.today.amount_mb, unit: 'MB.', color: '#0ea5e9', bg: 'bg-sky-50', text: 'text-sky-700', dataKey: 'amount' },
-                  { key: 'prc', title: 'ราคาเฉลี่ยวันนี้', value: data.today.avg_price, unit: 'บาท/กก.', color: '#f59e0b', bg: 'bg-amber-50', text: 'text-amber-700', dataKey: 'price' },
+                  { key: 'vol', title: 'ปริมาณผลปาล์ม', value: data.today.volume, unit: 'ตัน', color: '#10b981', bg: 'bg-emerald-50', text: 'text-emerald-700', dataKey: 'volume' },
+                  { key: 'amt', title: 'ยอดเงิน', value: data.today.amount_mb, unit: 'MB.', color: '#0ea5e9', bg: 'bg-sky-50', text: 'text-sky-700', dataKey: 'amount' },
+                  { key: 'prc', title: 'ราคาเฉลี่ย', value: data.today.avg_price, unit: 'บาท/กก.', color: '#f59e0b', bg: 'bg-amber-50', text: 'text-amber-700', dataKey: 'price' },
                 ].map((card, idx) => (
                   <motion.div
                     key={card.key}
@@ -174,7 +174,7 @@ export default function POInvDashboard() {
                         <span className="text-sm text-slate-700">{card.unit}</span>
                       </div>
                     </div>
-                    <div className="h-20 -mx-5">
+                    <div className="h-20 -ml-4.5">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={data.chart.slice(-7)}>
                           <defs>
@@ -346,27 +346,27 @@ export default function POInvDashboard() {
                         <span className="text-5xl font-black text-blue-700 font-mono tracking-tighter drop-shadow-sm">
                           <CountUp end={data.monthly.volume} decimals={2} duration={2} separator="," />
                         </span>
-                        <span className="text-lg font-black text-blue-500/70 uppercase tracking-tighter">ตัน</span>
+                        <span className="text-sm font-black text-blue-500/70 uppercase tracking-tighter">Tons</span>
                       </div>
                       <div className="h-1 w-12 bg-emerald-400 mx-auto mt-1 rounded-full opacity-50 group-hover:w-20 transition-all duration-500" />
                     </div>
 
                     {/* Sub Metrics Grid */}
                     <div className="grid grid-cols-2 gap-1 -ml-3  -mr-3">
-                      <div className="relative group/item p-2 rounded-2xl bg-slate-50/80 border border-slate-100 hover:bg-emerald-50/50 hover:border-emerald-100 transition-colors">
+                      <div className="relative group/item p-2 rounded-2xl bg-slate-50/50 border border-emerald-100 hover:bg-emerald-50/50 hover:border-emerald-100 transition-colors">
                         <p className="text-[14px] text-slate-700 font-bold uppercase tracking-wider mb-1">ราคาเฉลี่ย</p>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-3xl font-bold text-red-600 font-mono">
+                          <span className="text-3xl font-bold text-red-600 font-mono pl-4">
                             <CountUp end={data.monthly.avg_price} decimals={2} duration={2} />
                           </span>
                           <span className="text-[10px] font-bold text-slate-500">บ/กก.</span>
                         </div>
                       </div>
 
-                      <div className="relative group/item p-2 rounded-2xl bg-slate-50/80 border border-slate-100 hover:bg-emerald-50/50 hover:border-emerald-100 transition-colors">
+                      <div className="relative group/item p-2 rounded-2xl bg-slate-50/50 border border-emerald-100 hover:bg-emerald-50/50 hover:border-emerald-100 transition-colors">
                         <p className="text-[14px] text-slate-700 font-bold uppercase tracking-wider mb-1">ยอดเงินรวม</p>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-3xl font-black text-slate-800 font-mono">
+                          <span className="text-3xl font-black text-slate-800 font-mono pl-4">
                             <CountUp end={data.monthly.amount_mb} decimals={2} duration={2} />
                           </span>
                           <span className="text-[10px] font-bold text-slate-500">MB</span>
@@ -407,33 +407,33 @@ export default function POInvDashboard() {
                         <span className="text-5xl font-black text-red-600 font-mono tracking-tighter drop-shadow-sm">
                           <CountUp end={data.remaining_stock.volume} decimals={2} duration={2} separator="," />
                         </span>
-                        <span className="text-lg font-black text-red-500/70 uppercase tracking-tighter">ตัน</span>
+                        <span className="text-sm font-black text-red-500/70 uppercase tracking-tighter">Tons</span>
                       </div>
                       <div className="h-1 w-12 bg-amber-400 mx-auto mt-1 rounded-full opacity-50 group-hover:w-20 transition-all duration-500" />
                     </div>
 
                     {/* Sub Metrics Grid */}
                     <div className="grid grid-cols-2 gap-1 -ml-3  -mr-3">
-                      <div className="relative group/item p-3 rounded-2xl bg-slate-50/80 border border-slate-100 hover:bg-amber-50/50 hover:border-amber-100 transition-colors">
+                      <div className="relative group/item p-3 rounded-2xl bg-slate-50/50 border border-amber-100 hover:bg-amber-50/50 hover:border-amber-100 transition-colors">
                         <div className="absolute top-2 right-2 opacity-20 group-hover/item:opacity-40 transition-opacity">
                           <TrendingUp className="w-3 h-3 text-amber-600" />
                         </div>
                         <p className="text-[12px] text-slate-600 font-bold uppercase tracking-wider mb-1">มูลค่าคงเหลือ</p>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-black text-amber-600 font-mono">
+                          <span className="text-2xl font-black text-amber-600 font-mono pl-4">
                             <CountUp end={data.remaining_stock.amount_mb} decimals={2} duration={2} />
                           </span>
                           <span className="text-[10px] font-bold text-slate-600">MB</span>
                         </div>
                       </div>
 
-                      <div className="relative group/item p-3 rounded-2xl bg-slate-50/80 border border-slate-100 hover:bg-blue-50/50 hover:border-blue-100 transition-colors">
+                      <div className="relative group/item p-3 rounded-2xl bg-slate-50/50 border border-blue-100 hover:bg-blue-50/50 hover:border-blue-100 transition-colors">
                         <div className="absolute top-2 right-2 opacity-20 group-hover/item:opacity-40 transition-opacity">
                           <TrendingUp className="w-3 h-3 text-blue-600" />
                         </div>
                         <p className="text-[12px] text-slate-600 font-bold uppercase tracking-wider mb-1">CPO โดยประมาณ</p>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-black text-blue-600 font-mono">
+                          <span className="text-2xl font-black text-blue-600 font-mono pl-4">
                             <CountUp end={data.remaining_stock.cpo_volume} decimals={2} duration={2} />
                           </span>
                           <span className="text-[10px] font-bold text-slate-600">ตัน</span>

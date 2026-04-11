@@ -53,6 +53,7 @@ import {
     CloudDownload,
     Car,
     Weight,
+    Database,
     Camera as CameraIcon,
 } from 'lucide-react';
 import AppLogo from './app-logo';
@@ -221,6 +222,12 @@ const DevNavItems: NavItem[] = [
         title: 'Executive Production',
         href: '/purchase/executive-production-report',
         icon: Factory,
+        permission: ['developer.view'],
+    },
+    {
+        title: 'Stock Report',
+        href: '/stock/valuation-report',
+        icon: Database,
         permission: ['developer.view'],
     },
     {
@@ -423,7 +430,7 @@ const CarUsageNavItems: NavItem[] = [
 ];
 
 // Helper function to check if user is developer
-const checkIsDeveloper = (permissions: string[]) => permissions.includes('developer.view');
+const checkIsDeveloper = (permissions: string[]) => permissions.includes('developer.view','gm.view');
 
 // Helper function to filter items based on permissions or developer role
 const filterItemsByPermission = (items: NavItem[], permissions: string[]) => {

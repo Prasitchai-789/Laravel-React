@@ -249,15 +249,17 @@ class PalmProductionController extends Controller
             $periodTotalFFB = (float)($periodFFBStats->total_ffb ?? 0);
 
             if ($periodGoodQty > 0) {
-                // สูตร Yield Monthly (Market Yield): ((ยอดขาย - สต็อกก่อนหน้า) + สต็อกล่าสุด) / ปริมาณการผลิต
+                // 1. ตรวจสอบสูตร Yield Monthly (Market Yield): ((ยอดขาย - สต็อกก่อนหน้า) + สต็อกล่าสุด) / ปริมาณการผลิต
+                // ใช้สำหรับแสดงผลบนหน้าจอ (% YIELD Monthly) ตามต้องการเดิม
                 $producedCpoPeriod = ($periodCpoSales - $openingStock) + $closingStock;
                 $yieldPeriod = ($producedCpoPeriod / $periodGoodQty) * 100;
                 
-                // สูตร Yield+Oil Room: ((ยอดขาย - สต็อกก่อนหน้า) + สต็อกล่าสุด + Oil Room ล่าสุด) / ปริมาณการผลิต
+                // 2. สูตร Yield+Oil Room (Market Yield + Oil Room)
                 $producedWithOilPeriod = ($periodCpoSales - $openingStock) + $closingStock + $latestOilRoom;
                 $yieldWithOilRoom = ($producedWithOilPeriod / $periodGoodQty) * 100;
 
-                // สำหรับ yield_period_no_oil_room ให้ใช้ยอดผลิตสะสมจากตาราง cpo_data (แบบเดิม) เพื่อใช้ในคำนวณต้นทุน
+                // 3. สูตร Yield สำหรับคำนวณต้นทุน (Direct Production): (ผลรวมผลิต / ปริมาณการผลิต)
+                // ตามคำสั่งล่าสุด: (Sum of product_cpo / Sum of FFBGoodQty) * 100
                 $yieldPeriodNoOilRoom = ($periodProductCPONoOilRoom / $periodGoodQty) * 100;
             }
 
