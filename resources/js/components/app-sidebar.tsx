@@ -63,6 +63,7 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: '/dashboard',
         icon: LayoutGrid,
+        permission: ['user.view'],
     },
 ];
 
@@ -104,26 +105,31 @@ const ITNavItem: NavItem[] = [
         title: 'บันทึกเอกสาร',
         href: '/memo/documents',
         icon: FileText,
+        permission: ['it.view'],
     },
     {
         title: 'ภาพรวม CCTV รายเดือน',
         href: '/cctv-inspection/overview',
         icon: ChartNoAxesCombined,
+        permission: ['it.view'],
     },
     {
         title: 'CCTV Inspection',
         href: '/cctv-inspection',
         icon: CameraIcon,
+        permission: ['it.view'],
     },
     {
         title: 'ตั้งค่าเครื่องบันทึก DVR',
         href: '/dvrs',
         icon: CameraIcon,
+        permission: ['it.view'],
     },
     {
         title: 'Computer Inspection',
         href: '/computer-inspection',
         icon: MonitorSmartphone,
+        permission: ['it.view'],
     },
 ];
 
@@ -132,16 +138,19 @@ const PRONavItem: NavItem[] = [
         title: 'Chemicals',
         href: '/chemical',
         icon: FlaskConical,
+        permission: ['pro.view', 'gm.view'],
     },
     {
         title: 'จัดการสารเคมี',
         href: '/chemical-master',
         icon: Beaker,
+        permission: ['pro.view', 'gm.view'],
     },
     {
         title: 'Production Monitor',
         href: '/production-dashboard',
         icon: Factory,
+        permission: ['pro.view', 'gm.view'],
     },
 ];
 
