@@ -467,7 +467,7 @@ export function AppSidebar() {
                 <SidebarGroupLabel>Report Present</SidebarGroupLabel>
 
                 {/* Developer Menu */}
-                {isDev && (
+                {(isDev || filterItemsByPermission(DevNavItems, permissions).length > 0) && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuItem>
