@@ -159,6 +159,14 @@ Route::middleware('permission:users.delete|developer.view')->group(function () {
 
 // Chemical Master Data Routes (จัดการรายชื่อสารเคมี)
 Route::middleware(['auth', 'permission:users.view|chemical.view|developer.view'])->group(function () {
+
+    Route::middleware(['auth'])->get('/production-dashboard', function () {
+        return Inertia::render('Production/Dashboard');
+    })->name('production.dashboard');
+
+    Route::middleware(['auth'])->get('/palm/analytics', function () {
+        return Inertia::render('Production/PalmAnalytics');
+    })->name('palm.analytics');
     Route::get('/chemical-master', [ChemicalMasterController::class, 'index'])->name('chemical-master.index');
     Route::post('/chemical-master', [ChemicalMasterController::class, 'store'])->name('chemical-master.store');
     Route::put('/chemical-master/{id}', [ChemicalMasterController::class, 'update'])->name('chemical-master.update');
@@ -212,7 +220,7 @@ Route::middleware(['auth'])->group(function () {
 
 
 // Dashboard Routes
-Route::middleware(['auth', 'permission:developer.view'])->group(function () {
+Route::middleware(['auth', 'permission:developer.view|gm.view'])->group(function () {
     Route::get('/developer/components', function () {
         return \Inertia\Inertia::render('Developer/ComponentGallery');
     })->name('developer.components');
@@ -372,62 +380,65 @@ Route::middleware(['auth', 'permission:users.view'])->prefix('memo')->group(func
 
 // Monitoring Routes
 Route::middleware(['auth'])->prefix('monitoring')->group(function () {
-    Route::get('/dashboard', function () { return Inertia::render('Monitoring/DashboardOverview'); })->name('monitoring.dashboard');
-    Route::get('/devices', function () { return Inertia::render('Monitoring/DeviceList'); })->name('monitoring.devices');
-    Route::get('/devices/{id}', function ($id) { return Inertia::render('Monitoring/DeviceDetail', ['deviceId' => $id]); })->name('monitoring.device.detail');
-    Route::get('/map', function () { return Inertia::render('Monitoring/MapPage'); })->name('monitoring.map');
+    Route::get('/dashboard', function () {
+        return Inertia::render('Monitoring/DashboardOverview');
+    })->name('monitoring.dashboard');
+    Route::get('/devices', function () {
+        return Inertia::render('Monitoring/DeviceList');
+    })->name('monitoring.devices');
+    Route::get('/devices/{id}', function ($id) {
+        return Inertia::render('Monitoring/DeviceDetail', ['deviceId' => $id]);
+    })->name('monitoring.device.detail');
+    Route::get('/map', function () {
+        return Inertia::render('Monitoring/MapPage');
+    })->name('monitoring.map');
     // For Checklist Page, we can reuse it
-    Route::get('/checklist', function (\Illuminate\Http\Request $request) { 
+    Route::get('/checklist', function (\Illuminate\Http\Request $request) {
         return Inertia::render('Monitoring/ChecklistPage', [
             'deviceId' => $request->deviceId,
             'deviceName' => $request->deviceName,
             'items' => \App\Models\ChecklistItem::where('checklist_id', $request->checklistId)->get()
-        ]); 
+        ]);
     })->name('monitoring.checklist');
 });
 
-Route::middleware(['auth'])->get('/production-dashboard', function () { 
-    return Inertia::render('Production/Dashboard'); 
-})->name('production.dashboard');
+Route::middleware(['auth', 'permission:developer.view|it.view'])->group(function () {
 
-Route::middleware(['auth'])->get('/palm/analytics', function () { 
-    return Inertia::render('Production/PalmAnalytics'); 
-})->name('palm.analytics');
+  // Computer Preventive Maintenance
+    Route::get('/computer-checklists', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'index'])->name('computer-checklists.index');
+    Route::get('/computer-checklists/api', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'apiIndex']);
+    Route::post('/computer-checklists', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'store']);
+    Route::put('/computer-checklists/{id}', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'update']);
+    Route::delete('/computer-checklists/{id}', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'destroy']);
+    Route::post('/computer-checklists/reorder', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'reorder']);
 
+    Route::get('/computer-inspection', [\App\Http\Controllers\Computer\ComputerController::class, 'index'])->name('computer.index');
+    Route::get('/computer-inspection/form/{id}', [\App\Http\Controllers\Computer\ComputerController::class, 'form'])->name('computer.form');
+    Route::get('/computer-inspection/api', [\App\Http\Controllers\Computer\ComputerController::class, 'apiData'])->name('computer.api');
+    Route::get('/computer-inspection/api/{id}', [\App\Http\Controllers\Computer\ComputerController::class, 'show'])->name('computer.show');
+    Route::post('/computer-inspection', [\App\Http\Controllers\Computer\ComputerController::class, 'store'])->name('computer.store');
+
+    // CCTV Preventive Maintenance
+    Route::get('/cctv-inspection', [\App\Http\Controllers\CCTV\CctvController::class, 'index'])->name('cctv.index');
+    Route::get('/cctv-inspection/overview', [\App\Http\Controllers\CCTV\CctvController::class, 'monthlyOverviewPage'])->name('cctv.overview');
+    Route::get('/cctv-inspection/form/{id}', [\App\Http\Controllers\CCTV\CctvController::class, 'form'])->name('cctv.form');
+    Route::get('/cctv-inspection/api', [\App\Http\Controllers\CCTV\CctvController::class, 'apiData'])->name('cctv.api');
+    Route::get('/cctv-inspection/api/{id}', [\App\Http\Controllers\CCTV\CctvController::class, 'show'])->name('cctv.show');
+    Route::get('/cctv-inspection/monthly-api', [\App\Http\Controllers\CCTV\CctvController::class, 'getMonthlyOverview'])->name('cctv.monthly.api');
+    Route::post('/cctv-inspection', [\App\Http\Controllers\CCTV\CctvController::class, 'store'])->name('cctv.store');
+
+    // DVR Management
+    Route::get('/dvrs', [\App\Http\Controllers\CCTV\DvrController::class, 'index'])->name('dvrs.index');
+    Route::get('/dvrs/api', [\App\Http\Controllers\CCTV\DvrController::class, 'apiIndex'])->name('dvrs.api');
+    Route::post('/dvrs', [\App\Http\Controllers\CCTV\DvrController::class, 'store'])->name('dvrs.store');
+    Route::put('/dvrs/{dvr}', [\App\Http\Controllers\CCTV\DvrController::class, 'update'])->name('dvrs.update');
+    Route::delete('/dvrs/{dvr}', [\App\Http\Controllers\CCTV\DvrController::class, 'destroy'])->name('dvrs.destroy');
+});
 
 // errors pages
 Route::fallback(function () {
     return Inertia::render('Errors/404')->toResponse(request())->setStatusCode(404);
 });
-
-
-
-
-Route::middleware(['auth', 'permission:developer.view'])->group(function () {
-
-    Route::get('purchase/dashboard', [PurchaseDashboardController::class, 'index']);
-    Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'apiIndex']);
-    Route::get('/purchase/dashboard/api', [PurchaseDashboardController::class, 'apiPOinvByDept'])->name('purchase.dashboard.api');
-    
-    // Executive Summary Layout preview
-    Route::get('/purchase/executive-report', function () { 
-        return \Inertia\Inertia::render('Dashboard/ExecutiveReport'); 
-    })->name('executive.report');
-
-    Route::get('/purchase/executive-production-report', function () { 
-        return \Inertia\Inertia::render('Dashboard/ExecutiveProductionReport'); 
-    })->name('executive.production.report');
-
-    Route::get('/stock/valuation-report', function () { 
-        return \Inertia\Inertia::render('Dashboard/Stock/ProductStockReport'); 
-    })->name('stock.valuation.report');
-
-    Route::get('/api/stock/valuation-summary', [ProductStockReportController::class, 'getProductStockSummary'])->name('api.stock.valuation.summary');
-
-    Route::get('/api/purchase/executive-production-report', [ExecutiveProductionController::class, 'getProductionReportApi'])->name('api.executive.production.report');
-    Route::get('/api/purchase/executive-soplan-report', [ExecutiveProductionController::class, 'getSOPlanApi'])->name('api.executive.soplan.report');
-});
-
 
 // Dash Board
 Route::middleware(['auth', 'permission:developer.view'])->group(function () {
@@ -448,6 +459,34 @@ Route::middleware(['auth', 'permission:developer.view'])->group(function () {
     Route::get('/sales/summary-card/api', [SOInvController::class, 'getSalesSummaryCardApi'])->name('sales.summary.card.api');
     Route::get('/palm/cpo/summary-card/api', [PalmProductionController::class, 'getCPOSummaryApi'])->name('palm.cpo.summary.card.api');
 });
+
+Route::middleware(['auth', 'permission:developer.view|gm.view'])->group(function () {
+
+    Route::get('purchase/dashboard', [PurchaseDashboardController::class, 'index']);
+    Route::get('/purchase/dashboard-json', [PurchaseDashboardController::class, 'apiIndex']);
+    Route::get('/purchase/dashboard/api', [PurchaseDashboardController::class, 'apiPOinvByDept'])->name('purchase.dashboard.api');
+
+    // Executive Summary Layout preview
+    Route::get('/purchase/executive-report', function () {
+        return \Inertia\Inertia::render('Dashboard/ExecutiveReport');
+    })->name('executive.report');
+
+    Route::get('/purchase/executive-production-report', function () {
+        return \Inertia\Inertia::render('Dashboard/ExecutiveProductionReport');
+    })->name('executive.production.report');
+
+    Route::get('/stock/valuation-report', function () {
+        return \Inertia\Inertia::render('Dashboard/Stock/ProductStockReport');
+    })->name('stock.valuation.report');
+
+    Route::get('/api/stock/valuation-summary', [ProductStockReportController::class, 'getProductStockSummary'])->name('api.stock.valuation.summary');
+
+    Route::get('/api/purchase/executive-production-report', [ExecutiveProductionController::class, 'getProductionReportApi'])->name('api.executive.production.report');
+    Route::get('/api/purchase/executive-soplan-report', [ExecutiveProductionController::class, 'getSOPlanApi'])->name('api.executive.soplan.report');
+});
+
+
+
 
 // MAR Routes
 Route::middleware(['auth', 'permission:developer.view|mar.view'])->group(function () {
@@ -505,36 +544,6 @@ Route::middleware(['auth', 'permission:developer.view|qac.view'])->group(functio
     Route::get('/yield-report', [\App\Http\Controllers\QAC\YieldReportController::class, 'index'])->name('yield-report.index');
     Route::get('/yield-report/api', [\App\Http\Controllers\QAC\YieldReportController::class, 'apiData'])->name('yield-report.api');
     Route::get('/yield-report/monthly', [\App\Http\Controllers\QAC\YieldReportController::class, 'apiMonthlyYield'])->name('yield-report.monthly');
-
-    // Computer Preventive Maintenance
-    Route::get('/computer-checklists', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'index'])->name('computer-checklists.index');
-    Route::get('/computer-checklists/api', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'apiIndex']);
-    Route::post('/computer-checklists', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'store']);
-    Route::put('/computer-checklists/{id}', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'update']);
-    Route::delete('/computer-checklists/{id}', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'destroy']);
-    Route::post('/computer-checklists/reorder', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'reorder']);
-
-    Route::get('/computer-inspection', [\App\Http\Controllers\Computer\ComputerController::class, 'index'])->name('computer.index');
-    Route::get('/computer-inspection/form/{id}', [\App\Http\Controllers\Computer\ComputerController::class, 'form'])->name('computer.form');
-    Route::get('/computer-inspection/api', [\App\Http\Controllers\Computer\ComputerController::class, 'apiData'])->name('computer.api');
-    Route::get('/computer-inspection/api/{id}', [\App\Http\Controllers\Computer\ComputerController::class, 'show'])->name('computer.show');
-    Route::post('/computer-inspection', [\App\Http\Controllers\Computer\ComputerController::class, 'store'])->name('computer.store');
-
-    // CCTV Preventive Maintenance
-    Route::get('/cctv-inspection', [\App\Http\Controllers\CCTV\CctvController::class, 'index'])->name('cctv.index');
-    Route::get('/cctv-inspection/overview', [\App\Http\Controllers\CCTV\CctvController::class, 'monthlyOverviewPage'])->name('cctv.overview');
-    Route::get('/cctv-inspection/form/{id}', [\App\Http\Controllers\CCTV\CctvController::class, 'form'])->name('cctv.form');
-    Route::get('/cctv-inspection/api', [\App\Http\Controllers\CCTV\CctvController::class, 'apiData'])->name('cctv.api');
-    Route::get('/cctv-inspection/api/{id}', [\App\Http\Controllers\CCTV\CctvController::class, 'show'])->name('cctv.show');
-    Route::get('/cctv-inspection/monthly-api', [\App\Http\Controllers\CCTV\CctvController::class, 'getMonthlyOverview'])->name('cctv.monthly.api');
-    Route::post('/cctv-inspection', [\App\Http\Controllers\CCTV\CctvController::class, 'store'])->name('cctv.store');
-
-    // DVR Management
-    Route::get('/dvrs', [\App\Http\Controllers\CCTV\DvrController::class, 'index'])->name('dvrs.index');
-    Route::get('/dvrs/api', [\App\Http\Controllers\CCTV\DvrController::class, 'apiIndex'])->name('dvrs.api');
-    Route::post('/dvrs', [\App\Http\Controllers\CCTV\DvrController::class, 'store'])->name('dvrs.store');
-    Route::put('/dvrs/{dvr}', [\App\Http\Controllers\CCTV\DvrController::class, 'update'])->name('dvrs.update');
-    Route::delete('/dvrs/{dvr}', [\App\Http\Controllers\CCTV\DvrController::class, 'destroy'])->name('dvrs.destroy');
 
     Route::get('/stock/kernel', [SiloRecordController::class, 'index'])->name('stock.kernel.index');
     Route::post('/stock/kernel', [SiloRecordController::class, 'store']);
