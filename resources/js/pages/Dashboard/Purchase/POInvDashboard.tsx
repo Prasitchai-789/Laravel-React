@@ -137,10 +137,13 @@ export default function POInvDashboard() {
         {/* ── BODY ── */}
         <div className="flex-1 max-h-0 px-6 pb-4">
           {isLoading && !data ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="relative flex flex-col items-center gap-4">
-                <div className="animate-spin w-12 h-12 rounded-full border-4 border-emerald-100 border-t-emerald-500" />
-                <p className="text-slate-400 font-medium text-sm animate-pulse">กำลังโหลดข้อมูล...</p>
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="text-center">
+                <div className="relative w-20 h-20 mx-auto mb-4">
+                  <div className="absolute inset-0 rounded-full border-4 border-emerald-100" />
+                  <div className="absolute inset-0 rounded-full border-4 border-t-emerald-500 animate-spin" />
+                </div>
+                <p className="text-slate-500 font-medium">กำลังโหลดข้อมูล...</p>
               </div>
             </div>
           ) : data ? (

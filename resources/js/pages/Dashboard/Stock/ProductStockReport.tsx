@@ -133,7 +133,23 @@ export default function ProductStockReport() {
         <AppLayout>
             <Head title="Product Stock Valuation | Premium Analytics" />
 
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 pb-12 font-sans">
+            <div className="min-h-screen bg-white font-anuphan text-slate-800 overflow-x-hidden relative">
+                {/* Modern Mesh Gradient Background */}
+                <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute inset-0 bg-[#f8fafc]" />
+                    <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/10 rounded-full blur-[120px] animate-float-slow" />
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-400/10 rounded-full blur-[120px] animate-float-reverse" />
+                    <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-indigo-400/10 rounded-full blur-[120px] animate-pulse-slow" />
+                    <div className="absolute bottom-[20%] left-[10%] w-[25%] h-[25%] bg-purple-400/10 rounded-full blur-[100px] animate-float" />
+                    
+                    {/* Noise / Grain Texture Overlay */}
+                    <div className="absolute inset-0 opacity-[0.4] mix-blend-soft-light pointer-events-none" 
+                         style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
+                    
+                    {/* Refined Grid */}
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a0a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a0a_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,white_70%,transparent_100%)]" />
+                </div>
+
                 {/* Modern Glass Header */}
                 <div className="relative bg-white/70 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-40">
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5" />
@@ -490,7 +506,7 @@ export default function ProductStockReport() {
                                                                 </span>
                                                                 <div className="h-3 w-[1px] bg-slate-200 mx-1" />
                                                                 <span className="text-slate-500 tabular-nums">
-                                                                    ({(data?.remaining_stock?.volume ?? 0).toLocaleString(undefined, { minimumFractionDigits: 1 })} t × {data?.remaining_stock?.yield_7d ?? 0} %) = {(data?.remaining_stock?.cpo_volume ?? 0).toLocaleString(undefined, { minimumFractionDigits: 1 })} t CPO
+                                                                    ({(data?.remaining_stock?.volume ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t × {data?.remaining_stock?.yield_7d ?? 0} %) = {(data?.remaining_stock?.cpo_volume ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t CPO
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -655,12 +671,31 @@ export default function ProductStockReport() {
 
             <style dangerouslySetInnerHTML={{
                 __html: `
+                @keyframes float-slow {
+                    0%, 100% { transform: translate(0, 0) scale(1); }
+                    50% { transform: translate(100px, 40px) scale(1.1); }
+                }
+                @keyframes float-reverse {
+                    0%, 100% { transform: translate(0, 0) scale(1); }
+                    50% { transform: translate(-80px, -30px) scale(1.05); }
+                }
+                @keyframes float {
+                    0%, 100% { transform: translate(0, 0); }
+                    50% { transform: translate(40px, -60px); }
+                }
+                @keyframes pulse-slow {
+                    0%, 100% { opacity: 0.1; transform: scale(1); }
+                    50% { opacity: 0.18; transform: scale(1.25); }
+                }
+                .animate-float-slow { animation: float-slow 25s infinite ease-in-out; }
+                .animate-float-reverse { animation: float-reverse 18s infinite ease-in-out; }
+                .animate-float { animation: float 14s infinite ease-in-out; }
+                .animate-pulse-slow { animation: pulse-slow 12s infinite ease-in-out; }
+
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
                 @import url('https://fonts.googleapis.com/css2?family=Anuphan:wght@100..700&display=swap');
                 
-                * {
-                    font-family: 'Anuphan', sans-serif;
-                }
+                .font-anuphan { font-family: 'Anuphan', sans-serif; }
 
                 .tabular-nums {
                     font-family: 'Inter', sans-serif !important;
