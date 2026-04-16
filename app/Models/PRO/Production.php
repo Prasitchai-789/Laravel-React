@@ -13,7 +13,24 @@ class Production extends Model
     public $timestamps = false;
 
     protected $fillable = [
-
+        'Date',
+        'FFBPurchase',
+        'FFBForward',
+        'ShiftA',
+        'ShiftB',
+        'Shift3',
+        'PickupRemain',
+        'RamRemain',
+        'TotalFFB',
+        'AvgPickup',
+        'FFBGoodQty',
+        'StuckIn',
+        'Steam',
+        'PickupRemain2',
+        'RamRemain2',
+        'RawFFB',
+        'FFBRemain',
+        'CS1',
+        'CS2',
     ];
-
 }

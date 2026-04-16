@@ -60,6 +60,7 @@ use App\Http\Controllers\Dashboard\ExecutiveProductionController;
 use App\Http\Controllers\Population\SummaryControllder;
 use App\Http\Controllers\SeederStatusController;
 use App\Http\Controllers\Api\VehicleInspectionController;
+use App\Http\Controllers\Dashboard\OrderForecastController;
 
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
 
@@ -157,6 +158,7 @@ Route::middleware('permission:users.delete|developer.view')->group(function () {
     Route::delete('/chemical', [ChemicalController::class, 'destroyBulk'])->name('chemical.destroy.bulk');
 });
 
+// PRO Routes
 // Chemical Master Data Routes (จัดการรายชื่อสารเคมี)
 Route::middleware(['auth', 'permission:users.view|chemical.view|developer.view'])->group(function () {
 
@@ -172,6 +174,17 @@ Route::middleware(['auth', 'permission:users.view|chemical.view|developer.view']
     Route::put('/chemical-master/{id}', [ChemicalMasterController::class, 'update'])->name('chemical-master.update');
     Route::delete('/chemical-master/{id}', [ChemicalMasterController::class, 'destroy'])->name('chemical-master.destroy');
     Route::get('/api/chemicals', [ChemicalMasterController::class, 'apiList'])->name('api.chemicals');
+});
+
+// PRO – Production Record Routes (บันทึกข้อมูลการผลิต)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/pro/production-record', [\App\Http\Controllers\PRO\ProductionController::class, 'index'])->name('pro.production.index');
+    Route::get('/pro/production-record/date-info', [\App\Http\Controllers\PRO\ProductionController::class, 'dateInfo'])->name('pro.production.dateInfo');
+    Route::get('/pro/production-record/export', [\App\Http\Controllers\PRO\ProductionController::class, 'export'])->name('pro.production.export');
+    Route::post('/pro/production-record', [\App\Http\Controllers\PRO\ProductionController::class, 'store'])->name('pro.production.store');
+    Route::put('/pro/production-record/{id}', [\App\Http\Controllers\PRO\ProductionController::class, 'update'])->name('pro.production.update');
+    Route::delete('/pro/production-record/{id}', [\App\Http\Controllers\PRO\ProductionController::class, 'destroy'])->name('pro.production.destroy');
+    Route::get('/pro/production-report', [\App\Http\Controllers\PRO\ProductionReportController::class, 'index'])->name('pro.production.report');
 });
 
 // Chemical Order Routes
@@ -233,6 +246,9 @@ Route::middleware(['auth', 'permission:developer.view|gm.view'])->group(function
 
     Route::get('/purchase/po-invoice-dashboard', [POInvDashboardController::class, 'index'])->name('poinv.dashboard.index');
     Route::get('/purchase/po-invoice-dashboard/api', [POInvDashboardController::class, 'apiData'])->name('poinv.dashboard.api');
+
+    Route::get('/purchase/order-forecast', [OrderForecastController::class, 'index'])->name('order.forecast.index');
+    Route::get('/purchase/order-forecast/api', [OrderForecastController::class, 'getData'])->name('order.forecast.api');
 
     Route::get('sales/dashboard', [MARSalesController::class, 'index'])->name('sales.dashboard.index');
     Route::get('cost-analysis/dashboard', [CostAnalysisController::class, 'index'])->name('cost-analysis.dashboard.index');

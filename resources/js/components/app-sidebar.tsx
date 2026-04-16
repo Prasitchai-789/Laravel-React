@@ -55,6 +55,7 @@ import {
     Weight,
     Database,
     Camera as CameraIcon,
+    ClipboardList,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -150,6 +151,18 @@ const PRONavItem: NavItem[] = [
         title: 'Production Monitor',
         href: '/production-dashboard',
         icon: Factory,
+        permission: ['pro.view', 'gm.view'],
+    },
+    {
+        title: 'บันทึกข้อมูลการผลิต',
+        href: '/pro/production-record',
+        icon: ClipboardList,
+        permission: ['pro.view', 'gm.view'],
+    },
+    {
+        title: 'รายงานข้อมูลการผลิต',
+        href: '/pro/production-report',
+        icon: ClipboardList,
         permission: ['pro.view', 'gm.view'],
     },
 ];
