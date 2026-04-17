@@ -560,6 +560,8 @@ Route::middleware(['auth', 'permission:developer.view|qac.view|gm.view'])->group
     Route::get('/yield-report', [\App\Http\Controllers\QAC\YieldReportController::class, 'index'])->name('yield-report.index');
     Route::get('/yield-report/api', [\App\Http\Controllers\QAC\YieldReportController::class, 'apiData'])->name('yield-report.api');
     Route::get('/yield-report/monthly', [\App\Http\Controllers\QAC\YieldReportController::class, 'apiMonthlyYield'])->name('yield-report.monthly');
+    Route::get('/yield-table', [\App\Http\Controllers\QAC\YieldTableController::class, 'index'])->name('yield-table.index');
+    Route::get('/yield-table/api', [\App\Http\Controllers\QAC\YieldTableController::class, 'apiData'])->name('yield-table.api');
 
     Route::get('/stock/kernel', [SiloRecordController::class, 'index'])->name('stock.kernel.index');
     Route::post('/stock/kernel', [SiloRecordController::class, 'store']);
