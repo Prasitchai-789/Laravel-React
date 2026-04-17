@@ -434,6 +434,12 @@ const QACNavItems: NavItem[] = [
         icon: ScrollText,
         permission: ['qac.view'],
     },
+    {
+        title: 'รายงาน % Yield (ตาราง)',
+        href: '/yield-table',
+        icon: ScrollText,
+        permission: ['qac.view'],
+    },
 ];
 
 const CarUsageNavItems: NavItem[] = [

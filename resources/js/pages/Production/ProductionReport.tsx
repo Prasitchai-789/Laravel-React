@@ -337,7 +337,7 @@ export default function ProductionReport({ date, production, cs, summary, chart 
                                                     <span className="text-xl text-blue-900">{n(sumShiftPickUp) === 0 ? '-' : fInt(sumShiftPickUp)}</span> <span className="text-blue-500 lg:text-sm text-[0px] font-normal ml-1">กะบะ</span>
                                                 </td>
                                                 <td className="py-2 px-4 text-right">
-                                                    <span className="text-xl text-blue-900">{n(p?.FFBGoodQty) === 0 ? '-' : fN(p?.FFBGoodQty)}</span> <span className="text-blue-500 lg:text-sm text-[0px] font-normal ml-1">ตัน</span>
+                                                    <span className="text-xl text-blue-900 lg:text-2xl text-[22px]">{n(p?.FFBGoodQty) === 0 ? '-' : fN(p?.FFBGoodQty)}</span> <span className="text-blue-500 lg:text-sm text-[0px] font-normal ml-1">ตัน</span>
                                                 </td>
                                             </tr>
                                             
@@ -371,7 +371,7 @@ export default function ProductionReport({ date, production, cs, summary, chart 
                                                 <td className="py-2 px-4 text-[#e53935] lg:text-lg text-[14px]">รวมปาล์มคงค้าง</td>
                                                 <td className="py-2 px-4 text-right"></td>
                                                 <td className="py-2 px-4 text-right">
-                                                    <span className="text-lg text-[#e53935]">{n(p?.FFBRemain) === 0 ? '-' : fN(p?.FFBRemain)}</span> <span className="text-[#e53935]/70 lg:text-sm text-[0px] font-normal ml-1">ตัน</span>
+                                                    <span className="text-lg text-[#e53935] lg:text-2xl text-[22px]">{n(p?.FFBRemain) === 0 ? '-' : fN(p?.FFBRemain)}</span> <span className="text-[#e53935]/70 lg:text-sm text-[0px] font-normal ml-1">ตัน</span>
                                                 </td>
                                             </tr>
                                         </tbody>
