@@ -70,8 +70,10 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
+        return Inertia::render('Dashboard');
     })->name('dashboard');
+
+    Route::get('/delivery-plan', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'page'])->name('delivery-plan.page');
 
     // Activity Routes for Dashboard
     Route::get('activity/gallery', [ActivityController::class, 'gallery'])->name('activity.gallery');

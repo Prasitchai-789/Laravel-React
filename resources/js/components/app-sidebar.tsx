@@ -317,6 +317,12 @@ const MARNavItems: NavItem[] = [
         permission: ['mar.edit'],
     },
     {
+        title: 'แผนจัดส่ง (Delivery Plan)',
+        href: '/delivery-plan',
+        icon: Truck,
+        permission: ['developer.view', 'mar.edit', 'gm.view'],
+    },
+    {
         title: 'รายงานการขายสินค้า',
         href: '/sales-order',
         icon: BadgeDollarSign,
