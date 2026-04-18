@@ -67,8 +67,8 @@ class ProductionReportController extends Controller
             'date' => $date->format('Y-m-d'),
             'production' => $production,
             'cs' => [
-                'CS1' => null,
-                'CS2' => null,
+                'CS1' => $production->CS1 ?? null,
+                'CS2' => $production->CS2 ?? null,
             ],
             'summary' => [
                 'total_ffb_good_qty' => (float)($monthlySums->total_ffb_good_qty ?? 0),

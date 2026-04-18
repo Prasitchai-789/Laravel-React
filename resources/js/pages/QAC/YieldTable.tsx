@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Table, CalendarRange, ScrollText } from 'lucide-react';
+import { Table, CalendarRange, ScrollText, FileDown } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 
 interface YieldData {
@@ -39,6 +39,11 @@ export default function YieldTable() {
         }
     };
 
+    const handleExport = () => {
+        const exportUrl = route('yield-table.export', { month });
+        window.open(exportUrl, '_blank');
+    };
+
     // Formatter functions
     const dObj = (dateStr: string) => {
         return new Date(dateStr).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -71,17 +76,27 @@ export default function YieldTable() {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-4 bg-slate-50/80 p-2 rounded-2xl border border-slate-200/60 shadow-sm backdrop-blur-xl">
-                            <div className="flex items-center gap-3 pl-3">
-                                <CalendarRange className="w-5 h-5 text-slate-400" />
-                                <span className="font-semibold text-slate-700 hidden sm:inline">เดือน :</span>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-4 bg-slate-50/80 p-2 rounded-2xl border border-slate-200/60 shadow-sm backdrop-blur-xl">
+                                <div className="flex items-center gap-3 pl-3">
+                                    <CalendarRange className="w-5 h-5 text-slate-400" />
+                                    <span className="font-semibold text-slate-700 hidden sm:inline">เดือน :</span>
+                                </div>
+                                <input
+                                    type="month"
+                                    value={month}
+                                    onChange={(e) => setMonth(e.target.value)}
+                                    className="bg-white border-0 rounded-xl px-4 py-2.5 text-slate-700 font-semibold shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all hover:bg-slate-50"
+                                />
                             </div>
-                            <input
-                                type="month"
-                                value={month}
-                                onChange={(e) => setMonth(e.target.value)}
-                                className="bg-white border-0 rounded-xl px-4 py-2.5 text-slate-700 font-semibold shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all hover:bg-slate-50"
-                            />
+
+                            <button
+                                onClick={handleExport}
+                                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 active:scale-95 group"
+                            >
+                                <FileDown className="w-5 h-5 group-hover:bounce" />
+                                <span className="hidden sm:inline">Export Excel</span>
+                            </button>
                         </div>
                     </div>
                 </div>

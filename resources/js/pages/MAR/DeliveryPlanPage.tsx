@@ -28,6 +28,7 @@ interface Order {
     price_sell: number;
     price_customer: number;
     is_completed: boolean;
+    total_planned: number | null; // From backend withSum
     delivery_plan_items: DeliveryPlanItem[];
 }
 
@@ -157,7 +158,21 @@ export default function DeliveryPlanPage() {
             setLoading(true);
             const res = await axios.get(`/api/delivery-plan/${dateStr}`);
             setDates(res.data.dates);
-            setOrders(res.data.orders);
+            const fetchedOrders = res.data.orders;
+            setOrders(fetchedOrders);
+
+            // AUTO-SELECT PRODUCT logic:
+            // If the current selectedProduct has no orders, and there are orders available,
+            // find the first product that actually has orders and switch to it.
+            if (fetchedOrders.length > 0) {
+                const currentProductOrders = fetchedOrders.filter((o: Order) => o.product === selectedProduct);
+                if (currentProductOrders.length === 0) {
+                    const firstAvailableProduct = fetchedOrders[0].product;
+                    if (firstAvailableProduct) {
+                        setSelectedProduct(firstAvailableProduct);
+                    }
+                }
+            }
         } catch (error) {
             console.error('Error fetching delivery plan', error);
         } finally {
@@ -246,8 +261,11 @@ export default function DeliveryPlanPage() {
         );
     };
 
-    const formatNum = (num: number) => {
-        return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    const formatNum = (num: number, decimals: number = 2) => {
+        return (Number(num) || 0).toLocaleString('en-US', { 
+            minimumFractionDigits: decimals, 
+            maximumFractionDigits: decimals 
+        });
     };
 
     const filteredOrders = orders.filter(o => o.product === selectedProduct);
@@ -265,9 +283,9 @@ export default function DeliveryPlanPage() {
     }, 0);
     const trailersCount = Math.ceil(totalTodayPlanned / 32);
 
-    const totalOrderedQty = filteredOrders.reduce((sum, order) => sum + order.quantity, 0);
-    const totalPlannedQty = filteredOrders.reduce((sum, order) => sum + order.delivery_plan_items.reduce((s, item) => s + Number(item.quantity), 0), 0);
-    const totalRemainingQty = totalOrderedQty - totalPlannedQty;
+    const totalOrderedQty = filteredOrders.reduce((sum, order) => sum + (Number(order.quantity) || 0), 0);
+    const totalPlannedQty = filteredOrders.reduce((sum, order) => sum + (Number(order.total_planned) || 0), 0);
+    const totalRemainingQty = Math.max(0, totalOrderedQty - totalPlannedQty);
 
     return (
         <AppLayout breadcrumbs={[{ title: 'Sales & Marketing', href: '#' }, { title: 'Delivery Plan Table', href: '#' }]}>
@@ -550,8 +568,8 @@ export default function DeliveryPlanPage() {
                                 </thead>
                                 <tbody className="divide-y divide-blue-50">
                                     {filteredOrders.map((order, idx) => {
-                                        const sumPlan = order.delivery_plan_items.reduce((sum, item) => sum + Number(item.quantity), 0);
-                                        const remaining = order.quantity - sumPlan;
+                                        const sumPlan = Number(order.total_planned) || 0;
+                                        const remaining = Number(order.quantity) - sumPlan;
 
                                         return (
                                             <tr key={order.id} className={`hover:bg-blue-50/50 transition-colors duration-150 ${idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}`}>
@@ -565,21 +583,21 @@ export default function DeliveryPlanPage() {
                                                     )}
                                                 </td>
                                                 <td className="py-3 px-4 font-semibold text-slate-600 text-center border-l border-blue-50">
-                                                    {formatNum(order.quantity)}
+                                                    {formatNum(order.quantity, 0)}
                                                 </td>
                                                 <td className="py-3 px-4 text-slate-500 text-center border-l border-blue-50">
-                                                    {formatNum(order.price_sell)}
+                                                    {formatNum(order.price_sell, 2)}
                                                 </td>
                                                 <td className="py-3 px-4 text-slate-500 text-center border-l border-blue-50">
-                                                    {formatNum(order.price_customer)}
+                                                    {formatNum(order.price_customer, 2)}
                                                 </td>
                                                 <td className="py-3 px-4 font-bold text-center whitespace-nowrap border-l border-blue-100 bg-blue-50/50 text-blue-700">
-                                                    {formatNum(sumPlan)}
+                                                    {formatNum(Number(order.total_planned) || 0, 0)}
                                                 </td>
                                                 <td className={`py-3 px-4 font-black text-center whitespace-nowrap border-l border-red-100 bg-red-50/50 
                                                     ${remaining < 0 ? 'text-red-600' : remaining === 0 ? 'text-emerald-600' : 'text-orange-500'}`}
                                                 >
-                                                    {formatNum(remaining)}
+                                                    {formatNum(Math.max(0, remaining), 0)}
                                                 </td>
                                                 <td className="py-3 px-2 text-center whitespace-nowrap border-l border-blue-100 bg-blue-50/30">
                                                     <button

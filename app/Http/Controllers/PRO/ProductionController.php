@@ -87,6 +87,8 @@ class ProductionController extends Controller
             'FFBGoodQty'  => round($ffbGoodQty, 2),
             'FFBRemain'   => round($ffbRemain,  2),
             'RamRemain2'  => round($ramRemain2, 2),
+            'CS1'         => floatval(str_replace(',', '', $d['CS1'] ?? 0)),
+            'CS2'         => floatval(str_replace(',', '', $d['CS2'] ?? 0)),
         ]);
     }
 
@@ -114,9 +116,16 @@ class ProductionController extends Controller
             ->total ?? 0;
         $ffbPurchase = round($sumGoodNet / 1000, 2);
 
+        $latestCS = \DB::connection('sqlsrv3')->table('Webapp_FFBProductions')
+            ->whereDate('Date', $date)
+            ->orderBy('id', 'desc')
+            ->first();
+
         return response()->json([
             'FFBForward'  => $ffbForward,
             'FFBPurchase' => $ffbPurchase,
+            'CS1'         => $latestCS->CS1 ?? 0,
+            'CS2'         => $latestCS->CS2 ?? 0,
         ]);
     }
 
@@ -207,6 +216,8 @@ class ProductionController extends Controller
             'Steam'       => 'nullable|numeric',
             'StuckIn'     => 'nullable|numeric',
             'RawFFB'      => 'nullable|numeric',
+            'CS1'         => 'nullable|numeric',
+            'CS2'         => 'nullable|numeric',
         ]);
 
         $data    = $request->all();
@@ -237,6 +248,8 @@ class ProductionController extends Controller
             'Steam'       => 'nullable|numeric',
             'StuckIn'     => 'nullable|numeric',
             'RawFFB'      => 'nullable|numeric',
+            'CS1'         => 'nullable|numeric',
+            'CS2'         => 'nullable|numeric',
         ]);
 
         $data    = $request->all();
