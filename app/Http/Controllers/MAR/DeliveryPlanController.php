@@ -33,8 +33,12 @@ class DeliveryPlanController extends Controller
         }
 
         // Fetch orders and their delivery plan items for the NEXT 7 days
-        // We use withSum to get the OVERALL planned quantity across ALL time
+        // total_planned: Sum of ALL plans (for scheduling)
+        // total_delivered: Sum of past/today plans (for progress tracking)
         $orders = Order::withSum('deliveryPlanItems as total_planned', 'quantity')
+            ->withSum(['deliveryPlanItems as total_delivered' => function($query) {
+                $query->whereDate('plan_date', '<', now()->toDateString());
+            }], 'quantity')
             ->with(['deliveryPlanItems' => function($query) use ($dates) {
                 $query->whereIn('plan_date', $dates);
             }])

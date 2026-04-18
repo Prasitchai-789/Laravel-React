@@ -28,7 +28,8 @@ interface Order {
     price_sell: number;
     price_customer: number;
     is_completed: boolean;
-    total_planned: number | null; // From backend withSum
+    total_planned: number | null; // All scheduled items
+    total_delivered: number | null; // Scheduled items where date <= Today
     delivery_plan_items: DeliveryPlanItem[];
 }
 
@@ -194,12 +195,25 @@ export default function DeliveryPlanPage() {
                         if (order.id === orderId) {
                             const newItems = [...order.delivery_plan_items];
                             const existingIdx = newItems.findIndex(i => i.plan_date === date);
+                            const oldValue = existingIdx >= 0 ? Number(newItems[existingIdx].quantity) : 0;
+                            const diff = value - oldValue;
+
                             if (existingIdx >= 0) {
                                 newItems[existingIdx].quantity = value;
                             } else if (value > 0) {
                                 newItems.push({ id: 0, order_id: orderId, plan_date: date, quantity: value });
                             }
-                            return { ...order, delivery_plan_items: newItems };
+
+                            // Reactive Metrics Update:
+                            const todayStr = new Date().toISOString().split('T')[0];
+                            const isPast = date < todayStr;
+
+                            return { 
+                                ...order, 
+                                delivery_plan_items: newItems,
+                                total_planned: (Number(order.total_planned) || 0) + diff,
+                                total_delivered: isPast ? (Number(order.total_delivered) || 0) + diff : order.total_delivered
+                            };
                         }
                         return order;
                     })
@@ -269,9 +283,9 @@ export default function DeliveryPlanPage() {
     };
 
     const filteredOrders = orders.filter(o => o.product === selectedProduct);
-    const totalOrderKg = filteredOrders.reduce((sum, order) => sum + (order.quantity * 1000), 0);
-    const totalSellRevenue = filteredOrders.reduce((sum, order) => sum + (order.quantity * 1000 * order.price_sell), 0);
-    const totalCustRevenue = filteredOrders.reduce((sum, order) => sum + (order.quantity * 1000 * order.price_customer), 0);
+    const totalOrderKg = filteredOrders.reduce((sum, order) => sum + (Number(order.quantity) * 1000), 0);
+    const totalSellRevenue = filteredOrders.reduce((sum, order) => sum + (Number(order.quantity) * 1000 * order.price_sell), 0);
+    const totalCustRevenue = filteredOrders.reduce((sum, order) => sum + (Number(order.quantity) * 1000 * order.price_customer), 0);
 
     const avgSellPrice = totalOrderKg > 0 ? (totalSellRevenue / totalOrderKg) : 0;
     const avgCustPrice = totalOrderKg > 0 ? (totalCustRevenue / totalOrderKg) : 0;
@@ -281,11 +295,16 @@ export default function DeliveryPlanPage() {
         const item = order.delivery_plan_items.find(i => i.plan_date && i.plan_date.substring(0, 10) === currentDateString);
         return sum + (item ? Number(item.quantity) : 0);
     }, 0);
-    const trailersCount = Math.ceil(totalTodayPlanned / 32);
+    const trailersCount = Math.round(totalTodayPlanned / 32);
 
     const totalOrderedQty = filteredOrders.reduce((sum, order) => sum + (Number(order.quantity) || 0), 0);
-    const totalPlannedQty = filteredOrders.reduce((sum, order) => sum + (Number(order.total_planned) || 0), 0);
-    const totalRemainingQty = Math.max(0, totalOrderedQty - totalPlannedQty);
+    // Dynamic 'Total Planned': Sum of items visible in the current 7-day table
+    const totalPlannedAll = filteredOrders.reduce((sum, order) => {
+        const viewSum = order.delivery_plan_items.reduce((itemSum, item) => itemSum + (Number(item.quantity) || 0), 0);
+        return sum + viewSum;
+    }, 0);
+    const totalDeliveredQty = filteredOrders.reduce((sum, order) => sum + (Number(order.total_delivered) || 0), 0);
+    const totalRemainingQty = Math.max(0, totalOrderedQty - totalDeliveredQty);
 
     return (
         <AppLayout breadcrumbs={[{ title: 'Sales & Marketing', href: '#' }, { title: 'Delivery Plan Table', href: '#' }]}>
@@ -496,27 +515,40 @@ export default function DeliveryPlanPage() {
                                         </div>
                                     </div>
                                     <div className="p-2 rounded-2xl bg-blue-50/50 border border-blue-100 text-center">
-                                        <p className="text-sm font-bold text-blue-800 uppercase tracking-widest mb-1 text-center">ลงคิวแล้ว</p>
+                                        <p className="text-sm font-bold text-blue-800 uppercase tracking-widest mb-1 text-center">ลงคิวรวม</p>
                                         <div className="font-black text-5xl text-blue-800 tracking-tight">
-                                            <CountUp end={totalPlannedQty} duration={1.5} decimals={0} />
+                                            <CountUp end={totalPlannedAll} duration={1.5} decimals={0} />
                                             <span className="text-[12px] ml-1 opacity-60">Tons</span>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="space-y-2 flex-1">
                                     <div>
-                                        <div className="flex justify-between items-end">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Progress</span>
-                                            <span className="text-lg font-black text-emerald-600">
-                                                {totalOrderedQty > 0 ? ((totalPlannedQty / totalOrderedQty) * 100).toFixed(1) : 0}%
+                                        <div className="flex justify-between items-end mb-1">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Progress (ส่งแล้ว)</span>
+                                            <span className="text-xl font-black text-emerald-600">
+                                                {totalOrderedQty > 0 ? ((totalDeliveredQty / totalOrderedQty) * 100).toFixed(1) : 0}%
                                             </span>
                                         </div>
-                                        <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner p-0.5">
-                                            <div
-                                                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-1000 ease-out relative shadow-sm"
-                                                style={{ width: `${totalOrderedQty > 0 ? (totalPlannedQty / totalOrderedQty) * 100 : 0}%` }}
-                                            >
-                                                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent"></div>
+                                        <div className="relative h-4 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200">
+                                            {/* Blue: Total Planned (upcoming) */}
+                                            <div 
+                                                className="absolute top-0 left-0 h-full bg-blue-300 transition-all duration-1000 ease-out"
+                                                style={{ width: `${totalOrderedQty > 0 ? (totalPlannedAll / totalOrderedQty) * 100 : 0}%` }}
+                                            />
+                                            {/* Green: Already Delivered (Past/Today) */}
+                                            <div 
+                                                className="absolute top-0 left-0 h-full bg-emerald-500 transition-all duration-1000 ease-out shadow-sm"
+                                                style={{ width: `${totalOrderedQty > 0 ? (totalDeliveredQty / totalOrderedQty) * 100 : 0}%` }}
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent pointer-events-none"></div>
+                                        </div>
+                                        <div className="flex justify-between mt-1 text-[9px] font-bold">
+                                            <div className="flex items-center gap-1 text-emerald-600">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> ส่งแล้ว
+                                            </div>
+                                            <div className="flex items-center gap-1 text-blue-400">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-300"></div> จองคิวล่วงหน้า
                                             </div>
                                         </div>
                                     </div>
@@ -568,8 +600,9 @@ export default function DeliveryPlanPage() {
                                 </thead>
                                 <tbody className="divide-y divide-blue-50">
                                     {filteredOrders.map((order, idx) => {
-                                        const sumPlan = Number(order.total_planned) || 0;
-                                        const remaining = Number(order.quantity) - sumPlan;
+                                        const sumPlanned = Number(order.total_planned) || 0;
+                                        const sumDelivered = Number(order.total_delivered) || 0;
+                                        const remainingDelivered = Number(order.quantity) - sumDelivered;
 
                                         return (
                                             <tr key={order.id} className={`hover:bg-blue-50/50 transition-colors duration-150 ${idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'}`}>
@@ -592,19 +625,22 @@ export default function DeliveryPlanPage() {
                                                     {formatNum(order.price_customer, 2)}
                                                 </td>
                                                 <td className="py-3 px-4 font-bold text-center whitespace-nowrap border-l border-blue-100 bg-blue-50/50 text-blue-700">
-                                                    {formatNum(Number(order.total_planned) || 0, 0)}
+                                                    <div className="flex flex-col">
+                                                        <span>{formatNum(sumPlanned, 0)}</span>
+                                                        <span className="text-[10px] opacity-40 font-normal">All Planned</span>
+                                                    </div>
                                                 </td>
                                                 <td className={`py-3 px-4 font-black text-center whitespace-nowrap border-l border-red-100 bg-red-50/50 
-                                                    ${remaining < 0 ? 'text-red-600' : remaining === 0 ? 'text-emerald-600' : 'text-orange-500'}`}
+                                                    ${remainingDelivered < 0 ? 'text-red-600' : remainingDelivered === 0 ? 'text-emerald-600' : 'text-orange-500'}`}
                                                 >
-                                                    {formatNum(Math.max(0, remaining), 0)}
+                                                    {formatNum(Math.max(0, remainingDelivered), 0)}
                                                 </td>
                                                 <td className="py-3 px-2 text-center whitespace-nowrap border-l border-blue-100 bg-blue-50/30">
                                                     <button
                                                         onClick={() => handleCompleteOrder(order.id)}
-                                                        disabled={remaining > 0}
-                                                        className={`p-1.5 rounded-lg transition-all ${remaining <= 0 ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-500 hover:text-white shadow-sm' : 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-50'}`}
-                                                        title={remaining <= 0 ? "ปิดแจ้งจัดส่งครบแล้ว" : "ยอดจัดส่งยังไม่ครบจำนวน"}
+                                                        disabled={remainingDelivered > 0}
+                                                        className={`p-1.5 rounded-lg transition-all ${remainingDelivered <= 0 ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-500 hover:text-white shadow-sm' : 'bg-slate-100 text-slate-300 cursor-not-allowed opacity-50'}`}
+                                                        title={remainingDelivered <= 0 ? "ปิดแจ้งจัดส่งครบแล้ว" : "ยอดจัดส่งยังไม่ครบจำนวน"}
                                                     >
                                                         <CheckCircle2 className="w-5 h-5" />
                                                     </button>
