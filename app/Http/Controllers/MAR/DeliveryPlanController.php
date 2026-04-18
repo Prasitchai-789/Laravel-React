@@ -8,9 +8,45 @@ use Carbon\Carbon;
 use App\Http\Controllers\Controller;
 use App\Models\MAR\Order;
 use App\Models\MAR\DeliveryPlanItem;
+use App\Models\MAR\DeliveryPlanReference;
 
 class DeliveryPlanController extends Controller
 {
+    /**
+     * Fetch all global references (e.g., KN Price)
+     * GET /api/delivery-plan/references
+     */
+    public function getReferences()
+    {
+        $refs = DeliveryPlanReference::all()->pluck('ref_value', 'ref_key');
+        return response()->json([
+            'success'   => true,
+            'references' => $refs
+        ]);
+    }
+
+    /**
+     * Update a global reference
+     * POST /api/delivery-plan/reference
+     */
+    public function updateReference(Request $request)
+    {
+        $validated = $request->validate([
+            'key'   => 'required|string',
+            'value' => 'nullable|string',
+        ]);
+
+        DeliveryPlanReference::updateOrCreate(
+            ['ref_key' => $validated['key']],
+            ['ref_value' => $validated['value']]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Reference updated successfully'
+        ]);
+    }
+
     /**
      * Render the Delivery Plan Page
      */
