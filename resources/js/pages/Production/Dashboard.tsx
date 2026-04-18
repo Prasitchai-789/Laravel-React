@@ -10,6 +10,8 @@ import {
     Shield,
     Gauge,
     RefreshCw,
+    Package,
+    ClipboardList,
 } from 'lucide-react';
 import {
     LineChart, Line, AreaChart, Area,
@@ -25,6 +27,7 @@ import {
 } from '@/components/Production/ProductionKPICards';
 import ProductionFlowDiagram from '@/components/Production/ProductionFlowDiagram';
 import { useProductionDashboard } from '@/hooks/useProductionDashboard';
+import { usePage } from '@inertiajs/react';
 
 const tooltipStyle = {
     borderRadius: '16px',
@@ -36,6 +39,9 @@ const tooltipStyle = {
 
 export default function ProductionDashboard() {
     const { data, cycleTimeData, loading, lastUpdate, refresh } = useProductionDashboard();
+    const { auth } = (usePage().props as any) || {};
+    const permissions = auth?.permissions || [];
+    const canSeeYield = permissions.includes('developer.view') || permissions.includes('gm.view');
 
     if (loading || !data) {
         return (
@@ -137,7 +143,7 @@ export default function ProductionDashboard() {
 
                         {/* KPI Cards Row 2 + Analytics */}
                         <div className="grid grid-cols-1 xl:grid-cols-7 gap-6">
-                            <ProductionDetailedCard total={data.production_kg} avg={data.avg_pickup} yieldVal={data.yield} progress={data.progress_palm} />
+                            <ProductionDetailedCard total={data.production_kg} avg={data.avg_pickup} yieldVal={data.yield} progress={data.progress_palm} canSeeYield={canSeeYield} />
 
                             <GlassCard className="xl:col-span-4 relative overflow-hidden" delay={0.3}>
                                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/30 to-blue-50/30"></div>
@@ -151,10 +157,12 @@ export default function ProductionDashboard() {
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                         {[
                                             { label: 'Yield Status', value: data.yield < 18 ? 'Below Target' : 'Optimal', icon: Activity, color: data.yield < 18 ? 'rose' : 'emerald' },
-                                            { label: 'Avg Yield', value: `${data.yield}%`, icon: TrendingUp, color: 'indigo' },
+                                            { label: 'Avg Yield', value: `${data.yield.toFixed(1)}%`, icon: TrendingUp, color: 'indigo', hide: !canSeeYield },
                                             { label: 'Performance', value: `${data.plant_oee ?? 0}%`, icon: Zap, color: 'emerald' },
                                             { label: 'System Status', value: 'Active', icon: Shield, color: 'emerald' },
-                                        ].map((item, idx) => (
+                                        ]
+                                        .filter(item => !item.hide)
+                                        .map((item, idx) => (
                                             <motion.div
                                                 key={idx}
                                                 initial={{ opacity: 0, y: 20 }}

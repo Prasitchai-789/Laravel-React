@@ -49,6 +49,8 @@ Route::get('/dashboard/cycle-time', [CycleTimeController::class, 'index']);
 Route::get('/dashboard/palm-analytics', [PalmAnalyticsController::class, 'intake']);
 
 Route::get('/delivery-plan/lookups', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'lookups']);
+Route::get('/delivery-plan/references', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'getReferences']);
+Route::post('/delivery-plan/reference', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'updateReference']);
 Route::get('/delivery-plan/{date}', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'index']);
 Route::post('/delivery-plan/order', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'storeOrder']);
 Route::post('/delivery-plan/order/complete', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'completeOrder']);

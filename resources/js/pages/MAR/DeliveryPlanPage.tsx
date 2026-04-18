@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Truck, CalendarIcon, Loader2, Save, Plus, CheckCircle2, BadgeDollarSign, TrendingUp, TrendingDown, Archive } from 'lucide-react';
+import { Truck, CalendarIcon, Loader2, Save, Plus, CheckCircle2, BadgeDollarSign, TrendingUp, TrendingDown, Archive, Info } from 'lucide-react';
 import CountUp from 'react-countup';
 import { GlassCard } from '@/components/Production/ProductionKPICards';
 import AppLayout from '@/layouts/app-layout';
@@ -42,28 +42,28 @@ interface EditableCellProps {
 
 // EditableCell Sub-component
 const EditableCell: React.FC<EditableCellProps> = ({ orderId, date, initialValue, onSave }) => {
-    const [value, setValue] = useState<string>(initialValue > 0 ? initialValue.toString() : '');
+    const [value, setValue] = useState<string>(initialValue > 0 ? Math.round(initialValue).toString() : '');
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         if (!isSaving) {
-            setValue(initialValue > 0 ? initialValue.toString() : '');
+            setValue(initialValue > 0 ? Math.round(initialValue).toString() : '');
         }
     }, [initialValue, isSaving]);
 
     const handleBlur = async () => {
-        const numValue = parseFloat(value) || 0;
-        if (numValue !== initialValue) {
+        const numValue = Math.round(parseFloat(value) || 0);
+        if (numValue !== Math.round(initialValue)) {
             setIsSaving(true);
             const success = await onSave(orderId, date, numValue);
             setIsSaving(false);
             if (!success) {
-                setValue(initialValue > 0 ? initialValue.toString() : '');
+                setValue(initialValue > 0 ? Math.round(initialValue).toString() : '');
             } else {
                 setValue(numValue > 0 ? numValue.toString() : '');
             }
         } else {
-            setValue(initialValue > 0 ? initialValue.toString() : '');
+            setValue(initialValue > 0 ? Math.round(initialValue).toString() : '');
         }
     };
 
@@ -100,9 +100,21 @@ export default function DeliveryPlanPage() {
     const [selectedProduct, setSelectedProduct] = useState<string>('น้ำมันปาล์มดิบ');
     const [lookupCustomers, setLookupCustomers] = useState<any[]>([]);
     const [lookupGoods, setLookupGoods] = useState<any[]>([]);
+    const [knPrice, setKnPrice] = useState<string>('');
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
+    
+    // Safety exit for modal
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsModalOpen(false);
+        };
+        if (isModalOpen) {
+            window.addEventListener('keydown', handleEsc);
+        }
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [isModalOpen]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [newOrder, setNewOrder] = useState({
         cust_id: '',
@@ -122,7 +134,30 @@ export default function DeliveryPlanPage() {
     useEffect(() => {
         fetchData(currentDateString);
         fetchLookups();
+        fetchReferences();
     }, [currentDateString]);
+
+    const fetchReferences = async () => {
+        try {
+            const res = await axios.get('/api/delivery-plan/references');
+            if (res.data.success) {
+                setKnPrice(res.data.references.kn_price || '');
+            }
+        } catch (error) {
+            console.error('Error fetching references', error);
+        }
+    };
+
+    const handleSaveKnPrice = async (value: string) => {
+        try {
+            await axios.post('/api/delivery-plan/reference', {
+                key: 'kn_price',
+                value: value
+            });
+        } catch (error) {
+            console.error('Error saving KN price', error);
+        }
+    };
 
     const fetchLookups = async () => {
         try {
@@ -208,8 +243,8 @@ export default function DeliveryPlanPage() {
                             const todayStr = new Date().toISOString().split('T')[0];
                             const isPast = date < todayStr;
 
-                            return { 
-                                ...order, 
+                            return {
+                                ...order,
                                 delivery_plan_items: newItems,
                                 total_planned: (Number(order.total_planned) || 0) + diff,
                                 total_delivered: isPast ? (Number(order.total_delivered) || 0) + diff : order.total_delivered
@@ -276,9 +311,9 @@ export default function DeliveryPlanPage() {
     };
 
     const formatNum = (num: number, decimals: number = 2) => {
-        return (Number(num) || 0).toLocaleString('en-US', { 
-            minimumFractionDigits: decimals, 
-            maximumFractionDigits: decimals 
+        return (Number(num) || 0).toLocaleString('en-US', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
         });
     };
 
@@ -363,7 +398,7 @@ export default function DeliveryPlanPage() {
                                     className="bg-transparent border-0 rounded-xl px-2 py-1.5 text-slate-700 font-black text-xs focus:ring-0 transition-all cursor-pointer"
                                 />
                             </div>
-                            
+
                             <button
                                 onClick={() => setIsModalOpen(true)}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-2xl font-black text-xs transition-all duration-200 flex items-center gap-2 shadow-lg shadow-blue-600/20 hover:shadow-blue-600/40 transform hover:scale-[1.02]"
@@ -377,12 +412,12 @@ export default function DeliveryPlanPage() {
 
                 {/* FINANCIAL KPI CARDS - MODERN DASHBOARD DESIGN */}
                 {!loading && filteredOrders.length > 0 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-2">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* 1. Financial Overview Card */}
                         <GlassCard className="col-span-1 relative overflow-hidden border-0 bg-white shadow-xl hover:shadow-2xl transition-all duration-500 group">
                             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
                             <div className="p-5 relative z-10 flex flex-col h-full">
-                                <div className="flex justify-between items-center mb-8">
+                                <div className="flex justify-between items-center mb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="p-3 rounded-2xl bg-blue-600 shadow-lg shadow-blue-500/20">
                                             <BadgeDollarSign className="w-3 h-3 text-white" />
@@ -391,43 +426,60 @@ export default function DeliveryPlanPage() {
                                             <p className="text-xl font-black text-slate-800">ราคาขายเฉลี่ย</p>
                                         </div>
                                     </div>
-                                    <div className={`px-4 py-2 rounded-2xl shadow-sm border font-black text-sm flex items-center gap-2 ${priceDiff >= 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
+                                    <div className={`px-4 rounded-2xl shadow-sm border font-black text-sm flex items-center gap-2 ${priceDiff >= 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
                                         {priceDiff > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                                         {priceDiff.toFixed(2)} ฿/kg
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-6 flex-1">
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-bold text-slate-800 uppercase">ราคาขายรวม</p>
+                                <div className="grid grid-cols-2 gap-6 flex-1 mt-4">
+                                    <div className="space-y-1 ml-6">
+                                        <p className="text-sm font-bold text-slate-800 uppercase">ราคาเฉลี่ย</p>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold text-slate-500"></span>
+                                            <span className="text-4xl font-black text-blue-600">{avgSellPrice.toFixed(2)}</span>
+                                            <span className="text-xs font-bold text-slate-600 mt-4">บาท/กก.</span>
+                                        </div>
                                         <div className="flex items-baseline gap-1">
-                                            <span className="text-4xl font-black text-slate-800 tracking-tight">
+                                            <span className="text-xl font-black text-slate-800 tracking-tight">
                                                 <CountUp key={totalSellRevenue} end={totalSellRevenue / 1000000} duration={2} decimals={2} />
                                             </span>
                                             <span className="text-sm font-bold text-slate-400">MB</span>
                                         </div>
-                                        <div className="pt-3 flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                            <span className="text-sm font-bold text-slate-500">เฉลี่ย </span>
-                                            <span className="text-md font-black text-blue-600">{avgSellPrice.toFixed(2)}</span>
-                                            <span className="text-sm font-bold text-slate-400">฿</span>
-                                        </div>
                                     </div>
 
-                                    <div className="space-y-1 border-l border-slate-100 pl-6">
-                                        <p className="text-sm font-bold text-slate-800 uppercase">ราคาลูกค้ารวม</p>
+                                    <div className="space-y-1 border-slate-100 pl-6">
+                                        <p className="text-sm font-bold text-slate-800 uppercase">ราคาเฉลี่ย (ลูกค้า)</p>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold text-slate-500"></span>
+                                            <span className="text-4xl font-black text-emerald-600">{avgCustPrice.toFixed(2)}</span>
+                                            <span className="text-xs font-bold text-slate-600 mt-4">บาท/กก.</span>
+                                        </div>
                                         <div className="flex items-baseline gap-1">
-                                            <span className="text-4xl font-black text-emerald-600 tracking-tight">
+                                            <span className="text-xl font-black text-slate-800 tracking-tight">
                                                 <CountUp key={totalCustRevenue} end={totalCustRevenue / 1000000} duration={2} decimals={2} />
                                             </span>
                                             <span className="text-sm font-bold text-slate-400">MB</span>
                                         </div>
-                                        <div className="pt-3 flex items-center gap-2">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                            <span className="text-sm font-bold text-slate-500">เฉลี่ย </span>
-                                            <span className="text-md font-black text-emerald-600">{avgCustPrice.toFixed(2)}</span>
-                                            <span className="text-sm font-bold text-slate-400">฿</span>
-                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Persistent */}
+                                <div className="grid grid-cols-2">
+                                    <div className="flex items-center justify-end">
+                                        <span className="text-sm font-black text-slate-700 uppercase tracking-tight p-4">กน.</span>
+                                    </div>
+                                    <div className="max-w-[180px] mt-2">
+                                        <input
+                                            type="text"
+                                            value={knPrice}
+                                            onChange={(e) => setKnPrice(e.target.value)}
+                                            onBlur={(e) => handleSaveKnPrice(e.target.value)}
+                                            placeholder="เช่น 39.50 - 45.00"
+                                            className="text-xl w-full bg-slate-50 border-0 rounded-xl px-4 py-2.5 font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-300 placeholder:font-bold text-center"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -532,12 +584,12 @@ export default function DeliveryPlanPage() {
                                         </div>
                                         <div className="relative h-4 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200">
                                             {/* Blue: Total Planned (upcoming) */}
-                                            <div 
+                                            <div
                                                 className="absolute top-0 left-0 h-full bg-blue-300 transition-all duration-1000 ease-out"
                                                 style={{ width: `${totalOrderedQty > 0 ? (totalPlannedAll / totalOrderedQty) * 100 : 0}%` }}
                                             />
                                             {/* Green: Already Delivered (Past/Today) */}
-                                            <div 
+                                            <div
                                                 className="absolute top-0 left-0 h-full bg-emerald-500 transition-all duration-1000 ease-out shadow-sm"
                                                 style={{ width: `${totalOrderedQty > 0 ? (totalDeliveredQty / totalOrderedQty) * 100 : 0}%` }}
                                             />
@@ -548,7 +600,7 @@ export default function DeliveryPlanPage() {
                                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> ส่งแล้ว
                                             </div>
                                             <div className="flex items-center gap-1 text-blue-400">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-300"></div> จองคิวล่วงหน้า
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-300"></div> ลงคิวล่วงหน้า
                                             </div>
                                         </div>
                                     </div>
@@ -627,7 +679,6 @@ export default function DeliveryPlanPage() {
                                                 <td className="py-3 px-4 font-bold text-center whitespace-nowrap border-l border-blue-100 bg-blue-50/50 text-blue-700">
                                                     <div className="flex flex-col">
                                                         <span>{formatNum(sumPlanned, 0)}</span>
-                                                        <span className="text-[10px] opacity-40 font-normal">All Planned</span>
                                                     </div>
                                                 </td>
                                                 <td className={`py-3 px-4 font-black text-center whitespace-nowrap border-l border-red-100 bg-red-50/50 
@@ -681,9 +732,15 @@ export default function DeliveryPlanPage() {
 
                 {/* CREATE ORDER MODAL - Blue Theme */}
                 {isModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                        <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl transform transition-all border-t-4 border-blue-500">
-                            <div className="flex justify-between items-center mb-6">
+                    <div 
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+                        onClick={() => setIsModalOpen(false)}
+                    >
+                        <div 
+                            className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-zinc-200 dark:border-zinc-800"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex justify-between items-center mb-6 p-6 pb-0">
                                 <div className="flex items-center gap-2">
                                     <div className="p-2 bg-blue-100 rounded-xl">
                                         <Plus className="w-5 h-5 text-blue-600" />

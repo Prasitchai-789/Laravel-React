@@ -168,8 +168,8 @@ export const BasketCountCard = ({ total, start, hours, progress }: {
 );
 
 // Card 4: Production Quantity
-export const ProductionDetailedCard = ({ total, avg, yieldVal, progress }: {
-    total: number; avg: number; yieldVal: number; progress: number;
+export const ProductionDetailedCard = ({ total, avg, yieldVal, progress, canSeeYield = true }: {
+    total: number; avg: number; yieldVal: number; progress: number; canSeeYield?: boolean;
 }) => (
     <GlassCard className="col-span-1 md:col-span-2 xl:col-span-3 overflow-hidden relative" delay={0.25}>
         <div className="absolute inset-0 bg-gradient-to-r from-blue-50/50 to-indigo-50/50"></div>
@@ -191,13 +191,17 @@ export const ProductionDetailedCard = ({ total, avg, yieldVal, progress }: {
                     <p className="text-2xl font-bold text-blue-600 font-anuphan">{avg.toFixed(2)}</p>
                     <p className="text-xs text-slate-500 font-anuphan">ตัน / กะบะ</p>
                 </div>
-                <div className="w-px h-10 bg-gradient-to-b from-transparent via-slate-300 to-transparent"></div>
-                <div className="mx-6 text-center flex-1">
-                    <p className={`text-2xl font-bold font-anuphan ${yieldVal >= 18 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {yieldVal.toFixed(2)}%
-                    </p>
-                    <p className="text-xs text-slate-500 font-anuphan">Yield</p>
-                </div>
+                {canSeeYield && (
+                    <>
+                        <div className="w-px h-10 bg-gradient-to-b from-transparent via-slate-300 to-transparent"></div>
+                        <div className="mx-6 text-center flex-1">
+                            <p className={`text-2xl font-bold font-anuphan ${yieldVal >= 18 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {yieldVal.toFixed(2)}%
+                            </p>
+                            <p className="text-xs text-slate-500 font-anuphan">Yield</p>
+                        </div>
+                    </>
+                )}
             </div>
             <ProgressBar progress={progress} delay={0.6} colorClass="bg-gradient-to-r from-blue-500 to-indigo-600" />
         </div>
