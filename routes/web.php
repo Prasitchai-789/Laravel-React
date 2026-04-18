@@ -162,7 +162,7 @@ Route::middleware('permission:users.delete|developer.view')->group(function () {
 
 // PRO Routes
 // Chemical Master Data Routes (จัดการรายชื่อสารเคมี)
-Route::middleware(['auth', 'permission:users.view|chemical.view|developer.view'])->group(function () {
+Route::middleware(['auth', 'permission:users.view|chemical.view|developer.view|PRO.view'])->group(function () {
 
     Route::middleware(['auth'])->get('/production-dashboard', function () {
         return Inertia::render('Production/Dashboard');
@@ -422,7 +422,7 @@ Route::middleware(['auth'])->prefix('monitoring')->group(function () {
 
 Route::middleware(['auth', 'permission:developer.view|it.view'])->group(function () {
 
-  // Computer Preventive Maintenance
+    // Computer Preventive Maintenance
     Route::get('/computer-checklists', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'index'])->name('computer-checklists.index');
     Route::get('/computer-checklists/api', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'apiIndex']);
     Route::post('/computer-checklists', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'store']);
