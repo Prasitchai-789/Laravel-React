@@ -318,9 +318,18 @@ export default function DeliveryPlanPage() {
     };
 
     const filteredOrders = orders.filter(o => o.product === selectedProduct);
-    const totalOrderKg = filteredOrders.reduce((sum, order) => sum + (Number(order.quantity) * 1000), 0);
-    const totalSellRevenue = filteredOrders.reduce((sum, order) => sum + (Number(order.quantity) * 1000 * order.price_sell), 0);
-    const totalCustRevenue = filteredOrders.reduce((sum, order) => sum + (Number(order.quantity) * 1000 * order.price_customer), 0);
+    const totalOrderKg = filteredOrders.reduce((sum, order) => {
+        const remaining = Math.max(0, Number(order.quantity) - (Number(order.total_delivered) || 0));
+        return sum + (remaining * 1000);
+    }, 0);
+    const totalSellRevenue = filteredOrders.reduce((sum, order) => {
+        const remaining = Math.max(0, Number(order.quantity) - (Number(order.total_delivered) || 0));
+        return sum + (remaining * 1000 * order.price_sell);
+    }, 0);
+    const totalCustRevenue = filteredOrders.reduce((sum, order) => {
+        const remaining = Math.max(0, Number(order.quantity) - (Number(order.total_delivered) || 0));
+        return sum + (remaining * 1000 * order.price_customer);
+    }, 0);
 
     const avgSellPrice = totalOrderKg > 0 ? (totalSellRevenue / totalOrderKg) : 0;
     const avgCustPrice = totalOrderKg > 0 ? (totalCustRevenue / totalOrderKg) : 0;
