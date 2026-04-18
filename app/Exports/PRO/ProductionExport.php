@@ -37,6 +37,8 @@ class ProductionExport implements FromCollection, WithHeadings, WithStyles, With
                     'กะ A (กะบะ)'          => (int)($p->ShiftA  ?? 0),
                     'กะ B (กะบะ)'          => (int)($p->ShiftB  ?? 0),
                     'กะ 3 (กะบะ)'          => (int)($p->Shift3  ?? 0),
+                    'CS1'                  => (float)($p->CS1 ?? 0),
+                    'CS2'                  => (float)($p->CS2 ?? 0),
                     'ปริมาณผลิต (ตัน)'     => round((float)($p->FFBGoodQty ?? 0), 2),
                     'ค่าเฉลี่ย (ตัน/กะบะ)' => round((float)($p->AvgPickup  ?? 0), 2),
                     'อบ (กะบะ)'            => (int)($p->Steam   ?? 0),
@@ -53,6 +55,7 @@ class ProductionExport implements FromCollection, WithHeadings, WithStyles, With
             'ลำดับ', 'วันที่', 'สถานะ',
             'ยอดยกมา (ตัน)', 'ยอดรับเข้า (ตัน)', 'รวม FFB (ตัน)',
             'กะ A (กะบะ)', 'กะ B (กะบะ)', 'กะ 3 (กะบะ)',
+            'CS1', 'CS2',
             'ปริมาณผลิต (ตัน)', 'ค่าเฉลี่ย (ตัน/กะบะ)',
             'อบ (กะบะ)', 'บรรจุ (กะบะ)',
             'ลานเท (ตัน)', 'FFB คงค้าง (ตัน)',
@@ -65,9 +68,10 @@ class ProductionExport implements FromCollection, WithHeadings, WithStyles, With
             'A' => 8,  'B' => 14, 'C' => 10,
             'D' => 16, 'E' => 18, 'F' => 16,
             'G' => 14, 'H' => 14, 'I' => 14,
-            'J' => 18, 'K' => 20,
-            'L' => 12, 'M' => 14,
-            'N' => 14, 'O' => 18,
+            'J' => 12, 'K' => 12,
+            'L' => 18, 'M' => 20,
+            'N' => 12, 'O' => 14,
+            'P' => 14, 'Q' => 18,
         ];
     }
 
@@ -76,7 +80,7 @@ class ProductionExport implements FromCollection, WithHeadings, WithStyles, With
         $lastRow = $sheet->getHighestRow();
 
         // Header row style
-        $sheet->getStyle('A1:O1')->applyFromArray([
+        $sheet->getStyle('A1:Q1')->applyFromArray([
             'font'      => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
             'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '059669']],
             'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
@@ -85,14 +89,14 @@ class ProductionExport implements FromCollection, WithHeadings, WithStyles, With
         // Alternate row shading
         for ($row = 2; $row <= $lastRow; $row++) {
             if ($row % 2 === 0) {
-                $sheet->getStyle("A{$row}:O{$row}")->applyFromArray([
+                $sheet->getStyle("A{$row}:Q{$row}")->applyFromArray([
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F0FDF4']],
                 ]);
             }
         }
 
         // All borders
-        $sheet->getStyle("A1:O{$lastRow}")->applyFromArray([
+        $sheet->getStyle("A1:Q{$lastRow}")->applyFromArray([
             'borders' => ['allBorders' => ['borderStyle' => 'thin', 'color' => ['rgb' => 'D1FAE5']]],
         ]);
 

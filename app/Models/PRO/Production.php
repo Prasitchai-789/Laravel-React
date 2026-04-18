@@ -10,7 +10,7 @@ class Production extends Model
     protected $connection = 'sqlsrv3';
     use HasFactory;
     protected $table = 'productions';
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
         'Date',
@@ -32,5 +32,10 @@ class Production extends Model
         'FFBRemain',
         'CS1',
         'CS2',
+    ];
+
+    protected $casts = [
+        'CS1' => 'float',
+        'CS2' => 'float',
     ];
 }

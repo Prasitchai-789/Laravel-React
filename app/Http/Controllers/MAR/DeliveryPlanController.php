@@ -33,12 +33,15 @@ class DeliveryPlanController extends Controller
         }
 
         // Fetch orders and their delivery plan items for the NEXT 7 days
-        // We use with() to eager load the relationships to prevent N+1 queries.
-        $orders = Order::with(['deliveryPlanItems' => function($query) use ($dates) {
-            $query->whereIn('plan_date', $dates);
-        }])->where(function($query) {
-            $query->where('is_completed', 0)->orWhereNull('is_completed');
-        })->get();
+        // We use withSum to get the OVERALL planned quantity across ALL time
+        $orders = Order::withSum('deliveryPlanItems as total_planned', 'quantity')
+            ->with(['deliveryPlanItems' => function($query) use ($dates) {
+                $query->whereIn('plan_date', $dates);
+            }])
+            ->where(function($query) {
+                $query->where('is_completed', 0)->orWhereNull('is_completed');
+            })
+            ->get();
 
         // Optional: you can structure this logic so that "remaining" is calculated strictly on frontend
         // based on total quantity vs all plan items historically, or we can fetch sum from DB.

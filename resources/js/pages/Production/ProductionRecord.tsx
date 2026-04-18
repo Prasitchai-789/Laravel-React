@@ -24,6 +24,8 @@ interface Production {
     RawFFB: number;
     RamRemain2: number;
     FFBRemain: number;
+    CS1: number;
+    CS2: number;
 }
 interface MonthlySummary {
     month_label: string;
@@ -52,6 +54,7 @@ const DEFAULT_FORM = {
     AvgPickup: '', FFBGoodQty: '',
     Steam: '', StuckIn: '',
     RawFFB: '', RamRemain2: '', FFBRemain: '',
+    CS1: '', CS2: '',
 };
 type FormState = typeof DEFAULT_FORM;
 
@@ -135,6 +138,8 @@ export default function ProductionRecord({ productions, summary, filters }: Prop
                 Date: date,
                 FFBForward: fN(d.FFBForward),
                 FFBPurchase: fN(d.FFBPurchase),
+                CS1: fN(d.CS1),
+                CS2: fN(d.CS2),
             }));
         } finally {
             setLoadingDate(false);
@@ -150,7 +155,7 @@ export default function ProductionRecord({ productions, summary, filters }: Prop
         let clean = String(value).replace(/[^0-9.]/g, '');
         const parts = clean.split('.');
         if (parts.length > 2) clean = parts[0] + '.' + parts.slice(1).join('');
-        
+
         let formatted = clean;
         if (clean) {
             const [intPart, decPart] = clean.split('.');
@@ -181,6 +186,7 @@ export default function ProductionRecord({ productions, summary, filters }: Prop
             Steam: fN(p.Steam), StuckIn: fN(p.StuckIn),
             RawFFB: fN(p.RawFFB), RamRemain2: fN(p.RamRemain2),
             FFBRemain: fN(p.FFBRemain),
+            CS1: fN(p.CS1), CS2: fN(p.CS2),
         };
         setForm(recalculate(f));
         setShowModal(true);
@@ -196,6 +202,7 @@ export default function ProductionRecord({ productions, summary, filters }: Prop
             Shift3: form.use_check ? (n(form.Shift3) || 0) : 0,
             PickupRemain: n(form.PickupRemain) || 0, RamRemain: n(form.RamRemain) || 0,
             Steam: n(form.Steam) || 0, StuckIn: n(form.StuckIn) || 0, RawFFB: n(form.RawFFB) || 0,
+            CS1: n(form.CS1) || 0, CS2: n(form.CS2) || 0,
         };
         if (editId) {
             router.put(`/pro/production-record/${editId}`, payload, { onSuccess: () => setShowModal(false) });
@@ -363,7 +370,7 @@ export default function ProductionRecord({ productions, summary, filters }: Prop
                                         {[
                                             'วันที่', 'สถานะ',
                                             'ยอดยกมา\n(ตัน)', 'ยอดรับเข้า\n(ตัน)', 'รวม FFB\n(ตัน)',
-                                            'กะ A', 'กะ B', 'กะ 3',
+                                            'กะ A', 'กะ B', 'กะ 3', 'CS1', 'CS2',
                                             'ปริมาณผลิต\n(ตัน)', 'ค่าเฉลี่ย\n(ตัน/กะบะ)',
                                             'อบ', 'บรรจุ', 'ลานเท\n(ตัน)', 'FFB คงค้าง\n(ตัน)',
                                             'จัดการ',
@@ -409,6 +416,8 @@ export default function ProductionRecord({ productions, summary, filters }: Prop
                                                 <td className="px-3 py-2.5 text-center tabular-nums">{fmtInt(p.ShiftA)}</td>
                                                 <td className="px-3 py-2.5 text-center tabular-nums">{fmtInt(p.ShiftB)}</td>
                                                 <td className="px-3 py-2.5 text-center tabular-nums">{fmtInt(p.Shift3)}</td>
+                                                <td className="px-3 py-2.5 text-center tabular-nums text-blue-600 font-bold">{fmtInt(p.CS1)}</td>
+                                                <td className="px-3 py-2.5 text-center tabular-nums text-blue-600 font-bold">{fmtInt(p.CS2)}</td>
                                                 <td className="px-3 py-2.5 text-right tabular-nums font-bold text-emerald-600">{fmt(p.FFBGoodQty)}</td>
                                                 <td className="px-3 py-2.5 text-right tabular-nums">{fmt(p.AvgPickup)}</td>
                                                 <td className="px-3 py-2.5 text-center tabular-nums">{fmtInt(p.Steam)}</td>
@@ -433,245 +442,252 @@ export default function ProductionRecord({ productions, summary, filters }: Prop
                                 </tbody>
                             </table>
                         </div>
-
-
                     </div>
                 </div>
             </div>
 
             {/* ════ ADD / EDIT MODAL ════ */}
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md p-4">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[94vh] overflow-hidden ring-1 ring-slate-200 flex flex-col">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 sm:p-6 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col overflow-hidden scale-in-center animate-in zoom-in-95 duration-300 border border-white/20 ring-1 ring-slate-900/5">
 
-                        {/* ── Header ── */}
-                        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 flex-shrink-0">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shadow-inner">
-                                    <Factory className="w-5 h-5 text-white" />
+                        {/* ── Header (Premium & Clean) ── */}
+                        <div className="flex items-center justify-between px-6 py-4 sm:px-8 sm:py-4 border-b border-slate-100 flex-shrink-0 bg-white/80 backdrop-blur-md z-10">
+                            <div className="flex items-center gap-4 sm:gap-5">
+                                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                                    <Factory className="w-6 h-6 text-white drop-shadow-sm" />
                                 </div>
                                 <div>
-                                    <h2 className="text-lg font-black text-white tracking-tight">
+                                    <h2 className="text-xl sm:text-2xl font-bold text-slate-800 tracking-tight">
                                         {editId ? 'แก้ไขข้อมูลการผลิต' : 'บันทึกข้อมูลการผลิต'}
                                     </h2>
-                                    <p className="text-emerald-100 text-xs">ระบบบันทึกข้อมูลการผลิต · {form.Date ? new Date(form.Date + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}</p>
+                                    <div className="flex items-center gap-2 mt-1 sm:mt-1.5">
+                                        <CalendarDays className="w-4 h-4 text-emerald-500" />
+                                        <p className="text-slate-500 text-sm font-medium">
+                                            {form.Date ? new Date(form.Date + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : 'กรุณาเลือกวันที่ดำเนินการ'}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                             <button onClick={() => setShowModal(false)}
-                                className="w-9 h-9 rounded-xl bg-white/15 hover:bg-red-500 flex items-center justify-center text-white transition-all duration-200 hover:rotate-90">
-                                <X className="w-5 h-5" />
+                                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full hover:bg-red-500 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200 hover:rotate-90">
+                                <X className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         </div>
 
-                        {/* ── Body: 2-column ── */}
-                        <form onSubmit={handleSubmit} className="flex flex-1 overflow-hidden min-h-0">
+                        {/* ── Body (Responsive Two Column Layout) ── */}
+                        <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden bg-slate-50/50">
 
-                            {/* LEFT: Form inputs */}
-                            <div className="flex-1 overflow-y-auto p-5 space-y-4 min-w-0">
+                            {/* LEFT: Main Form Area */}
+                            <div className="flex-1 lg:overflow-y-auto p-4 sm:p-4 lg:p-4 space-y-2 sm:space-y-2 scroll-smooth flex-shrink-0 lg:flex-shrink">
 
-                                {/* Row: วันที่ + สถานะ */}
-                                <div className="grid grid-cols-2 gap-3">
-                                    {/* วันที่ */}
-                                    <div>
-                                        <label className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                                            <CalendarDays className="w-3 h-3" /> วันที่ผลิต *
-                                        </label>
-                                        <div className="relative">
-                                            <input type="date" value={form.Date} required
-                                                onChange={(e) => handleDateChange(e.target.value)}
-                                                className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-700 bg-white focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 outline-none transition-all" />
-                                            {loadingDate && (
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                                    <span className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin inline-block" />
-                                                </div>
-                                            )}
+                                {/* Card 1: General Info */}
+                                <div className="bg-white p-4 sm:p-4 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow duration-300">
+                                    <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-1.5 h-6 bg-emerald-500 rounded-full" />
+                                            <h3 className="text-base sm:text-lg font-bold text-slate-800">ข้อมูลพื้นฐาน & วัตถุดิบ</h3>
+                                        </div>
+                                        <div className="flex items-center gap-3 bg-slate-100/50 p-1.5 pr-4 rounded-full border border-slate-200 shadow-sm">
+                                            <button type="button" onClick={() => handleChange('use_check', !form.use_check)}
+                                                className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-500 ${form.use_check ? 'bg-emerald-500' : 'bg-slate-300'
+                                                    }`}>
+                                                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-300 ${form.use_check ? 'translate-x-6' : 'translate-x-1'
+                                                    }`} />
+                                            </button>
+                                            <span className={`text-[10px] sm:text-xs font-black uppercase tracking-wider transition-colors duration-300 ${form.use_check ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                                {form.use_check ? '🟢 ผลิตปกติ' : '🔴 หยุดผลิต'}
+                                            </span>
                                         </div>
                                     </div>
-                                    {/* สถานะ */}
-                                    <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">สถานะการผลิต</label>
-                                        <label className={`flex items-center gap-3 cursor-pointer px-4 py-2.5 rounded-xl border-2 transition-all duration-200 h-[42px] ${
-                                            form.use_check
-                                                ? 'bg-emerald-50 border-emerald-400 shadow-sm shadow-emerald-100'
-                                                : 'bg-rose-50 border-rose-200'
-                                        }`}>
-                                            <input type="checkbox" checked={form.use_check}
-                                                onChange={(e) => handleChange('use_check', e.target.checked)}
-                                                className="sr-only" />
-                                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                                                form.use_check ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-rose-300'
-                                            }`}>
-                                                {form.use_check && <Check className="w-3 h-3 text-white stroke-[3]" />}
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                        {/* Date Field */}
+                                        <div className="group">
+                                            <label className="block text-sm font-semibold text-slate-600 mb-2 group-hover:text-emerald-600 transition-colors">วันที่ดำเนินการ <span className="text-rose-500">*</span></label>
+                                            <div className="relative">
+                                                <input type="date" value={form.Date} required
+                                                    onChange={(e) => handleDateChange(e.target.value)}
+                                                    className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm text-slate-700 hover:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all shadow-sm" />
+                                                {loadingDate && (
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 p-1 rounded-md">
+                                                        <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
+                                                    </div>
+                                                )}
                                             </div>
-                                            <span className={`text-sm font-bold ${form.use_check ? 'text-emerald-700' : 'text-rose-500'}`}>
-                                                {form.use_check ? '🟢 ผลิต' : '🔴 ไม่ผลิต'}
-                                            </span>
-                                        </label>
+                                        </div>
+                                        {/* FFB Forward */}
+                                        <div className="group">
+                                            <label className="block text-sm font-semibold text-slate-600 mb-2 group-hover:text-emerald-600 transition-colors">ยอดยกมา (Backlog)</label>
+                                            <div className="relative">
+                                                <input type="text" inputMode="decimal" placeholder="0.00"
+                                                    value={form.FFBForward}
+                                                    onChange={(e) => handleChange('FFBForward', e.target.value)}
+                                                    className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 pr-14 text-sm font-medium text-slate-700 hover:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all shadow-sm" />
+                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">TON</span>
+                                            </div>
+                                        </div>
+                                        {/* FFB Purchase */}
+                                        <div className="group">
+                                            <label className="block text-sm font-semibold text-slate-600 mb-2 group-hover:text-emerald-600 transition-colors">ยอดรับเข้า (Purchase)</label>
+                                            <div className="relative">
+                                                <input type="text" inputMode="decimal" placeholder="0.00"
+                                                    value={form.FFBPurchase}
+                                                    onChange={(e) => handleChange('FFBPurchase', e.target.value)}
+                                                    className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 pr-14 text-sm font-medium text-slate-700 hover:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all shadow-sm" />
+                                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">TON</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Section 1: ปริมาณ FFB */}
-                                <div className="rounded-2xl border border-blue-200 bg-blue-50/60 overflow-hidden">
-                                    <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-100/80 border-b border-blue-200">
-                                        <div className="w-6 h-6 rounded-lg bg-blue-500 flex items-center justify-center flex-shrink-0">
-                                            <Leaf className="w-3.5 h-3.5 text-white" />
-                                        </div>
-                                        <span className="text-xs font-black text-blue-800 uppercase tracking-wider">ปริมาณผลปาล์ม</span>
+                                {/* Card 2: Shift Data */}
+                                <div className="bg-white p-4 sm:p-4 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow duration-300">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-1.5 h-6 bg-blue-500 rounded-full" />
+                                        <h3 className="text-base sm:text-lg font-bold text-slate-800">ข้อมูลการผลิต</h3>
                                     </div>
-                                    <div className="p-4 grid grid-cols-2 gap-3">
+
+                                    {form.use_check ? (
+                                        <div className="space-y-2">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                {[
+                                                    { key: 'ShiftA', label: 'กะ A', accent: 'hover:border-amber-400 focus:ring-amber-500/10 focus:border-amber-500' },
+                                                    { key: 'ShiftB', label: 'กะ B', accent: 'hover:border-sky-400 focus:ring-sky-500/10 focus:border-sky-500' },
+                                                    { key: 'Shift3', label: 'กะ 3', accent: 'hover:border-purple-400 focus:ring-purple-500/10 focus:border-purple-500' },
+                                                ].map(({ key, label, accent }) => (
+                                                    <div key={key}>
+                                                        <label className="block text-sm font-semibold text-slate-600 mb-2">{label}</label>
+                                                        <div className="relative">
+                                                            <input type="text" inputMode="numeric" placeholder="0"
+                                                                value={(form as any)[key]}
+                                                                onChange={(e) => handleChange(key as any, e.target.value)}
+                                                                className={`w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 pr-12 text-sm font-medium text-slate-700 focus:bg-white focus:ring-4 outline-none transition-all shadow-sm ${accent}`} />
+                                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">กะบะ</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="h-px bg-slate-100 mt-4" />
+
+                                            
+                                        </div>
+                                    ) : (
+                                        <div className="bg-rose-50/50 border-2 border-dashed border-rose-200 rounded-2xl p-2 sm:p-2 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-300">
+                                            <div className="w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md shadow-rose-100">
+                                                <AlertCircle className="w-4 h-4 text-rose-500" />
+                                            </div>
+                                            <h4 className="text-base sm:text-sm font-bold text-rose-800">ไม่มีการผลิตในวันที่เลือก</h4>
+                                            <p className="text-xs text-rose-500 max-w-sm">แบบฟอร์มบันทึกกะบะการผลิตถูกปิดใช้งานชั่วคราว</p>
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-2">
+                                                {[
+                                                    { key: 'PickupRemain', label: 'ค้างกะบะ', icon: <AlertCircle className="w-4 h-4 text-orange-500" /> },
+                                                    { key: 'RamRemain', label: 'คาดการณ์บนลาน', icon: <Factory className="w-4 h-4 text-emerald-500" /> },
+                                                ].map(({ key, label, icon }) => (
+                                                    <div key={key}>
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            {icon}
+                                                            <label className="text-sm font-semibold text-slate-600">{label}</label>
+                                                        </div>
+                                                        <div className="relative">
+                                                            <input type="text" inputMode="numeric" placeholder="0"
+                                                                value={(form as any)[key]}
+                                                                onChange={(e) => handleChange(key as any, e.target.value)}
+                                                                className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 pr-12 text-sm font-medium text-slate-700 hover:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all shadow-sm" />
+                                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">กะบะ</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                </div>
+
+                                {/* Card 3: Operations */}
+                                <div className="bg-white p-4 sm:p-4 rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-md transition-shadow duration-300">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-1.5 h-6 bg-slate-700 rounded-full" />
+                                        <h3 className="text-base sm:text-lg font-bold text-slate-800">ข้อมูลเพิ่มเติม</h3>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                                         {[
-                                            { key: 'FFBForward',  label: 'ยอดยกมา',   unit: 'ตัน' },
-                                            { key: 'FFBPurchase', label: 'ยอดรับเข้า', unit: 'ตัน' },
+                                            { key: 'Steam', label: 'อบ (Steam)', unit: 'กะบะ' },
+                                            { key: 'StuckIn', label: 'บรรจุ (Stuck)', unit: 'กะบะ' },
+                                            { key: 'RawFFB', label: 'ผลปาล์มดิบ (Raw)', unit: 'TON' },
+                                            { key: 'CS1', label: 'CS 1', unit: 'CM' },
+                                            { key: 'CS2', label: 'CS 2', unit: 'CM' },
                                         ].map(({ key, label, unit }) => (
-                                            <div key={key}>
-                                                <label className="text-xs font-semibold text-slate-600 mb-1 block">{label}</label>
+                                            <div key={key} className="group">
+                                                <label className="block text-sm font-semibold text-slate-600 mb-1 group-hover:text-slate-900 transition-colors">{label}</label>
                                                 <div className="relative">
-                                                    <input type="text" inputMode="decimal" placeholder="0.00"
+                                                    <input type="text" inputMode="decimal" placeholder="0"
                                                         value={(form as any)[key]}
                                                         onChange={(e) => handleChange(key as any, e.target.value)}
-                                                        className="w-full border border-blue-200 rounded-xl px-3 py-2 pr-10 text-sm bg-white focus:ring-2 focus:ring-blue-400 outline-none transition-all" />
-                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">{unit}</span>
+                                                        className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 pr-14 text-sm font-medium text-slate-700 hover:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-500/10 focus:border-slate-500 outline-none transition-all shadow-sm" />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">{unit}</span>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
+                            </div>
 
-                                {/* Section 2: กะการผลิต */}
-                                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 overflow-hidden">
-                                    <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-100/80 border-b border-emerald-200">
-                                        <div className="w-6 h-6 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                                            <Factory className="w-3.5 h-3.5 text-white" />
+                            {/* RIGHT: Sidebar Analytics (Premium Floating Style) */}
+                            <div className="w-full lg:w-[340px] flex-shrink-0 bg-white border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-col shadow-[-4px_0_24px_-12px_rgba(0,0,0,0.1)] z-10 lg:overflow-y-auto">
+                                <div className="p-4 lg:p-4 flex-shrink-0">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="w-10 h-10 rounded-xl bg-blue-700 flex items-center justify-center shadow-md">
+                                            <TrendingUp className="w-5 h-5 text-emerald-400" />
                                         </div>
-                                        <span className="text-xs font-black text-emerald-800 uppercase tracking-wider">กะการผลิต</span>
+                                        <div>
+                                            <h3 className="text-md font-bold text-slate-900">สรุปข้อมูลประจำวัน</h3>
+                                            <p className="text-xs text-slate-500">Live Analytics Data</p>
+                                        </div>
                                     </div>
-                                    <div className="p-4 space-y-3">
-                                        {/* Shift A/B/3 */}
-                                        {form.use_check ? (
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {([
-                                                    { key: 'ShiftA', label: 'กะ A', accent: 'border-amber-300 bg-amber-50' },
-                                                    { key: 'ShiftB', label: 'กะ B', accent: 'border-sky-300   bg-sky-50' },
-                                                    { key: 'Shift3', label: 'กะ 3', accent: 'border-purple-300 bg-purple-50' },
-                                                ] as const).map(({ key, label, accent }) => (
-                                                    <div key={key}>
-                                                        <label className="text-xs font-semibold text-slate-600 mb-1 block">{label}</label>
-                                                        <div className="relative">
-                                                            <input type="text" inputMode="numeric" placeholder="0"
-                                                                value={(form as any)[key]}
-                                                                onChange={(e) => handleChange(key as any, e.target.value)}
-                                                                className={`w-full border rounded-xl px-3 py-2 pr-9 text-sm focus:ring-2 focus:ring-emerald-400 outline-none transition-all ${accent}`} />
-                                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">กะบะ</span>
-                                                        </div>
-                                                    </div>
-                                                ))}
+
+                                    <div className="space-y-4">
+                                        {/* Main KPI Card */}
+                                        <div className="relative p-4 rounded-3xl bg-gradient-to-br from-blue-800 via-blue-850 to-blue-900 text-white shadow-xl shadow-slate-900/20 overflow-hidden group">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-colors" />
+                                            <p className="text-md font-medium text-slate-200 mb-2">ปริมาณผลิตรวมสุทธิ</p>
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-4xl font-black tracking-tight tabular-nums">{form.FFBGoodQty || '0.00'}</span>
+                                                <span className="text-sm font-bold text-emerald-400">TON</span>
                                             </div>
-                                        ) : (
-                                            <div className="flex items-center justify-center gap-2 py-2 rounded-xl bg-rose-50 border border-dashed border-rose-200 text-rose-400 text-xs">
-                                                <AlertCircle className="w-3.5 h-3.5" /> ไม่มีการผลิต ไม่แสดงช่องกรอกข้อมูลกะ
-                                            </div>
-                                        )}
-                                        {/* ค้างกะบะ / คาดการณ์บนลาน */}
-                                        <div className="grid grid-cols-2 gap-2">
+                                        </div>
+
+                                        {/* Secondary KPIs */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3 sm:gap-4 lg:gap-3">
                                             {[
-                                                { key: 'PickupRemain', label: 'ค้างกะบะ',       unit: 'กะบะ' },
-                                                { key: 'RamRemain',    label: 'คาดการณ์บนลาน', unit: 'กะบะ' },
-                                            ].map(({ key, label, unit }) => (
-                                                <div key={key}>
-                                                    <label className="text-xs font-semibold text-slate-600 mb-1 block">{label}</label>
-                                                    <div className="relative">
-                                                        <input type="text" inputMode="numeric" placeholder="0"
-                                                            value={(form as any)[key]}
-                                                            onChange={(e) => handleChange(key as any, e.target.value)}
-                                                            className="w-full border border-emerald-200 rounded-xl px-3 py-2 pr-8 text-sm bg-white focus:ring-2 focus:ring-emerald-400 outline-none transition-all" />
-                                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">{unit}</span>
+                                                { label: 'ค่าเฉลี่ยรถ', value: form.AvgPickup, unit: 'TON/กะบะ' },
+                                                { label: 'FFB คงค้าง', value: form.FFBRemain, unit: 'TON' },
+                                                { label: 'รวม FFB ทั้งสิ้น', value: (n(form.FFBForward) + n(form.FFBPurchase)).toLocaleString('th-TH', { minimumFractionDigits: 2 }), unit: 'TON' },
+                                            ].map((kpi, idx) => (
+                                                <div key={idx} className="p-2 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-slate-300 flex justify-between items-center transition-colors">
+                                                    <div>
+                                                        <p className="text-md font-semibold text-slate-700 mb-1">{kpi.label}</p>
+                                                        <p className="text-lg font-bold text-slate-800 tabular-nums">{kpi.value || '0.00'}</p>
                                                     </div>
+                                                    <span className="text-xs font-black text-slate-400 uppercase bg-white px-2 py-1 rounded-lg border border-slate-100">{kpi.unit}</span>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Section 3: ข้อมูลเพิ่มเติม */}
-                                <div className="rounded-2xl border border-slate-200 bg-slate-50/60 overflow-hidden">
-                                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-100/80 border-b border-slate-200">
-                                        <div className="w-6 h-6 rounded-lg bg-slate-500 flex items-center justify-center flex-shrink-0">
-                                            <Settings className="w-3.5 h-3.5 text-white" />
-                                        </div>
-                                        <span className="text-xs font-black text-slate-700 uppercase tracking-wider">ข้อมูลเพิ่มเติม</span>
-                                    </div>
-                                    <div className="p-4 grid grid-cols-3 gap-2">
-                                        {[
-                                            { key: 'Steam',   label: 'อบ',      unit: 'กะบะ' },
-                                            { key: 'StuckIn', label: 'บรรจุ',    unit: 'กะบะ' },
-                                            { key: 'RawFFB',  label: 'ปาล์มดิบ', unit: 'ตัน', step: '0.01' },
-                                        ].map(({ key, label, unit, step }) => (
-                                            <div key={key}>
-                                                <label className="text-xs font-semibold text-slate-600 mb-1 block">{label}</label>
-                                                <div className="relative">
-                                                    <input type="text" inputMode="decimal" placeholder="0"
-                                                        value={(form as any)[key]}
-                                                        onChange={(e) => handleChange(key as any, e.target.value)}
-                                                        className="w-full border border-slate-200 rounded-xl px-3 py-2 pr-8 text-sm bg-white focus:ring-2 focus:ring-slate-400 outline-none transition-all" />
-                                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">{unit}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
+                                <div className="flex-1 hidden lg:block" />
 
-                            {/* RIGHT: Live Calculation Panel */}
-                            <div className="w-52 flex-shrink-0 bg-gradient-to-b from-slate-50 to-white border-l border-slate-200 flex flex-col overflow-hidden">
-                                <div className="px-4 py-3 bg-slate-100 border-b border-slate-200">
-                                    <p className="text-xs font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                                        <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> ผลคำนวณ
-                                    </p>
-                                </div>
-                                <div className="flex-1 p-4 space-y-3 overflow-y-auto">
-                                    {/* รวม FFB */}
-                                    <div className="rounded-2xl bg-blue-50 border border-blue-200 p-3 text-center">
-                                        <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">รวม FFB</p>
-                                        <p className="text-xl font-black text-blue-700 leading-tight">
-                                            {(n(form.FFBForward) + n(form.FFBPurchase)).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                        </p>
-                                        <p className="text-[10px] text-blue-400 mt-0.5">ตัน</p>
-                                    </div>
-                                    {/* AvgPickup */}
-                                    <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3 text-center">
-                                        <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider mb-1">ค่าเฉลี่ย</p>
-                                        <p className="text-xl font-black text-emerald-700 leading-tight">
-                                            {form.AvgPickup || '—'}
-                                        </p>
-                                        <p className="text-[10px] text-emerald-400 mt-0.5">ตัน / กะบะ</p>
-                                    </div>
-                                    {/* FFBGoodQty */}
-                                    <div className="rounded-2xl bg-violet-50 border border-violet-200 p-3 text-center">
-                                        <p className="text-[10px] font-bold text-violet-500 uppercase tracking-wider mb-1">ปริมาณผลิต</p>
-                                        <p className="text-xl font-black text-violet-700 leading-tight">
-                                            {form.FFBGoodQty || '—'}
-                                        </p>
-                                        <p className="text-[10px] text-violet-400 mt-0.5">ตัน</p>
-                                    </div>
-                                    {/* FFBRemain */}
-                                    <div className="rounded-2xl bg-rose-50 border border-rose-200 p-3 text-center">
-                                        <p className="text-[10px] font-bold text-rose-500 uppercase tracking-wider mb-1">FFB คงค้าง</p>
-                                        <p className="text-xl font-black text-rose-600 leading-tight">
-                                            {form.FFBRemain || '—'}
-                                        </p>
-                                        <p className="text-[10px] text-rose-400 mt-0.5">ตัน</p>
-                                    </div>
-                                </div>
-                                {/* Footer buttons */}
-                                <div className="px-4 py-4 border-t border-slate-200 space-y-2 flex-shrink-0">
+                                {/* Footer Actions (Sticky on Mobile) */}
+                                <div className="p-6 lg:p-8 border-t border-slate-100 space-y-3 bg-white sticky bottom-0 z-20">
                                     <button type="submit"
-                                        className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-black text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl shadow-md shadow-emerald-500/30 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
-                                        <Save className="w-4 h-4" />
-                                        {editId ? 'บันทึกแก้ไข' : 'บันทึก'}
+                                        className="w-full flex items-center justify-center gap-2 h-14 text-base font-bold text-white bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-2xl hover:from-emerald-500 hover:to-emerald-400 transition-all duration-300 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 hover:-translate-y-0.5">
+                                        <Save className="w-5 h-5" />
+                                        {editId ? 'ยืนยันการแก้ไขข้อมูล' : 'บันทึกข้อมูลการผลิต'}
                                     </button>
                                     <button type="button" onClick={() => setShowModal(false)}
-                                        className="w-full py-2 text-sm font-semibold text-slate-500 bg-slate-100 rounded-xl hover:bg-slate-200 transition-all">
-                                        ยกเลิก
+                                        className="w-full h-12 text-sm font-bold text-slate-600 bg-white border-2 border-slate-200 rounded-2xl hover:bg-slate-50 hover:border-slate-300 hover:text-slate-800 transition-all duration-200">
+                                        ยกเลิกทำรายการ
                                     </button>
                                 </div>
                             </div>
