@@ -51,6 +51,14 @@ class ProductionReportController extends Controller
         $maxValue = $maxRecord ? (float) $maxRecord->FFBGoodQty : 1;
         $maxDate = $maxRecord ? $maxRecord->Date : null;
 
+        // หา Max ของปีปัจจุบัน
+        $currentYear = $date->year;
+        $maxRecordYear = Production::whereYear('Date', $currentYear)
+            ->orderBy(DB::raw('CAST(FFBGoodQty AS FLOAT)'), 'desc')
+            ->first();
+        $maxYearValue = $maxRecordYear ? (float) $maxRecordYear->FFBGoodQty : 0;
+        $maxYearDate = $maxRecordYear ? $maxRecordYear->Date : null;
+
         // ดึงกราฟ Month
         $chartRecords = Production::whereBetween('Date', [$startDate, $endDate])
             ->orderBy('Date', 'asc')
@@ -79,6 +87,8 @@ class ProductionReportController extends Controller
                 'avgPickupMonth' => (float)$avgMonth,
                 'maxValue' => (float)$maxValue,
                 'maxDate' => $maxDate,
+                'maxYearValue' => (float)$maxYearValue,
+                'maxYearDate' => $maxYearDate,
             ],
             'chart' => [
                 'labels' => $chartLabels,

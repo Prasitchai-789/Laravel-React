@@ -96,7 +96,30 @@ class ProductStockReportController extends Controller
         $totalInventoryValue = 0;
 
         foreach ($productMappings as $key => $item) {
-            $avgPrice = $this->getAvgSalesPrice($item['good_id'], $startOfMonth, $endOfPeriod);
+            $avgPrice = 0;
+
+            // Try to pull average price from Delivery Plan (active orders, using REMAINING qty)
+            // This applies to CPO, PKN, and other products managed in the Delivery Plan system
+            $today = now()->toDateString();
+            $orderData = DB::table('orders as o')
+                ->leftJoin(DB::raw("(SELECT order_id, SUM(quantity) as delivered_qty FROM delivery_plan_items WHERE plan_date < '{$today}' GROUP BY order_id) as delivered"), 'o.id', '=', 'delivered.order_id')
+                ->where('o.good_id', $item['good_id'])
+                ->where(function ($q) {
+                    $q->where('o.is_completed', 0)->orWhereNull('o.is_completed');
+                })
+                ->selectRaw('SUM(CASE WHEN o.quantity > COALESCE(delivered.delivered_qty, 0) THEN (o.quantity - COALESCE(delivered.delivered_qty, 0)) * o.price_sell ELSE 0 END) as total_revenue')
+                ->selectRaw('SUM(CASE WHEN o.quantity > COALESCE(delivered.delivered_qty, 0) THEN (o.quantity - COALESCE(delivered.delivered_qty, 0)) ELSE 0 END) as total_qty')
+                ->first();
+
+            if ($orderData && $orderData->total_qty > 0) {
+                $avgPrice = (float)($orderData->total_revenue / $orderData->total_qty);
+            }
+
+            // Fallback to ERP historical price if not CPO or if no active orders found
+            if ($avgPrice <= 0) {
+                $avgPrice = $this->getAvgSalesPrice($item['good_id'], $startOfMonth, $endOfPeriod);
+            }
+
             $totalValue = $item['qty'] * $avgPrice * 1000; // แปลง Tons -> Kg แล้วคูณราคา
 
             $summary[$key] = array_merge($item, [

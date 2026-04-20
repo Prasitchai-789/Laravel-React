@@ -475,22 +475,24 @@ export default function DeliveryPlanPage() {
                                     </div>
                                 </div>
 
-                                {/* Persistent */}
-                                <div className="grid grid-cols-2">
-                                    <div className="flex items-center justify-end">
-                                        <span className="text-sm font-black text-slate-700 uppercase tracking-tight p-4">กน.</span>
+                                {/* Conditional KN Price display - Hidden for Palm Kernel */}
+                                {selectedProduct !== 'เมล็ดในปาล์ม' && (
+                                    <div className="grid grid-cols-2">
+                                        <div className="flex items-center justify-end">
+                                            <span className="text-sm font-black text-slate-700 uppercase tracking-tight p-4">กน.</span>
+                                        </div>
+                                        <div className="max-w-[180px] mt-2">
+                                            <input
+                                                type="text"
+                                                value={knPrice}
+                                                onChange={(e) => setKnPrice(e.target.value)}
+                                                onBlur={(e) => handleSaveKnPrice(e.target.value)}
+                                                placeholder="เช่น 39.50 - 45.00"
+                                                className="text-xl w-full bg-slate-50 border-0 rounded-xl px-4 py-2.5 font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-300 placeholder:font-bold text-center"
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="max-w-[180px] mt-2">
-                                        <input
-                                            type="text"
-                                            value={knPrice}
-                                            onChange={(e) => setKnPrice(e.target.value)}
-                                            onBlur={(e) => handleSaveKnPrice(e.target.value)}
-                                            placeholder="เช่น 39.50 - 45.00"
-                                            className="text-xl w-full bg-slate-50 border-0 rounded-xl px-4 py-2.5 font-black text-indigo-600 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-300 placeholder:font-bold text-center"
-                                        />
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         </GlassCard>
 
