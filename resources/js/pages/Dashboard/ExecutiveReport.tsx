@@ -2,21 +2,22 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import CountUp from 'react-countup';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import buddhistEra from 'dayjs/plugin/buddhistEra';
-
-dayjs.extend(buddhistEra);
-dayjs.locale('th');
-
+import isBetween from 'dayjs/plugin/isBetween';
 import {
     TrendingUp, Package, Factory, Droplets,
     CircleDollarSign, Percent, CalendarDays,
     ArrowUpRight, ArrowDownRight, Leaf, Flame, Zap,
-    Wallet, Gauge, ChartNoAxesCombined, Ship, Truck, Eye
+    Wallet, Gauge, ChartNoAxesCombined, Ship, Truck, Eye, AlertCircle
 } from 'lucide-react';
+
+dayjs.extend(buddhistEra);
+dayjs.extend(isBetween);
+dayjs.locale('th');
 
 export default function ExecutiveReport() {
     const [salesData, setSalesData] = useState<any>({
@@ -245,6 +246,36 @@ export default function ExecutiveReport() {
                         </div>
 
                     </motion.div>
+
+                    {/* Data Alert Section */}
+                    {dayjs().subtract(1, 'day').isBetween(dayjs(startDate).subtract(1, 'day'), dayjs(endDate).add(1, 'day')) && (
+                        <AnimatePresence>
+                            {(!loadingProduction && (!productionData || !productionData.today || productionData.today.volume_ton === 0)) && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    transition={{ duration: 0.5, ease: "easeOut" }}
+                                    className="overflow-hidden mb-2 px-4"
+                                >
+                                    <div className="bg-gradient-to-r from-rose-500/10 via-rose-500/5 to-rose-500/10 border border-rose-500/20 rounded-2xl p-4 flex items-center gap-4 shadow-sm backdrop-blur-sm">
+                                        <div className="w-12 h-12 bg-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-rose-500/20">
+                                            <AlertCircle className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="text-rose-700 font-bold text-lg font-anuphan">ไม่พบข้อมูลการผลิต</h3>
+                                            <p className="text-rose-600 font-medium font-anuphan opacity-90">
+                                                วันที่ {dayjs().subtract(1, 'day').format('D MMMM BBBB')} ยังไม่มีการบันทึกข้อมูล
+                                            </p>
+                                        </div>
+                                        <div className="hidden md:block px-4 py-1.5 bg-rose-500/10 rounded-full border border-rose-500/20">
+                                            <span className="text-xs font-bold text-rose-600 uppercase tracking-wider">Status: Missing (Yesterday)</span>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    )}
 
                     {/* Main Grid */}
                     <motion.div

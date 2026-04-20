@@ -4,6 +4,9 @@ import { Head, usePage } from '@inertiajs/react';
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AlertCircle } from 'lucide-react';
+import dayjs from 'dayjs';
 import { Bar, Line } from 'react-chartjs-2';
 // Register ChartJS components
 ChartJS.register(Title, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement, ChartDataLabels);
@@ -412,7 +415,40 @@ export default function DailyBarChart() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="กราฟยอดรับซื้อปาล์มรายวัน" />
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-6 py-4 font-anuphan">
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-6 py-4 font-anuphan text-slate-800">
+
+                {/* Data Alert Section */}
+                {(!dailyData.some(d => 
+                    Number(String(d.Year).trim()) === dayjs().year() && 
+                    Number(String(d.Month).trim()) === dayjs().month() + 1 && 
+                    Number(String(d.Day).trim()) === dayjs().date() - 1
+                )) && (
+                    <AnimatePresence>
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.5, ease: "easeOut" }}
+                            className="overflow-hidden mb-4"
+                        >
+                            <div className="bg-gradient-to-r from-rose-500/10 via-rose-500/5 to-rose-500/10 border border-rose-500/20 rounded-2xl p-4 flex items-center gap-4 shadow-sm backdrop-blur-sm">
+                                <div className="w-12 h-12 bg-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-rose-500/20">
+                                    <AlertCircle className="w-6 h-6 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-rose-700 font-bold text-lg font-anuphan">ไม่พบข้อมูลการผลิต</h3>
+                                    <p className="text-rose-600 font-medium font-anuphan opacity-90">
+                                        วันที่ {dayjs().subtract(1, 'day').format('D MMMM BBBB')} ยังไม่มีการบันทึกข้อมูล
+                                    </p>
+                                </div>
+                                <div className="hidden md:block px-4 py-1.5 bg-rose-500/10 rounded-full border border-rose-500/20">
+                                    <span className="text-xs font-bold text-rose-600 uppercase tracking-wider">Status: Missing (Yesterday)</span>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </AnimatePresence>
+                )}
+
                 {/* Header Section */}
                 <div className="mb-4 flex items-center justify-between">
                     <div className="flex items-center space-x-4">

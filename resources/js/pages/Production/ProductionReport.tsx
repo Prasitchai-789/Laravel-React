@@ -39,6 +39,8 @@ interface PageProps {
         avgPickupMonth: number;
         maxValue: number;
         maxDate: string | null;
+        maxYearValue: number;
+        maxYearDate: string | null;
     };
     chart: {
         labels: string[];
@@ -102,6 +104,7 @@ export default function ProductionReport({ date, production, cs, summary, chart 
 
     // Format Thai Date
     const dateObj = new Date(selectedDate);
+    const currentYearBE = dateObj.getFullYear() + 543;
     const thaiDate = selectedDate ? dateObj.toLocaleDateString('th-TH', {
         year: 'numeric',
         month: 'long',
@@ -166,29 +169,48 @@ export default function ProductionReport({ date, production, cs, summary, chart 
                                         <Target className="w-5 h-5" />
                                         <h3 className="font-bold">สถิติการผลิตสูงสุด</h3>
                                     </div>
-                                    {summary.maxDate && (
-                                        <p className="text-rose-100 text-sm mt-0.5 font-medium">
-                                            ตรงกับวันที่ {new Date(summary.maxDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                        </p>
-                                    )}
                                 </div>
-                                <div className="p-5">
+                                <div className="p-5 space-y-4">
+                                    {/* ALL TIME MAX */}
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-3 bg-rose-50 rounded-xl">
+                                            <div className="p-3 bg-rose-50 rounded-xl border border-rose-100 shadow-sm">
                                                 <Factory className="w-6 h-6 text-rose-500" />
                                             </div>
                                             <div>
-                                                <p className="text-xs text-slate-500 font-medium">สูงสุดที่เคยทำได้</p>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em] mb-0.5">รวมสูงสุดที่เคยทำได้</p>
                                                 <div className="flex items-baseline gap-1">
-                                                    <span className="text-3xl font-black text-rose-600">{fN(summary.maxValue)}</span>
-                                                    <span className="text-sm font-medium text-slate-500">ตัน</span>
+                                                    <span className="text-3xl font-black text-rose-600 leading-none">{fN(summary.maxValue)}</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase">ตัน</span>
                                                 </div>
+                                                {summary.maxDate && (
+                                                    <p className="text-[10px] text-slate-500 font-medium mt-1">
+                                                        เมื่อ {new Date(summary.maxDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="px-3 py-1 bg-rose-100 text-rose-700 text-xs font-bold rounded-full">
-                                                สูงสุด
+                                    </div>
+
+                                    <div className="h-px bg-slate-100 w-full"></div>
+
+                                    {/* YEARLY MAX */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 shadow-sm">
+                                                <TrendingUp className="w-6 h-6 text-emerald-500" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em] mb-0.5">สูงสุดประจำปี {currentYearBE}</p>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-3xl font-black text-emerald-600 leading-none">{fN(summary.maxYearValue)}</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase">ตัน</span>
+                                                </div>
+                                                {summary.maxYearDate && (
+                                                    <p className="text-[10px] text-slate-500 font-medium mt-1">
+                                                        เมื่อ {new Date(summary.maxYearDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

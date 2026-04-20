@@ -21,13 +21,20 @@ import {
     ArrowDownRight,
     BarChart3,
     PieChart,
-    Activity
+    Activity,
+    AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CountUp from 'react-countup';
 import axios from 'axios';
 import { format, subDays } from 'date-fns';
 import { th } from 'date-fns/locale';
+import dayjs from 'dayjs';
+import 'dayjs/locale/th';
+import buddhistEra from 'dayjs/plugin/buddhistEra';
+
+dayjs.extend(buddhistEra);
+dayjs.locale('th');
 
 interface ProductItem {
     name: string;
@@ -204,6 +211,34 @@ export default function ProductStockReport() {
                 </div>
 
                 <div className="max-w-[1400px] mx-auto px-6 mt-8">
+                    {/* Data Alert Section */}
+                    {(!loading && (!data || !data.items || Object.keys(data.items).length === 0)) && (
+                        <AnimatePresence>
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.5, ease: "easeOut" }}
+                                className="overflow-hidden mb-6"
+                            >
+                                <div className="bg-gradient-to-r from-rose-500/10 via-rose-500/5 to-rose-500/10 border border-rose-500/20 rounded-2xl p-4 flex items-center gap-4 shadow-sm backdrop-blur-sm">
+                                    <div className="w-12 h-12 bg-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-rose-500/20">
+                                        <AlertCircle className="w-6 h-6 text-white" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="text-rose-700 font-bold text-lg font-anuphan">ไม่พบข้อมูลการผลิต</h3>
+                                        <p className="text-rose-600 font-medium font-anuphan opacity-90">
+                                            วันที่ {dayjs().subtract(1, 'day').format('D MMMM BBBB')} ยังไม่มีการบันทึกข้อมูล
+                                        </p>
+                                    </div>
+                                    <div className="hidden md:block px-4 py-1.5 bg-rose-500/10 rounded-full border border-rose-500/20">
+                                        <span className="text-xs font-bold text-rose-600 uppercase tracking-wider">Status: Missing (Yesterday)</span>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </AnimatePresence>
+                    )}
+
                     <AnimatePresence mode="wait">
                         {loading && !data ? (
                             <div className="flex flex-col items-center justify-center h-[60vh]">
