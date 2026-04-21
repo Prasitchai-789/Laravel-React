@@ -423,6 +423,12 @@ const QACNavItems: NavItem[] = [
         permission: ['qac.view'],
     },
     {
+        title: 'รายงานการผลิต (Mill Daily)',
+        href: '/qac/mill-daily-report',
+        icon: ScrollText,
+        permission: ['qac.view'],
+    },
+    {
         title: 'รายงานการผลิต',
         href: '/stock/report',
         icon: ScrollText,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Truck, CalendarIcon, Loader2, Save, Plus, CheckCircle2, BadgeDollarSign, TrendingUp, TrendingDown, Archive, Info } from 'lucide-react';
+import { Truck, CalendarIcon, Loader2, Save, Plus, CheckCircle2, BadgeDollarSign, TrendingUp, TrendingDown, Archive, Info, User, MapPin, Package, Weight, X, DollarSign } from 'lucide-react';
 import CountUp from 'react-countup';
 import { GlassCard } from '@/components/Production/ProductionKPICards';
 import AppLayout from '@/layouts/app-layout';
@@ -741,89 +741,212 @@ export default function DeliveryPlanPage() {
                     )}
                 </div>
 
-                {/* CREATE ORDER MODAL - Blue Theme */}
+                {/* CREATE ORDER MODAL - Premium Blue Theme */}
                 {isModalOpen && (
                     <div 
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+                        className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-2 sm:p-2 animate-in fade-in duration-300"
                         onClick={() => setIsModalOpen(false)}
                     >
                         <div 
-                            className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-zinc-200 dark:border-zinc-800"
+                            className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl rounded-[2.5rem] w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] border border-white/40 ring-1 ring-slate-200 dark:ring-zinc-800 scale-in-center animate-in zoom-in-95 duration-300"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="flex justify-between items-center mb-6 p-6 pb-0">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-blue-100 rounded-xl">
-                                        <Plus className="w-5 h-5 text-blue-600" />
+                            {/* Modal Header */}
+                            <div className="relative px-6 pt-6 pb-6 bg-gradient-to-br from-blue-50/50 to-transparent flex-shrink-0">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-5">
+                                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                                            <Plus className="w-7 h-7 text-white" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h2 className="text-2xl font-black text-slate-800 tracking-tight">Create New Order</h2>
+                                            <p className="text-slate-500 text-sm font-medium">เพิ่มคำสั่งขายใหม่เข้าสู่ระบบแผนการจัดส่ง</p>
+                                        </div>
                                     </div>
-                                    <h2 className="text-xl font-bold text-slate-800">เพิ่ม Order ใหม่</h2>
+                                    <button 
+                                        onClick={() => setIsModalOpen(false)} 
+                                        className="w-10 h-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all duration-200"
+                                    >
+                                        <X className="w-6 h-6" />
+                                    </button>
                                 </div>
-                                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-red-500 transition-colors">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                <div className="absolute bottom-0 left-8 right-8 h-px bg-gradient-to-r from-blue-100 via-transparent to-transparent opacity-60"></div>
+                            </div>  
+
+                            {/* Modal Body */}
+                            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4">
+                                <form id="create-order-form" onSubmit={handleCreateOrder} className="space-y-6">
+                                    {/* Section 1: Customer Information */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <User className="w-4 h-4 text-blue-500" />
+                                            <span className="text-xs font-black text-blue-600 uppercase tracking-[0.15em]">Customer Details</span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider ml-1">Customer Name (ต้นทาง)</label>
+                                                <div className="relative group">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                                        <User className="w-4 h-4" />
+                                                    </div>
+                                                    <input required list="customers-list" type="text" 
+                                                        value={newOrder.customer_name} 
+                                                        onChange={e => {
+                                                            const name = e.target.value;
+                                                            const c = lookupCustomers.find(x => x.CustName === name);
+                                                            setNewOrder({ ...newOrder, customer_name: name, cust_id: c ? c.CustID : '', cust_code: c ? c.CustCode : '' });
+                                                        }} 
+                                                        className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl pl-10 pr-4 py-3.5 text-sm font-semibold text-slate-700 placeholder:text-slate-300 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none" 
+                                                        placeholder="Search or type customer name" 
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider ml-1 text-blue-500/80">Destination (ปลายทางจัดส่ง)</label>
+                                                <div className="relative group">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                                        <MapPin className="w-4 h-4" />
+                                                    </div>
+                                                    <input required list="customers-list" type="text" 
+                                                        value={newOrder.dest_cust_name} 
+                                                        onChange={e => {
+                                                            const name = e.target.value;
+                                                            const c = lookupCustomers.find(x => x.CustName === name);
+                                                            setNewOrder({ ...newOrder, dest_cust_name: name, dest_cust_id: c ? c.CustID : '', dest_cust_code: c ? c.CustCode : '' });
+                                                        }} 
+                                                        className="w-full bg-blue-50/20 border border-blue-100 rounded-2xl pl-10 pr-4 py-3.5 text-sm font-semibold text-slate-700 placeholder:text-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none" 
+                                                        placeholder="Where to deliver?" 
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Section 2: Product & Quantity */}
+                                    <div className="space-y-4 pt-2">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Package className="w-4 h-4 text-emerald-500" />
+                                            <span className="text-xs font-black text-emerald-600 uppercase tracking-[0.15em]">Product & Supply</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider ml-1">Select Product</label>
+                                                <div className="relative group">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors">
+                                                        <Package className="w-4 h-4" />
+                                                    </div>
+                                                    <input required list="goods-list" type="text" 
+                                                        value={newOrder.product} 
+                                                        onChange={e => {
+                                                            const name = e.target.value;
+                                                            const g = lookupGoods.find(x => x.GoodName1 === name);
+                                                            setNewOrder({ ...newOrder, product: name, good_id: g ? g.GoodID : '', good_code: g ? g.GoodCode : '' });
+                                                        }} 
+                                                        className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-semibold text-slate-700 placeholder:text-slate-300 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none" 
+                                                        placeholder="Choose product" 
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider ml-1">Quantity (Tons)</label>
+                                                <div className="relative group">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors">
+                                                        <Weight className="w-4 h-4" />
+                                                    </div>
+                                                    <input required type="number" step="any" 
+                                                        value={newOrder.quantity} 
+                                                        onChange={e => setNewOrder({ ...newOrder, quantity: e.target.value })} 
+                                                        className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-black text-slate-700 placeholder:text-slate-300 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none" 
+                                                        placeholder="0.00" 
+                                                    />
+                                                    {/* <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 uppercase">Tons</span> */}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Section 3: Pricing */}
+                                    <div className="space-y-4 pt-2">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <BadgeDollarSign className="w-4 h-4 text-indigo-500" />
+                                            <span className="text-xs font-black text-indigo-600 uppercase tracking-[0.15em]">Financial Details</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider ml-1">Sell Price (บาท/กก.)</label>
+                                                <div className="relative group">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                                        <DollarSign className="w-4 h-4" />
+                                                    </div>
+                                                    <input required type="number" step="any" 
+                                                        value={newOrder.price_sell} 
+                                                        onChange={e => setNewOrder({ ...newOrder, price_sell: e.target.value })} 
+                                                        className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-black text-slate-700 placeholder:text-slate-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none" 
+                                                        placeholder="ราคาขาย" 
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-black text-slate-700 uppercase tracking-wider ml-1">Customer Price (บาท/กก.)</label>
+                                                <div className="relative group">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                                                        <DollarSign className="w-4 h-4" />
+                                                    </div>
+                                                    <input required type="number" step="any" 
+                                                        value={newOrder.price_customer} 
+                                                        onChange={e => setNewOrder({ ...newOrder, price_customer: e.target.value })} 
+                                                        className="w-full bg-slate-50/50 border border-slate-200 rounded-2xl pl-12 pr-4 py-3.5 text-sm font-black text-slate-700 placeholder:text-slate-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all outline-none" 
+                                                        placeholder="ราคาลูกค้า" 
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <datalist id="customers-list">
+                                        {lookupCustomers.map((c, idx) => (
+                                            <option key={`c-${idx}`} value={c.CustName}>{c.CustCode}</option>
+                                        ))}
+                                    </datalist>
+                                    <datalist id="goods-list">
+                                        {lookupGoods.map((g, idx) => (
+                                            <option key={`g-${idx}`} value={g.GoodName1}>{g.GoodCode}</option>
+                                        ))}
+                                    </datalist>
+                                </form>
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="px-8 py-6 bg-slate-50/50 border-t border-slate-100 flex-shrink-0 flex gap-4">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setIsModalOpen(false)} 
+                                    className="flex-1 px-6 py-4 bg-white text-slate-600 font-bold rounded-2xl border border-slate-200 hover:bg-slate-50 hover:text-slate-800 hover:border-slate-300 transition-all duration-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    form="create-order-form"
+                                    type="submit" 
+                                    disabled={isSubmitting} 
+                                    className="flex-[2] px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-black rounded-2xl hover:from-blue-700 hover:to-blue-600 transition-all duration-300 flex justify-center items-center shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 relative overflow-hidden group disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    <span className={isSubmitting ? 'invisible' : 'visible flex items-center gap-2 uppercase tracking-widest text-xs'}>
+                                        Confirm & Create Order
+                                    </span>
+                                    {isSubmitting && (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <Loader2 className="w-6 h-6 animate-spin" />
+                                        </div>
+                                    )}
                                 </button>
                             </div>
-                            <form onSubmit={handleCreateOrder} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Customer Name</label>
-                                    <input required list="customers-list" type="text" value={newOrder.customer_name} onChange={e => {
-                                        const name = e.target.value;
-                                        const c = lookupCustomers.find(x => x.CustName === name);
-                                        setNewOrder({ ...newOrder, customer_name: name, cust_id: c ? c.CustID : '', cust_code: c ? c.CustCode : '' });
-                                    }} className="w-full border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" placeholder="ค้นหาหรือพิมพ์ชื่อลูกค้า" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-blue-700 mb-1">Destination Customer (ปลายทางจัดส่ง)</label>
-                                    <input required list="customers-list" type="text" value={newOrder.dest_cust_name} onChange={e => {
-                                        const name = e.target.value;
-                                        const c = lookupCustomers.find(x => x.CustName === name);
-                                        setNewOrder({ ...newOrder, dest_cust_name: name, dest_cust_id: c ? c.CustID : '', dest_cust_code: c ? c.CustCode : '' });
-                                    }} className="w-full border border-blue-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 bg-blue-50/30 transition-all" placeholder="ค้นหาหรือพิมพ์ปลายทางจัดส่ง" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Product</label>
-                                    <input required list="goods-list" type="text" value={newOrder.product} onChange={e => {
-                                        const name = e.target.value;
-                                        const g = lookupGoods.find(x => x.GoodName1 === name);
-                                        setNewOrder({ ...newOrder, product: name, good_id: g ? g.GoodID : '', good_code: g ? g.GoodCode : '' });
-                                    }} className="w-full border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 transition-all" placeholder="เลือกสินค้า" />
-                                </div>
-
-                                <datalist id="customers-list">
-                                    {lookupCustomers.map((c, idx) => (
-                                        <option key={`c-${idx}`} value={c.CustName}>{c.CustCode}</option>
-                                    ))}
-                                </datalist>
-                                <datalist id="goods-list">
-                                    {lookupGoods.map((g, idx) => (
-                                        <option key={`g-${idx}`} value={g.GoodName1}>{g.GoodCode}</option>
-                                    ))}
-                                </datalist>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1">Quantity</label>
-                                    <input required type="number" step="any" value={newOrder.quantity} onChange={e => setNewOrder({ ...newOrder, quantity: e.target.value })} className="w-full border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 transition-all" placeholder="จำนวน" />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-1">Customer Price</label>
-                                        <input required type="number" step="any" value={newOrder.price_customer} onChange={e => setNewOrder({ ...newOrder, price_customer: e.target.value })} className="w-full border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 transition-all" placeholder="ราคาลูกค้า" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-1">Sell Price</label>
-                                        <input required type="number" step="any" value={newOrder.price_sell} onChange={e => setNewOrder({ ...newOrder, price_sell: e.target.value })} className="w-full border border-slate-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 transition-all" placeholder="ราคาขาย" />
-                                    </div>
-                                </div>
-
-                                <div className="pt-4 flex gap-3">
-                                    <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors">
-                                        ยกเลิก
-                                    </button>
-                                    <button type="submit" disabled={isSubmitting} className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold rounded-xl hover:from-blue-700 hover:to-blue-600 transition-all duration-200 flex justify-center items-center shadow-md">
-                                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'บันทึก'}
-                                    </button>
-                                </div>
-                            </form>
                         </div>
                     </div>
                 )}

@@ -526,6 +526,9 @@ Route::middleware(['auth', 'permission:developer.view|mar.view|gm.view'])->group
 
 // QAC Routes
 Route::middleware(['auth', 'permission:developer.view|qac.view|gm.view'])->group(function () {
+    Route::get('/qac/mill-daily-report', [\App\Http\Controllers\QAC\MillDailyReportController::class, 'index'])->name('qac.mill-report');
+    Route::get('/api/qac/mill-daily-data', [\App\Http\Controllers\QAC\MillDailyReportController::class, 'getData']);
+    Route::post('/api/qac/mill-daily-additional', [\App\Http\Controllers\QAC\MillDailyReportController::class, 'saveAdditionalData']);
     // redirect base COA path to oil page
     Route::redirect('/qac/coa', '/qac/coa/oil');
 

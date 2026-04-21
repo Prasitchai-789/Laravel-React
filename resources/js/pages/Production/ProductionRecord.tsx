@@ -65,8 +65,12 @@ function calcAvgPickup(f: FormState): number {
     const sumShift = n(f.ShiftA) + n(f.ShiftB) + n(f.Shift3) + n(f.PickupRemain) + n(f.RamRemain);
     return sumShift > 0 ? totalFFB / sumShift : 0;
 }
-function fN(v: any): string {
+function fN(v: any, dec?: number): string {
     if (v === null || v === undefined || v === '') return '';
+    const num = parseFloat(String(v).replace(/,/g, '')) || 0;
+    if (dec !== undefined) {
+        return num.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    }
     const parts = String(v).replace(/,/g, '').split('.');
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return parts.join('.');
@@ -89,7 +93,7 @@ function recalculate(f: FormState): FormState {
     const good = calcFFBGoodQty(f);
     const remain = calcFFBRemain(f);
     const ram2 = calcRamRemain2(f);
-    const fmtDec = (val: number) => val ? val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+    const fmtDec = (val: number) => val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return {
         ...f,
         AvgPickup: fmtDec(avg),
@@ -136,8 +140,8 @@ export default function ProductionRecord({ productions, summary, filters }: Prop
             setForm(prev => recalculate({
                 ...prev,
                 Date: date,
-                FFBForward: fN(d.FFBForward),
-                FFBPurchase: fN(d.FFBPurchase),
+                FFBForward: fN(d.FFBForward, 2),
+                FFBPurchase: fN(d.FFBPurchase, 2),
                 CS1: fN(d.CS1),
                 CS2: fN(d.CS2),
             }));
@@ -179,13 +183,13 @@ export default function ProductionRecord({ productions, summary, filters }: Prop
         const f: FormState = {
             Date: p.Date ? p.Date.substring(0, 10) : '',
             use_check: (p.FFBGoodQty ?? 0) > 0,
-            FFBForward: fN(p.FFBForward), FFBPurchase: fN(p.FFBPurchase),
+            FFBForward: fN(p.FFBForward, 2), FFBPurchase: fN(p.FFBPurchase, 2),
             ShiftA: fN(p.ShiftA), ShiftB: fN(p.ShiftB), Shift3: fN(p.Shift3),
             PickupRemain: fN(p.PickupRemain), RamRemain: fN(p.RamRemain),
-            AvgPickup: fN(p.AvgPickup), FFBGoodQty: fN(p.FFBGoodQty),
+            AvgPickup: fN(p.AvgPickup, 2), FFBGoodQty: fN(p.FFBGoodQty, 2),
             Steam: fN(p.Steam), StuckIn: fN(p.StuckIn),
-            RawFFB: fN(p.RawFFB), RamRemain2: fN(p.RamRemain2),
-            FFBRemain: fN(p.FFBRemain),
+            RawFFB: fN(p.RawFFB, 2), RamRemain2: fN(p.RamRemain2, 2),
+            FFBRemain: fN(p.FFBRemain, 2),
             CS1: fN(p.CS1), CS2: fN(p.CS2),
         };
         setForm(recalculate(f));
@@ -523,6 +527,7 @@ export default function ProductionRecord({ productions, summary, filters }: Prop
                                                 <input type="text" inputMode="decimal" placeholder="0.00"
                                                     value={form.FFBForward}
                                                     onChange={(e) => handleChange('FFBForward', e.target.value)}
+                                                    onBlur={(e) => handleChange('FFBForward', fN(e.target.value, 2))}
                                                     className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 pr-14 text-sm font-medium text-slate-700 hover:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all shadow-sm" />
                                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">TON</span>
                                             </div>
@@ -534,6 +539,7 @@ export default function ProductionRecord({ productions, summary, filters }: Prop
                                                 <input type="text" inputMode="decimal" placeholder="0.00"
                                                     value={form.FFBPurchase}
                                                     onChange={(e) => handleChange('FFBPurchase', e.target.value)}
+                                                    onBlur={(e) => handleChange('FFBPurchase', fN(e.target.value, 2))}
                                                     className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 pr-14 text-sm font-medium text-slate-700 hover:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all shadow-sm" />
                                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">TON</span>
                                             </div>
@@ -624,6 +630,9 @@ export default function ProductionRecord({ productions, summary, filters }: Prop
                                                     <input type="text" inputMode="decimal" placeholder="0"
                                                         value={(form as any)[key]}
                                                         onChange={(e) => handleChange(key as any, e.target.value)}
+                                                        onBlur={(e) => {
+                                                            if (unit === 'TON') handleChange(key as any, fN(e.target.value, 2));
+                                                        }}
                                                         className="w-full h-12 bg-slate-50 border border-slate-200 rounded-xl px-4 pr-14 text-sm font-medium text-slate-700 hover:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-500/10 focus:border-slate-500 outline-none transition-all shadow-sm" />
                                                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">{unit}</span>
                                                 </div>
