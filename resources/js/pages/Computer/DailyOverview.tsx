@@ -303,6 +303,7 @@ export default function ComputerDailyOverview() {
                              (filterType === 'isp' && ispComputers.length === 0) ||
                              (filterType === 'mun' && munComputers.length === 0) ? (
                                 <motion.div 
+                                    key="empty"
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0 }}
@@ -316,7 +317,7 @@ export default function ComputerDailyOverview() {
                                     <p className="text-gray-500 mt-2">ไม่พบคอมพิวเตอร์ที่ตรงกับเงื่อนไขการค้นหา</p>
                                 </motion.div>
                             ) : (
-                                <div className="space-y-12">
+                                <motion.div key="content" className="space-y-12">
                                     {filterType === 'isp' && ispComputers.length > 0 && (
                                         <div>
                                             <div className="flex items-center gap-3 mb-6">
@@ -375,7 +376,7 @@ export default function ComputerDailyOverview() {
                                             </div>
                                         </div>
                                     )}
-                                </div>
+                                </motion.div>
                             )}
                         </AnimatePresence>
                     )}
