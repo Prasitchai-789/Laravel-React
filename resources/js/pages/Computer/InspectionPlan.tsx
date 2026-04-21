@@ -179,10 +179,39 @@ export default function InspectionPlan() {
                 year: selectedYear
             });
             if (res.data.success) {
-                fetchData();
+                // Optimistic Update to local state to keep scroll and feel instant
+                setPlans(prev => {
+                    const existingIdx = prev.findIndex(p => 
+                        p.computer_id === computerId && 
+                        p.month === month && 
+                        p.year === selectedYear
+                    );
+                    
+                    if (existingIdx > -1) {
+                        // Remove existing plan
+                        const newPlans = [...prev];
+                        newPlans.splice(existingIdx, 1);
+                        return newPlans;
+                    } else {
+                        // Add new plan
+                        return [...prev, { 
+                            id: Date.now(), // Temporary ID
+                            computer_id: computerId, 
+                            month, 
+                            year: selectedYear, 
+                            status: 'planned' 
+                        }];
+                    }
+                });
+                
+                // Optionally background refresh data without showing the loading spinner
+                // await axios.get(`api/plan?year=${selectedYear}`).then(r => {
+                //    if (r.data.success) setPlans(r.data.plans);
+                // });
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to toggle plan", error);
+            setError(error.response?.data?.message || "Failed to update plan");
         } finally {
             setActionLoading(null);
         }
@@ -237,8 +266,8 @@ export default function InspectionPlan() {
                         </AnimatePresence>
 
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="relative">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+                                <div className="relative flex-1 sm:flex-none">
                                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl blur-xl opacity-40"></div>
                                     <div className="relative p-3.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-2xl shadow-blue-500/20">
                                         <LayoutDashboard className="w-7 h-7 text-white" />
@@ -342,25 +371,25 @@ export default function InspectionPlan() {
                         </div>
 
                         {/* Summary Stats Cards - Context Aware */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
+                        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mt-2">
                             {/* Card 1: Branch Devices */}
                             <motion.div 
                                 whileHover={{ y: -5 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-2xl border border-white p-4 shadow-xl shadow-slate-200/50 overflow-hidden relative group"
+                                className="bg-white/60 backdrop-blur-xl rounded-2xl border border-white p-3 md:p-4 shadow-xl shadow-slate-200/50 overflow-hidden relative group col-span-2 md:col-span-1"
                             >
-                                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity hidden sm:block">
                                     <Monitor className="w-20 h-20 rotate-12" />
                                 </div>
-                                <div className="relative flex items-center gap-4">
-                                    <div className={`p-3 rounded-2xl ${filterType === 'isp' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                        <Monitor className="w-6 h-6" />
+                                <div className="relative flex items-center gap-3 md:gap-4">
+                                    <div className={`p-2.5 md:p-3 rounded-2xl ${filterType === 'isp' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                        <Monitor className="w-5 h-5 md:w-6 md:h-6" />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black text-slate-700 uppercase tracking-widest mb-0.5">
+                                        <p className="text-[9px] md:text-[10px] font-black text-slate-700 uppercase tracking-widest mb-0.5">
                                             {stats.branchName}
                                         </p>
-                                        <h3 className="text-2xl font-black text-slate-800">
-                                            {stats.totalDevices} <span className="text-[10px] font-bold text-slate-700">เครื่องใช้งาน</span>
+                                        <h3 className="text-lg md:text-2xl font-black text-slate-800">
+                                            {stats.totalDevices} <span className="text-[9px] md:text-[10px] font-bold text-slate-700">เครื่อง</span>
                                         </h3>
                                     </div>
                                 </div>
@@ -369,24 +398,23 @@ export default function InspectionPlan() {
                             {/* Card 2: Yearly Progress */}
                             <motion.div 
                                 whileHover={{ y: -5 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-2xl border border-white p-4 shadow-xl shadow-slate-200/50 group"
+                                className="bg-white/60 backdrop-blur-xl rounded-2xl border border-white p-3 md:p-4 shadow-xl shadow-slate-200/50 group"
                             >
-                                <div className="flex justify-between items-start mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl group-hover:rotate-12 transition-transform">
-                                            <Calendar className="w-5 h-5" />
+                                <div className="flex justify-between items-start mb-2 md:mb-3">
+                                    <div className="flex items-center gap-2 md:gap-3">
+                                        <div className="p-2 md:p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                                            <Calendar className="w-4 h-4 md:w-5 md:h-5" />
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-700 uppercase tracking-widest">เป้าหมายรายปี</p>
+                                        <div className="min-w-0">
+                                            <p className="text-[9px] md:text-[10px] font-black text-slate-700 uppercase tracking-widest truncate">เป้าหมายรายปี</p>
                                             <div className="flex items-baseline gap-1">
-                                                <span className="text-xl font-black text-slate-800">{stats.completedYear}</span>
-                                                <span className="text-[10px] font-bold text-slate-700">/ {stats.plannedYear} แผน</span>
+                                                <span className="text-base md:text-xl font-black text-slate-800">{stats.completedYear}</span>
+                                                <span className="text-[9px] md:text-[10px] font-bold text-slate-500">/ {stats.plannedYear}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">YEARLY</span>
                                 </div>
-                                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-1.5 md:h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                                     <motion.div 
                                         initial={{ width: 0 }}
                                         animate={{ width: `${stats.yearPct}%` }}
@@ -398,24 +426,23 @@ export default function InspectionPlan() {
                             {/* Card 3: Monthly Target */}
                             <motion.div 
                                 whileHover={{ y: -5 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-2xl border border-white p-4 shadow-xl shadow-slate-200/50 group"
+                                className="bg-white/60 backdrop-blur-xl rounded-2xl border border-white p-3 md:p-4 shadow-xl shadow-slate-200/50 group"
                             >
-                                <div className="flex justify-between items-start mb-3">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl group-hover:animate-pulse">
-                                            <Sparkles className="w-5 h-5" />
+                                <div className="flex justify-between items-start mb-2 md:mb-3">
+                                    <div className="flex items-center gap-2 md:gap-3">
+                                        <div className="p-2 md:p-2.5 bg-rose-50 text-rose-600 rounded-xl">
+                                            <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
                                         </div>
-                                        <div>
-                                            <p className="text-[10px] font-black text-slate-700 uppercase tracking-widest">เป้าหมายเดือนนี้ (ปัจจุบัน)</p>
+                                        <div className="min-w-0">
+                                            <p className="text-[9px] md:text-[10px] font-black text-slate-700 uppercase tracking-widest truncate">เป้าเดือนนี้</p>
                                             <div className="flex items-baseline gap-1">
-                                                <span className="text-xl font-black text-slate-800">{stats.completedMonth}</span>
-                                                <span className="text-[10px] font-bold text-slate-700">/ {stats.plannedMonth} รายการ</span>
+                                                <span className="text-base md:text-xl font-black text-slate-800">{stats.completedMonth}</span>
+                                                <span className="text-[9px] md:text-[10px] font-bold text-slate-500">/ {stats.plannedMonth}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-1 rounded-lg">MONTHLY</span>
                                 </div>
-                                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-1.5 md:h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                                     <motion.div 
                                         initial={{ width: 0 }}
                                         animate={{ width: `${stats.monthPct}%` }}
@@ -427,44 +454,40 @@ export default function InspectionPlan() {
                             {/* Card 4: Overall Success */}
                             <motion.div 
                                 whileHover={{ y: -5 }}
-                                className="bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 rounded-2xl p-4 shadow-xl shadow-blue-200/40 relative overflow-hidden group"
+                                className="bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 rounded-2xl p-3 md:p-4 shadow-xl shadow-blue-200/40 relative overflow-hidden group col-span-2 lg:col-span-1"
                             >
-                                <div className="absolute bottom-0 right-0 p-2 opacity-10 group-hover:scale-110 transition-transform">
-                                    <CheckCircle2 className="w-16 h-16 text-white" />
-                                </div>
                                 <div className="relative">
-                                    <div className="flex justify-between items-start mb-4">
+                                    <div className="flex justify-between items-start mb-2 md:mb-4">
                                         <div>
-                                            <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest opacity-80">ความสำเร็จสะสม</p>
-                                            <h3 className="text-3xl font-black text-white mt-1">
+                                            <p className="text-[9px] md:text-[10px] font-black text-blue-200 uppercase tracking-widest opacity-80">ความสำเร็จ</p>
+                                            <h3 className="text-xl md:text-3xl font-black text-white mt-1">
                                                 {stats.yearPct}%
                                             </h3>
                                         </div>
-                                        <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/10">
-                                            <LayoutDashboard className="w-5 h-5 text-white" />
+                                        <div className="p-2 md:p-2.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/10">
+                                            <LayoutDashboard className="w-4 h-4 md:w-5 md:h-5 text-white" />
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                        <div className="flex-1 h-1 md:h-1.5 bg-white/10 rounded-full overflow-hidden">
                                             <motion.div 
                                                 initial={{ width: 0 }}
                                                 animate={{ width: `${stats.yearPct}%` }}
                                                 className="h-full bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]"
                                             />
                                         </div>
-                                        <span className="text-[10px] font-black text-white/60">GOAL</span>
                                     </div>
                                 </div>
                             </motion.div>
                         </div>
                     </motion.div>
 
-                    {/* Matrix Table */}
+                    {/* Desktop Matrix Table (Visible on lg or md depending on preference) */}
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="bg-white/70 backdrop-blur-xl border border-white/80 rounded-3xl shadow-2xl shadow-slate-200/50 overflow-hidden"
+                        className="hidden lg:block bg-white/70 backdrop-blur-xl border border-white/80 rounded-3xl shadow-2xl shadow-slate-200/50 overflow-hidden"
                     >
                         <div className="max-h-[calc(100vh-320px)] overflow-auto custom-scrollbar">
                             <table className="w-full border-collapse">
@@ -500,7 +523,12 @@ export default function InspectionPlan() {
 
                                 <AnimatePresence mode="wait">
                                     {loading ? (
-                                        <tbody>
+                                        <motion.tbody 
+                                            key="loading"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
+                                        >
                                             <tr>
                                                 <td colSpan={14} className="py-32">
                                                     <div className="flex flex-col items-center justify-center gap-4">
@@ -513,12 +541,14 @@ export default function InspectionPlan() {
                                                     </div>
                                                 </td>
                                             </tr>
-                                        </tbody>
+                                        </motion.tbody>
                                     ) : (
                                         <motion.tbody 
+                                            key="content"
                                             variants={containerVariants}
                                             initial="hidden"
                                             animate="visible"
+                                            exit="hidden"
                                             className="divide-y divide-slate-50"
                                         >
                                             {filteredComputers.length > 0 ? (
@@ -713,6 +743,134 @@ export default function InspectionPlan() {
                             </table>
                         </div>
                     </motion.div>
+
+                    {/* Mobile Card List (Visible on mobile/tablet) */}
+                    <div className="lg:hidden mt-6 space-y-4">
+                        <AnimatePresence mode="wait">
+                            {loading ? (
+                                <motion.div 
+                                    key="loading"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="py-20 flex flex-col items-center justify-center gap-4"
+                                >
+                                    <motion.div 
+                                        animate={{ rotate: 360 }}
+                                        transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+                                        className="w-10 h-10 border-2 border-slate-200 border-t-blue-500 rounded-full"
+                                    />
+                                    <p className="text-slate-400 text-sm font-medium">โหลดข้อมูล...</p>
+                                </motion.div>
+                            ) : filteredComputers.length > 0 ? (
+                                <motion.div 
+                                    key="list"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="space-y-4"
+                                >
+                                    {filteredComputers.map((comp) => {
+                                        const compInspections = inspections.filter(i => i.computer_id === comp.id);
+                                        const progress = Math.round((compInspections.length / 12) * 100);
+
+                                        return (
+                                            <motion.div 
+                                                key={comp.id}
+                                                initial={{ opacity: 0, scale: 0.95 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                className="bg-white/80 backdrop-blur-xl rounded-2xl border border-white p-4 shadow-lg shadow-slate-200/50 overflow-hidden"
+                                            >
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`p-2.5 rounded-xl ${(comp.code_com || '').includes('ISP') ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                            <Monitor className="w-5 h-5" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-black text-slate-800 leading-tight">
+                                                                {comp.code_com || `COMP-${comp.id}`}
+                                                            </h4>
+                                                            <p className="text-[10px] font-bold text-slate-500 truncate max-w-[150px]">
+                                                                {comp.model}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                                                            {progress}% Done
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* 12-Month Matrix Grid (4x3 for Mobile Optimization) */}
+                                                <div className="grid grid-cols-4 gap-2 mb-2">
+                                                    {MONTHS_TH.map((monthName, mIdx) => {
+                                                        const month = mIdx + 1;
+                                                        const { isDone, isPlanned } = getCellStatus(comp.id, month);
+                                                        const key = `${comp.id}-${month}`;
+                                                        const isLoading = actionLoading === key;
+
+                                                        return (
+                                                            <motion.button 
+                                                                key={month}
+                                                                whileTap={{ scale: 0.9 }}
+                                                                type="button"
+                                                                disabled={isLoading}
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    if (isDone) {
+                                                                        // Future: show info
+                                                                    } else if (isPlanned) {
+                                                                        router.visit(`/computer-inspection/form/${comp.id}?month=${month}&year=${selectedYear}`);
+                                                                    } else {
+                                                                        handleTogglePlan(comp.id, month);
+                                                                    }
+                                                                }}
+                                                                className={`
+                                                                    relative aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 border transition-all
+                                                                    ${isDone 
+                                                                        ? 'bg-emerald-500 text-white border-emerald-400' 
+                                                                        : isPlanned 
+                                                                            ? 'bg-blue-600 text-white border-blue-500' 
+                                                                            : 'bg-slate-50 text-slate-400 border-slate-100 italic'
+                                                                    }
+                                                                    ${isLoading ? 'opacity-50' : ''}
+                                                                `}
+                                                            >
+                                                                <span className="text-[8px] font-black opacity-60 leading-none">{mIdx + 1}</span>
+                                                                {isDone ? (
+                                                                    <CheckCircle2 className="w-4 h-4" />
+                                                                ) : isPlanned ? (
+                                                                    <Calendar className="w-4 h-4" />
+                                                                ) : (
+                                                                    <span className="text-[9px] font-bold">{monthName.substring(0, 3)}</span>
+                                                                )}
+                                                                
+                                                                {isLoading && (
+                                                                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="absolute inset-0 border border-t-white/50 border-transparent rounded-xl" />
+                                                                )}
+                                                            </motion.button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </motion.div>
+                            ) : (
+                                <motion.div 
+                                    key="empty"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="py-20 text-center"
+                                >
+                                    <p className="text-slate-400 text-sm">ไม่พบข้อมูลที่ค้นหา</p>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </div>
 
