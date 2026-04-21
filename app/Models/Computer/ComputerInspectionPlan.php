@@ -14,6 +14,12 @@ class ComputerInspectionPlan extends Model
         'planned_by'
     ];
 
+    protected $casts = [
+        'computer_id' => 'integer',
+        'month' => 'integer',
+        'year' => 'integer',
+    ];
+
     public function computer()
     {
         return $this->belongsTo(Computer::class, 'computer_id', 'id');

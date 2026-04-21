@@ -215,7 +215,14 @@ class ComputerController extends Controller
             // Get plans for the specified year
             $plans = ComputerInspectionPlan::where('year', $year)
                 ->where('status', 'planned')
-                ->get();
+                ->get()
+                ->map(fn($item) => [
+                    'id' => (int) $item->id,
+                    'computer_id' => (int) $item->computer_id,
+                    'month' => (int) $item->month,
+                    'year' => (int) $item->year,
+                    'status' => $item->status,
+                ]);
 
             return response()->json([
                 'success' => true,

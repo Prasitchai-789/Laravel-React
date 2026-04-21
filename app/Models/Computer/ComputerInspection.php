@@ -14,6 +14,7 @@ class ComputerInspection extends Model
         'data' => 'array',
         'image_paths' => 'array',
         'inspection_date' => 'date',
+        'computer_id' => 'integer',
     ];
 
     public function computer()
