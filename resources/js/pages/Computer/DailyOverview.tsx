@@ -13,6 +13,7 @@ interface ComputerData {
     model: string;
     office: number | null;
     is_inspected: boolean;
+    is_planned: boolean;
     broken_count: number;
     abnormal_count: number;
     inspection_images: string[];
@@ -22,6 +23,7 @@ interface ComputerData {
 interface SummaryData {
     total: number;
     inspected_count: number;
+    planned_month_count: number;
     completion_percent: number;
     computers: ComputerData[];
 }
@@ -31,7 +33,7 @@ export default function ComputerDailyOverview() {
     const [summary, setSummary] = useState<SummaryData | null>(null);
     const [loading, setLoading] = useState<boolean>(true);
     const [searchQuery, setSearchQuery] = useState<string>("");
-    const [filterType, setFilterType] = useState<'all' | 'isp' | 'mun'>('all');
+    const [filterType, setFilterType] = useState<'isp' | 'mun'>('isp');
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     useEffect(() => {
@@ -69,17 +71,14 @@ export default function ComputerDailyOverview() {
     ) || [];
 
     const stats = React.useMemo(() => {
-        if (!summary) return { total: 0, inspected: 0, percent: 0 };
-        
-        let targetComputers = summary.computers;
-        if (filterType === 'isp') targetComputers = ispComputers;
-        else if (filterType === 'mun') targetComputers = munComputers;
+        let targetComputers = filterType === 'isp' ? ispComputers : munComputers;
 
         const total = targetComputers.length;
         const inspected = targetComputers.filter(c => c.is_inspected).length;
-        const percent = total > 0 ? Math.round((inspected / total) * 100) : 0;
+        const planned = targetComputers.filter(c => c.is_planned).length;
+        const percent = planned > 0 ? Math.round((inspected / planned) * 100) : 0;
 
-        return { total, inspected, percent };
+        return { total, inspected, planned, percent };
     }, [summary, filterType, ispComputers, munComputers]);
 
     const handleComputerClick = (id: number) => {
@@ -152,10 +151,9 @@ export default function ComputerDailyOverview() {
                                     </label>
                                     <select
                                         value={filterType}
-                                        onChange={e => setFilterType(e.target.value as 'all' | 'isp' | 'mun')}
+                                        onChange={e => setFilterType(e.target.value as 'isp' | 'mun')}
                                         className="px-2 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-200 transition-all duration-200 w-full sm:w-48"
                                     >
-                                        <option value="all">ทุกสาขา</option>
                                         <option value="isp">สำนักงานใหญ่ (ISP)</option>
                                         <option value="mun">มั่นสกลการเกษตร (MUN)</option>
                                     </select>
@@ -176,6 +174,13 @@ export default function ComputerDailyOverview() {
                                     />
                                 </div>
                                 <button 
+                                    onClick={() => router.visit('/computer-inspection/plan')}
+                                    className="group px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md hover:bg-slate-50 flex items-center gap-2"
+                                >
+                                    <CalendarIcon className="h-4 w-4 text-blue-600" />
+                                    <span>แผนรายปี</span>
+                                </button>
+                                <button 
                                     onClick={() => router.visit('/computer-checklists')}
                                     className="group px-5 py-2.5 bg-gradient-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 text-white rounded-xl transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
                                 >
@@ -194,22 +199,25 @@ export default function ComputerDailyOverview() {
                                 icon={Monitor}
                                 label="คอมพิวเตอร์ทั้งหมด"
                                 value={stats.total}
+                                subValue={`${stats.planned} แผนงานเดือนนี้`}
                                 gradient="from-blue-500 to-blue-600"
                                 bgGradient="from-blue-50 to-blue-100"
                                 delay={0}
                             />
                             <StatCard
                                 icon={CheckCircle2}
-                                label="ตรวจสอบแล้ว"
+                                label="ตรวจสอบวันนี้"
                                 value={stats.inspected}
+                                subValue={`เป้าหมาย: ${stats.planned}`}
                                 gradient="from-emerald-500 to-emerald-600"
                                 bgGradient="from-emerald-50 to-emerald-100"
                                 delay={0.05}
                             />
                             <StatCard
-                                icon={AlertCircle}
-                                label="รอการตรวจสอบ"
-                                value={stats.total - stats.inspected}
+                                icon={CalendarIcon}
+                                label="รอการตรวจสอบ (ตามแผน)"
+                                value={Math.max(0, stats.planned - stats.inspected)}
+                                subValue="เฉพาะเครื่องที่มีแผน"
                                 gradient="from-orange-500 to-orange-600"
                                 bgGradient="from-orange-50 to-orange-100"
                                 delay={0.1}
@@ -278,7 +286,7 @@ export default function ComputerDailyOverview() {
                                 </motion.div>
                             ) : (
                                 <div className="space-y-12">
-                                    {(filterType === 'all' || filterType === 'isp') && ispComputers.length > 0 && (
+                                    {filterType === 'isp' && ispComputers.length > 0 && (
                                         <div>
                                             <div className="flex items-center gap-3 mb-6">
                                                 <div className="h-10 w-1 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
@@ -313,7 +321,7 @@ export default function ComputerDailyOverview() {
                                         </div>
                                     )}
 
-                                    {(filterType === 'all' || filterType === 'mun') && munComputers.length > 0 && (
+                                    {filterType === 'mun' && munComputers.length > 0 && (
                                         <div>
                                             <div className="flex items-center gap-3 mb-6">
                                                 <div className="h-10 w-1 bg-gradient-to-b from-emerald-500 to-teal-600 rounded-full"></div>
@@ -347,7 +355,7 @@ export default function ComputerDailyOverview() {
 }
 
 // Stat Card Component
-function StatCard({ icon: Icon, label, value, gradient, bgGradient, delay }: any) {
+function StatCard({ icon: Icon, label, value, subValue, gradient, bgGradient, delay }: any) {
     return (
         <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -357,8 +365,10 @@ function StatCard({ icon: Icon, label, value, gradient, bgGradient, delay }: any
         >
             <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-sm font-semibold text-gray-600 mb-1">{label}</p>
-                    <p className="text-3xl font-bold text-gray-900">{value}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">{label}</p>
+                    <p className="text-2xl font-black text-slate-800 uppercase tracking-tighter">
+                        {value} <span className="text-xs font-medium text-slate-400">/ {subValue || ''}</span>
+                    </p>
                 </div>
                 <div className={`p-3 bg-gradient-to-br ${bgGradient} rounded-xl group-hover:scale-110 transition-transform`}>
                     <Icon className={`h-6 w-6 bg-gradient-to-r ${gradient} bg-clip-text text-transparent`} style={{ color: 'currentColor' }} />
@@ -413,16 +423,23 @@ function ComputerCard({ comp, idx, onClick, type }: { comp: ComputerData, idx: n
                     </div>
 
                     {/* Status Badge */}
-                    <div className="mb-4">
+                    <div className="flex flex-wrap gap-2 mb-4">
                         {comp.is_inspected ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                                ตรวจสอบแล้ว
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-tight">
+                                <CheckCircle2 className="h-3 w-3" />
+                                CHECKED
                             </span>
                         ) : (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200">
-                                <AlertCircle className="h-3.5 w-3.5" />
-                                ยังไม่ตรวจสอบ
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black bg-orange-100 text-orange-700 border border-orange-200 uppercase tracking-tight">
+                                <AlertCircle className="h-3 w-3" />
+                                PENDING
+                            </span>
+                        )}
+
+                        {comp.is_planned && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-tight">
+                                <CalendarIcon className="h-3 w-3" />
+                                SCHEDULED
                             </span>
                         )}
                     </div>

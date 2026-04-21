@@ -8,12 +8,18 @@ use App\Http\Controllers\Controller;
 use App\Models\Computer\Computer;
 use App\Models\Computer\ComputerInspection;
 use App\Models\Computer\ComputerChecklistTopic;
+use App\Models\Computer\ComputerInspectionPlan;
 
 class ComputerController extends Controller
 {
     public function index()
     {
         return Inertia::render('Computer/DailyOverview');
+    }
+
+    public function plan()
+    {
+        return Inertia::render('Computer/InspectionPlan');
     }
 
     public function form($id)
@@ -25,15 +31,26 @@ class ComputerController extends Controller
     {
         try {
             $date = $request->query('date', now()->format('Y-m-d'));
+            $carbonDate = \Carbon\Carbon::parse($date);
+            $month = $carbonDate->month;
+            $year = $carbonDate->year;
 
             $computers = Computer::all();
             $inspections = ComputerInspection::whereDate('inspection_date', $date)->get()->keyBy('computer_id');
+            
+            // Get all plans for this month and year
+            $plans = ComputerInspectionPlan::where('month', $month)
+                ->where('year', $year)
+                ->where('status', 'planned')
+                ->pluck('computer_id')
+                ->toArray();
 
             $totalComputers = $computers->count();
             $inspectedCount = $inspections->count();
+            $plannedMonthCount = count($plans);
             $completionPercent = $totalComputers > 0 ? round(($inspectedCount / $totalComputers) * 100, 1) : 0;
 
-            $items = $computers->map(function ($computer) use ($inspections) {
+            $items = $computers->map(function ($computer) use ($inspections, $plans) {
                 $inspection = $inspections->get($computer->id);
                 
                 $brokenCount = 0;
@@ -59,6 +76,7 @@ class ComputerController extends Controller
                     'model' => $computer->model,
                     'office' => $computer->office,
                     'is_inspected' => $inspection !== null,
+                    'is_planned' => in_array($computer->id, $plans),
                     'broken_count' => $brokenCount,
                     'abnormal_count' => $abnormalCount,
                     'inspection_images' => $images,
@@ -70,6 +88,7 @@ class ComputerController extends Controller
                 'success' => true,
                 'total' => $totalComputers,
                 'inspected_count' => $inspectedCount,
+                'planned_month_count' => $plannedMonthCount,
                 'completion_percent' => $completionPercent,
                 'computers' => $items,
             ]);
@@ -173,5 +192,80 @@ class ComputerController extends Controller
             'success' => true,
             'message' => 'Inspection saved successfully.',
         ]);
+    }
+
+    public function apiPlan(Request $request)
+    {
+        try {
+            $year = $request->query('year', now()->year);
+            $computers = Computer::all();
+            
+            // Get inspections for the specified year
+            $inspections = ComputerInspection::whereYear('inspection_date', $year)
+                ->selectRaw('computer_id, inspection_date, remark, checked_by, MONTH(inspection_date) as month')
+                ->get()
+                ->map(fn($item) => [
+                    'computer_id' => $item->computer_id,
+                    'month' => $item->month,
+                    'is_inspected' => true,
+                    'remark' => $item->remark,
+                    'checked_by' => $item->checked_by,
+                    'inspection_date' => $item->inspection_date instanceof \DateTime 
+                        ? $item->inspection_date->format('Y-m-d') 
+                        : (is_string($item->inspection_date) ? $item->inspection_date : null)
+                ]);
+
+            // Get plans for the specified year
+            $plans = ComputerInspectionPlan::where('year', $year)
+                ->where('status', 'planned')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'computers' => $computers,
+                'inspections' => $inspections,
+                'plans' => $plans
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function togglePlan(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'computer_id' => 'required|integer',
+                'month' => 'required|integer|min:1|max:12',
+                'year' => 'required|integer',
+            ]);
+
+            $existing = ComputerInspectionPlan::where([
+                'computer_id' => $validated['computer_id'],
+                'month' => $validated['month'],
+                'year' => $validated['year'],
+            ])->first();
+
+            if ($existing) {
+                $existing->delete();
+                $status = 'removed';
+            } else {
+                ComputerInspectionPlan::create([
+                    'computer_id' => $validated['computer_id'],
+                    'month' => $validated['month'],
+                    'year' => $validated['year'],
+                    'status' => 'planned',
+                    'planned_by' => auth()->user()->name ?? 'System',
+                ]);
+                $status = 'added';
+            }
+
+            return response()->json([
+                'success' => true,
+                'status' => $status
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 }
