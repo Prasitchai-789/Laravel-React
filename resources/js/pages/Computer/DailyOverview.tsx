@@ -34,6 +34,7 @@ export default function ComputerDailyOverview() {
     const [loading, setLoading] = useState<boolean>(true);
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [filterType, setFilterType] = useState<'isp' | 'mun'>('isp');
+    const [error, setError] = useState<string | null>(null);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
     useEffect(() => {
@@ -42,13 +43,19 @@ export default function ComputerDailyOverview() {
 
     const fetchData = async (date: string) => {
         setLoading(true);
+        setError(null);
         try {
-            const res = await axios.get(`/computer-inspection/api?date=${date}`);
+            // Using dynamic relative path to support sub-folder deployments
+            const baseUrl = window.location.pathname.replace(/\/$/, '');
+            const res = await axios.get(`${baseUrl}/api?date=${date}`);
             if (res.data.success) {
                 setSummary(res.data);
+            } else {
+                setError(res.data.message || "Failed to load computer data");
             }
-        } catch (error) {
-            console.error("Failed to fetch computer data", error);
+        } catch (err: any) {
+            console.error("Failed to fetch computer data", err);
+            setError(err.response?.data?.message || "Connection error. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -108,17 +115,41 @@ export default function ComputerDailyOverview() {
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-2 text-center"
                     >
-                        {/* <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-sm mb-4">
-                            <Sparkles className="h-4 w-4 text-purple-500" />
-                            <span className="text-sm font-medium bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                                Smart Inspection System
-                            </span>
-                        </div> */}
                         <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent mb-2">
                             ระบบตรวจสอบคอมพิวเตอร์
                         </h1>
                         <p className="text-gray-600">บริหารจัดการและติดตามผลการตรวจสอบอุปกรณ์คอมพิวเตอร์</p>
                     </motion.div>
+
+                    {/* Error Alert */}
+                    <AnimatePresence>
+                        {error && (
+                            <motion.div 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="mb-6"
+                            >
+                                <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between shadow-sm max-w-2xl mx-auto">
+                                    <div className="flex items-center gap-3 text-left">
+                                        <div className="p-2 bg-rose-100 text-rose-600 rounded-xl">
+                                            <AlertCircle className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-rose-800">เกิดข้อผิดพลาดในการดึงข้อมูล</p>
+                                            <p className="text-xs text-rose-600 font-medium">{error}</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => fetchData(selectedDate)}
+                                        className="px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-rose-700 transition-colors shadow-lg shadow-rose-200 shrink-0"
+                                    >
+                                        ลองใหม่
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {/* Control Panel */}
                     <motion.div 

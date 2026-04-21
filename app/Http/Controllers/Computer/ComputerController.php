@@ -202,17 +202,14 @@ class ComputerController extends Controller
             
             // Get inspections for the specified year
             $inspections = ComputerInspection::whereYear('inspection_date', $year)
-                ->selectRaw('computer_id, inspection_date, remark, checked_by, MONTH(inspection_date) as month')
                 ->get()
                 ->map(fn($item) => [
                     'computer_id' => $item->computer_id,
-                    'month' => $item->month,
+                    'month' => $item->inspection_date ? $item->inspection_date->month : null,
                     'is_inspected' => true,
                     'remark' => $item->remark,
                     'checked_by' => $item->checked_by,
-                    'inspection_date' => $item->inspection_date instanceof \DateTime 
-                        ? $item->inspection_date->format('Y-m-d') 
-                        : (is_string($item->inspection_date) ? $item->inspection_date : null)
+                    'inspection_date' => $item->inspection_date ? $item->inspection_date->format('Y-m-d') : null
                 ]);
 
             // Get plans for the specified year
