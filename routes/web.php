@@ -431,8 +431,11 @@ Route::middleware(['auth', 'permission:developer.view|it.view'])->group(function
     Route::post('/computer-checklists/reorder', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'reorder']);
 
     Route::get('/computer-inspection', [\App\Http\Controllers\Computer\ComputerController::class, 'index'])->name('computer.index');
+    Route::get('/computer-inspection/plan', [\App\Http\Controllers\Computer\ComputerController::class, 'plan'])->name('computer.plan');
     Route::get('/computer-inspection/form/{id}', [\App\Http\Controllers\Computer\ComputerController::class, 'form'])->name('computer.form');
     Route::get('/computer-inspection/api', [\App\Http\Controllers\Computer\ComputerController::class, 'apiData'])->name('computer.api');
+    Route::get('/computer-inspection/api/plan', [\App\Http\Controllers\Computer\ComputerController::class, 'apiPlan'])->name('computer.api.plan');
+    Route::post('/computer-inspection/api/toggle-plan', [\App\Http\Controllers\Computer\ComputerController::class, 'togglePlan'])->name('computer.api.toggle-plan');
     Route::get('/computer-inspection/api/{id}', [\App\Http\Controllers\Computer\ComputerController::class, 'show'])->name('computer.show');
     Route::post('/computer-inspection', [\App\Http\Controllers\Computer\ComputerController::class, 'store'])->name('computer.store');
 
