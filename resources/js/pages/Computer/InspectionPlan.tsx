@@ -75,6 +75,7 @@ export default function InspectionPlan() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [error, setError] = useState<string | null>(null);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [filterType, setFilterType] = useState<'isp' | 'mun'>('isp');
     const [hoveredRow, setHoveredRow] = useState<number | null>(null);
@@ -85,22 +86,27 @@ export default function InspectionPlan() {
 
     const fetchData = async () => {
         setLoading(true);
+        setError(null);
         try {
-            const res = await axios.get(`/computer-inspection/api/plan?year=${selectedYear}`);
+            // Using relative path to support sub-folder deployments
+            const res = await axios.get(`api/plan?year=${selectedYear}`);
             if (res.data.success) {
                 setComputers(res.data.computers);
                 setInspections(res.data.inspections || []);
                 setPlans(res.data.plans || []);
+            } else {
+                setError(res.data.message || "Failed to load plan data");
             }
-        } catch (error) {
-            console.error("Failed to fetch plan data", error);
-            setComputers([
-                { id: 1, code_com: "ISP-PC-001", model: "Dell Optiplex 7090", office: 1 },
-                { id: 2, code_com: "ISP-PC-002", model: "HP ProDesk 600 G6", office: 1 },
-                { id: 3, code_com: "MUN-PC-001", model: "Lenovo ThinkCentre M75q", office: 2 },
-                { id: 4, code_com: "ISP-PC-003", model: "Dell Precision 3650", office: 1 },
-                { id: 5, code_com: "MUN-PC-002", model: "HP EliteDesk 800 G6", office: 2 },
-            ]);
+        } catch (err: any) {
+            console.error("Failed to fetch plan data", err);
+            setError(err.response?.data?.message || "Connection error. Please try again.");
+            // Fallback for demo/development if needed
+            if (!computers.length) {
+                setComputers([
+                    { id: 1, code_com: "ISP-PC-001", model: "Dell Optiplex 7090", office: 1 },
+                    { id: 2, code_com: "ISP-PC-002", model: "HP ProDesk 600 G6", office: 1 },
+                ]);
+            }
         } finally {
             setLoading(false);
         }
@@ -167,7 +173,7 @@ export default function InspectionPlan() {
         const key = `${computerId}-${month}`;
         setActionLoading(key);
         try {
-            const res = await axios.post('/computer-inspection/api/toggle-plan', {
+            const res = await axios.post('api/toggle-plan', {
                 computer_id: computerId,
                 month,
                 year: selectedYear
@@ -200,6 +206,36 @@ export default function InspectionPlan() {
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-8"
                     >
+                        {/* Error Alert */}
+                        <AnimatePresence>
+                            {error && (
+                                <motion.div 
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="mb-6"
+                                >
+                                    <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-rose-100 text-rose-600 rounded-xl">
+                                                <X className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-rose-800">เกิดข้อผิดพลาดในการดึงข้อมูล</p>
+                                                <p className="text-xs text-rose-600 font-medium">{error}</p>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => fetchData()}
+                                            className="px-4 py-2 bg-rose-600 text-white text-xs font-bold rounded-xl hover:bg-rose-700 transition-colors shadow-lg shadow-rose-200"
+                                        >
+                                            ลองใหม่
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                                 <div className="relative">

@@ -13,6 +13,7 @@ class ComputerInspection extends Model
     protected $casts = [
         'data' => 'array',
         'image_paths' => 'array',
+        'inspection_date' => 'date',
     ];
 
     public function computer()
