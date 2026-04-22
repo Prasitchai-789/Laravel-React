@@ -438,6 +438,7 @@ Route::middleware(['auth', 'permission:developer.view|it.view'])->group(function
     Route::post('/computer-inspection/api/toggle-plan', [\App\Http\Controllers\Computer\ComputerController::class, 'togglePlan'])->name('computer.api.toggle-plan');
     Route::get('/computer-inspection/api/{id}', [\App\Http\Controllers\Computer\ComputerController::class, 'show'])->name('computer.show');
     Route::post('/computer-inspection', [\App\Http\Controllers\Computer\ComputerController::class, 'store'])->name('computer.store');
+    Route::get('/computer-inspection/report/{id}', [\App\Http\Controllers\Computer\ComputerController::class, 'report'])->name('computer.report');
 
     // CCTV Preventive Maintenance
     Route::get('/cctv-inspection', [\App\Http\Controllers\CCTV\CctvController::class, 'index'])->name('cctv.index');

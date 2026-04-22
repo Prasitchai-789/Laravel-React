@@ -204,6 +204,7 @@ class ComputerController extends Controller
             $inspections = ComputerInspection::whereYear('inspection_date', $year)
                 ->get()
                 ->map(fn($item) => [
+                    'id' => $item->id,
                     'computer_id' => $item->computer_id,
                     'month' => $item->inspection_date ? $item->inspection_date->month : null,
                     'is_inspected' => true,
@@ -271,5 +272,16 @@ class ComputerController extends Controller
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function report($id)
+    {
+        $inspection = ComputerInspection::with('computer')->findOrFail($id);
+        $topics = ComputerChecklistTopic::where('is_active', true)->orderBy('order', 'asc')->get();
+        
+        return Inertia::render('Computer/InspectionReport', [
+            'inspection' => $inspection,
+            'topics' => $topics
+        ]);
     }
 }

@@ -583,7 +583,7 @@ export default function ComputerInspectionForm({ computer_id }: { computer_id: s
                                                 <div className="p-4 px-6">
                                                     <div className="flex flex-col lg:flex-row gap-4 lg:items-center">
                                                         {/* Topic Title with Expand/Collapse */}
-                                                        <div className="lg:w-3/4 flex items-start gap-3">
+                                                        <div className="lg:w-1/4 flex items-start gap-3">
                                                             {/* <button
                                                                 onClick={() => toggleSection(item.topic_id)}
                                                                 className="flex-shrink-0 mt-1"

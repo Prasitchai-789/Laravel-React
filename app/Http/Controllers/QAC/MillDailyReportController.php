@@ -10,6 +10,7 @@ use App\Models\QAC\SiloRecord;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Models\Certificate;
 use Illuminate\Support\Facades\DB;
 
 class MillDailyReportController extends Controller
@@ -35,7 +36,7 @@ class MillDailyReportController extends Controller
         // 2. Oil Quality & Yield (Section B.1)
         $cpo = CPOData::whereDate('date', $date->format('Y-m-d'))->first();
         $mtdCpo = CPOData::whereBetween('date', [$monthStart->format('Y-m-d'), $date->format('Y-m-d')])
-            ->selectRaw('SUM(product_cpo + purge_system) as total_oil_produced')
+            ->selectRaw('SUM(COALESCE(product_cpo, 0) + COALESCE(purge_system, 0)) as total_oil_produced')
             ->first();
 
         // Section C: Despatch (Sales from sqlsrv2.SOPlan)
@@ -79,7 +80,15 @@ class MillDailyReportController extends Controller
             ->selectRaw('SUM(efb_fiber_produced) as total_efb, SUM(shell_produced) as total_shell, SUM(efb_fiber_sold) as mtd_efb_sold, SUM(shell_sold) as mtd_shell_sold')
             ->first();
 
-        // 5. Final Assembly
+        // 5. COA Data (Section C: OIL Quality)
+        $coaAverages = Certificate::whereDate('date_coa', $date->format('Y-m-d'))
+            ->selectRaw('AVG(CAST(result_moisture AS float)) as avg_moisture, 
+                         AVG(CAST(result_FFA AS float)) as avg_ffa, 
+                         AVG(CAST(result_dobi AS float)) as avg_dobi,
+                         AVG(CAST(result_kn_moisture AS float)) as avg_kn_moisture')
+            ->first();
+
+        // 6. Final Assembly
         $data = [
             'date' => $date->format('d/m/Y'),
             'ffb' => [
@@ -124,10 +133,14 @@ class MillDailyReportController extends Controller
                 'oil' => [
                     'tons' => isset($salesDaily[2147]) ? (float)$salesDaily[2147]->total_netwei / 1000 : 0,
                     'mtd_tons' => isset($salesMTD[2147]) ? (float)$salesMTD[2147]->total_netwei / 1000 : 0,
+                    'ffa' => (float)($coaAverages->avg_ffa ?? 0),
+                    'moisture' => (float)($coaAverages->avg_moisture ?? 0),
+                    'dobi' => (float)($coaAverages->avg_dobi ?? 0),
                 ],
                 'kernel' => [
                     'tons' => isset($salesDaily[2152]) ? (float)$salesDaily[2152]->total_netwei / 1000 : 0,
                     'mtd_tons' => isset($salesMTD[2152]) ? (float)$salesMTD[2152]->total_netwei / 1000 : 0,
+                    'moisture' => (float)($coaAverages->avg_kn_moisture ?? 0),
                 ],
                 'efb' => [
                     'tons' => isset($salesDaily[2149]) ? (float)$salesDaily[2149]->total_netwei / 1000 : 0,
@@ -146,9 +159,10 @@ class MillDailyReportController extends Controller
                     ['name' => 'TANK NO. 4', 'tons' => 0, 'ffa' => 0, 'moisture' => 0, 'dobi' => 0],
                 ],
                 'silos' => [
-                    ['name' => 'KERNEL SILO อบ NO.1', 'tons' => $silo ? $silo->kernel_silo_1_level : 0],
-                    ['name' => 'KERNEL SILO อบ NO.2', 'tons' => $silo ? $silo->kernel_silo_2_level : 0],
-                    ['name' => 'KERNEL SILO DESPATCH No.1', 'tons' => $silo ? $silo->silo_sale_big_level : 0],
+                    ['name' => 'Nut1 + Nut2', 'nut' => $currentProducts ? (float)$currentProducts->nut : 0, 'kernel' => $currentProducts ? (float)$currentProducts->nut /2 : 0],
+                    ['name' => 'KERNEL SILO DESPATCH No.1', 'nut' => 0, 'kernel' => $currentProducts ? (float)$currentProducts->pkn : 0],
+                    ['name' => 'KERNEL SILO อบ NO.1', 'nut' => 0, 'kernel' => $currentProducts ? (float)$currentProducts->silo_1 : 0],
+                    ['name' => 'KERNEL SILO อบ NO.2', 'nut' => 0, 'kernel' => $currentProducts ? (float)$currentProducts->silo_2 : 0],
                 ],
                 'by_products' => [
                     ['name' => 'EFB', 'tons' => $byProd ? $byProd->efb_fiber_balance : 0],
@@ -163,6 +177,8 @@ class MillDailyReportController extends Controller
                 'feed_production' => $cpo ? (string)$cpo->feed_production : '',
                 'despatch_oil' => $cpo ? (string)$cpo->despatch_oil : '',
                 'despatch_tank' => $cpo ? (string)$cpo->despatch_tank : '',
+                'kernel_dirt' => $cpo ? (string)$cpo->kernel_dirt : '',
+                'kernel_dirt_prod' => $cpo ? (string)$cpo->kernel_dirt_prod : '',
             ],
         ];
 
@@ -173,7 +189,7 @@ class MillDailyReportController extends Controller
     {
         $validated = $request->validate([
             'date' => 'required|date',
-            'field' => 'required|string|in:feed_production,despatch_oil,despatch_tank',
+            'field' => 'required|string|in:feed_production,despatch_oil,despatch_tank,kernel_dirt,kernel_dirt_prod',
             'value' => 'nullable'
         ]);
 

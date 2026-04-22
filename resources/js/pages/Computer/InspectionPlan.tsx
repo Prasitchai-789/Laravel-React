@@ -14,7 +14,8 @@ import {
     Sparkles,
     ChevronLeft,
     ChevronRight,
-    X
+    X,
+    Printer
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -26,6 +27,7 @@ interface Computer {
 }
 
 interface InspectionStatus {
+    id?: number;
     computer_id: number;
     month: number;
     is_inspected: boolean;
@@ -611,7 +613,7 @@ export default function InspectionPlan() {
                                                                             disabled={isLoading}
                                                                             onClick={() => {
                                                                                 if (isDone) {
-                                                                                    // View details
+                                                                                    window.open(`/computer-inspection/report/${currentInspection.id}`, '_blank');
                                                                                 } else if (isPlanned) {
                                                                                     router.visit(`/computer-inspection/form/${comp.id}?month=${month}&year=${selectedYear}`);
                                                                                 } else {
@@ -657,6 +659,10 @@ export default function InspectionPlan() {
                                                                                                 </p>
                                                                                             </div>
                                                                                         )}
+                                                                                        <div className="mt-1 flex items-center justify-center gap-1.5 py-1.5 bg-blue-500/20 rounded-lg border border-blue-500/30">
+                                                                                            <Printer className="w-3 h-3 text-blue-400" />
+                                                                                            <span className="text-[9px] font-black uppercase text-blue-300 tracking-tighter">Click to view Report</span>
+                                                                                        </div>
                                                                                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-[6px] border-transparent border-t-slate-900/95" />
                                                                                     </div>
                                                                                 </motion.div>
