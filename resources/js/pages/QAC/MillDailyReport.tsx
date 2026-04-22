@@ -21,8 +21,8 @@ interface ReportData {
         shell: { tons: number; yield: number; mtd_tons: number; mtd_yield: number };
     };
     despatch: {
-        oil: { tons: number; mtd_tons: number };
-        kernel: { tons: number; mtd_tons: number };
+        oil: { tons: number; mtd_tons: number; ffa: number; moisture: number; dobi: number };
+        kernel: { tons: number; mtd_tons: number; moisture: number };
         efb: { tons: number; mtd_tons: number };
         shell: { tons: number; mtd_tons: number };
     };
@@ -39,6 +39,8 @@ interface ReportData {
         feed_production: string;
         despatch_oil: string;
         despatch_tank: string;
+        kernel_dirt: string;
+        kernel_dirt_prod: string;
     };
 }
 
@@ -49,6 +51,8 @@ export default function MillDailyReport() {
     const [localFeed, setLocalFeed] = useState('');
     const [localDespatch, setLocalDespatch] = useState('');
     const [localTankNo, setLocalTankNo] = useState('');
+    const [localKernelDirt, setLocalKernelDirt] = useState('');
+    const [localKernelDirtProd, setLocalKernelDirtProd] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
     const fetchData = async () => {
@@ -59,6 +63,8 @@ export default function MillDailyReport() {
             setLocalFeed(response.data.additional_metrics.feed_production?.toString() || '');
             setLocalDespatch(response.data.additional_metrics.despatch_oil?.toString() || '');
             setLocalTankNo(response.data.additional_metrics.despatch_tank || '');
+            setLocalKernelDirt(response.data.additional_metrics.kernel_dirt || '');
+            setLocalKernelDirtProd(response.data.additional_metrics.kernel_dirt_prod || '');
         } catch (error) {
             console.error('Error fetching report data:', error);
         } finally {
@@ -74,10 +80,14 @@ export default function MillDailyReport() {
         window.print();
     };
 
-    const fN = (v: number | null | undefined, dec = 3) => 
-        (v !== null && v !== undefined && Number(v) !== 0) ? v.toLocaleString('th-TH', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : '-';
+    const fN = (v: any, dec = 3) => {
+        const num = Number(v);
+        return (v !== null && v !== undefined && !isNaN(num) && num !== 0) 
+            ? num.toLocaleString('th-TH', { minimumFractionDigits: dec, maximumFractionDigits: dec }) 
+            : '-';
+    };
 
-    const handleSave = async (field: 'feed_production' | 'despatch_oil' | 'despatch_tank', value: string) => {
+    const handleSave = async (field: 'feed_production' | 'despatch_oil' | 'despatch_tank' | 'kernel_dirt' | 'kernel_dirt_prod', value: string) => {
         if (!data) return;
         setIsSaving(true);
         try {
@@ -267,10 +277,23 @@ export default function MillDailyReport() {
                                     <div className={`col-span-1 h-4 mx-1 ${row.label === '1. OIL' ? '' : row.label === '2. KERNEL' ? '' : ''}`}></div>
                                     <div className="col-span-1 text-right pr-1 tabular-nums">{fN(row.ffa as any, 2)}</div>
                                     <div className="col-span-2 text-right pr-1 tabular-nums">{fN(row.moisture as any, 2)}</div>
-                                    <div className="col-span-1 text-right pr-1 tabular-nums">{fN(row.dobi as any, 2)}</div>
+                                    <div className="col-span-1 text-right pr-1 tabular-nums">
+                                        {row.label === '2. KERNEL' ? (
+                                            <div className="relative group">
+                                                <input 
+                                                    type="text"
+                                                    value={localKernelDirtProd}
+                                                    onChange={(e) => setLocalKernelDirtProd(e.target.value)}
+                                                    onBlur={() => handleSave('kernel_dirt_prod', localKernelDirtProd)}
+                                                    className="w-15 h-6 border border-slate-200 rounded text-[10px]focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all print:border-none print:px-0 bg-transparent text-center italic"
+                                                />
+                                                {isSaving && <div className="absolute -left-1 top-1.5 w-1 h-1 bg-indigo-600 rounded-full animate-pulse"></div>}
+                                            </div>
+                                        ) : fN(row.dobi as any, 2)}
+                                    </div>
                                     <div className="col-span-3 grid grid-cols-2 border border-black text-end py-0.5 bg-orange-50 ml-1 font-bold pr-2">
-                                        <span className={row.label === '1. OIL' ? 'bg-yellow-200' : ''}>{fN(row.mtdTons)}</span>
-                                        <span className={row.label === '1. OIL' ? 'bg-yellow-200' : ''}>{fN(row.mtdYield, 2)}</span>
+                                        <span className={row.label === '1. OIL' ? '' : ''}>{fN(row.mtdTons)}</span>
+                                        <span className={row.label === '1. OIL' ? '' : ''}>{fN(row.mtdYield, 2)}</span>
                                     </div>
                                 </div>
                             ))}
@@ -291,8 +314,8 @@ export default function MillDailyReport() {
                         </div>
                         <div className="space-y-px">
                             {[
-                                { label: '1. OIL', tons: data?.despatch.oil.tons, ffa: 4.03, moisture: 0.13, dobi: 2.17, mtdTons: data?.despatch.oil.mtd_tons },
-                                { label: '2. KERNEL', tons: data?.despatch.kernel.tons, moisture: 4.03, mtdTons: data?.despatch.kernel.mtd_tons },
+                                { label: '1. OIL', tons: data?.despatch.oil.tons, ffa: data?.despatch.oil.ffa, moisture: data?.despatch.oil.moisture, dobi: data?.despatch.oil.dobi, mtdTons: data?.despatch.oil.mtd_tons },
+                                { label: '2. KERNEL', tons: data?.despatch.kernel.tons, moisture: data?.despatch.kernel.moisture, mtdTons: data?.despatch.kernel.mtd_tons },
                                 { label: '3. EFB', tons: data?.despatch.efb.tons, mtdTons: data?.despatch.efb.mtd_tons },
                                 { label: '4. SHELL', tons: data?.despatch.shell.tons, mtdTons: data?.despatch.shell.mtd_tons },
                             ].map((row, idx) => (
@@ -303,7 +326,20 @@ export default function MillDailyReport() {
                                     <div className={`col-span-1 h-4 mx-1 ${row.label === '1. OIL' ? '' : row.label === '2. KERNEL' ? '' : row.label === '4. SHELL' ? '' : ''}`}></div>
                                     <div className="col-span-1 text-right pr-1 tabular-nums">{fN(row.ffa as any, 2)}</div>
                                     <div className="col-span-2 text-right pr-4 tabular-nums">{fN(row.moisture as any, 2)}</div>
-                                    <div className="col-span-1 text-right pr-2 text-[9px] italic tabular-nums">{row.label === '2. KERNEL' ? '%dirt=4.82' : fN(row.dobi as any, 2)}</div>
+                                    <div className="col-span-1 text-right pr-2 tabular-nums">
+                                        {row.label === '2. KERNEL' ? (
+                                            <div className="relative group">
+                                                <input 
+                                                    type="text"
+                                                    value={localKernelDirt}
+                                                    onChange={(e) => setLocalKernelDirt(e.target.value)}
+                                                    onBlur={() => handleSave('kernel_dirt', localKernelDirt)}
+                                                    className="w-15 h-6 border border-slate-200 rounded text-[10px] focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all print:border-none print:px-0 bg-transparent text-center italic"
+                                                />
+                                                {isSaving && <div className="absolute -left-1 top-1.5 w-1 h-1 bg-indigo-600 rounded-full animate-pulse"></div>}
+                                            </div>
+                                        ) : fN(row.dobi as any, 2)}
+                                    </div>
                                     <div className="col-span-3 border border-black text-end py-0.5 bg-blue-50/50 ml-1 font-bold pr-2">
                                         {fN(row.mtdTons)}
                                     </div>
@@ -340,30 +376,35 @@ export default function MillDailyReport() {
                                     <div className="flex border-t border-black mt-1 pt-1 font-bold">
                                         <div className="w-[45%] text-right pr-4 italic text-[10px]">TOTAL OIL.</div>
                                         <div className="w-[18%] text-end pr-3 tabular-nums">{fN(data?.storage.tanks.reduce((s, t) => s + (t.tons || 0), 0))}</div>
-                                        <div className="w-[18%] text-center text-indigo-700">{fN(data?.storage.tanks[1]?.ffa, 2)}</div>
-                                        <div className="w-[18%] text-center text-slate-400">0.00</div>
-                                        <div className="w-[18%] text-center text-indigo-700">{fN(data?.storage.tanks[1]?.dobi, 2)}</div>
+                                        <div className="w-[18%] text-center text-indigo-700"></div>
+                                        <div className="w-[18%] text-center text-slate-400"></div>
+                                        <div className="w-[18%] text-center text-indigo-700"></div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Right: Kernel Storage */}
                             <div>
-                                <div className="flex text-[10px] font-bold mb-1 text-slate-500 uppercase tracking-tight mt-[18px]">
+                                <div className="flex text-[10px] font-bold mb-1 text-slate-500 uppercase tracking-tight">
                                     <div className="w-[70%]">2. KERNEL</div>
-                                    <div className="w-[30%] text-right pr-4">LEVEL</div>
+                                    <div className="w-[30%] text-right pr-4">Total Nut</div>
+                                    <div className="w-[30%] text-right pr-4">KERNEL</div>
                                 </div>
                                 <div className="space-y-px text-[11px]">
-                                    {data?.storage.silos.map((silo, idx) => (
+                                    {data?.storage.silos.map((silo: any, idx: number) => (
                                         <div key={idx} className="flex border-b border-dotted border-slate-200 py-1 items-baseline">
-                                            <div className="w-[70%] text-slate-600">{silo.name}</div>
-                                            <div className="w-[30%] text-right pr-4 font-black text-indigo-700 tabular-nums">{fN(silo.tons, 0)}</div>
+                                            <div className="w-[40%] text-slate-600 truncate">{silo.name}</div>
+                                            <div className="w-[30%] text-right pr-4 font-black text-orange-700 tabular-nums">{fN(silo.nut, 3)}</div>
+                                            <div className="w-[30%] text-right pr-4 font-black text-indigo-700 tabular-nums">{fN(silo.kernel, 3)}</div>
                                         </div>
                                     ))}
-                                    <div className="flex border-t-2 border-black mt-1 py-1 font-bold">
-                                        <div className="w-[70%] text-right pr-4 italic">TOTAL (TONS).</div>
-                                        <div className="w-[30%] text-center border-2 border-black bg-orange-100/50 font-black text-lg leading-none shadow-sm h-7 flex items-center justify-center tabular-nums">
-                                            {fN(data?.storage.silos.reduce((acc, s) => acc + (s.tons || 0), 0))}
+                                    <div className="flex border-t-1 border-black mt-1 py-1 font-bold items-center">
+                                        <div className="w-[40%] text-right pr-4 italic text-[10px]">TOTAL KERNEL (TONS).</div>
+                                        <div className="w-[30%] text-right pr-4 tabular-nums text-orange-800 font-black">
+                                            {/* {fN(data?.storage.silos.reduce((acc: number, s: any) => acc + (s.nut || 0), 0))} */}
+                                        </div>
+                                        <div className="w-[30%] text-right pr-4 tabular-nums text-indigo-800 font-black">
+                                            {fN(data?.storage.silos.reduce((acc: number, s: any) => acc + (s.kernel || 0), 0))}
                                         </div>
                                     </div>
                                 </div>

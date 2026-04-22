@@ -33,7 +33,7 @@ class CPOData extends Model
         'total_cpo', 'ffa_cpo', 'dobi_cpo', 'cs1_cm',
         'undilute_1', 'undilute_2', 'setting', 'clean_oil' ,'skim','mix','loop_back',
         'purge_system', 'adjustment', 'cpo_oil_room',
-        'product_cpo', 'p_cpo', 'feed_production', 'despatch_oil', 'despatch_tank'
+        'product_cpo', 'p_cpo', 'feed_production', 'despatch_oil', 'despatch_tank', 'kernel_dirt', 'kernel_dirt_prod'
     ];
 
 
