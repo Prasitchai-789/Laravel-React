@@ -235,15 +235,21 @@ const DevNavItems: NavItem[] = [
         permission: ['developer.view', 'gm.view'],
     },
     {
-        title: 'Executive Report',
+        title: 'รายงานการขาย',
         href: '/purchase/executive-report',
         icon: LayoutDashboard,
         permission: ['developer.view', 'gm.view'],
     },
     {
-        title: 'Executive Production',
+        title: 'รายงานการผลิต',
         href: '/purchase/executive-production-report',
         icon: Factory,
+        permission: ['developer.view', 'gm.view'],
+    },
+    {
+        title: 'CPO Supply Dashboard',
+        href: '/stock/cpo-supply-dashboard',
+        icon: ChartCandlestick,
         permission: ['developer.view', 'gm.view'],
     },
     {
@@ -252,6 +258,7 @@ const DevNavItems: NavItem[] = [
         icon: Database,
         permission: ['developer.view', 'gm.view'],
     },
+    
     {
         title: 'ปริมาณผลปาล์ม',
         href: '/palm/table',

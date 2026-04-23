@@ -151,10 +151,17 @@ class POInvDashboardService
                 ];
             }),
             'remaining_stock' => [
-                'volume' => round($ffbRemain, 2), // Ton
-                'amount_mb' => round(($ffbRemain * $todayStats->avg_price) / 1000.0, 2),
-                'cpo_volume' => round($cpoVolume, 2),
-                'yield_7d' => round($yield7Days, 2),
+                'volume'        => round($ffbRemain, 2),
+                'amount_mb'     => round(($ffbRemain * $todayStats->avg_price) / 1000.0, 2),
+                'cpo_volume'    => round($cpoVolume, 2),
+                'yield_7d'      => round($yield7Days, 2),
+                // ราคาเฉลี่ย FFB ล่าสุด (฿/kg) — ใช้วันนี้ก่อน, fallback เดือนนี้
+                'avg_ffb_price' => round(
+                    ((float)$todayStats->avg_price > 0)
+                        ? $todayStats->avg_price
+                        : $monthStats->avg_price,
+                    2
+                ),
             ]
         ];
     }

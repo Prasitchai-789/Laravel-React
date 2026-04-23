@@ -23,9 +23,9 @@ import { DetailedPalmCard } from '@/components/Production/ProductionKPICards';
 
 interface DashboardData {
   today: { volume: number; amount_mb: number; avg_price: number };
-  monthly: { 
-    volume: number; 
-    amount_mb: number; 
+  monthly: {
+    volume: number;
+    amount_mb: number;
     avg_price: number;
     volume_prev_year: number;
   };
@@ -80,54 +80,46 @@ export default function POInvDashboard() {
       }
     };
     fetchData();
-    const interval = setInterval(fetchData, 60000);
-    return () => { isMounted = false; clearInterval(interval); };
+    return () => { isMounted = false; };
   }, [selectedDate]);
 
   return (
     <AppLayout breadcrumbs={[{ title: 'Purchase', href: '#' }, { title: 'PO Invoice Dashboard', href: '#' }]}>
       <Head title="รายงานรับซื้อผลปาล์ม" />
 
-      {/* พื้นหลังแบบ Soft Gradient ดูสะอาดตา */}
-      <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 via-slate-50 to-slate-100/80 font-anuphan text-slate-800 overflow-hidden">
+      {/* Main Container: Responsive scrolling */}
+      <div className="min-h-screen lg:h-screen flex flex-col bg-gradient-to-br from-slate-50 via-slate-50 to-slate-100/80 font-anuphan text-slate-800 overflow-y-auto lg:overflow-hidden pb-10 lg:pb-0">
 
         {/* ── HEADER ── */}
-        <div className="flex-none px-6 pt-3 pb-2">
-          <div className="flex items-center justify-between bg-white/80 backdrop-blur-2xl rounded-2xl ring-1 ring-slate-900/5 shadow-sm px-4 py-2">
-            <div className="flex items-center gap-4">
-              <div className="relative group">
+        <div className="flex-none px-4 lg:px-6 pt-3 pb-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white/80 backdrop-blur-2xl rounded-2xl ring-1 ring-slate-900/5 shadow-sm px-4 py-3 sm:py-2 gap-4 sm:gap-0">
+            <div className="flex items-center gap-3 lg:gap-4">
+              <div className="relative group shrink-0">
                 <div className="absolute inset-0 bg-emerald-500 rounded-xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity" />
-                <div className="relative w-11 h-11 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-xl flex items-center justify-center shadow-sm border border-white/20">
+                <div className="relative w-10 h-10 lg:w-11 lg:h-11 bg-gradient-to-br from-emerald-400 to-teal-600 rounded-xl flex items-center justify-center shadow-sm border border-white/20">
                   <Leaf className="w-5 h-5 text-white" />
                 </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-                  รายงานรับซื้อผลปาล์ม {dayjs(selectedDate).format('D MMMM BBBB')}
+              <div className="min-w-0">
+                <h1 className="text-xl lg:text-2xl font-black text-slate-800 tracking-tight truncate">
+                  รายงานรับซื้อผลปาล์ม
                 </h1>
-                <p className="text-slate-500 text-xs font-semibold flex items-center gap-1.5 mt-0.5">
+                <p className="text-slate-700 text-[14px] sm:text-md font-semibold flex items-center gap-1.5 mt-0.5">
                   <Activity className="w-3.5 h-3.5 text-emerald-500" />
-                  Live PO Invoice Dashboard
+                  {dayjs(selectedDate).format('D MMMM BBBB')}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* <div className="flex items-center gap-2 bg-emerald-50/80 backdrop-blur-sm border border-emerald-200/50 px-3 py-1.5 rounded-full shadow-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span className="text-emerald-700 font-bold text-xs uppercase tracking-wide">Live Updates</span>
-              </div> */}
-              <div className="flex items-center gap-2.5 bg-white ring-1 ring-slate-900/5 rounded-xl px-4 py-2 shadow-sm hover:shadow-md transition-shadow">
-                <CalendarDays className="w-4 h-4 text-slate-400" />
+            <div className="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2">
+              <div className="flex items-center gap-2.5 bg-white ring-1 ring-slate-900/5 rounded-xl px-3 sm:px-4 py-2 shadow-sm hover:shadow-md transition-shadow w-full sm:w-auto">
+                <CalendarDays className="w-4 h-4 text-slate-400 shrink-0" />
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={e => setSelectedDate(e.target.value)}
                   max={new Date().toISOString().split('T')[0]}
-                  className="border-none bg-transparent text-slate-700 text-sm p-0 focus:ring-0 font-mono font-bold cursor-pointer"
+                  className="border-none bg-transparent text-slate-700 text-sm p-0 focus:ring-0 font-mono font-bold cursor-pointer w-full sm:w-auto"
                 />
               </div>
             </div>
@@ -135,7 +127,7 @@ export default function POInvDashboard() {
         </div>
 
         {/* ── BODY ── */}
-        <div className="flex-1 max-h-0 px-6 pb-4">
+        <div className="flex-1 lg:max-h-0 px-4 lg:px-6 pb-4">
           {isLoading && !data ? (
             <div className="flex items-center justify-center min-h-[60vh]">
               <div className="text-center">
@@ -143,41 +135,41 @@ export default function POInvDashboard() {
                   <div className="absolute inset-0 rounded-full border-4 border-emerald-100" />
                   <div className="absolute inset-0 rounded-full border-4 border-t-emerald-500 animate-spin" />
                 </div>
-                <p className="text-slate-500 font-medium">กำลังโหลดข้อมูล...</p>
+                <p className="text-slate-500 font-medium font-anuphan">กำลังโหลดข้อมูล...</p>
               </div>
             </div>
           ) : data ? (
-            <div className="h-full grid grid-cols-12 gap-1.5">
+            <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-1.5">
 
-              {/* ── COL LEFT: Today Stats (Light & Clean Cards) ── */}
-              <div className="col-span-3 flex flex-col gap-1.5">
+              {/* ── COL LEFT: Today Stats ── */}
+              <div className="order-1 col-span-1 lg:col-span-3 flex flex-col gap-3 lg:gap-1.5 lg:h-full">
                 {[
-                  { key: 'vol', title: 'ปริมาณผลปาล์ม', value: data.today.volume, unit: 'ตัน', color: '#10b981', bg: 'bg-emerald-50', text: 'text-emerald-700', dataKey: 'volume' },
-                  { key: 'amt', title: 'ยอดเงิน', value: data.today.amount_mb, unit: 'MB.', color: '#0ea5e9', bg: 'bg-sky-50', text: 'text-sky-700', dataKey: 'amount' },
-                  { key: 'prc', title: 'ราคาเฉลี่ย', value: data.today.avg_price, unit: 'บาท/กก.', color: '#f59e0b', bg: 'bg-amber-50', text: 'text-amber-700', dataKey: 'price' },
-                ].map((card, idx) => (
+                  { key: 'vol', title: 'ปริมาณผลปาล์ม', value: data.today.volume, unit: 'Tons', color: '#10b981', bg: 'bg-emerald-50', text: 'text-emerald-700', dataKey: 'volume', delay: 0 },
+                  { key: 'amt', title: 'ยอดเงินวันนี้', value: data.today.amount_mb, unit: 'MB', color: '#0ea5e9', bg: 'bg-sky-50', text: 'text-sky-700', dataKey: 'amount', delay: 0.1 },
+                  { key: 'prc', title: 'ราคาเฉลี่ยวันนี้', value: data.today.avg_price, unit: 'บาท/กก.', color: '#f59e0b', bg: 'bg-amber-50', text: 'text-amber-700', dataKey: 'price', delay: 0.2 },
+                ].map((card) => (
                   <motion.div
                     key={card.key}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
-                    className="group relative flex-1 flex flex-col justify-between bg-white rounded-3xl p-3.5 ring-1 ring-slate-900/5 shadow-sm hover:shadow-lg hover:ring-slate-900/10 transition-all duration-300"
+                    transition={{ delay: card.delay }}
+                    className="group relative flex-1 flex flex-col justify-between bg-white rounded-3xl p-4 lg:p-3.5 ring-1 ring-slate-900/5 shadow-sm hover:shadow-lg transition-all duration-300 min-h-[140px] sm:min-h-0"
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <p className="text-slate-700 font-semibold text-sm">{card.title}</p>
-                        <div className={`px-2 py-1 rounded-md ${card.bg} ${card.text} font-bold text-[10px] uppercase tracking-wider`}>
+                      <div className="flex items-center justify-between mb-2 lg:mb-1.5">
+                        <p className="text-slate-700 font-bold text-sm lg:text-xs uppercase tracking-wide font-anuphan">{card.title}</p>
+                        <div className={`px-2 py-1 rounded-md ${card.bg} ${card.text} font-black text-[9px] lg:text-[8px] uppercase tracking-widest`}>
                           Today
                         </div>
                       </div>
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-4xl font-black text-slate-800 font-mono tracking-tight">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-3xl lg:text-4xl font-black text-slate-800 tabular-nums tracking-tight font-anuphan">
                           <CountUp end={card.value} decimals={2} duration={2} separator="," />
                         </span>
-                        <span className="text-sm text-slate-700">{card.unit}</span>
+                        <span className="text-xs lg:text-[10px] font-bold text-slate-400 uppercase font-anuphan">{card.unit}</span>
                       </div>
                     </div>
-                    <div className="h-20 -ml-4.5">
+                    <div className="h-16 lg:h-20 -mx-4 lg:-mx-4.5 mt-2 overflow-hidden">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={data.chart.slice(-7)}>
                           <defs>
@@ -196,42 +188,38 @@ export default function POInvDashboard() {
               </div>
 
               {/* ── COL CENTER: Main Charts ── */}
-              <div className="col-span-6 flex flex-col gap-1.5">
-                
+              <div className="order-3 lg:order-2 col-span-1 lg:col-span-6 flex flex-col gap-4 lg:gap-1.5 lg:h-full">
+
                 {/* Bar Chart */}
                 <motion.div
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.15 }}
-                  className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col overflow-hidden"
+                  className="flex-[2] bg-white rounded-3xl border border-slate-100 shadow-sm p-5 lg:p-4 flex flex-col overflow-hidden min-h-[250px]"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center">
-                        <BarChart3 className="w-3.5 h-3.5 text-emerald-500" />
+                  <div className="flex items-center justify-between mb-4 lg:mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center">
+                        <BarChart3 className="w-4 h-4 text-emerald-500" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-800 text-sm">แนวโน้มปริมาณรับซื้อ</h3>
-                        <p className="text-slate-400 text-[10px] font-medium">ย้อนหลัง 7 วัน (ตัน)</p>
+                        <h3 className="font-black text-slate-800 text-sm font-anuphan">แนวโน้มปริมาณรับซื้อ</h3>
+                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">ย้อนหลัง 7 วัน (ตัน)</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full">
-                      <TrendingUp className="w-3 h-3" />
-                      {/* <span>+12.5%</span> */}
-                    </div>
                   </div>
-                  <div className="h-32">
+                  <div className="flex-1 min-h-[140px] lg:min-h-0 relative">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={data.chart} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                      <BarChart data={data.chart.slice(-7)} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#000000ff', fontSize: 10, fontWeight: 500 }} dy={6} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#cbd5e1', fontSize: 10 }} width={35} />
+                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#000000ff', fontSize: 10, fontWeight: 600 }} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#ffffffff', fontSize: 10 }} width={40} />
                         <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
-                        <Bar dataKey="volume" radius={[4, 4, 0, 0]} maxBarSize={40} animationDuration={1200}>
-                          {data.chart.map((_, i) => (
-                            <Cell key={i} fill={i === data.chart.length - 1 ? '#03981cff' : '#1b04eaff'} />
+                        <Bar dataKey="volume" radius={[6, 6, 0, 0]} maxBarSize={40} animationDuration={1500}>
+                          {data.chart.slice(-7).map((_, i, arr) => (
+                            <Cell key={i} fill={i === arr.length - 1 ? '#10b981' : '#0672ffff'} fillOpacity={i === arr.length - 1 ? 1 : 0.7} />
                           ))}
-                          <LabelList dataKey="volume" position="top" fill="#000000ff" fontSize={10} fontWeight={600} formatter={(v: any) => v.toLocaleString()} dy={-5} />
+                          <LabelList dataKey="volume" position="top" fill="#1e293b" fontSize={10} fontWeight={800} formatter={(v: any) => v?.toLocaleString() ?? ''} dy={-8} />
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
@@ -243,42 +231,40 @@ export default function POInvDashboard() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="flex-[3] bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex flex-col overflow-hidden"
+                  className="flex-[3] bg-white rounded-3xl border border-slate-100 shadow-sm p-5 lg:p-4 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0"
                 >
-                  <div className="flex items-center justify-between mb-2 flex-none">
+                  <div className="flex items-center justify-between mb-4 flex-none">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center ring-1 ring-blue-100">
-                        <Trophy className="w-4 h-4 text-blue-500" />
+                      <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center ring-1 ring-blue-100">
+                        <Trophy className="w-5 h-5 text-blue-500" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-800 text-sm">สุดยอดผู้ขายประจำเดือน</h3>
-                        <p className="text-slate-400 text-[11px] font-medium mt-0.5">Top 5 Vendors by Volume</p>
+                        <h3 className="font-black text-slate-800 text-sm font-anuphan">สุดยอดผู้ขายประจำเดือน</h3>
+                        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">Top 5 Vendors by Volume</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5 flex-1 min-h-0 overflow-hidden pr-2">
+                  <div className="flex flex-col gap-3 lg:gap-1.5 flex-1 min-h-0 lg:overflow-y-auto pr-1 custom-scrollbar">
                     {data.top5.map((vendor, idx) => (
                       <motion.div
                         key={idx}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.4 + idx * 0.08 }}
-                        className={`group flex items-center gap-2 px-2 rounded-2xl flex-1 min-h-0 transition-all ${
-                          idx === 0 ? '' : 'hover:bg-slate-50'
-                        }`}
+                        className={`group flex items-center gap-3 px-3 py-2 lg:py-1 rounded-2xl flex-1 min-h-0 transition-all ${idx === 0 ? 'bg-blue-50/50' : 'hover:bg-slate-50'
+                          }`}
                       >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs flex-shrink-0 shadow-sm ${
-                          idx === 0 ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white' :
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-xs flex-shrink-0 shadow-sm ${idx === 0 ? 'bg-gradient-to-br from-blue-400 to-blue-600 text-white' :
                           idx === 1 ? 'bg-gradient-to-br from-green-400 to-green-600 text-white' :
-                          idx === 2 ? 'bg-gradient-to-br from-orange-300 to-orange-400 text-white' :
-                          'bg-slate-100 text-slate-400'
-                        }`}>
-                          {idx === 0 ? <Crown className="w-3.5 h-3.5" /> : idx === 1 ? <Medal className="w-3.5 h-3.5" /> : idx === 2 ? <Award className="w-3.5 h-3.5" /> : `${idx + 1}`}
+                            idx === 2 ? 'bg-gradient-to-br from-orange-300 to-orange-400 text-white' :
+                              'bg-slate-100 text-slate-400'
+                          }`}>
+                          {idx === 0 ? <Crown className="w-4 h-4" /> : idx === 1 ? <Medal className="w-4 h-4" /> : idx === 2 ? <Award className="w-4 h-4" /> : `${idx + 1}`}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`font-bold text-sm truncate ${idx === 0 ? 'text-blue-700' : 'text-slate-700'}`}>{vendor.name}</p>
-                          <div className="mt-1.5 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <p className={`font-black text-sm truncate font-anuphan ${idx === 0 ? 'text-blue-900' : 'text-slate-700'}`}>{vendor.name}</p>
+                          <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${(vendor.volume / data.top5[0].volume) * 100}%` }}
@@ -288,10 +274,10 @@ export default function POInvDashboard() {
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <span className="font-black text-slate-800 text-base font-mono">
+                          <span className="font-black text-slate-900 text-base tabular-nums">
                             <CountUp end={vendor.volume} decimals={2} duration={2} separator="," />
                           </span>
-                          <span className="text-slate-400 text-xs font-medium ml-1">ตัน</span>
+                          <span className="text-slate-400 text-[10px] font-bold uppercase ml-1">ตัน</span>
                         </div>
                       </motion.div>
                     ))}
@@ -299,162 +285,144 @@ export default function POInvDashboard() {
                 </motion.div>
               </div>
 
-              {/* ── COL RIGHT: Monthly Stats (Detailed View) ── */}
-              <div className="col-span-3 flex flex-col gap-1.5">
+              {/* ── COL RIGHT: Monthly Stats ── */}
+              <div className="order-2 lg:order-3 col-span-1 lg:col-span-3 flex flex-col gap-3 lg:gap-1.5 lg:h-full">
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="group relative flex-1 flex flex-col justify-between bg-white rounded-3xl p-5 ring-1 ring-slate-900/5 shadow-md hover:shadow-xl hover:ring-slate-900/10 transition-all duration-500 overflow-hidden"
+                  className="group relative flex-1 flex flex-col justify-between bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-900 rounded-3xl p-6 lg:p-5 ring-1 ring-white/10 shadow-xl shadow-blue-900/30 transition-all duration-500 overflow-hidden"
                 >
-                  {/* Decorative Background */}
-                  <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-emerald-400/20 to-teal-500/20 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-700" />
-                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-emerald-400/10 rounded-full blur-2xl translate-y-12 -translate-x-8 group-hover:scale-110 transition-transform duration-700" />
+                  {/* Background decorative elements */}
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl -translate-y-16 translate-x-16" />
+                  <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-indigo-500/15 to-purple-500/15 rounded-full blur-3xl translate-y-16 -translate-x-16" />
+                  <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg_width=%2260%22_height=%2260%22_xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cdefs%3E%3Cpattern_id=%22grid%22_width=%2260%22_height=%2260%22_patternUnits=%22userSpaceOnUse%22%3E%3Cpath_d=%22M_60_0_L_0_0_0_60%22_fill=%22none%22_stroke=%22rgba(255,255,255,0.03)%22_stroke-width=%221%22/%3E%3C/pattern%3E%3C/defs%3E%3Crect_width=%22100%25%22_height=%22100%25%22_fill=%22url(%23grid)%22/%3E%3C/svg%3E')] opacity-30" />
 
                   <div className="relative z-10 flex flex-col h-full">
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-6">
+                    {/* Header Section */}
+                    <div className="flex items-center justify-between mb-6 lg:mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-2xl flex items-center justify-center ring-1 ring-emerald-200 group-hover:rotate-6 transition-transform">
-                          <BarChart3 className="w-5 h-5 text-emerald-600" />
+                        <div className="w-11 h-11 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 ring-1 ring-white/20">
+                          <BarChart3 className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-slate-800 font-extrabold text-md tracking-tight">ยอดสะสมทั้งเดือน</h3>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Monthly Accumulation</p>
+                          <h3 className="text-white font-black text-sm font-anuphan tracking-wide">ยอดสะสมทั้งเดือน</h3>
+                          <p className="text-[10px] text-blue-200 font-bold uppercase tracking-widest mt-0.5">MTD Performance</p>
                         </div>
                       </div>
 
                       {/* Trend Badge */}
-                      <div className={`flex items-center gap-1.5 px-2.5 py-2 rounded-full font-black text-[10px] uppercase tracking-wider ${
-                        data.monthly.volume >= data.monthly.volume_prev_year 
-                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                          : 'bg-rose-50 text-rose-600 border border-rose-100'
-                      }`}>
-                        {data.monthly.volume >= data.monthly.volume_prev_year ? (
-                          <TrendingUp className="w-3.5 h-3.5" />
-                        ) : (
-                          <TrendingDown className="w-3.5 h-3.5" />
-                        )}
+                      <div className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full font-black text-[11px] uppercase tracking-wider backdrop-blur-sm ${data.monthly.volume >= data.monthly.volume_prev_year
+                          ? 'bg-emerald-400/20 text-emerald-200 border border-emerald-400/30'
+                          : 'bg-rose-400/20 text-rose-200 border border-rose-400/30'
+                        }`}>
+                        {data.monthly.volume >= data.monthly.volume_prev_year ?
+                          <TrendingUp className="w-3 h-3" /> :
+                          <TrendingDown className="w-3 h-3" />
+                        }
                         <span>
-                          {data.monthly.volume_prev_year > 0 
-                            ? `${(((data.monthly.volume - data.monthly.volume_prev_year) / data.monthly.volume_prev_year) * 100).toFixed(1)}%` 
+                          {data.monthly.volume_prev_year > 0
+                            ? `${(((data.monthly.volume - data.monthly.volume_prev_year) / data.monthly.volume_prev_year) * 100).toFixed(1)}%`
                             : 'NEW'}
                         </span>
                       </div>
                     </div>
 
-                    {/* Main Metric */}
-                    <div className="text-center mb-4 relative">
-                      <div className="flex items-baseline justify-center gap-1.5">
-                        <span className="text-5xl font-black text-blue-700 font-mono tracking-tighter drop-shadow-sm">
+                    {/* Main Value */}
+                    <div className="text-center mb-5 lg:mb-3">
+                      <div className="flex items-baseline justify-end gap-2">
+                        <span className="text-6xl lg:text-5xl font-black text-white tabular-nums tracking-tight">
                           <CountUp end={data.monthly.volume} decimals={2} duration={2} separator="," />
                         </span>
-                        <span className="text-sm font-black text-blue-500/70 uppercase tracking-tighter">Tons</span>
+                        <span className="text-sm font-bold text-blue-200 uppercase tracking-wider">Tons</span>
                       </div>
-                      <div className="h-1 w-12 bg-emerald-400 mx-auto mt-1 rounded-full opacity-50 group-hover:w-20 transition-all duration-500" />
+                      <div className="h-px w-20 bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent mx-auto my-4" />
                     </div>
 
-                    {/* Sub Metrics Grid */}
-                    <div className="grid grid-cols-2 gap-1 -ml-3  -mr-3">
-                      <div className="relative group/item p-2 rounded-2xl bg-slate-50/50 border border-emerald-100 hover:bg-emerald-50/50 hover:border-emerald-100 transition-colors">
-                        <p className="text-[14px] text-slate-700 font-bold uppercase tracking-wider mb-1">ราคาเฉลี่ย</p>
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Avg Price Card */}
+                      <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 hover:bg-white/15 transition-colors duration-300">
+                        <p className="text-[11px] text-blue-200 font-bold uppercase mb-2 tracking-wider font-anuphan">
+                          ราคาเฉลี่ยสะสม
+                        </p>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-3xl font-bold text-red-600 font-mono pl-4">
+                          <span className="text-3xl font-black text-white tabular-nums">
                             <CountUp end={data.monthly.avg_price} decimals={2} duration={2} />
                           </span>
-                          <span className="text-[10px] font-bold text-slate-500">บ/กก.</span>
+                          <span className="text-[10px] font-bold text-blue-300 uppercase">บาท/กก.</span>
                         </div>
                       </div>
 
-                      <div className="relative group/item p-2 rounded-2xl bg-slate-50/50 border border-emerald-100 hover:bg-emerald-50/50 hover:border-emerald-100 transition-colors">
-                        <p className="text-[14px] text-slate-700 font-bold uppercase tracking-wider mb-1">ยอดเงินรวม</p>
+                      {/* Total Amount Card */}
+                      <div className="p-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 hover:bg-white/15 transition-colors duration-300">
+                        <p className="text-[11px] text-blue-200 font-bold uppercase mb-2 tracking-wider font-anuphan">
+                          ยอดเงินรวมทั้งเดือน
+                        </p>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-3xl font-black text-slate-800 font-mono pl-4">
+                          <span className="text-3xl font-black text-white tabular-nums">
                             <CountUp end={data.monthly.amount_mb} decimals={2} duration={2} />
                           </span>
-                          <span className="text-[10px] font-bold text-slate-500">MB</span>
+                          <span className="text-[10px] font-bold text-blue-300 uppercase">MB</span>
                         </div>
                       </div>
                     </div>
                   </div>
                 </motion.div>
 
-                {/* ── Remaining Stock Card ── */}
+                {/* Remaining Stock Card */}
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="group relative flex-1 flex flex-col justify-between bg-white rounded-3xl p-5 ring-1 ring-slate-900/5 shadow-md hover:shadow-xl hover:ring-slate-900/10 transition-all duration-500 overflow-hidden"
+                  className="group relative flex-1 flex flex-col justify-between bg-emerald-950 rounded-3xl p-6 lg:p-5 shadow-xl shadow-emerald-900/20 overflow-hidden"
                 >
-                  {/* Decorative Gradient Background */}
-                  <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-amber-400/20 to-orange-500/20 rounded-full blur-3xl -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-700" />
-                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-400/10 rounded-full blur-2xl translate-y-12 -translate-x-8 group-hover:scale-110 transition-transform duration-700" />
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl -translate-y-16 translate-x-16" />
 
                   <div className="relative z-10 flex flex-col h-full">
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-amber-500/10 to-orange-500/20 rounded-2xl flex items-center justify-center ring-1 ring-amber-200/50 group-hover:rotate-6 transition-transform">
-                          <Package className="w-5 h-5 text-amber-600" />
-                        </div>
-                        <div>
-                          <h3 className="text-slate-800 font-extrabold text-sm tracking-tight">ปริมาณปาล์มคงเหลือ</h3>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">...</p>
-                        </div>
+                    <div className="flex items-center gap-3 mb-6 lg:mb-4">
+                      <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md">
+                        <Package className="w-5 h-5 text-emerald-300" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-black text-sm font-anuphan">ปริมาณปาล์มคงเหลือ</h3>
+                        <p className="text-emerald-400/60 text-[10px] font-bold uppercase tracking-widest mt-0.5">System Calculation</p>
                       </div>
                     </div>
 
-                    {/* Main Metric */}
-                    <div className="text-center mb-2 relative">
+                    <div className="text-center mb-6 lg:mb-4">
                       <div className="flex items-baseline justify-center gap-2">
-                        <span className="text-5xl font-black text-red-600 font-mono tracking-tighter drop-shadow-sm">
+                        <span className="text-5xl lg:text-4xl font-black text-white tabular-nums drop-shadow-lg">
                           <CountUp end={data.remaining_stock.volume} decimals={2} duration={2} separator="," />
                         </span>
-                        <span className="text-sm font-black text-red-500/70 uppercase tracking-tighter">Tons</span>
+                        <span className="text-sm font-black text-emerald-400 uppercase">Tons</span>
                       </div>
-                      <div className="h-1 w-12 bg-amber-400 mx-auto mt-1 rounded-full opacity-50 group-hover:w-20 transition-all duration-500" />
                     </div>
 
-                    {/* Sub Metrics Grid */}
-                    <div className="grid grid-cols-2 gap-1 -ml-3  -mr-3">
-                      <div className="relative group/item p-3 rounded-2xl bg-slate-50/50 border border-amber-100 hover:bg-amber-50/50 hover:border-amber-100 transition-colors">
-                        <div className="absolute top-2 right-2 opacity-20 group-hover/item:opacity-40 transition-opacity">
-                          <TrendingUp className="w-3 h-3 text-amber-600" />
-                        </div>
-                        <p className="text-[12px] text-slate-600 font-bold uppercase tracking-wider mb-1">มูลค่าคงเหลือ</p>
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-[11px] text-emerald-400 font-black uppercase mb-1 font-anuphan">มูลค่าคงเหลือ</p>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-black text-amber-600 font-mono pl-4">
+                          <span className="text-xl font-black text-white tabular-nums px-3">
                             <CountUp end={data.remaining_stock.amount_mb} decimals={2} duration={2} />
                           </span>
-                          <span className="text-[10px] font-bold text-slate-600">MB</span>
+                          <span className="text-[9px] font-bold text-emerald-500 uppercase">MB</span>
                         </div>
                       </div>
-
-                      <div className="relative group/item p-3 rounded-2xl bg-slate-50/50 border border-blue-100 hover:bg-blue-50/50 hover:border-blue-100 transition-colors">
-                        <div className="absolute top-2 right-2 opacity-20 group-hover/item:opacity-40 transition-opacity">
-                          <TrendingUp className="w-3 h-3 text-blue-600" />
-                        </div>
-                        <p className="text-[12px] text-slate-600 font-bold uppercase tracking-wider mb-1">CPO โดยประมาณ</p>
+                      <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
+                        <p className="text-[11px] text-emerald-400 font-black uppercase mb-1 font-anuphan">CPO ประมาณ</p>
                         <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-black text-blue-600 font-mono pl-4">
+                          <span className="text-xl font-black text-amber-400 tabular-nums px-3">
                             <CountUp end={data.remaining_stock.cpo_volume} decimals={2} duration={2} />
                           </span>
-                          <span className="text-[10px] font-bold text-slate-600">ตัน</span>
+                          <span className="text-[9px] font-bold text-amber-600 uppercase">Tons</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Formula Footer */}
-                    <div className="mt-auto pt-1.5 border-t border-slate-100/80">
-                      <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-slate-50/50 border border-slate-100/50 text-[10px] font-mono">
-                        <span className="text-slate-400 flex items-center gap-1.5 shrink-0">
-                          <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
-                          
-                        </span>
-                        <div className="h-3 w-[1px] bg-slate-200 mx-1" />
-                        <span className="text-slate-500 font-semibold truncate">
-                          ({data.remaining_stock.volume.toLocaleString()} t × {data.remaining_stock.yield_7d} %) = {data.remaining_stock.cpo_volume.toLocaleString()} t CPO
-                        </span>
+                    <div className="mt-auto pt-4 border-t border-white/10">
+                      <div className="flex items-center justify-center p-2 rounded-xl bg-black/20 text-[14px] font-black text-emerald-300/80 font-mono tracking-tighter">
+                        ( {data.remaining_stock.volume.toLocaleString()} t × {data.remaining_stock.yield_7d} % ) = {data.remaining_stock.cpo_volume.toLocaleString()} t CPO
                       </div>
                     </div>
                   </div>
@@ -462,12 +430,14 @@ export default function POInvDashboard() {
               </div>
             </div>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center">
-              <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-red-100">
-                <Package className="w-8 h-8 text-red-400" />
+            <div className="min-h-[40vh] flex flex-col items-center justify-center">
+              <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mb-4 ring-1 ring-rose-100">
+                <Package className="w-8 h-8 text-rose-400" />
               </div>
-              <p className="text-slate-800 font-bold text-lg">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
-              <p className="text-slate-400 text-sm mt-1">กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบ</p>
+              <p className="text-slate-800 font-black text-lg font-anuphan">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>
+              <button onClick={() => window.location.reload()} className="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-200">
+                ลองใหม่อีกครั้ง
+              </button>
             </div>
           )}
         </div>
