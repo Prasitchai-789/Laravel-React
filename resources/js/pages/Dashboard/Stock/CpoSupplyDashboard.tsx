@@ -222,8 +222,14 @@ export default function CpoSupplyDashboard() {
     const ffbTotalNeeded = ffbPerDay * (daysToComplete ?? 0);
     const ffbNetNeeded = Math.max(0, ffbTotalNeeded - (data?.palm.volume ?? 0)); // หักปาล์มคงเหลือ
 
+    const breadcrumbs = [
+        { title: 'Dashboard', href: '/dashboard' },
+        { title: 'Dashboard Report', href: '#' },
+        { title: 'CPO Supply Dashboard', href: '/stock/cpo-supply-dashboard' },
+    ];
+
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="CPO Supply Dashboard | วิเคราะห์ Supply CPO" />
 
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 font-anuphan text-slate-800 overflow-x-hidden relative">
@@ -232,51 +238,69 @@ export default function CpoSupplyDashboard() {
                 <div className="fixed inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute top-0 right-0 w-[60%] h-[60%] bg-gradient-to-bl from-indigo-500/5 via-purple-500/5 to-transparent rounded-full blur-[150px]" />
                     <div className="absolute bottom-0 left-0 w-[60%] h-[60%] bg-gradient-to-tr from-emerald-500/5 via-teal-500/5 to-transparent rounded-full blur-[150px]" />
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a06_1px,transparent_1px),linear-gradient(to_bottom,#0f172a06_1px,transparent_1px)] bg-[size:3rem_3rem]" />
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a06_1px,transparent_1px),linear-gradient(to_bottom,#0f172a06_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,white_70%,transparent_100%)]" />
                 </div>
 
-                {/* Header */}
-                <div className="relative z-10">
-                    <div className="max-w-[1600px] mx-auto px-6 lg:px-8 py-4">
+                {/* Modern Glass Header */}
+                <div className="relative bg-white/70 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-40">
+                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5" />
+                    <div className="relative max-w-[1600px] mx-auto px-6 py-5">
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                                 <motion.div
-                                    initial={{ rotate: -10, scale: 0.9 }}
-                                    animate={{ rotate: 0, scale: 1 }}
-                                    className="relative"
+                                    whileHover={{ scale: 1.05 }}
+                                    className="p-3.5 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-xl shadow-blue-500/20 text-white"
                                 >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl blur-xl opacity-40" />
-                                    <div className="relative p-3.5 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-xl text-white">
-                                        <Factory className="w-6 h-6" />
-                                    </div>
+                                    <Factory className="w-6 h-6" />
                                 </motion.div>
                                 <div>
                                     <div className="flex items-center gap-3 flex-wrap">
-                                        <h1 className="text-2xl lg:text-3xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                                        <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                                             CPO Supply Dashboard
                                         </h1>
                                         <div className="flex items-center gap-2">
-                                            <span className="relative flex h-2.5 w-2.5">
+                                            <span className="relative flex h-2 w-2">
                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                             </span>
-                                            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                                            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                                                 LIVE
                                             </span>
                                         </div>
                                     </div>
-                                    <p className="text-sm text-slate-700 mt-1 flex items-center gap-2">
+                                    <p className="text-sm text-slate-500 font-medium mt-0.5 flex items-center gap-2">
                                         <Activity className="w-3.5 h-3.5" />
-                                        วิเคราะห์ Order คงเหลือ vs ปริมาณ CPO ที่มี <span className="text-blue-500 font-bold">• อัพเดทล่าสุด {dayjs().format('DD MMM BBBB')}</span>
+                                        วิเคราะห์ Order คงเหลือ vs ปริมาณ CPO <span className="text-blue-500 font-bold">• อัพเดท {dayjs().format('DD MMM BBBB')}</span>
                                     </p>
                                 </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <div className="relative group">
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none" />
+                                    <input
+                                        type="date"
+                                        value={selectedDate}
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                        className="pl-9 pr-4 py-2.5 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer hover:border-slate-300 shadow-sm"
+                                    />
+                                </div>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={fetchData}
+                                    className="p-2.5 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all disabled:opacity-50"
+                                    disabled={loading || isRefreshing}
+                                >
+                                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                </motion.button>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Main Content */}
-                <div className="relative z-10 max-w-[1600px] mx-auto px-6 lg:px-8 pb-16">
+                <div className="relative z-10 max-w-[1600px] mx-auto px-6 pb-16">
                     <AnimatePresence mode="wait">
                         {loading && !data ? (
                             <motion.div
@@ -908,8 +932,8 @@ export default function CpoSupplyDashboard() {
                     body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
                     ::-webkit-scrollbar { width: 6px; height: 6px; }
                     ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
-                    ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #6366f1, #8b5cf6); border-radius: 10px; }
-                    ::-webkit-scrollbar-thumb:hover { background: linear-gradient(to bottom, #4f46e5, #7c3aed); }
+                    ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #0004ffff, #4a00f8ff); border-radius: 10px; }
+                    ::-webkit-scrollbar-thumb:hover { background: linear-gradient(to bottom, #0d00feff, #5906e8ff); }
                     input[type="date"]::-webkit-calendar-picker-indicator {
                         opacity: 0.5;
                         cursor: pointer;

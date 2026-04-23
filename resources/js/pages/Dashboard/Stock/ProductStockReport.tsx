@@ -167,25 +167,23 @@ export default function ProductStockReport() {
         return 'from-slate-500 to-slate-600';
     };
 
+    const breadcrumbs = [
+        { title: 'Dashboard', href: '/dashboard' },
+        { title: 'Dashboard Report', href: '#' },
+        { title: 'Stock Valuation', href: '/stock/valuation-report' },
+    ];
+
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Product Stock Valuation | Premium Analytics" />
 
-            <div className="min-h-screen bg-white font-anuphan text-slate-800 overflow-x-hidden relative">
-                {/* Modern Mesh Gradient Background */}
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 font-anuphan text-slate-800 overflow-x-hidden relative">
+
+                {/* Modern background */}
                 <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                    <div className="absolute inset-0 bg-[#f8fafc]" />
-                    <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/10 rounded-full blur-[120px] animate-float-slow" />
-                    <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-400/10 rounded-full blur-[120px] animate-float-reverse" />
-                    <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-indigo-400/10 rounded-full blur-[120px] animate-pulse-slow" />
-                    <div className="absolute bottom-[20%] left-[10%] w-[25%] h-[25%] bg-purple-400/10 rounded-full blur-[100px] animate-float" />
-
-                    {/* Noise / Grain Texture Overlay */}
-                    <div className="absolute inset-0 opacity-[0.4] mix-blend-soft-light pointer-events-none"
-                        style={{ backgroundImage: 'url("https://grainy-gradients.vercel.app/noise.svg")' }} />
-
-                    {/* Refined Grid */}
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a0a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a0a_1px,transparent_1px)] bg-[size:3.5rem_3.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,white_70%,transparent_100%)]" />
+                    <div className="absolute top-0 right-0 w-[60%] h-[60%] bg-gradient-to-bl from-indigo-500/5 via-purple-500/5 to-transparent rounded-full blur-[150px]" />
+                    <div className="absolute bottom-0 left-0 w-[60%] h-[60%] bg-gradient-to-tr from-emerald-500/5 via-teal-500/5 to-transparent rounded-full blur-[150px]" />
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a06_1px,transparent_1px),linear-gradient(to_bottom,#0f172a06_1px,transparent_1px)] bg-[size:3rem_3rem]" />
                 </div>
 
                 {/* Modern Glass Header */}
@@ -203,15 +201,12 @@ export default function ProductStockReport() {
                                 <div>
                                     <div className="flex items-center gap-3">
                                         <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                                            Stock Valuation
+                                            Stock Products
                                         </h1>
-                                        <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full border border-indigo-200">
-                                            LIVE
-                                        </span>
                                     </div>
                                     <p className="text-sm text-slate-500 font-medium mt-0.5 flex items-center gap-2">
                                         <Activity className="w-3 h-3" />
-                                        Portfolio Intelligence Dashboard
+                                        Stock Products Dashboard
                                     </p>
                                 </div>
                             </div>
@@ -241,7 +236,7 @@ export default function ProductStockReport() {
                     </div>
                 </div>
 
-                <div className="max-w-[1400px] mx-auto px-6 mt-8">
+                <div className="max-w-[1400px] mx-auto px-6">
                     {/* Data Alert Section */}
                     {(!loading && (!data || !data.items || Object.keys(data.items).length === 0)) && (
                         <AnimatePresence>
