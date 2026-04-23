@@ -503,6 +503,12 @@ Route::middleware(['auth', 'permission:developer.view|gm.view'])->group(function
 
     Route::get('/api/stock/valuation-summary', [ProductStockReportController::class, 'getProductStockSummary'])->name('api.stock.valuation.summary');
 
+    Route::get('/stock/cpo-supply-dashboard', function () {
+        return \Inertia\Inertia::render('Dashboard/Stock/CpoSupplyDashboard');
+    })->name('stock.cpo.supply.page');
+
+    Route::get('/api/stock/cpo-supply-dashboard', [ProductStockReportController::class, 'getCpoSupplyDashboard'])->name('api.stock.cpo.supply');
+
     Route::get('/api/purchase/executive-production-report', [ExecutiveProductionController::class, 'getProductionReportApi'])->name('api.executive.production.report');
     Route::get('/api/purchase/executive-soplan-report', [ExecutiveProductionController::class, 'getSOPlanApi'])->name('api.executive.soplan.report');
 });

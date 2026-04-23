@@ -173,11 +173,11 @@ export default function ExecutiveProductionReport() {
                                         </div>
                                     </div>
                                     <div>
-                                        <h1 className="text-3xl xl:text-4xl font-black tracking-tight">
+                                        <h1 className="text-2xl xl:text-3xl font-black tracking-tight">
                                             <span className="bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
                                                 Production
                                             </span>
-                                            <span className="text-blue-600 text-2xl"> Report</span>
+                                            <span className="text-blue-600 text-xl"> Report</span>
 
                                         </h1>
                                         <div className="flex items-center gap-2">
@@ -412,7 +412,7 @@ export default function ExecutiveProductionReport() {
 
                         {/* MIDDLE SECTION - Product Metrics (4 cols) */}
                         <div className="lg:col-span-4">
-                            <motion.div variants={itemVariants} className="bg-white rounded-3xl shadow-xl border border-indigo-100 overflow-hidden group">
+                            <motion.div variants={itemVariants} className="bg-white rounded-3xl shadow-xl border-2 border-blue-600 overflow-hidden group">
                                 {/* Header with Premium Design */}
                                 <div className="relative p-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-indigo-50/30 ">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl" />

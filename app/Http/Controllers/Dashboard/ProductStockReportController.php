@@ -91,15 +91,31 @@ class ProductStockReportController extends Controller
             ]
         ];
 
-        // 3. คำนวณราคาเฉลี่ยต่อหน่วยและมูลค่า
+        // 3. ดึงข้อมูล Trend ย้อนหลัง 7 วัน
+        $stockTrends = DB::table('stock_products')
+            ->whereDate('record_date', '<=', $targetDate)
+            ->orderBy('record_date', 'desc')
+            ->limit(7)
+            ->get()
+            ->reverse()
+            ->values();
+
+        $cpoTrends = DB::table('cpo_data')
+            ->whereDate('date', '<=', $targetDate)
+            ->orderBy('date', 'desc')
+            ->limit(7)
+            ->get()
+            ->reverse()
+            ->values();
+
+        // 4. คำนวณราคาเฉลี่ยต่อหน่วยและมูลค่า
         $summary = [];
         $totalInventoryValue = 0;
 
         foreach ($productMappings as $key => $item) {
             $avgPrice = 0;
 
-            // Try to pull average price from Delivery Plan (active orders, using REMAINING qty)
-            // This applies to CPO, PKN, and other products managed in the Delivery Plan system
+            // Try to pull average price from Delivery Plan
             $today = now()->toDateString();
             $orderData = DB::table('orders as o')
                 ->leftJoin(DB::raw("(SELECT order_id, SUM(quantity) as delivered_qty FROM delivery_plan_items WHERE plan_date < '{$today}' GROUP BY order_id) as delivered"), 'o.id', '=', 'delivered.order_id')
@@ -115,17 +131,33 @@ class ProductStockReportController extends Controller
                 $avgPrice = (float)($orderData->total_revenue / $orderData->total_qty);
             }
 
-            // Fallback to ERP historical price if not CPO or if no active orders found
             if ($avgPrice <= 0) {
                 $avgPrice = $this->getAvgSalesPrice($item['good_id'], $startOfMonth, $endOfPeriod);
             }
 
-            $totalValue = $item['qty'] * $avgPrice * 1000; // แปลง Tons -> Kg แล้วคูณราคา
+            $totalValue = $item['qty'] * $avgPrice * 1000;
+
+            // Trend calculation
+            $trend = [];
+            if ($key === 'cpo') {
+                foreach ($cpoTrends as $t) $trend[] = (float)$t->total_cpo;
+            } else {
+                foreach ($stockTrends as $t) {
+                    if ($key === 'pkn') $trend[] = (float)$t->pkn;
+                    else if ($key === 'efb_fiber') $trend[] = (float)$t->efb_fiber;
+                    else if ($key === 'shell') $trend[] = (float)$t->shell;
+                    else if ($key === 'nut') $trend[] = (float)($t->nut + $t->nut_out);
+                    else if ($key === 'silo1') $trend[] = (float)$t->silo_1;
+                    else if ($key === 'silo2') $trend[] = (float)$t->silo_2;
+                    else if ($key === 'silo') $trend[] = (float)($t->silo_1 + $t->silo_2);
+                }
+            }
 
             $summary[$key] = array_merge($item, [
                 'avg_price' => round($avgPrice, 2),
                 'total_value' => round($totalValue, 2),
-                'total_value_mb' => round($totalValue / 1000000, 3)
+                'total_value_mb' => round($totalValue / 1000000, 3),
+                'trend' => $trend
             ]);
 
             $totalInventoryValue += $totalValue;
@@ -177,4 +209,111 @@ class ProductStockReportController extends Controller
 
         return $fallbackData && $fallbackData->total_qty > 0 ? (float)($fallbackData->total_amnt / $fallbackData->total_qty) : 0;
     }
+
+    /**
+     * CPO Supply Dashboard — Order คงเหลือ vs CPO ที่มี vs FFB ที่ต้องการ
+     */
+    public function getCpoSupplyDashboard(Request $request)
+    {
+        $date = $request->input('date', Carbon::today()->format('Y-m-d'));
+        $targetDate = Carbon::parse($date);
+
+        // 1. CPO Order คงเหลือ (จาก Delivery Plan)
+        $cpoGoodId = 2147;
+        $today = now()->toDateString();
+
+        $cpoOrders = DB::table('orders as o')
+            ->leftJoin(
+                DB::raw("(SELECT order_id, SUM(quantity) as delivered_qty FROM delivery_plan_items WHERE plan_date < '{$today}' GROUP BY order_id) as delivered"),
+                'o.id', '=', 'delivered.order_id'
+            )
+            ->where('o.good_id', $cpoGoodId)
+            ->where(function ($q) {
+                $q->where('o.is_completed', 0)->orWhereNull('o.is_completed');
+            })
+            ->selectRaw('
+                o.id,
+                o.customer_name,
+                o.quantity,
+                o.price_sell,
+                COALESCE(delivered.delivered_qty, 0) as delivered_qty,
+                CASE WHEN o.quantity > COALESCE(delivered.delivered_qty, 0)
+                    THEN (o.quantity - COALESCE(delivered.delivered_qty, 0))
+                    ELSE 0 END as remaining_qty,
+                CASE WHEN o.quantity > COALESCE(delivered.delivered_qty, 0)
+                    THEN (o.quantity - COALESCE(delivered.delivered_qty, 0)) * 1000 * o.price_sell
+                    ELSE 0 END as remaining_revenue
+            ')
+            ->get();
+
+        $totalOrderRemainingQty = $cpoOrders->sum('remaining_qty');
+        $totalOrderRemainingRevenue = $cpoOrders->sum('remaining_revenue');
+        // avg_price = ยอดเงินรวม (฿) / (ปริมาณรวม (Tons) × 1000) = ฿/kg
+        $avgOrderPrice = ($totalOrderRemainingQty * 1000) > 0
+            ? $totalOrderRemainingRevenue / ($totalOrderRemainingQty * 1000)
+            : 0;
+
+        // 2. CPO Stock ปัจจุบัน (จาก cpo_data)
+        $cpoStock = DB::table('cpo_data')
+            ->whereDate('date', '<=', $targetDate)
+            ->orderBy('date', 'desc')
+            ->first();
+        $cpoStockQty = (float)($cpoStock->total_cpo ?? 0);
+
+        // 3. ข้อมูลปาล์มคงเหลือและ CPO โดยประมาณ (จาก POInvDashboardService)
+        $poData = $this->poService->getDashboardData($date);
+        $remainingStock = $poData['remaining_stock'] ?? null;
+        $estimatedCpoQty = (float)($remainingStock['cpo_volume'] ?? 0);
+        $yieldPercent    = (float)($remainingStock['yield_7d'] ?? 0);
+        $palmVolume      = (float)($remainingStock['volume'] ?? 0);
+        $palmAmountMb    = (float)($remainingStock['amount_mb'] ?? 0);
+        $avgFfbPrice     = (float)($remainingStock['avg_ffb_price'] ?? 0); // ฿/kg
+
+        // 4. CPO รวม = Stock + ประมาณ
+        $totalCpoAvailable = $cpoStockQty + $estimatedCpoQty;
+
+        // 5. CPO ขาด/เกิน = CPO รวม - Order คงเหลือ (บวก = เกิน, ลบ = ขาด)
+        $cpoBalance = $totalCpoAvailable - $totalOrderRemainingQty;
+
+        // 6. FFB ที่ต้องการเพิ่ม (เฉพาะกรณีขาด)
+        $ffbRequired = 0;
+        if ($cpoBalance < 0 && $yieldPercent > 0) {
+            $ffbRequired = abs($cpoBalance) / ($yieldPercent / 100);
+        }
+
+        return response()->json([
+            'success'   => true,
+            'date'      => $targetDate->toDateString(),
+
+            // Order คงเหลือ
+            'order' => [
+                'remaining_qty'     => round($totalOrderRemainingQty, 2),
+                'remaining_revenue' => round($totalOrderRemainingRevenue, 2),
+                'remaining_revenue_mb' => round($totalOrderRemainingRevenue / 1000000, 3),
+                'avg_price'         => round($avgOrderPrice, 2),
+                'orders'            => $cpoOrders->where('remaining_qty', '>', 0)->values(),
+            ],
+
+            // CPO ที่มี
+            'cpo' => [
+                'stock_qty'         => round($cpoStockQty, 2),
+                'estimated_qty'     => round($estimatedCpoQty, 2),
+                'total_available'   => round($totalCpoAvailable, 2),
+                'balance'           => round($cpoBalance, 2),          // บวก = เกิน, ลบ = ขาด
+                'balance_mb'        => round(($cpoBalance * $avgOrderPrice * 1000) / 1000000, 3),
+            ],
+
+            // ปาล์มคงเหลือ
+            'palm' => [
+                'volume'            => round($palmVolume, 2),
+                'amount_mb'         => round($palmAmountMb, 3),
+                'yield_percent'     => round($yieldPercent, 2),
+                'ffb_required'      => round($ffbRequired, 2),
+                'avg_ffb_price'     => round($avgFfbPrice, 2),
+                // มูลค่าที่ต้องใช้ซื้อ FFB = ปริมาณ (Tons) × 1000 × ราคา (฿/kg) ÷ 1,000,000
+                'ffb_cost_mb'       => round(($ffbRequired * 1000 * $avgFfbPrice) / 1000000, 3),
+            ],
+        ]);
+    }
 }
+
