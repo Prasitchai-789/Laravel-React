@@ -7,6 +7,7 @@ use App\Models\WIN\WebappEmp;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class User extends Authenticatable
@@ -58,5 +59,10 @@ class User extends Authenticatable
     public function webappEmp()
     {
         return $this->belongsTo(WebappEmp::class, 'employee_id', 'EmpID');
+    }
+
+    public function guardPatrolLogs(): HasMany
+    {
+        return $this->hasMany(GuardPatrolLog::class, 'guard_id');
     }
 }

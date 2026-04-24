@@ -421,6 +421,25 @@ Route::middleware(['auth'])->prefix('monitoring')->group(function () {
 });
 
 Route::middleware(['auth', 'permission:developer.view|it.view'])->group(function () {
+    Route::get('/it/patrol', function () {
+        return Inertia::render('IT/PatrolLogs');
+    })->name('it.patrol');
+
+    Route::get('/it/patrol/scan', function () {
+        return Inertia::render('IT/PatrolScan');
+    })->name('it.patrol.scan');
+
+    Route::get('/it/patrol/form', function () {
+        return Inertia::render('IT/PatrolForm');
+    })->name('it.patrol.form');
+
+    Route::get('/it/patrol/qr-generator', function () {
+        return Inertia::render('IT/PatrolQRGenerator');
+    })->name('it.patrol.qr-generator');
+
+    Route::get('/it/patrol/checkpoints', function () {
+        return Inertia::render('IT/PatrolCheckpoints');
+    })->name('it.patrol.checkpoints');
 
     // Computer Preventive Maintenance
     Route::get('/computer-checklists', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'index'])->name('computer-checklists.index');
@@ -503,7 +522,12 @@ Route::middleware(['auth', 'permission:developer.view|gm.view'])->group(function
 
     Route::get('/api/stock/valuation-summary', [ProductStockReportController::class, 'getProductStockSummary'])->name('api.stock.valuation.summary');
 
+    Route::get('/market/palm-price-report', function () {
+        return Inertia::render('Dashboard/Market/PalmPriceReport');
+    })->name('market.palm-price-report');
+
     Route::get('/stock/cpo-supply-dashboard', function () {
+
         return \Inertia\Inertia::render('Dashboard/Stock/CpoSupplyDashboard');
     })->name('stock.cpo.supply.page');
 
