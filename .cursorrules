@@ -1,0 +1,31 @@
+# Laravel Routing Rules
+
+You must follow these routing rules for this project:
+
+1. `routes/api.php`
+- Strictly for **Public APIs** or **Token-based APIs** only.
+- Do NOT place any routes here that rely on session-based authentication.
+
+2. `routes/web.php`
+- For all web routes, views, and **Session-based APIs**.
+- If a route requires the user to be logged in via a standard web session (even if the path starts with `/api/` and it's called via AJAX/fetch from React), it MUST be placed in `web.php`.
+- You can group API routes inside `web.php` using `Route::prefix('api')->group(...)`, but they must be registered in `web.php` to use the `web` middleware group and session state.
+
+3. Middleware Grouping
+- Group routes by module using prefixes and middleware for authentication and permissions.
+- Example:
+  ```php
+  Route::middleware(['auth', 'permission:developer.view|mar.view|gm.view'])
+      ->prefix('mar')
+      ->group(function () {
+          // Module routes here
+      });
+  ```
+
+4. Debug Files Management
+- Do not keep debug files (`test_*.php`, `check_*.php`, `scratch_*.php`) in the `root` or `public` directories.
+- Move these files to the `tools/` or `tmp/` directories, or convert them into proper Artisan commands instead.
+
+5. React API Client
+- Always use the centralized API client `resources/js/lib/api.ts` for making HTTP requests in React components instead of using raw `axios` or `fetch`.
+- This helper automatically handles CSRF, session expirations (401), permissions (403), and global error toasts.
