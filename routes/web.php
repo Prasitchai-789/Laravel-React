@@ -16,6 +16,7 @@ use App\Http\Controllers\AGR\StockController;
 use App\Http\Controllers\Api\POInvController;
 use App\Http\Controllers\Api\SOInvController;
 use App\Http\Controllers\ERP\ShiftController;
+use App\Http\Controllers\Api\PatrolLogController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\StockOrderController;
@@ -26,6 +27,7 @@ use App\Http\Controllers\Api\SaleMARController;
 use App\Http\Controllers\ExportStoreController;
 use App\Http\Controllers\StoreExportController;
 use App\Http\Controllers\AGR\CustomerController;
+use App\Http\Controllers\Api\MonitoringController;
 use App\Http\Controllers\Api\SalesAGRController;
 use App\Http\Controllers\ChemicalOrderController;
 use App\Http\Controllers\QAC\CPORecordController;
@@ -48,6 +50,7 @@ use App\Http\Controllers\Dashboard\SaleOrderMarController;
 use App\Http\Controllers\Dashboard\PalmDashboardController;
 use App\Http\Controllers\Dashboard\SalesOrderMarController;
 use App\Http\Controllers\Dashboard\PalmProductionController;
+use App\Http\Controllers\Dashboard\ProductionDashboardController;
 use App\Http\Controllers\Dashboard\ProductStockReportController;
 use App\Http\Controllers\Dashboard\TableTotalPalmController;
 use App\Http\Controllers\Dashboard\ActivityController;
@@ -61,6 +64,8 @@ use App\Http\Controllers\Population\SummaryControllder;
 use App\Http\Controllers\SeederStatusController;
 use App\Http\Controllers\Api\VehicleInspectionController;
 use App\Http\Controllers\Dashboard\OrderForecastController;
+use App\Http\Controllers\Api\Dashboard\CycleTimeController;
+use App\Http\Controllers\Api\Dashboard\PalmAnalyticsController;
 
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
 
@@ -74,6 +79,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 
     Route::get('/delivery-plan', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'page'])->name('delivery-plan.page');
+
+    Route::prefix('api/delivery-plan')->group(function () {
+        Route::get('/lookups', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'lookups']);
+        Route::get('/references', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'getReferences']);
+        Route::post('/reference', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'updateReference']);
+        Route::get('/{date}', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'index']);
+        Route::post('/order', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'storeOrder']);
+        Route::post('/order/complete', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'completeOrder']);
+        Route::post('/update', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'update']);
+    });
 
     // Activity Routes for Dashboard
     Route::get('activity/gallery', [ActivityController::class, 'gallery'])->name('activity.gallery');
@@ -290,7 +305,7 @@ Route::middleware(['auth', 'permission:developer.view|agr.delete'])->group(funct
 });
 
 // MUN Routes
-Route::prefix('fertilizer')->group(function () {
+Route::middleware(['auth'])->prefix('fertilizer')->group(function () {
     Route::get('/productions', [FertilizerProductionController::class, 'index'])->name('fertilizer.productions.index');
     Route::get('/productions/api', [FertilizerProductionController::class, 'apiIndex'])->name('fertilizer.productions.api');
     Route::post('/productions', [FertilizerProductionController::class, 'store'])->name('fertilizer.productions.store');
@@ -378,8 +393,10 @@ Route::middleware(['auth'])->prefix('store-movements')->group(function () {
 Route::get('StoreOrder/{order}/qrcode', [StoreOrderController::class, 'showQRCode'])->name('StoreOrder.qrcode');
 
 // web.php
-Route::get('/store/issues/export', [ExportStoreController::class, 'export'])->name('store-issues.export');
-Route::put('/store-orders/{order}/status', [StoreOrderController::class, 'updateStatus']);
+Route::middleware(['auth', 'permission:users.view|PUR.view'])->group(function () {
+    Route::get('/store/issues/export', [ExportStoreController::class, 'export'])->name('store-issues.export');
+    Route::put('/store-orders/{order}/status', [StoreOrderController::class, 'updateStatus']);
+});
 
 
 // Memo Routes
@@ -420,6 +437,16 @@ Route::middleware(['auth'])->prefix('monitoring')->group(function () {
     })->name('monitoring.checklist');
 });
 
+Route::middleware(['auth'])->prefix('api/monitoring')->group(function () {
+    Route::get('/dashboard/overview', [MonitoringController::class, 'getOverview']);
+    Route::get('/dashboard/map', [MonitoringController::class, 'getMapData']);
+    Route::get('/devices', [MonitoringController::class, 'getDevices']);
+    Route::get('/devices/{id}', [MonitoringController::class, 'getDeviceDetail']);
+    Route::post('/checklist/submit', [MonitoringController::class, 'submitChecklist']);
+    Route::get('/dashboard/status', [MonitoringController::class, 'getStatus']);
+    Route::post('/dashboard/toggle', [MonitoringController::class, 'toggleStatus']);
+});
+
 Route::middleware(['auth', 'permission:developer.view|it.view'])->group(function () {
     Route::get('/it/patrol', function () {
         return Inertia::render('IT/PatrolLogs');
@@ -440,6 +467,16 @@ Route::middleware(['auth', 'permission:developer.view|it.view'])->group(function
     Route::get('/it/patrol/checkpoints', function () {
         return Inertia::render('IT/PatrolCheckpoints');
     })->name('it.patrol.checkpoints');
+
+    Route::prefix('api/patrol')->group(function () {
+        Route::get('/checkpoints', [PatrolLogController::class, 'checkpoints']);
+        Route::get('/logs', [PatrolLogController::class, 'index']);
+        Route::post('/scan', [PatrolLogController::class, 'store']);
+        Route::get('/admin/checkpoints', [PatrolLogController::class, 'adminCheckpoints']);
+        Route::post('/admin/checkpoints', [PatrolLogController::class, 'storeCheckpoint']);
+        Route::put('/admin/checkpoints/{id}', [PatrolLogController::class, 'updateCheckpoint']);
+        Route::delete('/admin/checkpoints/{id}', [PatrolLogController::class, 'destroyCheckpoint']);
+    });
 
     // Computer Preventive Maintenance
     Route::get('/computer-checklists', [\App\Http\Controllers\Computer\ComputerChecklistController::class, 'index'])->name('computer-checklists.index');
@@ -499,6 +536,12 @@ Route::middleware(['auth', 'permission:developer.view|gm.view'])->group(function
     Route::get('/purchase/summary-card/api', [POInvController::class, 'getPurchaseSummaryCardApi'])->name('purchase.summary.card.api');
     Route::get('/sales/summary-card/api', [SOInvController::class, 'getSalesSummaryCardApi'])->name('sales.summary.card.api');
     Route::get('/palm/cpo/summary-card/api', [PalmProductionController::class, 'getCPOSummaryApi'])->name('palm.cpo.summary.card.api');
+});
+
+Route::middleware(['auth', 'permission:users.view|chemical.view|developer.view|PRO.view'])->prefix('api/dashboard')->group(function () {
+    Route::get('/production', [ProductionDashboardController::class, 'apiData']);
+    Route::get('/cycle-time', [CycleTimeController::class, 'index']);
+    Route::get('/palm-analytics', [PalmAnalyticsController::class, 'intake']);
 });
 
 Route::middleware(['auth', 'permission:developer.view|gm.view'])->group(function () {
@@ -665,7 +708,7 @@ Route::middleware(['auth', 'permission:users.view'])->group(function () {
 
 
 
-Route::prefix('mar')->name('mar.')->group(function () {
+Route::middleware(['auth', 'permission:developer.view|mar.view|gm.view'])->prefix('mar')->name('mar.')->group(function () {
     // Plan Order Routes
     Route::get('/plan-order', [SOPlanController::class, 'index'])
         ->name('plan-order.index');
@@ -679,34 +722,27 @@ Route::prefix('mar')->name('mar.')->group(function () {
     Route::post('/vehicle-inspections', [VehicleInspectionController::class, 'store']);
 
     Route::post('/plan-order', [SOPlanController::class, 'store'])
-        ->middleware(['auth', 'verified'])
         ->name('plan-order.store');
 
     Route::put('/plan-order/{id}', [SOPlanController::class, 'update'])
-        ->middleware(['auth', 'verified'])
         ->name('plan-order.update');
 
     Route::put('/plan-order/{id}/status', [SOPlanController::class, 'updateStatus'])
-        ->middleware(['auth', 'verified'])
         ->name('plan-order.update-status');
 
     Route::post('/plan-order/{id}/generate-coa', [SOPlanController::class, 'generateCoa'])
-        ->middleware(['auth', 'verified'])
         ->name('plan-order.generate-coa');
 
     // Soft Delete
     Route::delete('/plan-order/{id}', [SOPlanController::class, 'destroy'])
-        ->middleware(['auth', 'verified'])
         ->name('plan-order.destroy');
 
     // กู้คืน record ที่ soft-deleted
     Route::patch('/plan-order/{id}/restore', [SOPlanController::class, 'restore'])
-        ->middleware(['auth', 'verified'])
         ->name('plan-order.restore');
 
     // ลบถาวร (เฉพาะ admin)
     Route::delete('/plan-order/{id}/force', [SOPlanController::class, 'forceDelete'])
-        ->middleware(['auth', 'verified'])
         ->name('plan-order.force-delete');
 });
 // Car Usage Report Routes
