@@ -1,4 +1,3 @@
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@radix-ui/react-collapsible';
@@ -21,8 +20,6 @@ import {
     BadgeDollarSign,
     Beaker,
     BookUser,
-    CalendarClock,
-    CalendarDays,
     Car,
     ChartCandlestick,
     ChartLine,
@@ -30,19 +27,17 @@ import {
     ChevronRight,
     ClipboardList,
     ClipboardMinus,
-    CloudDownload,
     CreditCard,
     Database,
     Factory,
     FileText,
-    Fingerprint,
     FlaskConical,
     LayoutDashboard,
     LayoutGrid,
     MonitorSmartphone,
     Notebook,
-    Package,
     Proportions,
+    QrCode,
     ScrollText,
     Shield,
     ShoppingBasket,
@@ -52,12 +47,19 @@ import {
     UsersRound,
     Warehouse,
     Weight,
-    Leaf,
     Fence,
-    Camera
+    Camera,
+    Globe
 } from 'lucide-react';
+
 import React from 'react';
 import AppLogo from './app-logo';
+
+type SidebarPageProps = {
+    auth: {
+        permissions?: string[];
+    };
+};
 
 const mainNavItems: NavItem[] = [
     {
@@ -78,6 +80,7 @@ const StoreNavItems: NavItem[] = [
 
 const ITNavItem: NavItem[] = [
     { title: 'บันทึกเอกสาร', href: '/memo/documents', icon: FileText, permission: ['it.view'] },
+    { title: 'ตรวจพื้นที่ รปภ. QR', href: '/it/patrol', icon: QrCode, permission: ['it.view'] },
     { title: 'ภาพรวม CCTV รายเดือน', href: '/cctv-inspection/overview', icon: ChartNoAxesCombined, permission: ['it.view'] },
     { title: 'CCTV Inspection', href: '/cctv-inspection', icon: Camera, permission: ['it.view'] },
     { title: 'ตั้งค่าเครื่องบันทึก DVR', href: '/dvrs', icon: Camera, permission: ['it.view'] },
@@ -103,7 +106,9 @@ const DevNavItems: NavItem[] = [
     { title: 'รายงานรับซื้อผลปาล์ม', href: '/purchase/po-invoice-dashboard', icon: ShoppingCart, permission: ['developer.view', 'gm.view'] },
     { title: 'รายงานการขาย', href: '/purchase/executive-report', icon: LayoutDashboard, permission: ['developer.view', 'gm.view'] },
     { title: 'รายงานการผลิต', href: '/purchase/executive-production-report', icon: Factory, permission: ['developer.view', 'gm.view'] },
+
     { title: 'CPO Supply Dashboard', href: '/stock/cpo-supply-dashboard', icon: ChartCandlestick, permission: ['developer.view', 'gm.view'] },
+
     { title: 'Stock Report', href: '/stock/valuation-report', icon: Database, permission: ['developer.view', 'gm.view'] },
     { title: 'ปริมาณผลปาล์ม', href: '/palm/table', icon: ShoppingBasket, permission: ['developer.view', 'gm.view'] },
     { title: 'ปริมาณผลปาล์มรายวัน', href: '/palm/daily', icon: ChartNoAxesCombined, permission: ['developer.view', 'gm.view'] },
@@ -114,6 +119,7 @@ const DevNavItems: NavItem[] = [
     { title: 'งบทดลองเบื้องต้น', href: '/accounts', icon: CreditCard, permission: ['developer.view'] },
     { title: 'รายงานการขายสินค้า', href: '/sales-order', icon: BadgeDollarSign, permission: ['developer.view', 'gm.view'] },
     { title: 'วิเคราะห์การรับซื้อปาล์ม', href: '/palm/analytics', icon: ChartLine, permission: ['developer.view'] },
+    { title: 'Palm Price Report', href: '/market/palm-price-report', icon: Globe, permission: ['developer.view', 'gm.view'] },
 ];
 
 const MARNavItems: NavItem[] = [
@@ -164,7 +170,7 @@ const filterItemsByPermission = (items: NavItem[], permissions: string[]) => {
     return items.filter(item => {
         if (!item.permission) return true;
         if (isDev) return true;
-        
+
         const perms = Array.isArray(item.permission) ? item.permission : [item.permission];
         return perms.some((p: string) => permissions.includes(p));
     });
@@ -172,7 +178,7 @@ const filterItemsByPermission = (items: NavItem[], permissions: string[]) => {
 
 export function AppSidebar() {
     const page = usePage();
-    const { auth } = page.props as any;
+    const { auth } = page.props as unknown as SidebarPageProps;
     const permissions = auth.permissions || [];
     const isDev = checkIsDeveloper(permissions);
 

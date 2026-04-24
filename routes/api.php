@@ -28,6 +28,7 @@ Route::post('/citizens/clear', function () {
 
 
 use App\Http\Controllers\Api\MonitoringController;
+use App\Http\Controllers\Api\PatrolLogController;
 
 Route::prefix('monitoring')->group(function () {
     Route::post('/agent/report', [MonitoringController::class, 'reportMetrics']);
@@ -55,3 +56,17 @@ Route::get('/delivery-plan/{date}', [\App\Http\Controllers\MAR\DeliveryPlanContr
 Route::post('/delivery-plan/order', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'storeOrder']);
 Route::post('/delivery-plan/order/complete', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'completeOrder']);
 Route::post('/delivery-plan/update', [\App\Http\Controllers\MAR\DeliveryPlanController::class, 'update']);
+
+Route::get('/market-price/palm', [\App\Http\Controllers\Api\MarketPriceController::class, 'getPalmPrices']);
+
+Route::prefix('patrol')->group(function () {
+    Route::get('/checkpoints', [PatrolLogController::class, 'checkpoints']);
+    Route::get('/logs', [PatrolLogController::class, 'index']);
+    Route::post('/scan', [PatrolLogController::class, 'store']);
+    
+    // Checkpoint management
+    Route::get('/admin/checkpoints', [PatrolLogController::class, 'adminCheckpoints']);
+    Route::post('/admin/checkpoints', [PatrolLogController::class, 'storeCheckpoint']);
+    Route::put('/admin/checkpoints/{id}', [PatrolLogController::class, 'updateCheckpoint']);
+    Route::delete('/admin/checkpoints/{id}', [PatrolLogController::class, 'destroyCheckpoint']);
+});

@@ -21,6 +21,8 @@ import {
     Gauge,
     Target,
     Wallet,
+    Info,
+    Globe,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CountUp from 'react-countup';
@@ -184,6 +186,7 @@ const StatCard = ({
 export default function CpoSupplyDashboard() {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<SupplyData | null>(null);
+    const [marketPrice, setMarketPrice] = useState<any>(null);
     const [selectedDate, setSelectedDate] = useState(format(subDays(new Date(), 1), 'yyyy-MM-dd'));
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -191,10 +194,13 @@ export default function CpoSupplyDashboard() {
         setIsRefreshing(true);
         setLoading(true);
         try {
-            const res = await axios.get<SupplyData>(route('api.stock.cpo.supply'), {
-                params: { date: selectedDate },
-            });
+            const [res, marketRes] = await Promise.all([
+                axios.get<SupplyData>(route('api.stock.cpo.supply'), { params: { date: selectedDate } }),
+                axios.get('/api/market-price/palm').catch(() => ({ data: null }))
+            ]);
             setData(res.data);
+            setMarketPrice(marketRes.data);
+
         } catch (e) {
             console.error('Error fetching CPO supply data:', e);
         } finally {
@@ -329,7 +335,8 @@ export default function CpoSupplyDashboard() {
                                 className="space-y-6"
                             >
                                 {/* KPI Cards */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mt-4">
+
                                     <StatCard
                                         title="Order คงเหลือ"
                                         value={data?.order.remaining_qty ?? 0}
@@ -412,6 +419,8 @@ export default function CpoSupplyDashboard() {
                                             </div>
                                         }
                                     />
+
+                                   
                                 </div>
 
                                 {/* Row 2: Balance + Forecast side-by-side */}
