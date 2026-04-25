@@ -11,8 +11,6 @@ use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\Api\CitizenController;
 use App\Http\Controllers\Dashboard\ActivityController;
-use App\Http\Controllers\Population\SummaryControllder;
-use App\Http\Controllers\SeederStatusController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -20,7 +18,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
-        return Inertia::render('Dashboard');
+        return Inertia::render('dashboard');
     })->name('dashboard');
 
     // Activity Routes for Dashboard
