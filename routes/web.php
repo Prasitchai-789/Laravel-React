@@ -137,11 +137,6 @@ require __DIR__ . '/modules/computer.php';
 
 require __DIR__ . '/modules/cctv.php';
 
-// errors pages
-Route::fallback(function () {
-    return Inertia::render('Errors/404')->toResponse(request())->setStatusCode(404);
-});
-
 require __DIR__ . '/modules/mar.php';
 
 require __DIR__ . '/modules/qac.php';
@@ -160,3 +155,8 @@ require __DIR__ . '/auth.php';
 
 // Reusable APIs via Web Session
 require __DIR__ . '/modules/api_reusable.php';
+
+// errors pages
+Route::fallback(function () {
+    return Inertia::render('Errors/404')->toResponse(request())->setStatusCode(404);
+});
