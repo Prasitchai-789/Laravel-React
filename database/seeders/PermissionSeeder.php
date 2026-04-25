@@ -33,6 +33,7 @@ class PermissionSeeder extends Seeder
             "admin.delete",
             "admin.create",
 
+            "qmr.view",
          
         ];
 

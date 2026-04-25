@@ -49,7 +49,8 @@ import {
     Weight,
     Fence,
     Camera,
-    Globe
+    Globe,
+    Droplets
 } from 'lucide-react';
 
 import React from 'react';
@@ -155,6 +156,10 @@ const QACNavItems: NavItem[] = [
     { title: 'รายงานพาณิชย์', href: '/stock/production-report', icon: ScrollText, permission: ['qac.view','mar.edit'] },
     { title: 'รายงาน % Yield', href: '/yield-report', icon: ScrollText, permission: ['qac.view'] },
     { title: 'รายงาน % Yield (ตาราง)', href: '/yield-table', icon: ScrollText, permission: ['qac.view','mar.edit'] },
+];
+
+const QMRNavItems: NavItem[] = [
+    { title: 'บันทึกข้อมูลน้ำ', href: '/qmr/water-usage-reports', icon: Droplets, permission: ['qmr.view', 'admin.view', 'developer.view', 'gm.view', 'qac.view'] },
 ];
 
 const CarUsageNavItems: NavItem[] = [
@@ -367,6 +372,36 @@ export function AppSidebar() {
                             <CollapsibleContent>
                                 <SidebarMenuSub>
                                     {filterItemsByPermission(StoreNavItems, permissions).map((item) => (
+                                        <SidebarMenuSubItem key={item.title}>
+                                            <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
+                                                <Link href={item.href} prefetch className="font-anuphan">
+                                                    <span>{item.title}</span>
+                                                </Link>
+                                            </SidebarMenuSubButton>
+                                        </SidebarMenuSubItem>
+                                    ))}
+                                </SidebarMenuSub>
+                            </CollapsibleContent>
+                        </SidebarMenuItem>
+                    </Collapsible>
+                )}
+
+                {/* QMR */}
+                {(isDev || filterItemsByPermission(QMRNavItems, permissions).length > 0) && (
+                    <Collapsible asChild defaultOpen={false} className="group/collapsible">
+                        <SidebarMenuItem>
+                            <CollapsibleTrigger asChild>
+                                <SidebarMenuButton tooltip="ฝ่ายแผนพัฒนาคุณภาพ" className="hover:text-blue-800">
+                                    <Droplets className="h-6 w-6" />
+                                    <span className="flex-1 font-anuphan font-medium text-gray-700 hover:text-blue-800">
+                                        ฝ่ายแผนพัฒนาคุณภาพ
+                                    </span>
+                                    <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                </SidebarMenuButton>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <SidebarMenuSub>
+                                    {filterItemsByPermission(QMRNavItems, permissions).map((item) => (
                                         <SidebarMenuSubItem key={item.title}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">

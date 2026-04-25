@@ -144,6 +144,8 @@ require __DIR__ . '/modules/mar.php';
 
 require __DIR__ . '/modules/qac.php';
 
+require __DIR__ . '/modules/qmr.php';
+
 require __DIR__ . '/modules/erp.php';
 
 require __DIR__ . '/modules/work_order.php';
