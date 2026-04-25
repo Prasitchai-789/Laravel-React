@@ -65,6 +65,13 @@ const toPrice = (n: number) => n.toLocaleString('th-TH', { minimumFractionDigits
 const monthLabels = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 const monthNamesEN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const formatLocalDate = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
 // ===== Main Component =====
 export default function SalesDashboard() {
     const today = new Date();
@@ -142,30 +149,25 @@ export default function SalesDashboard() {
             const params: any = { start_date: startDate, end_date: endDate };
             if (goodId) params.good_id = goodId;
             if (month) {
-                // narrow to month boundaries
-                const d = new Date(`${year}-${month}-01T00:00:00`);
-                const start = new Date(d.getFullYear(), d.getMonth(), 1);
-                const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-                params.start_date = start.toISOString().slice(0, 10);
-                params.end_date = end.toISOString().slice(0, 10);
+                const monthIndex = Number(month) - 1;
+                params.start_date = formatLocalDate(new Date(year, monthIndex, 1));
+                params.end_date = formatLocalDate(new Date(year, monthIndex + 1, 0));
             }
 
-            const [r1, r2, r3, r4, r5, r6] = await Promise.all([
+            const [summaryResult, trendResult] = await Promise.allSettled([
                 axios.get('/sales-summary/api', { params }),
-                axios.get('/market-price/api', {
-                    params: { start_date: params.start_date, end_date: params.end_date, good_id: goodId || 2147 },
-                }),
                 axios.get('/trends-3y/api', { params: { end_year: year, good_id: goodId || 2147 } }),
-                axios.get('/conversion/api', { params }),
-                axios.get('/loss-analysis/api', { params }),
-                axios.get('/top-customers/api', { params: { ...params, limit: 5 } }),
             ]);
 
-            const sj = r1.data;
+            if (summaryResult.status === 'rejected') {
+                throw summaryResult.reason;
+            }
+
+            const sj = summaryResult.value.data;
             setSummary(sj.summary);
             setProducts((sj.products || []).sort((a: any, b: any) => b.net_sales - a.net_sales));
             setMonthlyTrends(sj.monthly_trends || []);
-            setTrend3y(r3.data.lines || []);
+            setTrend3y(trendResult.status === 'fulfilled' ? trendResult.value.data.lines || [] : []);
         } catch (e: any) {
             console.error(e);
             setError(e?.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
@@ -238,6 +240,16 @@ export default function SalesDashboard() {
                 { year: year - 1, points: monthLabels.map((_, i) => ({ month: i + 1, net_sales: 2800000 + i * 90000 })) },
                 { year, points: monthLabels.map((_, i) => ({ month: i + 1, net_sales: 3000000 + i * 100000 })) },
             ]);
+            setMonthlyTrends(
+                monthLabels.map((_, i) => ({
+                    month: `${year}-${String(i + 1).padStart(2, '0')}`,
+                    sales: 3000000 + i * 100000,
+                    returns: 80000 + i * 3000,
+                    net_sales: 2920000 + i * 97000,
+                    average_price: 20 + i * 0.2,
+                    weight: 140 + i * 5,
+                })),
+            );
         } finally {
             setLoading(false);
         }
@@ -346,17 +358,34 @@ export default function SalesDashboard() {
     const extractRecentMonths = useCallback(
         (key: keyof MonthlyTrendRow, divideBy = 1000) => {
             if (!monthlyTrends.length) return [];
+            if (month) {
+                const trendByMonth = new Map(monthlyTrends.map((m) => [String(m.month).slice(5, 7), m]));
+
+                return monthNamesEN.map((name, i) => {
+                    const trendMonth = String(i + 1).padStart(2, '0');
+                    const trend = trendByMonth.get(trendMonth);
+
+                    return {
+                        name,
+                        value: trendMonth === month && trend ? Math.round((trend[key] as number) / divideBy) : 0,
+                    };
+                });
+            }
+
             const currentMonth = new Date().getMonth() + 1; // 1–12
             const startMonth = currentMonth - 6 <= 0 ? 1 : currentMonth - 6;
 
             return monthlyTrends
-                .filter((_, idx) => idx + 1 >= startMonth && idx + 1 <= currentMonth)
-                .map((m, i) => ({
-                    name: monthNamesEN[startMonth - 1 + i],
+                .filter((m) => {
+                    const trendMonth = Number(String(m.month).slice(5, 7));
+                    return trendMonth >= startMonth && trendMonth <= currentMonth;
+                })
+                .map((m) => ({
+                    name: monthNamesEN[Number(String(m.month).slice(5, 7)) - 1],
                     value: Math.round((m[key] as number) / divideBy),
                 }));
         },
-        [monthlyTrends],
+        [monthlyTrends, month],
     );
 
     // ===== Derived Chart Data =====
@@ -373,12 +402,20 @@ export default function SalesDashboard() {
     const yearlyData = useMemo(() => {
         if (!monthlyTrends?.length) return [];
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return monthlyTrends.map((m, i) => ({
-            name: monthNames[i],
-            revenue: Math.round(m.net_sales / 1000000),
-            avgPrice: Math.round(m.average_price),
-        }));
-    }, [monthlyTrends]);
+        const trendByMonth = new Map(monthlyTrends.map((m) => [String(m.month).slice(5, 7), m]));
+
+        return monthNames.map((name, i) => {
+            const trendMonth = String(i + 1).padStart(2, '0');
+            const trend = trendByMonth.get(trendMonth);
+            const isVisibleMonth = !month || trendMonth === month;
+
+            return {
+                name,
+                revenue: isVisibleMonth && trend ? Math.round(trend.net_sales / 1000000) : 0,
+                avgPrice: isVisibleMonth && trend ? Math.round(trend.average_price) : null,
+            };
+        });
+    }, [monthlyTrends, month]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>

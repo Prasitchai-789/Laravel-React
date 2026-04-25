@@ -17,7 +17,7 @@ interface YearlySummaryProps {
   profit?: number;
   expenses?: number;
   growth?: number;
-  data?: { name: string; net?: number; revenue?: number; avgPrice?: number }[];
+  data?: { name: string; net?: number; revenue?: number; avgPrice?: number | null }[];
   timeframe?: string;
   variant?: 'default' | 'modern' | 'minimal';
   title?: string;

@@ -7,17 +7,25 @@ use App\Models\WIN\SOInvDT;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 
 class SaleMARController extends Controller
 {
+    private function dateRange(Request $request): array
+    {
+        $start = Carbon::parse($request->start_date ?: date('Y-01-01'))->toDateString();
+        $end = Carbon::parse($request->end_date ?: date('Y-m-d'))->toDateString();
+
+        return [$start, $end, (int) Carbon::parse($start)->year];
+    }
+
     public function getSalesWeb(Request $request)
     {
         try {
-            $start_date = $request->start_date ?: date('Y-01-01');
-            $end_date = $request->end_date ?: date('Y-m-d');
+            [$start_date, $end_date] = $this->dateRange($request);
 
             $data = SOPlan::selectRaw('GoodID, SUM(NetWei) as total_goodnet')
-                ->whereBetween('SOPDate', [$start_date, $end_date])
+                ->whereBetween(DB::raw('CAST(SOPDate AS DATE)'), [$start_date, $end_date])
                 ->groupBy('GoodID')
                 ->get();
 
@@ -33,8 +41,7 @@ class SaleMARController extends Controller
     public function getSalesWin(Request $request)
     {
         try {
-            $start_date = $request->start_date ?: date('Y-01-01');
-            $end_date = $request->end_date ?: date('Y-m-d');
+            [$start_date, $end_date] = $this->dateRange($request);
             if (!$start_date || !$end_date) {
                 return response()->json([
                     'status' => 'error',
@@ -45,7 +52,7 @@ class SaleMARController extends Controller
             // กลุ่มขายสด ขายเชื่อ
             $sales = SOInvDT::selectRaw('GoodID, SUM(GoodAmnt) as total_amount')
                 ->whereHas('invoice', function ($query) use ($start_date, $end_date) {
-                    $query->whereBetween('DocuDate', [$start_date, $end_date])
+                    $query->whereBetween(DB::raw('CAST(DocuDate AS DATE)'), [$start_date, $end_date])
                         ->whereIn('Docutype', [107, 108]);
                 })
                 ->groupBy('GoodID')
@@ -54,7 +61,7 @@ class SaleMARController extends Controller
             // กลุ่มคืนสินค้า / ลดหนี้
             $returns = SOInvDT::selectRaw('GoodID, SUM(GoodAmnt) as total_amount')
                 ->whereHas('invoice', function ($query) use ($start_date, $end_date) {
-                    $query->whereBetween('DocuDate', [$start_date, $end_date])
+                    $query->whereBetween(DB::raw('CAST(DocuDate AS DATE)'), [$start_date, $end_date])
                         ->whereIn('Docutype', [109]);
                 })
                 ->groupBy('GoodID')
@@ -76,8 +83,7 @@ class SaleMARController extends Controller
     public function getSalesOrder(Request $request)
     {
         try {
-            $start_date = $request->start_date ?: date('Y-01-01');
-            $end_date = $request->end_date ?: date('Y-m-d');
+            [$start_date, $end_date] = $this->dateRange($request);
             $good_id = $request->good_id ?? 2147;
 
             if (!$start_date || !$end_date) {
@@ -96,7 +102,7 @@ class SaleMARController extends Controller
                     SUM(SOInvDT.GoodAmnt) as total_amount
                 ')
                     ->join('SOInvHD as invoice', 'SOInvDT.SOInvID', '=', 'invoice.SOInvID')
-                    ->whereBetween('invoice.DocuDate', [$start_date, $end_date])
+                    ->whereBetween(DB::raw('CAST(invoice.DocuDate AS DATE)'), [$start_date, $end_date])
                     ->whereIn('invoice.Docutype', $types)
                     ->when($good_id, fn($q) => $q->where('SOInvDT.GoodID', $good_id))
                     ->groupBy(
@@ -117,7 +123,7 @@ class SaleMARController extends Controller
                     MONTH(SOPDate) as month,
                     SUM(NetWei) as total_weight
                 ')
-                    ->whereBetween('SOPDate', [$start_date, $end_date])
+                    ->whereBetween(DB::raw('CAST(SOPDate AS DATE)'), [$start_date, $end_date])
                     ->when($good_id, fn($q) => $q->where('GoodID', $good_id))
                     ->groupBy(
                         'SOPlan.GoodID',
@@ -169,8 +175,7 @@ class SaleMARController extends Controller
     public function getSalesSummary(Request $request)
     {
         try {
-            $start_date = $request->start_date ?: date('Y-01-01');
-            $end_date = $request->end_date ?: date('Y-m-d');
+            [$start_date, $end_date, $trend_year] = $this->dateRange($request);
             $good_id = $request->good_id ?? null;
 
             if (!$start_date || !$end_date) {
@@ -189,7 +194,7 @@ class SaleMARController extends Controller
                     SUM(SOInvDT.GoodAmnt) as total_amount
                 ')
                     ->join('SOInvHD as invoice', 'SOInvDT.SOInvID', '=', 'invoice.SOInvID')
-                    ->whereBetween('invoice.DocuDate', [$start_date, $end_date])
+                    ->whereBetween(DB::raw('CAST(invoice.DocuDate AS DATE)'), [$start_date, $end_date])
                     ->whereIn('invoice.Docutype', $types)
                     ->when($good_id, fn($q) => $q->where('SOInvDT.GoodID', $good_id))
                     ->groupBy(
@@ -210,7 +215,7 @@ class SaleMARController extends Controller
                     MONTH(SOPDate) as month,
                     SUM(NetWei) as total_weight
                 ')
-                    ->whereBetween('SOPDate', [$start_date, $end_date])
+                    ->whereBetween(DB::raw('CAST(SOPDate AS DATE)'), [$start_date, $end_date])
                     ->when($good_id, fn($q) => $q->where('GoodID', $good_id))
                     ->groupBy(
                         'SOPlan.GoodID',
@@ -262,14 +267,14 @@ class SaleMARController extends Controller
             $products = $products->filter(fn($p) => !is_null($p['good_name']))->values();
 
             // ✅ แนวโน้มรายเดือน (monthly trends)
-            $monthly_trends = collect(range(1, 12))->map(function ($m) use ($sales, $returns, $weights) {
+            $monthly_trends = collect(range(1, 12))->map(function ($m) use ($sales, $returns, $weights, $trend_year) {
                 $sales_m = $sales->where('month', $m)->sum('total_amount');
                 $returns_m = $returns->where('month', $m)->sum('total_amount');
                 $weight_m = $weights->where('month', $m)->sum('total_weight');
                 $net_sales = $sales_m - $returns_m;
                 $avg_price = $weight_m > 0 ? round($net_sales / $weight_m, 2) : 0;
                 return [
-                    'month' => date('Y') . '-' . str_pad($m, 2, '0', STR_PAD_LEFT),
+                    'month' => $trend_year . '-' . str_pad($m, 2, '0', STR_PAD_LEFT),
                     'sales' => $sales_m,
                     'returns' => $returns_m,
                     'net_sales' => $net_sales,
@@ -316,14 +321,13 @@ class SaleMARController extends Controller
     public function getMarketPrice(Request $request)
     {
         try {
-            $start_date = $request->start_date ?: date('Y-01-01');
-            $end_date = $request->end_date ?: date('Y-m-d');
+            [$start_date, $end_date, $trend_year] = $this->dateRange($request);
             $good_id = $request->good_id ?? 2147;
 
             // ตัวอย่าง mock (สามารถเปลี่ยนให้ดึงจากตารางราคาตลาดจริงได้)
-            $series = collect(range(1, 12))->map(function ($m) {
+            $series = collect(range(1, 12))->map(function ($m) use ($trend_year) {
                 return [
-                    'date' => date('Y') . '-' . str_pad($m, 2, '0', STR_PAD_LEFT),
+                    'date' => $trend_year . '-' . str_pad($m, 2, '0', STR_PAD_LEFT),
                     'internal_price' => round(rand(1800, 2100) / 100, 2),
                     'market_price' => round(rand(1850, 2150) / 100, 2),
                 ];
@@ -392,16 +396,15 @@ class SaleMARController extends Controller
 
     public function getLossAnalysis(Request $request)
     {
-        $start = $request->start_date ?? date('Y-01-01');
-        $end = $request->end_date ?? date('Y-m-d');
+        [$start, $end] = $this->dateRange($request);
 
         $sales = SOInvDT::join('SOInvHD as H', 'SOInvDT.SOInvID', '=', 'H.SOInvID')
-            ->whereBetween('H.DocuDate', [$start, $end])
+            ->whereBetween(DB::raw('CAST(H.DocuDate AS DATE)'), [$start, $end])
             ->whereIn('H.Docutype', [107, 108])
             ->sum('SOInvDT.GoodAmnt');
 
         $returns = SOInvDT::join('SOInvHD as H', 'SOInvDT.SOInvID', '=', 'H.SOInvID')
-            ->whereBetween('H.DocuDate', [$start, $end])
+            ->whereBetween(DB::raw('CAST(H.DocuDate AS DATE)'), [$start, $end])
             ->where('H.Docutype', 109)
             ->sum('SOInvDT.GoodAmnt');
 
@@ -415,7 +418,7 @@ class SaleMARController extends Controller
         return response()->json([
             'total_net_sales' => $sales - $returns,
             'total_returns' => $returns,
-            'return_rate' => round($returns / $sales, 4),
+            'return_rate' => $sales > 0 ? round($returns / $sales, 4) : 0,
             // 'by_reason' => $reasons,
         ]);
     }
