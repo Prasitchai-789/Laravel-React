@@ -538,12 +538,13 @@ export default function ExecutiveReport() {
                                             </div>
                                         </div>
                                         <div className="bg-white/70 backdrop-blur-sm rounded-xl p-3 border border-slate-200 shadow-sm">
-                                            <p className="font-bold text-xs text-slate-500 mb-1 uppercase tracking-wider">% Yield</p>
+                                            <p className="font-bold text-xs text-slate-500 mb-1 uppercase tracking-wider">% Yield <span className="text-xs text-blue-500 font-medium">(น้ำหนัก)</span></p>
+
                                             <div className="flex items-baseline gap-1">
-                                                <p className="text-3xl font-black text-orange-600 font-mono">
+                                                <p className="text-3xl font-black text-blue-600 font-mono">
                                                     {loadingCPOSummary ? '...' : <CountUp end={cpoSummary?.yield_percent || 0} decimals={2} duration={2} />}
                                                 </p>
-                                                <p className="text-sm font-bold text-orange-500">%</p>
+                                                <p className="text-sm font-bold text-blue-500">%</p>
                                             </div>
                                         </div>
                                     </div>
@@ -689,7 +690,7 @@ export default function ExecutiveReport() {
                                 <motion.div variants={itemVariants}
                                     className="bg-white rounded-2xl p-4 shadow-lg shadow-slate-200/50 border border-red-200 hover:shadow-xl transition-all"
                                 >
-                                    <p className="font-bold text-slate-900 text-xs uppercase tracking-wide mb-3">ต้นทุนเฉลี่ย / เดือน</p>
+                                    <p className="font-bold text-slate-900 text-xs uppercase tracking-wide mb-5">ต้นทุนเฉลี่ย / เดือน</p>
                                     <div className="flex items-baseline gap-1">
                                         <span className="text-4xl font-black text-rose-600 tracking-tight font-mono">
                                             {loadingCPOSummary || loadingPurchase ? '...' :
@@ -699,13 +700,19 @@ export default function ExecutiveReport() {
                                         </span>
                                         <span className="text-sm text-slate-500">Baht</span>
                                     </div>
-                                    <p className="text-xs text-slate-700 mt-2">ต่อหน่วย CPO</p>
+                                     <p className="text-[12px] text-slate-500 mt-2 font-bold flex justify-between items-center">
+                                       
+                                        <span className="bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded">Yield ผลิต : {cpoSummary?.yield_period_no_oil_room}%</span>
+                                    </p>
                                 </motion.div>
 
                                 <motion.div variants={itemVariants}
                                     className="bg-white rounded-2xl p-4 shadow-lg shadow-slate-200/50 border border-slate-400 hover:shadow-xl transition-all"
                                 >
-                                    <p className="font-bold text-slate-900 text-xs uppercase tracking-wide mb-3">ต้นทุนปัจจุบัน</p>
+                                    <div className="flex justify-between items-center -mb-1">
+                                        <p className="font-bold text-slate-900 text-xs uppercase tracking-wide">ต้นทุนปัจจุบัน</p>
+                                    </div>
+                                    <span className="text-[11px] text-red-500 font-medium -mt-8">(อิงราคาวันที่ล่าสุด)</span>
                                     <div className="flex items-baseline gap-1">
                                         <span className="text-4xl font-black text-slate-800 tracking-tight font-mono">
                                             {loadingCPOSummary || loadingPurchase ? '...' :
@@ -715,7 +722,10 @@ export default function ExecutiveReport() {
                                         </span>
                                         <span className="text-sm text-slate-500">Baht</span>
                                     </div>
-                                    <p className="text-xs text-slate-700 mt-2">อิงราคาวันที่ล่าสุด</p>
+                                     <p className="text-[12px] text-slate-500 mt-2 font-bold flex justify-between items-center">
+                                        
+                                        <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">Yield ผลิต : {cpoSummary?.yield_period_no_oil_room}%</span>
+                                    </p>
                                 </motion.div>
                             </div>
 

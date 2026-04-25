@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { executiveApi } from '@/services/executiveApi';
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -44,10 +44,8 @@ export default function ExecutiveProductionReport() {
         const fetchReportData = async () => {
             setLoading(true);
             try {
-                const response = await axios.get('/api/purchase/executive-production-report', {
-                    params: { start_date: startDate, end_date: endDate }
-                });
-                if (response.data.status === 'success') setReportData(response.data.data);
+                const res = await executiveApi.getProductionReport({ start_date: startDate, end_date: endDate });
+                if (res.success) setReportData(res.data);
             } catch (error) { console.error(error); }
             finally { setLoading(false); }
         };
@@ -55,10 +53,8 @@ export default function ExecutiveProductionReport() {
         const fetchCPOSummary = async () => {
             setLoadingCPOSummary(true);
             try {
-                const response = await axios.get('/palm/cpo/summary-card/api', {
-                    params: { start_date: startDate, end_date: endDate }
-                });
-                if (response.data.status === 'success') setCPOSummary(response.data.data);
+                const res = await executiveApi.getCPOSummary({ start_date: startDate, end_date: endDate });
+                if (res.success) setCPOSummary(res.data);
             } catch (error) { console.error(error); }
             finally { setLoadingCPOSummary(false); }
         };
@@ -66,10 +62,8 @@ export default function ExecutiveProductionReport() {
         const fetchPurchaseSummary = async () => {
             setLoadingPurchase(true);
             try {
-                const response = await axios.get('/purchase/summary-card/api', {
-                    params: { start_date: startDate, end_date: endDate, good_id: 2156 }
-                });
-                if (response.data.status === 'success') setPurchaseSummary(response.data.data);
+                const res = await executiveApi.getPurchaseSummary({ start_date: startDate, end_date: endDate, good_id: 2156 });
+                if (res.success) setPurchaseSummary(res.data);
             } catch (error) { console.error(error); }
             finally { setLoadingPurchase(false); }
         };
@@ -77,10 +71,8 @@ export default function ExecutiveProductionReport() {
         const fetchProductionSummary = async () => {
             setLoadingProductionSummary(true);
             try {
-                const response = await axios.get('/palm/production/summary-card/api', {
-                    params: { start_date: startDate, end_date: endDate }
-                });
-                if (response.data.status === 'success') setProductionSummary(response.data.data);
+                const res = await executiveApi.getProductionSummary({ start_date: startDate, end_date: endDate });
+                if (res.success) setProductionSummary(res.data);
             } catch (error) { console.error(error); }
             finally { setLoadingProductionSummary(false); }
         };

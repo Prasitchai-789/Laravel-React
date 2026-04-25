@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import axios from 'axios';
+import { purchaseApi } from '@/services/purchaseApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import CountUp from 'react-countup';
 import dayjs from 'dayjs';
@@ -71,8 +71,8 @@ export default function POInvDashboard() {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get('/purchase/po-invoice-dashboard/api', { params: { date: selectedDate } });
-        if (isMounted) setData(response.data.data);
+        const res = await purchaseApi.getPOInvDashboard({ date: selectedDate });
+        if (isMounted && res.success) setData(res.data);
       } catch (error) {
         console.error('Error fetching dashboard data', error);
       } finally {
@@ -421,7 +421,7 @@ export default function POInvDashboard() {
                     </div>
 
                     <div className="mt-auto pt-4 border-t border-white/10">
-                      <div className="flex items-center justify-center p-2 rounded-xl bg-black/20 text-[14px] font-black text-emerald-300/80 font-mono tracking-tighter">
+                      <div className="flex items-center justify-center p-2 rounded-xl bg-black/20 text-[12px] font-black text-emerald-300/80 font-mono tracking-tighter">
                         ( {data.remaining_stock.volume.toLocaleString()} t × {data.remaining_stock.yield_7d} % ) = {data.remaining_stock.cpo_volume.toLocaleString()} t CPO
                       </div>
                     </div>

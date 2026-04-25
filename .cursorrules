@@ -29,3 +29,10 @@ You must follow these routing rules for this project:
 5. React API Client
 - Always use the centralized API client `resources/js/lib/api.ts` for making HTTP requests in React components instead of using raw `axios` or `fetch`.
 - This helper automatically handles CSRF, session expirations (401), permissions (403), and global error toasts.
+
+6. Reusable API Architecture
+- Use `App\Traits\ApiResponse` for standardized JSON responses in APIs (`successResponse`, `errorResponse`).
+- Extend `App\Http\Controllers\Api\BaseApiController` for new API Controllers.
+- Separate business logic into `app/Services/` (e.g., `DashboardService`) to keep Controllers lean and allow logic reuse.
+- Register session-based APIs in `routes/modules/api_reusable.php` using the `web` and `auth` middleware.
+- In React, organize API calls into service files (e.g., `resources/js/services/dashboardApi.ts`) that utilize the centralized `api.ts` client.

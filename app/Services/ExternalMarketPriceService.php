@@ -57,7 +57,8 @@ class ExternalMarketPriceService
                     }
 
                     $price = (float)$item['pricePerKg'];
-                    $priceMax = (float)$item['priceMaxPerKg'];
+                    $priceMax = (float)($item['priceMaxPerKg'] ?? $price);
+                    if ($priceMax == 0) $priceMax = $price;
 
                     if ($price < $aggregatedPalm[$date]['palm_min']) $aggregatedPalm[$date]['palm_min'] = $price;
                     if ($priceMax > $aggregatedPalm[$date]['palm_max']) $aggregatedPalm[$date]['palm_max'] = $priceMax;

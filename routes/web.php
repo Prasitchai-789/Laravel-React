@@ -122,9 +122,7 @@ require __DIR__ . '/modules/agr.php';
 
 require __DIR__ . '/modules/fertilizer.php';
 
-
 require __DIR__ . '/modules/pur.php';
-
 
 require __DIR__ . '/modules/memo.php';
 
@@ -132,8 +130,11 @@ require __DIR__ . '/modules/memo.php';
 // Route::post('/api/storeorder', [StockOrderController::class, 'store']);
 
 require __DIR__ . '/modules/monitoring.php';
+
 require __DIR__ . '/modules/patrol.php';
+
 require __DIR__ . '/modules/computer.php';
+
 require __DIR__ . '/modules/cctv.php';
 
 // errors pages
@@ -146,6 +147,7 @@ require __DIR__ . '/modules/mar.php';
 require __DIR__ . '/modules/qac.php';
 
 require __DIR__ . '/modules/erp.php';
+
 require __DIR__ . '/modules/work_order.php';
 
 require __DIR__ . '/modules/car_usage.php';
@@ -153,4 +155,8 @@ require __DIR__ . '/modules/car_usage.php';
 
 
 require __DIR__ . '/settings.php';
+
 require __DIR__ . '/auth.php';
+
+// Reusable APIs via Web Session
+require __DIR__ . '/modules/api_reusable.php';
