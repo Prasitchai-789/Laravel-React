@@ -71,11 +71,11 @@ const mainNavItems: NavItem[] = [
 ];
 
 const StoreNavItems: NavItem[] = [
-    { title: 'Dashboard', href: '/StoreOrder/Dashboard', icon: ChartLine, permission: ['PUR.view', 'PUR.Admin'] },
-    { title: 'StoreOrder', href: '/StoreOrder', icon: Store, permission: ['PUR.view', 'PUR.Admin'] },
+    { title: 'Dashboard', href: '/StoreOrder/Dashboard', icon: ChartLine, permission: ['PUR.edit', 'PUR.Admin'] },
+    { title: 'StoreOrder', href: '/StoreOrder', icon: Store, permission: ['PUR.edit', 'PUR.Admin'] },
     { title: 'Product Withdrawal', href: '/StoreOrder/StoreOrderIssue', icon: ShoppingCart, permission: ['PUR.view', 'users.view', 'PUR.Admin'] },
     { title: 'Stock Report', href: '/StoreOrder/StoreIssueIndex', icon: ClipboardMinus, permission: ['PUR.view', 'PUR.Admin', 'users.view'] },
-    { title: 'Store Movement', href: '/StoreOrder/StoreMovement', icon: ClipboardMinus, permission: ['PUR.view', 'PUR.Admin'] },
+    { title: 'Store Movement', href: '/StoreOrder/StoreMovement', icon: ClipboardMinus, permission: ['PUR.edit', 'PUR.Admin'] },
 ];
 
 const ITNavItem: NavItem[] = [
@@ -88,11 +88,11 @@ const ITNavItem: NavItem[] = [
 ];
 
 const PRONavItem: NavItem[] = [
-    { title: 'Chemicals', href: '/chemical', icon: FlaskConical, permission: ['pro.view', 'gm.view'] },
-    { title: 'จัดการสารเคมี', href: '/chemical-master', icon: Beaker, permission: ['pro.view', 'gm.view'] },
-    { title: 'Production Monitor', href: '/production-dashboard', icon: Factory, permission: ['pro.view', 'gm.view'] },
-    { title: 'บันทึกข้อมูลการผลิต', href: '/pro/production-record', icon: ClipboardList, permission: ['pro.view', 'gm.view'] },
-    { title: 'รายงานข้อมูลการผลิต', href: '/pro/production-report', icon: ClipboardList, permission: ['pro.view', 'gm.view'] },
+    { title: 'Chemicals', href: '/chemical', icon: FlaskConical, permission: ['pro.edit', 'gm.view'] },
+    { title: 'จัดการสารเคมี', href: '/chemical-master', icon: Beaker, permission: ['pro.edit', 'gm.view'] },
+    { title: 'Production Monitor', href: '/production-dashboard', icon: Factory, permission: ['pro.edit', 'gm.view'] },
+    { title: 'บันทึกข้อมูลการผลิต', href: '/pro/production-record', icon: ClipboardList, permission: ['pro.edit', 'gm.view'] },
+    { title: 'รายงานข้อมูลการผลิต', href: '/pro/production-report', icon: ClipboardList, permission: ['pro.edit', 'gm.view', 'qac.edit'] },
 ];
 
 const adminNavItems: NavItem[] = [
@@ -142,18 +142,18 @@ const FerNavItems: NavItem[] = [
 ];
 
 const QACNavItems: NavItem[] = [
-    { title: 'Oil COA', href: '/qac/coa/oil', icon: Beaker, permission: ['qac.view'] },
-    { title: 'Seed COA', href: '/qac/coa/seed', icon: Beaker, permission: ['qac.view'] },
-    { title: 'บันทึกข้อมูล Stock CPO', href: '/cpo', icon: Beaker, permission: ['qac.view'] },
-    { title: 'บันทึก Skim / Mix', href: '/skim-mix', icon: Beaker, permission: ['qac.view'] },
-    { title: 'บันทึกข้อมูล Kernel', href: '/stock/kernel', icon: Beaker, permission: ['qac.view'] },
-    { title: 'บันทึกข้อมูล สินค้าอื่น ๆ', href: '/stock/by-products', icon: Beaker, permission: ['qac.view'] },
+    { title: 'Oil COA', href: '/qac/coa/oil', icon: Beaker, permission: ['qac.edit'] },
+    { title: 'Seed COA', href: '/qac/coa/seed', icon: Beaker, permission: ['qac.edit'] },
+    { title: 'บันทึกข้อมูล Stock CPO', href: '/cpo', icon: Beaker, permission: ['qac.edit'] },
+    { title: 'บันทึก Skim / Mix', href: '/skim-mix', icon: Beaker, permission: ['qac.edit'] },
+    { title: 'บันทึกข้อมูล Kernel', href: '/stock/kernel', icon: Beaker, permission: ['qac.edit'] },
+    { title: 'บันทึกข้อมูล สินค้าอื่น ๆ', href: '/stock/by-products', icon: Beaker, permission: ['qac.edit'] },
     { title: 'Stock CPO', href: '/stock/cpo', icon: Beaker, permission: ['qac.view'] },
-    { title: 'รายงานการผลิต (Mill Daily)', href: '/qac/mill-daily-report', icon: ScrollText, permission: ['qac.view'] },
+    { title: 'รายงานการผลิต (Mill Daily)', href: '/qac/mill-daily-report', icon: ScrollText, permission: ['qac.edit'] },
     { title: 'รายงานการผลิต', href: '/stock/report', icon: ScrollText, permission: ['qac.view'] },
-    { title: 'รายงานพาณิชย์', href: '/stock/production-report', icon: ScrollText, permission: ['qac.view'] },
+    { title: 'รายงานพาณิชย์', href: '/stock/production-report', icon: ScrollText, permission: ['qac.view','mar.edit'] },
     { title: 'รายงาน % Yield', href: '/yield-report', icon: ScrollText, permission: ['qac.view'] },
-    { title: 'รายงาน % Yield (ตาราง)', href: '/yield-table', icon: ScrollText, permission: ['qac.view'] },
+    { title: 'รายงาน % Yield (ตาราง)', href: '/yield-table', icon: ScrollText, permission: ['qac.view','mar.edit'] },
 ];
 
 const CarUsageNavItems: NavItem[] = [

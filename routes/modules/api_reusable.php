@@ -23,7 +23,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('check-plan', [ComputerApiController::class, 'checkPlan'])->name('check-plan');
         });
 
-        Route::middleware(['permission:developer.view|gm.view'])->group(function () {
+        Route::middleware(['permission:developer.view|gm.view|pro.view'])->group(function () {
             Route::prefix('executive')->name('api.executive.')->group(function () {
                 Route::get('production-report', [ExecutiveApiController::class, 'getProductionReport'])->name('production.report');
                 Route::get('soplan-report', [ExecutiveApiController::class, 'getSOPlan'])->name('soplan.report');
@@ -56,6 +56,10 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Backward Compatibility Aliases (to be removed after full migration)
+    Route::middleware(['permission:developer.view|gm.view|mar.edit'])->group(function () {
+        Route::get('/poinv-win-monthly/api', [PurchaseApiController::class, 'getPOInvMonthly']);
+    });
+
     Route::middleware(['permission:developer.view|gm.view'])->group(function () {
         Route::get('/api/purchase/executive-production-report', [ExecutiveApiController::class, 'getProductionReport']);
         Route::get('/api/purchase/executive-soplan-report', [ExecutiveApiController::class, 'getSOPlan']);
@@ -68,7 +72,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/purchase/po/api', [PurchaseApiController::class, 'getPOList']);
         Route::get('/purchase/po/chart', [PurchaseApiController::class, 'getPOInvChart']);
         Route::get('/poinv-win-summary/api', [PurchaseApiController::class, 'getPOInvSummary']);
-        Route::get('/poinv-win-monthly/api', [PurchaseApiController::class, 'getPOInvMonthly']);
         Route::get('/purchase/dashboard/api', [PurchaseApiController::class, 'getPurchaseSummary']);
 
         Route::get('/sales/summary-card/api', [SalesApiController::class, 'getSummaryCard']);
