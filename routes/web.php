@@ -10,6 +10,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\Api\CitizenController;
+use App\Http\Controllers\Admin\PageAccessLogController;
 use App\Http\Controllers\Dashboard\ActivityController;
 
 Route::get('/', function () {
@@ -64,6 +65,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource("roles", RoleController::class)
         ->only(["index", "show"])
         ->middleware(["permission:roles.view|roles.create|roles.edit|roles.delete"]);
+
+    Route::middleware('permission:admin.edit')->group(function () {
+        Route::get('admin/page-access-logs', [PageAccessLogController::class, 'index'])->name('admin.page-access-logs.index');
+    });
 });
 
 // Projects Routes
