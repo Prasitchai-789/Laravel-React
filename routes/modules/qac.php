@@ -13,7 +13,7 @@ use App\Http\Controllers\QAC\YieldTableController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::middleware(['auth', 'permission:developer.view|qac.view|gm.view'])->group(function () {
+Route::middleware(['auth', 'permission:developer.view|qac.view|gm.view|mar.edit'])->group(function () {
     Route::get('/qac/mill-daily-report', [MillDailyReportController::class, 'index'])->name('qac.mill-report');
     Route::get('/api/qac/mill-daily-data', [MillDailyReportController::class, 'getData']);
     Route::post('/api/qac/mill-daily-additional', [MillDailyReportController::class, 'saveAdditionalData']);
@@ -74,7 +74,7 @@ Route::middleware(['auth', 'permission:developer.view|qac.view|gm.view'])->group
     Route::get('/stock/by-products/previous-balance', [ByProductionStockController::class, 'apiPreviousBalance'])->name('stock.by-products.previous-balance');
 });
 
-Route::middleware(['auth', 'permission:developer.view|qac.view|gm.view'])->group(function () {
+Route::middleware(['auth', 'permission:developer.view|qac.view|gm.view|mar.edit'])->group(function () {
     Route::get('/report/sales/api', [StockReportController::class, 'apiSummarySales'])->name('report.sales.api');
     Route::get('/report/productions/api', [StockReportController::class, 'apiProductions'])->name('report.productions.api');
     Route::get('/report/stock-cpo/api', [StockReportController::class, 'apiStockCPO'])->name('report.stock-cpo.api');

@@ -23,7 +23,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-Route::middleware(['auth', 'permission:developer.view|mar.view|gm.view'])->group(function () {
+Route::middleware(['auth', 'permission:developer.view|mar.view|mar.edit|gm.view'])->group(function () {
     Route::get('orders', [MARSalesController::class, 'salesOrder']);
     Route::get('orders/pending', [SalesOrderController::class, 'getSalesOrder']);
     Route::get('/sales-order/{docuNo}/invoices', [SalesOrderController::class, 'getSalesOrderInvoice']);
