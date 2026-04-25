@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
+import { dashboardApi } from '@/services/dashboardApi';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -294,6 +295,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Dashboard() {
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
+    const [summary, setSummary] = useState<any>(null);
+    const [summaryLoading, setSummaryLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [liked, setLiked] = useState<number[]>([]);
     const [saved, setSaved] = useState<number[]>([]);
@@ -302,6 +305,23 @@ export default function Dashboard() {
     const autoPlayRef = useRef<NodeJS.Timeout>();
 
     useEffect(() => {
+        // Fetch dashboard summary from our new Reusable API
+        const loadSummary = async () => {
+            try {
+                setSummaryLoading(true);
+                const res = await dashboardApi.getSummary();
+                if (res.success) {
+                    setSummary(res.data);
+                }
+            } catch (error) {
+                console.error("Failed to load dashboard summary", error);
+            } finally {
+                setSummaryLoading(false);
+            }
+        };
+        
+        loadSummary();
+
         // Simulate API call with mock data
         setTimeout(() => {
             setActivities(MOCK_ACTIVITIES);
@@ -500,22 +520,27 @@ export default function Dashboard() {
                             </div>
                         </div>
                         
-                        {/* Activity Tags */}
-                        {/* <div className="flex gap-2 mt-6 overflow-x-auto pb-2">
-                            {activities.map((activity, idx) => (
-                                <button
-                                    key={activity.id}
-                                    onClick={() => setCurrentIndex(idx)}
-                                    className={`px-4 py-2 rounded-full whitespace-nowrap transition-all ${
-                                        currentIndex === idx
-                                            ? 'bg-white text-blue-600 shadow-lg'
-                                            : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-md'
-                                    }`}
-                                >
-                                    {getActivityIcon(activity.title)} {activity.title.split(' ').slice(0, 3).join(' ')}...
-                                </button>
-                            ))}
-                        </div> */}
+                        {/* Summary API Data */}
+                        <div className="flex gap-4 mt-8 flex-wrap">
+                            {summaryLoading ? (
+                                <div className="text-white/60 animate-pulse text-sm">Loading summary metrics...</div>
+                            ) : summary ? (
+                                <>
+                                    <div className="px-6 py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+                                        <div className="text-white/70 text-sm font-medium mb-1">Total Sales</div>
+                                        <div className="text-white text-2xl font-bold">฿{summary.total_sales.toLocaleString()}</div>
+                                    </div>
+                                    <div className="px-6 py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+                                        <div className="text-white/70 text-sm font-medium mb-1">Total Orders</div>
+                                        <div className="text-white text-2xl font-bold">{summary.total_orders.toLocaleString()}</div>
+                                    </div>
+                                    <div className="px-6 py-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+                                        <div className="text-white/70 text-sm font-medium mb-1">Active Users</div>
+                                        <div className="text-white text-2xl font-bold">{summary.active_users.toLocaleString()}</div>
+                                    </div>
+                                </>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
 
