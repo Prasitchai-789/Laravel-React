@@ -541,17 +541,9 @@ class SOPlanController extends Controller
         if (count($validVehicles) === 0) {
             return $this->errorResponse($request, 'กรุณาระบุข้อมูลรถอย่างน้อย 1 คัน', 422);
         }
-        // ดึง SOPID สูงสุดที่เป็นตัวเลข (ข้ามค่าที่ไม่ใช่ตัวเลข)
-        $maxIdStr = DB::connection('sqlsrv2')->selectOne("SELECT MAX(TRY_CAST(SOPID AS INT)) as max_id FROM SOPlan");
-        $currentMaxId = $maxIdStr && $maxIdStr->max_id ? (int)$maxIdStr->max_id : 0;
 
         foreach ($validVehicles as $index => $vehicle) {
             $plan = new SOPlan();
-            
-            // สร้าง SOPID ใหม่ด้วยตัวเอง
-            $currentMaxId++;
-            $plan->SOPID = (string)$currentMaxId;
-            
 
             $plan->SOPDate = $receiveDate;
             $plan->GoodID = $data['goodID'];
@@ -571,8 +563,9 @@ class SOPlanController extends Controller
 
             try {
                 $plan->save();
-                Log::info("🔹 SOPlan saved: SOPID=" . $plan->SOPID . " for Car=" . $plan->NumberCar);
-                
+                $sopidString = (string)$plan->SOPID;
+                Log::info("🔹 SOPlan saved: SOPID=" . $sopidString . " for Car=" . $plan->NumberCar);
+
                 // ==========================================
                 // สร้าง Certificate อัตโนมัติ (ตาม Logic เดิม)
                 // ==========================================
@@ -580,7 +573,7 @@ class SOPlanController extends Controller
                 $yearBE = $now->year + 543;
                 $month = $now->format('m');
                 $year2 = substr($yearBE, -2);
-                
+
                 $prefix = 'CPO';
                 $gn = strtolower($plan->GoodName ?? '');
                 if (str_contains($gn, 'เมล็ด') || str_contains($gn, 'kernel') || str_contains($gn, 'cpko')) {
@@ -605,7 +598,7 @@ class SOPlanController extends Controller
 
                 $certData = [
                     'id' => (string)$certAutoIdSeq,
-                    'SOPID' => (string)$plan->SOPID,
+                    'SOPID' => $sopidString,
                     'date_coa' => $now->format('Y-m-d H:i:s.v'),
                     'coa_number' => $coaNumber,
                     'coa_lot' => $coaLot,
@@ -626,12 +619,12 @@ class SOPlanController extends Controller
                 }
 
                 \App\Models\Certificate::create($certData);
-                Log::info("🔹 Certificate auto-created for SOPID=" . $plan->SOPID . " CoaNo=" . $coaNumber);
+                Log::info("🔹 Certificate auto-created for SOPID=" . $sopidString . " CoaNo=" . $coaNumber);
                 // ==========================================
 
                 $savedPlans[] = [
-                    'SOPID' => (string)$plan->SOPID, 
-                    'NumberCar' => $plan->NumberCar, 
+                    'SOPID' => $sopidString,
+                    'NumberCar' => $plan->NumberCar,
                     'DriverName' => $plan->DriverName
                 ];
             } catch (\Exception $e) {
