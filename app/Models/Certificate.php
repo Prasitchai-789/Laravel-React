@@ -13,6 +13,19 @@ class Certificate extends Model
         $this->connection = env('DB_CERTIFICATES_CONNECTION', 'sqlsrv3');
     }
 
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($model) {
+            unset($model->id);
+        });
+        
+        static::saving(function ($model) {
+            unset($model->id);
+        });
+    }
+
     use HasFactory;
 
     protected $table = 'certificates';
@@ -22,7 +35,6 @@ class Certificate extends Model
     public $timestamps = false;
     // ฟิลด์ที่อนุญาตให้ mass assignment
     protected $fillable = [
-        'id',
         'date_coa',
         'SOPID',
         'coa_number',

@@ -71,12 +71,7 @@ class COAController extends Controller
             }
 
             if (!$cert) {
-                // Get next ID if creating new
-                $maxId = Certificate::max(DB::raw('TRY_CAST(id as INT)')) ?? 0;
-                $nextId = (int) $maxId + 1;
-
                 $cert = new Certificate();
-                $cert->id = (string) $nextId;
                 $cert->SOPID = (string) $request->get('SOPID');
                 $cert->created_at = $now->format('d/m/Y H:i:s');
             }
