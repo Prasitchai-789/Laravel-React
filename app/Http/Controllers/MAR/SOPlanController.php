@@ -593,11 +593,7 @@ class SOPlanController extends Controller
                 $coaNumber = $prefix . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT) . "/{$yearBE}";
                 $coaLot = 'QAC' . $year2 . $month . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT);
 
-                $maxId = \App\Models\Certificate::max(\Illuminate\Support\Facades\DB::raw('TRY_CAST(id as INT)')) ?? 0;
-                $certAutoIdSeq = (int)$maxId + 1;
-
                 $certData = [
-                    'id' => (string)$certAutoIdSeq,
                     'SOPID' => $sopidString,
                     'date_coa' => $now->format('Y-m-d H:i:s.v'),
                     'coa_number' => $coaNumber,
@@ -917,11 +913,7 @@ class SOPlanController extends Controller
             $coaLot = 'QAC' . $year2 . $month . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT);
 
             if (!$cert) {
-                $maxId = \App\Models\Certificate::max(\Illuminate\Support\Facades\DB::raw('TRY_CAST(id as INT)')) ?? 0;
-                $certAutoIdSeq = (int)$maxId + 1;
-
                 $certData = [
-                    'id' => (string)$certAutoIdSeq,
                     'SOPID' => $id,
                     'date_coa' => $now->format('Y-m-d H:i:s.v'),
                     'coa_number' => $coaNumber,
