@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { motion } from 'framer-motion';
 import { BarChart3, Calendar, Droplets, Package, Sprout, TrendingUp } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 
@@ -44,6 +44,7 @@ export default function ProductionReport() {
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(false);
     const [ffbTrend, setFfbTrend] = useState<any[]>([]);
+    const alertedMismatchDate = useRef<string | null>(null);
 
     /* ------------------------------------------
        Convert Date → YYYY-MM-DD
@@ -63,6 +64,13 @@ export default function ProductionReport() {
         }
     };
 
+    const fmtAlert = (v: any, digits: number = 3): string => {
+        return Number(v || 0).toLocaleString('th-TH', {
+            minimumFractionDigits: digits,
+            maximumFractionDigits: digits,
+        });
+    };
+
     /* ------------------------------------------
        Fetch Summary + Trend 7 วัน
     ------------------------------------------- */
@@ -80,8 +88,34 @@ export default function ProductionReport() {
 
             if (json.success) {
                 setProd(json);
-                if (json.date) setSelectedDate(toISODate(json.date));
+                const normalizedDate = toISODate(json.date);
+                if (json.date) setSelectedDate(normalizedDate);
                 setFfbTrend(json.ffb_trend_7days ?? []);
+
+                if (json.cpo_sync_status?.is_mismatch && alertedMismatchDate.current !== normalizedDate) {
+                    alertedMismatchDate.current = normalizedDate;
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ยอดผลิตมีการอัพเดท',
+                        html: `
+                            <div style="text-align:left">
+                                <p>ปริมาณผลิตไม่ตรงกับข้อมูล Stock CPO</p>
+                                <p style="margin-top:8px">Production: <b>${fmtAlert(json.cpo_sync_status.production_ffb_good_qty)}</b> ตัน</p>
+                                <p>Stock CPO: <b>${fmtAlert(json.cpo_sync_status.cpo_ffb_good_qty)}</b> ตัน</p>
+                                <p style="margin-top:8px">ให้เข้าไปอัพเดทหน้าข้อมูล Stock CPO ,Kernel สินค้าอื่นๆ</p>
+                            </div>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: 'ไปหน้า Stock CPO',
+                        cancelButtonText: 'ปิด',
+                        confirmButtonColor: '#059669',
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = '/cpo';
+                        }
+                    });
+                }
             } else {
                 Swal.fire({
                     icon: 'warning',

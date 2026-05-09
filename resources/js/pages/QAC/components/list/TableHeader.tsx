@@ -45,7 +45,7 @@ export default function TableHeader({ onSort, getSortIcon }: Props) {
                 <th className="px-6 py-5 text-left text-sm font-semibold text-gray-700">
                     <div className="flex items-center space-x-2">
                         <BarChart3 className="h-4 w-4 text-gray-600" />
-                        <span>สรุปผลลัพธ์</span>
+                        <span>สรุปผลลัพธ์ / สถานะ</span>
                     </div>
                 </th>
 

@@ -32,6 +32,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 interface YieldData {
+    start_date?: string;
+    end_date?: string;
     latest_date: string | null;
     latest_product_cpo: number;
     latest_cpo_oil_room: number;
@@ -47,6 +49,8 @@ interface YieldData {
 }
 
 const defaultData: YieldData = {
+    start_date: undefined,
+    end_date: undefined,
     latest_date: null,
     latest_product_cpo: 0,
     latest_cpo_oil_room: 0,
@@ -65,13 +69,14 @@ export default function YieldReport() {
     const [data, setData] = useState<YieldData>(defaultData);
     const [loading, setLoading] = useState(false);
 
-    // Default date range: last 7 days
-    const [startDate, setStartDate] = useState(() => {
+    // Default start date comes from the latest purge_system_status = 1 record.
+    const [startDate, setStartDate] = useState('');
+    const [isStartDateManual, setIsStartDateManual] = useState(false);
+    const [endDate, setEndDate] = useState(() => {
         const d = new Date();
-        d.setDate(d.getDate() - 7);
+        d.setDate(d.getDate() - 1);
         return d.toISOString().split('T')[0];
     });
-    const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
 
     // Chart state
     const [chartMonth, setChartMonth] = useState(() => new Date().toISOString().slice(0, 7));
@@ -82,10 +87,16 @@ export default function YieldReport() {
         try {
             setLoading(true);
             const res = await axios.get(route('yield-report.api'), {
-                params: { start_date: startDate, end_date: endDate },
+                params: {
+                    end_date: endDate,
+                    ...(isStartDateManual && startDate ? { start_date: startDate } : {}),
+                },
             });
             if (res.data.success) {
                 setData(res.data);
+                if (!isStartDateManual && res.data.start_date) {
+                    setStartDate(res.data.start_date);
+                }
             }
         } catch (err) {
             console.error('fetchYieldData error', err);
@@ -96,7 +107,7 @@ export default function YieldReport() {
 
     useEffect(() => {
         fetchData();
-    }, [startDate, endDate]);
+    }, [isStartDateManual ? startDate : '', endDate]);
 
     const fetchChartData = async () => {
         try {
@@ -165,7 +176,10 @@ export default function YieldReport() {
                                     <input
                                         type="date"
                                         value={startDate}
-                                        onChange={(e) => setStartDate(e.target.value)}
+                                        onChange={(e) => {
+                                            setStartDate(e.target.value);
+                                            setIsStartDateManual(true);
+                                        }}
                                         className="border-none bg-transparent text-sm font-medium text-white focus:outline-none"
                                     />
                                 </div>

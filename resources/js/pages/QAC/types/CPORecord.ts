@@ -66,7 +66,9 @@ export interface CPORecord {
     mix?: string | number;
     loop_back?: string | number;
     purge_system?: string | number;
+    purge_system_status?: boolean | number;
     adjustment?: string | number;
+    ffb_good_qty?: string | number;
 
     // Production mode
     production_mode?: 'production' | 'no_production';

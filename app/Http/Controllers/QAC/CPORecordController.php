@@ -10,6 +10,7 @@ use App\Models\QAC\CpoRecord;
 use App\Models\QAC\CpoOilRoom;
 use App\Models\QAC\CpoTankInfo;
 use App\Models\MAR\SOPlan;
+use App\Models\PRO\Production;
 use App\Models\QAC\StockProduct;
 use App\Models\QAC\CpoDensityRef;
 use Illuminate\Http\JsonResponse;
@@ -102,12 +103,20 @@ class CPORecordController extends Controller
         ];
     }
 
+    private function getFfbGoodQtyByDate(string $date): float
+    {
+        return (float) (Production::whereDate('Date', date('Y-m-d', strtotime($date)))
+            ->whereNull('deleted_at')
+            ->sum('FFBGoodQty') ?? 0);
+    }
+
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'date' => 'required|date',
             'production_mode' => 'nullable|in:production,no_production',
+            'purge_system_status' => 'nullable|boolean',
 
             // Tank 1 validation
             'tanks.0.oil_level' => 'nullable|numeric',
@@ -171,9 +180,11 @@ class CPORecordController extends Controller
         ]);
 
         $productionMode = $validated['production_mode'] ?? 'production';
+        $purgeSystemStatus = (bool) ($validated['purge_system_status'] ?? false);
 
         // แปลงรูปแบบวันที่ให้ตรงกับ SQL Server
         $formattedDate = date('Y-m-d', strtotime($validated['date']));
+        $ffbGoodQty = $this->getFfbGoodQtyByDate($formattedDate);
 
         // ตรวจสอบว่ามีข้อมูลวันที่เดียวกันหรือไม่
         $existingRecord = CPOData::where('date', $validated['date'])->first();
@@ -223,6 +234,7 @@ class CPORecordController extends Controller
             // Update ข้อมูลที่มีอยู่
             $existingRecord->update([
                 'production_mode' => $productionMode,
+                'purge_system_status' => $purgeSystemStatus,
                 // Tank 1 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
                 'tank1_oil_level' => $validated['tanks'][0]['oil_level'],
                 'tank1_temperature' => $validated['tanks'][0]['temperature'],
@@ -284,6 +296,7 @@ class CPORecordController extends Controller
                 'adjustment' => $validated['oil_room']['adjustment'],
                 'cpo_oil_room' => $cpoOilRoom,
                 'product_cpo' => $productCpo,
+                'ffb_good_qty' => $ffbGoodQty,
                 'p_cpo' => $pCpo,
             ]);
 
@@ -293,6 +306,7 @@ class CPORecordController extends Controller
             $cpoData = CPOData::create([
                 'date' => $validated['date'],
                 'production_mode' => $productionMode,
+                'purge_system_status' => $purgeSystemStatus,
 
                 // Tank 1 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
                 'tank1_oil_level' => $validated['tanks'][0]['oil_level'],
@@ -355,6 +369,7 @@ class CPORecordController extends Controller
                 'adjustment' => $validated['oil_room']['adjustment'],
                 'cpo_oil_room' => $cpoOilRoom,
                 'product_cpo' => $productCpo,
+                'ffb_good_qty' => $ffbGoodQty,
                 'p_cpo' => $pCpo,
             ]);
         }
@@ -408,6 +423,7 @@ class CPORecordController extends Controller
         $validated = $request->validate([
             'date' => 'required|date',
             'production_mode' => 'nullable|in:production,no_production',
+            'purge_system_status' => 'nullable|boolean',
 
             // Tank 1 validation
             'tanks.0.oil_level' => 'nullable|numeric',
@@ -471,6 +487,7 @@ class CPORecordController extends Controller
         ]);
 
         $productionMode = $validated['production_mode'] ?? 'production';
+        $purgeSystemStatus = (bool) ($validated['purge_system_status'] ?? false);
 
         // ค้นหาข้อมูลที่ต้องการอัพเดท
         $cpoData = CPOData::findOrFail($id);
@@ -493,6 +510,7 @@ class CPORecordController extends Controller
         $totalStock = round($calculatedCPO, 3);
         
         $formattedNewDate = date('Y-m-d', strtotime($newDate));
+        $ffbGoodQty = $this->getFfbGoodQtyByDate($formattedNewDate);
         $sales = SOPlan::whereDate('SOPDate', $formattedNewDate)
             ->where('GoodID', 2147)
             ->sum('NetWei');
@@ -511,6 +529,7 @@ class CPORecordController extends Controller
         $cpoData->update([
             'date' => $newDate,
             'production_mode' => $productionMode,
+            'purge_system_status' => $purgeSystemStatus,
 
             // Tank 1 - ใช้ค่าที่คำนวณได้สำหรับ cpo_volume
             'tank1_oil_level' => $validated['tanks'][0]['oil_level'],
@@ -571,6 +590,7 @@ class CPORecordController extends Controller
             'purge_system' => $validated['oil_room']['purge_system'],
             'adjustment' => $validated['oil_room']['adjustment'],
             'product_cpo' => $productCpo,
+            'ffb_good_qty' => $ffbGoodQty,
             'p_cpo' => $pCpo,
         ]);
 

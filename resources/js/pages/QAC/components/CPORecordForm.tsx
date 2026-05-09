@@ -1,7 +1,7 @@
 import { usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Beaker, CheckSquare, Filter, FlaskConical, Save } from 'lucide-react';
+import { Beaker, CheckSquare, Filter, FlaskConical, Save, Waves } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CPORecord } from './CPORecordList';
 
@@ -113,6 +113,7 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
 
         return {
             date: getYesterdayDate(),
+            purge_system_status: false,
             tanks: baseTanks,
             oil_room: {
                 total_cpo: '',
@@ -343,6 +344,7 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
         if (record.date) {
             initialData.date = formatDateForInput(record.date);
         }
+        initialData.purge_system_status = Boolean(record.purge_system_status);
 
         // ---- MAP TANKS ----
         const tankNumbers = [1, 2, 3, 4];
@@ -522,6 +524,7 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
         
         const submitData = {
             ...formData,
+            purge_system_status: Boolean(formData.purge_system_status),
             production_mode: isProducing ? 'production' : 'no_production',
             tanks: updatedTanks,
             oil_room: {
@@ -868,6 +871,27 @@ const CPORecordForm = ({ record, onSave, onCancel }: CPORecordFormProps) => {
                                                 tankDetails={totalCPODetails.tankDetails}
                                             />
                                         )}
+
+                                        <label className="mb-5 flex cursor-pointer items-center gap-3 rounded-xl border border-rose-200 bg-white/80 px-4 py-3 shadow-sm transition-all duration-200 hover:border-rose-300 hover:bg-rose-50/60">
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(formData.purge_system_status)}
+                                                onChange={(e) =>
+                                                    setFormData((prev) => ({
+                                                        ...prev,
+                                                        purge_system_status: e.target.checked,
+                                                    }))
+                                                }
+                                                className="h-5 w-5 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
+                                            />
+                                            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-sm">
+                                                <Waves className="h-4 w-4" />
+                                            </span>
+                                            <span>
+                                                <span className="block text-sm font-semibold text-gray-800">บันทึกการไล่ระบบน้ำมัน</span>
+                                                <span className="block text-xs text-gray-500">ติ๊กเพื่อเก็บสถานะเป็น 1, ไม่ติ๊กเก็บเป็น 0</span>
+                                            </span>
+                                        </label>
 
                                         {/* OilRoomSection */}
                                         <OilRoomSection oilRoom={formData.oil_room} onChange={(field, value) => handleOilRoomChange(field, value)} />

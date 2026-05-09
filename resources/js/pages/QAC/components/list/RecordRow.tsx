@@ -1,10 +1,25 @@
-import { Calendar, Filter, Thermometer } from 'lucide-react';
+import { Calendar, Factory, Filter, Thermometer, Waves } from 'lucide-react';
 
 import { CPORecord } from '../../types';
 import { toFixed, toNumber } from '../../utils/number';
 import { transformRecordData } from '../../utils/transform';
 import ActionsColumn from './ActionsColumn';
 import OilRoomCard from './OilRoomCard';
+
+const formatTon = (value: string | number | null | undefined, digits: number = 3) =>
+    toNumber(value).toLocaleString('en-US', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+    });
+
+const formatQuality = (value: string | number | null | undefined, digits: number = 2) => {
+    if (value === null || value === undefined || String(value).trim() === '') return '-';
+
+    return toNumber(value).toLocaleString('en-US', {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits,
+    });
+};
 
 interface Props {
     record: CPORecord;
@@ -157,9 +172,9 @@ export default function RecordRow({
                                             </div>
 
                                             <div className="grid grid-cols-3 gap-2 font-bold text-blue-700">
-                                                <div>{tank.ffa || '-'}%</div>
-                                                <div>{tank.moisture || '-'}%</div>
-                                                <div>{tank.dobi || '-'}</div>
+                                                <div>{formatQuality(tank.ffa)}%</div>
+                                                <div>{formatQuality(tank.moisture)}%</div>
+                                                <div>{formatQuality(tank.dobi)}</div>
                                             </div>
                                         </div>
                                     ) : (
@@ -178,9 +193,9 @@ export default function RecordRow({
                                                         <span>ส่วนบน</span>
                                                     </div>
 
-                                                    <div>{tank.top_ffa || '-'}%</div>
-                                                    <div>{tank.top_moisture || '-'}%</div>
-                                                    <div>{tank.top_dobi || '-'}</div>
+                                                    <div>{formatQuality(tank.top_ffa)}%</div>
+                                                    <div>{formatQuality(tank.top_moisture)}%</div>
+                                                    <div>{formatQuality(tank.top_dobi)}</div>
                                                 </div>
                                             </div>
 
@@ -192,9 +207,9 @@ export default function RecordRow({
                                                         <span>ส่วนล่าง</span>
                                                     </div>
 
-                                                    <div>{tank.bottom_ffa || '-'}%</div>
-                                                    <div>{tank.bottom_moisture || '-'}%</div>
-                                                    <div>{tank.bottom_dobi || '-'}</div>
+                                                    <div>{formatQuality(tank.bottom_ffa)}%</div>
+                                                    <div>{formatQuality(tank.bottom_moisture)}%</div>
+                                                    <div>{formatQuality(tank.bottom_dobi)}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -236,6 +251,36 @@ export default function RecordRow({
 
                             {/* แก้ตรงนี้: ใช้ safe rounding */}
                             <span className="font-bold text-amber-800"> {toFixed(tankTotals.totalVolume, 3)} ตัน</span>
+                        </div>
+
+                        <div className="flex justify-between border-t border-amber-200 pt-2">
+                            <span className="flex items-center gap-1 font-medium text-gray-700">
+                                <Factory className="h-3.5 w-3.5 text-emerald-600" />
+                                ปริมาณผลิต:
+                            </span>
+                            <span className="font-bold text-emerald-700">{formatTon(record.ffb_good_qty)} ตัน</span>
+                        </div>
+
+                        <div className="flex items-center justify-between border-t border-amber-200 pt-2">
+                            <span className="flex items-center gap-1 font-medium text-gray-700">
+                                <Waves className="h-3.5 w-3.5 text-rose-600" />
+                                ไล่ระบบ:
+                            </span>
+                            <span
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                                    record.purge_system_status
+                                        ? 'bg-rose-100 text-rose-700'
+                                        : 'bg-slate-100 text-slate-500'
+                                }`}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={Boolean(record.purge_system_status)}
+                                    readOnly
+                                    className="h-3.5 w-3.5 rounded border-gray-300 text-rose-600"
+                                />
+                                {record.purge_system_status ? 'บันทึกแล้ว' : 'ยังไม่บันทึก'}
+                            </span>
                         </div>
                     </div>
                 </div>
