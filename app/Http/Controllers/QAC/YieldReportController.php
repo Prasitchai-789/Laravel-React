@@ -25,9 +25,13 @@ class YieldReportController extends Controller
             $startDate = $request->query('start_date');
             $endDate = $request->query('end_date');
 
-            if (!$startDate || !$endDate) {
-                $endDate = now()->format('Y-m-d');
-                $startDate = now()->subDays(7)->format('Y-m-d');
+            if (!$endDate) {
+                $endDate = now()->subDay()->format('Y-m-d');
+            }
+
+            if (!$startDate) {
+                $startDate = $this->getLatestPurgeSystemStartDate($endDate)
+                    ?? Carbon::parse($endDate)->subDays(7)->format('Y-m-d');
             }
 
             // ===== 1. ข้อมูลวันล่าสุด =====
@@ -84,6 +88,8 @@ class YieldReportController extends Controller
 
             return response()->json([
                 'success' => true,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
                 // Card 1: วันล่าสุด
                 'latest_date' => $latestDate,
                 'latest_product_cpo' => round($latestProductCpo, 3),
@@ -107,6 +113,22 @@ class YieldReportController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function getLatestPurgeSystemStartDate(string $endDate): ?string
+    {
+        $latestPurge = CPOData::where('purge_system_status', 1)
+            ->whereDate('date', '<=', $endDate)
+            ->orderBy('date', 'desc')
+            ->first();
+
+        if (!$latestPurge || !$latestPurge->date) {
+            return null;
+        }
+
+        $rawDate = str_replace([':AM', ':PM'], [' AM', ' PM'], $latestPurge->date);
+
+        return Carbon::parse($rawDate)->format('Y-m-d');
     }
 
     /**

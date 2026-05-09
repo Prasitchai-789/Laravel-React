@@ -135,6 +135,9 @@ class StockProductController extends Controller
         $ffbPurchase = $prod ? (float) $prod->FFBPurchase : 0;
         $ffbForward = $prod ? (float) $prod->FFBForward : 0;
         $ffbRemain = $prod ? (float) $prod->FFBRemain : 0;
+        $productionFfbGoodQty = round($ffbGoodQty, 3);
+        $cpoFfbGoodQty = round((float) ($current->ffb_good_qty ?? 0), 3);
+        $isCpoFfbMismatch = $productionFfbGoodQty > 0 && abs($productionFfbGoodQty - $cpoFfbGoodQty) > 0.001;
 
         $ffbGoodQtyOfMonth = $this->getMonthlyFFBSum($date);
         $ffbPurchaseOfMonth = $this->getMonthlyFFBPurchaseSum($date);
@@ -202,6 +205,12 @@ class StockProductController extends Controller
             'cpo_data_tank' => $cpo_data_tank,
 
             'ffb_trend_7days' => $ffbTrend7Days,
+            'cpo_sync_status' => [
+                'is_mismatch' => $isCpoFfbMismatch,
+                'has_cpo_record' => true,
+                'production_ffb_good_qty' => $productionFfbGoodQty,
+                'cpo_ffb_good_qty' => $cpoFfbGoodQty,
+            ],
 
         ]);
     }
