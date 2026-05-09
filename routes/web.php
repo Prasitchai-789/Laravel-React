@@ -10,6 +10,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\Api\CitizenController;
+use App\Http\Controllers\Admin\ApiSummaryController;
 use App\Http\Controllers\Admin\PageAccessLogController;
 use App\Http\Controllers\Dashboard\ActivityController;
 
@@ -68,6 +69,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware('permission:admin.edit')->group(function () {
         Route::get('admin/page-access-logs', [PageAccessLogController::class, 'index'])->name('admin.page-access-logs.index');
+        Route::get('admin/api-summary', [ApiSummaryController::class, 'index'])->name('admin.api-summary.index');
     });
 });
 

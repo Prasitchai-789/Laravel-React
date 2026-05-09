@@ -102,6 +102,7 @@ const adminNavItems: NavItem[] = [
     { title: 'Permissions', href: '/permissions', icon: Shield, permission: ['admin.view'] },
     { title: 'เพิ่มข้อมูลของชุมชน', href: '/citizens', icon: UsersRound, permission: ['admin.view'] },
     { title: 'บันทึกการเข้าใช้งาน', href: '/admin/page-access-logs', icon: ScrollText, permission: ['admin.edit'] },
+    { title: 'สรุป API', href: '/admin/api-summary', icon: Database, permission: ['admin.edit'] },
 ];
 
 const DevNavItems: NavItem[] = [

@@ -6,6 +6,7 @@ import {
     CalendarDays,
     Clock,
     Droplets,
+    Eye,
     FileText,
     FlaskConical,
     Pencil,
@@ -19,7 +20,7 @@ import {
     Waves,
     X,
 } from 'lucide-react';
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Swal from 'sweetalert2';
 
 type UserType = {
@@ -167,6 +168,7 @@ const formatDate = (value: string) => {
 
 export default function WaterUsageReports({ reports, filters, latestMeterReading, summary }: Props) {
     const [modalOpen, setModalOpen] = useState(false);
+    const [detailReport, setDetailReport] = useState<WaterUsageReport | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
     const modalRef = useRef<HTMLDivElement>(null);
 
@@ -187,22 +189,40 @@ export default function WaterUsageReports({ reports, filters, latestMeterReading
         [data.water_treatment_meter_before, data.water_treatment_meter_after],
     );
 
+    const closeModal = useCallback(() => {
+        setModalOpen(false);
+        setEditingId(null);
+        reset();
+        setData(emptyFormData());
+    }, [reset, setData]);
+
+    const closeDetailModal = useCallback(() => {
+        setDetailReport(null);
+    }, []);
+
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape' && modalOpen) closeModal();
+            if (event.key !== 'Escape') return;
+
+            if (detailReport) {
+                closeDetailModal();
+                return;
+            }
+
+            if (modalOpen) closeModal();
         };
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [modalOpen]);
+    }, [closeDetailModal, closeModal, detailReport, modalOpen]);
 
     useEffect(() => {
-        document.body.style.overflow = modalOpen ? 'hidden' : '';
+        document.body.style.overflow = modalOpen || detailReport ? 'hidden' : '';
 
         return () => {
             document.body.style.overflow = '';
         };
-    }, [modalOpen]);
+    }, [detailReport, modalOpen]);
 
     const submit = (event: FormEvent) => {
         event.preventDefault();
@@ -227,13 +247,6 @@ export default function WaterUsageReports({ reports, filters, latestMeterReading
         });
     };
 
-    const closeModal = () => {
-        setModalOpen(false);
-        setEditingId(null);
-        reset();
-        setData(emptyFormData());
-    };
-
     const openCreateModal = () => {
         setEditingId(null);
         reset();
@@ -255,6 +268,10 @@ export default function WaterUsageReports({ reports, filters, latestMeterReading
             note: report.note ?? '',
         });
         setModalOpen(true);
+    };
+
+    const openDetailModal = (report: WaterUsageReport) => {
+        setDetailReport(report);
     };
 
     const destroy = (report: WaterUsageReport) => {
@@ -340,10 +357,30 @@ export default function WaterUsageReports({ reports, filters, latestMeterReading
                     </div>
 
                     <div className="mb-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                        <SummaryCard icon={CalendarDays} label="จำนวนรายการทั้งหมด" value={`${summary.count.toLocaleString('th-TH')} วัน`} accentColor="blue" />
-                        <SummaryCard icon={Droplets} label="น้ำเข้า Treatment" value={`${formatNumber(summary.water_treatment_volume)} ลบ.ม.`} accentColor="emerald" />
-                        <SummaryCard icon={Waves} label="น้ำเสียเข้าระบบ" value={`${formatNumber(summary.wastewater_volume)} ลบ.ม.`} accentColor="rose" />
-                        <SummaryCard icon={FlaskConical} label="ตะกอนลงบ่อ" value={`${formatNumber(summary.sludge_weight_kg)} Kg`} accentColor="amber" />
+                        <SummaryCard
+                            icon={CalendarDays}
+                            label="จำนวนรายการทั้งหมด"
+                            value={`${summary.count.toLocaleString('th-TH')} วัน`}
+                            accentColor="blue"
+                        />
+                        <SummaryCard
+                            icon={Droplets}
+                            label="น้ำเข้า Treatment"
+                            value={`${formatNumber(summary.water_treatment_volume)} ลบ.ม.`}
+                            accentColor="emerald"
+                        />
+                        <SummaryCard
+                            icon={Waves}
+                            label="น้ำเสียเข้าระบบ"
+                            value={`${formatNumber(summary.wastewater_volume)} ลบ.ม.`}
+                            accentColor="rose"
+                        />
+                        <SummaryCard
+                            icon={FlaskConical}
+                            label="ตะกอนลงบ่อ"
+                            value={`${formatNumber(summary.sludge_weight_kg)} Kg`}
+                            accentColor="amber"
+                        />
                         <SummaryCard
                             icon={Droplets}
                             label="EM / กากน้ำตาล"
@@ -362,10 +399,20 @@ export default function WaterUsageReports({ reports, filters, latestMeterReading
                                             <span className="text-sm font-semibold text-slate-700">ตัวกรองข้อมูล</span>
                                         </div>
                                         <div className="grid gap-4 sm:grid-cols-3">
-                                            <FilterDate label="ตั้งแต่วันที่" value={filterForm.date_from ?? ''} onChange={(value) => setFilterForm((prev) => ({ ...prev, date_from: value }))} />
-                                            <FilterDate label="ถึงวันที่" value={filterForm.date_to ?? ''} onChange={(value) => setFilterForm((prev) => ({ ...prev, date_to: value }))} />
+                                            <FilterDate
+                                                label="ตั้งแต่วันที่"
+                                                value={filterForm.date_from ?? ''}
+                                                onChange={(value) => setFilterForm((prev) => ({ ...prev, date_from: value }))}
+                                            />
+                                            <FilterDate
+                                                label="ถึงวันที่"
+                                                value={filterForm.date_to ?? ''}
+                                                onChange={(value) => setFilterForm((prev) => ({ ...prev, date_to: value }))}
+                                            />
                                             <div>
-                                                <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-slate-500">ค้นหาหมายเหตุ</label>
+                                                <label className="mb-2 block text-xs font-medium tracking-wider text-slate-500 uppercase">
+                                                    ค้นหาหมายเหตุ
+                                                </label>
                                                 <div className="relative">
                                                     <Search className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                                     <input
@@ -391,7 +438,7 @@ export default function WaterUsageReports({ reports, filters, latestMeterReading
                                         )}
                                         <button
                                             type="submit"
-                                            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition-all hover:bg-slate-800 active:scale-[0.98]"
+                                            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition-all hover:bg-slate-800 active:scale-[0.98]"
                                         >
                                             <Search className="h-4 w-4" />
                                             ค้นหา
@@ -401,10 +448,91 @@ export default function WaterUsageReports({ reports, filters, latestMeterReading
                             </form>
                         </div>
 
-                        <WaterUsageTable reports={reports} openEditModal={openEditModal} destroy={destroy} />
+                        <WaterUsageTable reports={reports} openDetailModal={openDetailModal} openEditModal={openEditModal} destroy={destroy} />
                     </div>
                 </div>
             </div>
+
+            {detailReport && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    {/* Overlay */}
+    <div
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] transition-opacity"
+        onClick={closeDetailModal}
+    />
+
+    {/* Modal Container */}
+    <div className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200/80">
+
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 py-5">
+            <div className="flex items-center gap-4">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-100">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                    <h3 className="text-lg font-semibold leading-tight text-slate-800">
+                        รายงานปริมาณน้ำประจำวัน
+                    </h3>
+                    <p className="mt-0.5 text-sm text-slate-400">
+                        ข้อมูลปริมาณน้ำและผู้บันทึก
+                    </p>
+                </div>
+            </div>
+            <button
+                onClick={closeDetailModal}
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-500"
+            >
+                <X className="h-5 w-5" />
+            </button>
+        </div>
+
+        {/* Body */}
+        <div className="space-y-5 px-4 py-4">
+
+            {/* Date Section */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                <div className="mb-1.5 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    วันที่
+                </div>
+                <div className="text-xl font-semibold text-slate-800">
+                    {formatDate(detailReport.report_date)}
+                </div>
+            </div>
+
+            {/* Volume Metrics */}
+            <div className="grid gap-4 sm:grid-cols-2">
+                <DetailMetric
+                    icon={Droplets}
+                    label="ปริมาณน้ำดิบ"
+                    value={`${formatNumber(detailReport.raw_water_volume)} ลบ.ม.`}
+                    color="emerald"
+                />
+                <DetailMetric
+                    icon={Waves}
+                    label="ปริมาณน้ำเสีย"
+                    value={`${formatNumber(detailReport.wastewater_volume)} ลบ.ม.`}
+                    color="rose"
+                />
+            </div>
+
+            {/* Recorder Section */}
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className="mb-1.5 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                    <User className="h-3.5 w-3.5" />
+                    ผู้บันทึก
+                </div>
+                <div className="text-base font-medium text-slate-800">
+                    {detailReport.user?.name ?? (
+                        <span className="italic text-slate-400">ไม่ระบุ</span>
+                    )}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+            )}
 
             {modalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -426,7 +554,10 @@ export default function WaterUsageReports({ reports, filters, latestMeterReading
                                     <p className="mt-1 text-sm text-slate-500">กรอกเลขมิเตอร์ก่อน-หลัง ระบบคำนวณปริมาณให้อัตโนมัติ</p>
                                 </div>
                             </div>
-                            <button onClick={closeModal} className="rounded-xl p-2 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600">
+                            <button
+                                onClick={closeModal}
+                                className="rounded-xl p-2 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600"
+                            >
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
@@ -491,9 +622,30 @@ export default function WaterUsageReports({ reports, filters, latestMeterReading
                                             สารช่วยบำบัดและตะกอน
                                         </h4>
                                         <div className="grid gap-4 sm:grid-cols-3">
-                                            <MeterInput label="ตะกอนลงบ่อ (Kg)" value={data.sludge_weight_kg} onChange={(value) => setData('sludge_weight_kg', value)} error={errors.sludge_weight_kg} required={false} color="amber" />
-                                            <MeterInput label="EM (ลิตร)" value={data.em_usage_liter} onChange={(value) => setData('em_usage_liter', value)} error={errors.em_usage_liter} required={false} color="purple" />
-                                            <MeterInput label="กากน้ำตาล (ลิตร)" value={data.molasses_usage_liter} onChange={(value) => setData('molasses_usage_liter', value)} error={errors.molasses_usage_liter} required={false} color="purple" />
+                                            <MeterInput
+                                                label="ตะกอนลงบ่อ (Kg)"
+                                                value={data.sludge_weight_kg}
+                                                onChange={(value) => setData('sludge_weight_kg', value)}
+                                                error={errors.sludge_weight_kg}
+                                                required={false}
+                                                color="amber"
+                                            />
+                                            <MeterInput
+                                                label="EM (ลิตร)"
+                                                value={data.em_usage_liter}
+                                                onChange={(value) => setData('em_usage_liter', value)}
+                                                error={errors.em_usage_liter}
+                                                required={false}
+                                                color="purple"
+                                            />
+                                            <MeterInput
+                                                label="กากน้ำตาล (ลิตร)"
+                                                value={data.molasses_usage_liter}
+                                                onChange={(value) => setData('molasses_usage_liter', value)}
+                                                error={errors.molasses_usage_liter}
+                                                required={false}
+                                                color="purple"
+                                            />
                                         </div>
                                     </div>
 
@@ -515,7 +667,11 @@ export default function WaterUsageReports({ reports, filters, latestMeterReading
                             </div>
 
                             <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/50 px-8 py-5">
-                                <button type="button" onClick={closeModal} className="rounded-xl px-5 py-2.5 text-sm font-medium text-slate-600 transition-all hover:bg-slate-200/50">
+                                <button
+                                    type="button"
+                                    onClick={closeModal}
+                                    className="rounded-xl px-5 py-2.5 text-sm font-medium text-slate-600 transition-all hover:bg-slate-200/50"
+                                >
                                     ยกเลิก
                                 </button>
                                 <button
@@ -563,7 +719,7 @@ function showToast(title: string, text: string) {
 function FilterDate({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
     return (
         <div>
-            <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-slate-500">{label}</label>
+            <label className="mb-2 block text-xs font-medium tracking-wider text-slate-500 uppercase">{label}</label>
             <input
                 type="date"
                 value={value}
@@ -576,10 +732,12 @@ function FilterDate({ label, value, onChange }: { label: string; value: string; 
 
 function WaterUsageTable({
     reports,
+    openDetailModal,
     openEditModal,
     destroy,
 }: {
     reports: PaginatedReports;
+    openDetailModal: (report: WaterUsageReport) => void;
     openEditModal: (report: WaterUsageReport) => void;
     destroy: (report: WaterUsageReport) => void;
 }) {
@@ -600,8 +758,11 @@ function WaterUsageTable({
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                         {reports.data.map((report) => (
-                            <tr key={report.id} className="group transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/50">
-                                <td className="whitespace-nowrap px-6 py-5">
+                            <tr
+                                key={report.id}
+                                className="group transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-cyan-50/50"
+                            >
+                                <td className="px-6 py-5 whitespace-nowrap">
                                     <div className="flex items-center gap-3">
                                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 transition-colors group-hover:bg-blue-100 group-hover:text-blue-600">
                                             <Clock className="h-5 w-5" />
@@ -614,9 +775,19 @@ function WaterUsageTable({
                                         </div>
                                     </div>
                                 </td>
-                                <VolumeCell before={report.water_treatment_meter_before} after={report.water_treatment_meter_after} volume={report.water_treatment_volume} color="emerald" />
-                                <VolumeCell before={report.wastewater_meter_before} after={report.wastewater_meter_after} volume={report.wastewater_volume} color="rose" />
-                                <td className="whitespace-nowrap px-6 py-5">
+                                <VolumeCell
+                                    before={report.water_treatment_meter_before}
+                                    after={report.water_treatment_meter_after}
+                                    volume={report.water_treatment_volume}
+                                    color="emerald"
+                                />
+                                <VolumeCell
+                                    before={report.wastewater_meter_before}
+                                    after={report.wastewater_meter_after}
+                                    volume={report.wastewater_volume}
+                                    color="rose"
+                                />
+                                <td className="px-6 py-5 whitespace-nowrap">
                                     <div className="flex justify-end gap-2">
                                         <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
                                             <FlaskConical className="h-3 w-3" />
@@ -637,15 +808,31 @@ function WaterUsageTable({
                                         <span className="text-sm text-slate-300">-</span>
                                     )}
                                 </td>
-                                <td className="whitespace-nowrap px-6 py-5">
+                                <td className="px-6 py-5 whitespace-nowrap">
                                     <span className="text-sm text-slate-600">{report.user?.name ?? '-'}</span>
                                 </td>
-                                <td className="whitespace-nowrap px-6 py-5">
+                                <td className="px-6 py-5 whitespace-nowrap">
                                     <div className="flex items-center justify-center gap-1">
-                                        <button onClick={() => openEditModal(report)} className="rounded-xl p-2 text-amber-600 transition-all hover:bg-amber-50 hover:text-amber-700" title="แก้ไข">
+                                        <button
+                                            onClick={() => openDetailModal(report)}
+                                            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-all hover:bg-blue-100 hover:text-blue-800"
+                                            title="รายละเอียด"
+                                        >
+                                            <Eye className="h-4 w-4" />
+                                            รายละเอียด
+                                        </button>
+                                        <button
+                                            onClick={() => openEditModal(report)}
+                                            className="rounded-xl p-2 text-amber-600 transition-all hover:bg-amber-50 hover:text-amber-700"
+                                            title="แก้ไข"
+                                        >
                                             <Pencil className="h-4 w-4" />
                                         </button>
-                                        <button onClick={() => destroy(report)} className="rounded-xl p-2 text-red-500 transition-all hover:bg-red-50 hover:text-red-600" title="ลบ">
+                                        <button
+                                            onClick={() => destroy(report)}
+                                            className="rounded-xl p-2 text-red-500 transition-all hover:bg-red-50 hover:text-red-600"
+                                            title="ลบ"
+                                        >
                                             <Trash2 className="h-4 w-4" />
                                         </button>
                                     </div>
@@ -684,13 +871,31 @@ function WaterUsageTable({
                                     dangerouslySetInnerHTML={{ __html: link.label }}
                                 />
                             ) : (
-                                <span key={`${link.label}-${index}`} className="inline-flex h-10 min-w-10 items-center justify-center px-3 text-sm text-slate-300" dangerouslySetInnerHTML={{ __html: link.label }} />
+                                <span
+                                    key={`${link.label}-${index}`}
+                                    className="inline-flex h-10 min-w-10 items-center justify-center px-3 text-sm text-slate-300"
+                                    dangerouslySetInnerHTML={{ __html: link.label }}
+                                />
                             ),
                         )}
                     </div>
                 </div>
             )}
         </>
+    );
+}
+
+function DetailMetric({ icon: Icon, label, value, color }: { icon: typeof Droplets; label: string; value: string; color: 'emerald' | 'rose' }) {
+    const colorClass = color === 'emerald' ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-rose-100 bg-rose-50 text-rose-700';
+
+    return (
+        <div className={`rounded-2xl border p-5 ${colorClass}`}>
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                <Icon className="h-4 w-4" />
+                {label}
+            </div>
+            <div className="text-2xl font-bold">{value}</div>
+        </div>
     );
 }
 
@@ -705,12 +910,22 @@ function TableHeader({ icon: Icon, label, align = 'left' }: { icon: typeof Calen
     );
 }
 
-function VolumeCell({ before, after, volume, color }: { before: string | number; after: string | number; volume: string | number; color: 'emerald' | 'rose' }) {
+function VolumeCell({
+    before,
+    after,
+    volume,
+    color,
+}: {
+    before: string | number;
+    after: string | number;
+    volume: string | number;
+    color: 'emerald' | 'rose';
+}) {
     const colorClass = color === 'emerald' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700';
     const unitClass = color === 'emerald' ? 'text-emerald-600' : 'text-rose-600';
 
     return (
-        <td className="whitespace-nowrap px-6 py-5 text-right">
+        <td className="px-6 py-5 text-right whitespace-nowrap">
             <div className="space-y-1">
                 <div className="text-xs text-slate-400">
                     {formatNumber(before)} &rarr; {formatNumber(after)}
@@ -747,9 +962,10 @@ function MeterCard({
     onBeforeChange: (value: string) => void;
     onAfterChange: (value: string) => void;
 }) {
-    const colorClasses = color === 'emerald'
-        ? 'border-emerald-100 from-emerald-50/50 text-emerald-800 bg-emerald-100 text-emerald-700'
-        : 'border-rose-100 from-rose-50/50 text-rose-800 bg-rose-100 text-rose-700';
+    const colorClasses =
+        color === 'emerald'
+            ? 'border-emerald-100 from-emerald-50/50 text-emerald-800 bg-emerald-100 text-emerald-700'
+            : 'border-rose-100 from-rose-50/50 text-rose-800 bg-rose-100 text-rose-700';
     const [borderClass, fromClass, titleClass, badgeBgClass, badgeTextClass] = colorClasses.split(' ');
 
     return (

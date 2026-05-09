@@ -607,10 +607,10 @@ export default function ExecutiveProductionReport() {
                                             </div>
                                             <div className="flex gap-2">
                                                 <div className="bg-white/5 backdrop-blur-3xl rounded-2xl p-2 border border-white/10 text-center min-w-[130px]">
-                                                    <p className="text-[9px] font-black text-emerald-500 mb-2 uppercase tracking-[0.2em]">% Yield</p>
+                                                    <p className="text-[9px] font-black text-emerald-500 mb-2 uppercase tracking-[0.2em]">% Yield น้ำหนัก</p>
                                                     <div className="flex items-baseline justify-center gap-1">
                                                         <span className="text-3xl font-black text-white">
-                                                            {isLoading ? '...' : <CountUp end={reportData?.production?.cpo?.yield || 0} decimals={2} duration={2} />}
+                                                            {isLoading ? '...' : <CountUp end={cpoSummary?.yield_percent || 0} decimals={2} duration={2} />}
                                                         </span>
                                                         <span className="text-base font-black text-emerald-500">%</span>
                                                     </div>
