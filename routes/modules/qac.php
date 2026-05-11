@@ -38,6 +38,14 @@ Route::middleware(['auth', 'permission:developer.view|qac.view|gm.view|mar.edit'
         return Inertia::render('QAC/COA/Oil_COA/Oil_COA_Print', ['sopid' => (string) $id]);
     })->name('qac.coa.oil.print');
 
+    Route::get('/qac/coa/seed/{id}/print', function ($id) {
+        return Inertia::render('QAC/COA/Seed_COA/Seed_COA_Print', ['sopid' => (string) $id]);
+    })->name('qac.coa.seed.print');
+
+    Route::get('/qac/coa/seed/{id}/vehicle-print', function ($id) {
+        return Inertia::render('QAC/COA/Seed_COA/Seed_Vehicle_Print', ['sopid' => (string) $id]);
+    })->name('qac.coa.seed.vehicle-print');
+
     Route::get('/stock/report', [StockReportController::class, 'index'])->name('stock.report.index');
     Route::get('/stock/cpo', [StockReportController::class, 'stockCPO'])->name('stock.cpo.index');
     Route::get('/cpo', [CPORecordController::class, 'index'])->name('cpo.index');
