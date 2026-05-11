@@ -145,8 +145,8 @@ const FerNavItems: NavItem[] = [
 ];
 
 const QACNavItems: NavItem[] = [
-    { title: 'Oil COA', href: '/qac/coa/oil', icon: Beaker, permission: ['qac.edit'] },
-    { title: 'Seed COA', href: '/qac/coa/seed', icon: Beaker, permission: ['qac.edit'] },
+    { title: 'COA น้ำมันปาล์มดิบ', href: '/qac/coa/oil', icon: Beaker, permission: ['qac.edit'] },
+    { title: 'COA เมล็ดในปาล์ม', href: '/qac/coa/seed', icon: Beaker, permission: ['qac.edit'] },
     { title: 'บันทึกข้อมูล Stock CPO', href: '/cpo', icon: Beaker, permission: ['qac.edit'] },
     { title: 'บันทึก Skim / Mix', href: '/skim-mix', icon: Beaker, permission: ['qac.edit'] },
     { title: 'บันทึกข้อมูล Kernel', href: '/stock/kernel', icon: Beaker, permission: ['qac.edit'] },
@@ -203,7 +203,7 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent>
+            <SidebarContent className="no-scrollbar">
                 <SidebarGroupLabel>Report Present</SidebarGroupLabel>
 
                 {/* Developer Menu */}

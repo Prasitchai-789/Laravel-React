@@ -337,7 +337,8 @@ const Seed_COA: React.FC = () => {
                 spec_shell: row.spec_shell,
                 spec_kn_moisture: row.spec_kn_moisture,
                 inspector: currentUserName || row.coa_user || row.inspector,
-                coa_user_id: auth?.user?.employee_id || row.inspector,
+                coa_user: row.coa_user || row.inspector,
+                coa_user_id: row.inspector || row.coa_user || auth?.user?.employee_id,
                 notes: row.notes,
             };
             await generateAndDownloadCoa(pdfData, type === 'mun' ? 'seed_mun' : 'seed_isp');
@@ -478,6 +479,7 @@ const Seed_COA: React.FC = () => {
 
             const response = await axios.post('/qac/coa/store', {
                 SOPID: labModal.data.id,
+                type: 'seed',
                 result_shell: formData.result_shell,
                 result_kn_moisture: formData.result_kn_moisture,
                 spec_shell: formData.spec_shell,

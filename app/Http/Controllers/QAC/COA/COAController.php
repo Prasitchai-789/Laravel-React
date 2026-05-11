@@ -12,6 +12,85 @@ use Illuminate\Http\JsonResponse;
 
 class COAController extends Controller
 {
+    private function resolveCoaPrefix(?string $type = null, ?SOPlan $soplan = null): string
+    {
+        if ($type === 'seed' || $type === 'palm-kernel') {
+            return 'KN';
+        }
+
+        if ($type === 'oil' || $type === 'cpo') {
+            return 'CPO';
+        }
+
+        if ($soplan) {
+            $gn = strtolower($soplan->GoodName ?? '');
+            if (str_contains($gn, 'เมล็ด') || str_contains($gn, 'kernel') || str_contains($gn, 'cpko')) {
+                return 'KN';
+            }
+        }
+
+        return 'CPO';
+    }
+
+    private function makeNextCoaNumber(string $prefix, int $yearBE, ?string $currentSopid = null): string
+    {
+        $query = Certificate::where('coa_number', 'like', "{$prefix}%/{$yearBE}")
+            ->where('status', 'A');
+
+        if ($currentSopid) {
+            $query->where('SOPID', '<>', $currentSopid);
+        }
+
+        $latestNumber = 0;
+        foreach ($query->pluck('coa_number') as $coaNumber) {
+            if (preg_match('/^' . preg_quote($prefix, '/') . '(\d+)\/' . $yearBE . '$/', trim((string) $coaNumber), $matches)) {
+                $latestNumber = max($latestNumber, (int) $matches[1]);
+            }
+        }
+
+        $runNumber = $latestNumber + 1;
+
+        $formattedNumber = $runNumber < 1000
+            ? str_pad($runNumber, 4, '0', STR_PAD_LEFT)
+            : (string) $runNumber;
+
+        return $prefix . $formattedNumber . "/{$yearBE}";
+    }
+
+    private function makeCoaLot(): string
+    {
+        $thaiDate = now()->addYears(543);
+
+        return 'QAC' . $thaiDate->format('ym');
+    }
+
+    public function nextNumber(Request $request): JsonResponse
+    {
+        $now = now();
+        $yearBE = $now->year + 543;
+        $sopid = $request->get('sopid');
+        $cert = $sopid ? Certificate::where('SOPID', $sopid)->first() : null;
+
+        if ($cert && $cert->coa_number && $cert->coa_number !== '-' && $cert->status === 'A') {
+            return response()->json([
+                'success' => true,
+                'coa_number' => $cert->coa_number,
+                'coa_lot' => $cert->coa_lot ?: $this->makeCoaLot(),
+                'existing' => true,
+            ]);
+        }
+
+        $soplan = $sopid ? SOPlan::where('SOPID', $sopid)->first() : null;
+        $prefix = $this->resolveCoaPrefix($request->get('type'), $soplan);
+
+        return response()->json([
+            'success' => true,
+            'coa_number' => $this->makeNextCoaNumber($prefix, $yearBE, $sopid ? (string) $sopid : null),
+            'coa_lot' => $this->makeCoaLot(),
+            'existing' => false,
+        ]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         try {
@@ -33,32 +112,13 @@ class COAController extends Controller
             $coaLot = $request->get('coa_lot');
 
             if (!$coaNumber || $coaNumber == '-') {
-                if ($cert && $cert->coa_number && $cert->coa_number != '-') {
+                if ($cert && $cert->coa_number && $cert->coa_number != '-' && $cert->status === 'A') {
                     $coaNumber = $cert->coa_number;
                 } else {
                     // Generate new coa_number
                     $soplan = SOPlan::where('SOPID', $request->get('SOPID'))->first();
-                    $prefix = 'CPO';
-                    if ($soplan) {
-                        $gn = strtolower($soplan->GoodName ?? '');
-                        if (str_contains($gn, 'เมล็ด') || str_contains($gn, 'kernel') || str_contains($gn, 'cpko')) {
-                            $prefix = 'KN';
-                        }
-                    }
-
-                    // Robust query to avoid TRY_CAST errors on partial strings
-                    $allCertsThisYear = Certificate::where('coa_number', 'like', "%/{$yearBE}")->pluck('coa_number');
-                    $certBaseSeq = 0;
-                    foreach ($allCertsThisYear as $coa) {
-                        if (preg_match('/(\d+)\/' . $yearBE . '/', $coa, $matches)) {
-                            $seqVal = (int) $matches[1];
-                            if ($seqVal > $certBaseSeq) {
-                                $certBaseSeq = $seqVal;
-                            }
-                        }
-                    }
-                    $seq = $certBaseSeq + 1;
-                    $coaNumber = $prefix . str_pad($seq, 4, '0', STR_PAD_LEFT) . "/{$yearBE}";
+                    $prefix = $this->resolveCoaPrefix($request->get('type'), $soplan);
+                    $coaNumber = $this->makeNextCoaNumber($prefix, $yearBE, (string) $request->get('SOPID'));
                 }
             }
 
@@ -66,7 +126,7 @@ class COAController extends Controller
                 if ($cert && $cert->coa_lot && $cert->coa_lot != '-') {
                     $coaLot = $cert->coa_lot;
                 } else {
-                    $coaLot = 'QAC' . $year2 . $month . '0001'; // Fallback
+                    $coaLot = $this->makeCoaLot();
                 }
             }
 
@@ -215,6 +275,55 @@ class COAController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateWithLog(Request $request): JsonResponse
+    {
+        try {
+            $sopid = $request->get('SOPID');
+            if (!$sopid) {
+                throw new \Exception('Missing SOPID');
+            }
+
+            // Capture before-state for audit
+            $before = Certificate::where('SOPID', $sopid)->first()?->toArray();
+
+            // Re-use store() logic to persist the updated data
+            $storeResponse = $this->store($request);
+            $storeData = $storeResponse->getData(true);
+
+            if (!($storeData['success'] ?? false)) {
+                return response()->json($storeData, 500);
+            }
+
+            // Record audit log
+            Log::info('📝 COA Edit After Approval', [
+                'SOPID'        => $sopid,
+                'edited_by'    => $request->get('edited_by', $request->get('coa_user_id', 'unknown')),
+                'edited_by_name' => $request->get('edited_by_name', '-'),
+                'edited_at'    => now()->toDateTimeString(),
+                'changes'      => [
+                    'ffa'          => ['before' => $before['result_FFA']  ?? null, 'after' => $request->get('ffa')],
+                    'm_i'          => ['before' => $before['result_moisture'] ?? null, 'after' => $request->get('m_i')],
+                    'iv'           => ['before' => $before['result_IV']   ?? null, 'after' => $request->get('iv')],
+                    'dobi'         => ['before' => $before['result_dobi'] ?? null, 'after' => $request->get('dobi')],
+                    'coa_tank'     => ['before' => $before['coa_tank']    ?? null, 'after' => $request->get('tank')],
+                    'notes'        => ['before' => $before['coa_remark']  ?? null, 'after' => $request->get('notes')],
+                ],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'บันทึกข้อมูลพร้อมบันทึก Log เรียบร้อยแล้ว',
+                'coa_number' => $storeData['coa_number'] ?? null,
+            ]);
+
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
