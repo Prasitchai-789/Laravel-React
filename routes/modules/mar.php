@@ -39,7 +39,7 @@ Route::middleware(['auth', 'permission:developer.view|mar.view|mar.edit|gm.view'
     Route::get('/top-customers/api', [SaleMARController::class, 'getTopCustomers']);
 });
 
-Route::middleware(['auth', 'permission:developer.view|mar.view|gm.view'])->prefix('mar')->name('mar.')->group(function () {
+Route::middleware(['auth', 'permission:developer.view|mar.view|gm.view|qac.view|qac.edit|qac.delete'])->prefix('mar')->name('mar.')->group(function () {
     Route::get('/plan-order', [SOPlanController::class, 'index'])->name('plan-order.index');
     Route::get('/plan-order/data/{id}', [SOPlanController::class, 'show'])->name('plan-order.data-item');
     Route::get('/plan-order/pending-coa', [SOPlanController::class, 'pendingCOA'])->name('plan-order.pending-coa');

@@ -58,7 +58,10 @@ interface SeedCOAData {
     coa_mgr?: string;  // เพิ่มฟิลด์ coa_mgr
     destination_name?: string; // เพิ่มฟิลด์ destination_name
     sop_status?: string; // เพิ่มฟิลด์ sop_status
+    sop_date_raw?: string;
 }
+
+const STATUS_BADGE_WIDTH_CLASS = 'w-[120px] justify-center whitespace-nowrap';
 
 const STATUS_CONFIG = {
     pending: {
@@ -184,11 +187,11 @@ const _getSignaturePath = (identity?: string | number) => {
     const id = identity ? identity.toString().trim() : '';
     const base = typeof window !== 'undefined' ? window.location.origin : '';
     if (id === '1149' || id.includes('ประสิทธิ์ชัย')) return `${base}/images/signature/prasitchai.png`;
-    if (id === '1143' || id.includes('ประภาพร'))     return `${base}/images/signature/prapaporn.png`;
-    if (id === '1177' || id.includes('ยุพา'))         return `${base}/images/signature/yapha.png`;
-    if (id === '1183' || id.includes('สุกัญญา'))      return `${base}/images/signature/sukanya.png`;
-    if (id === '1434' || id.includes('ธัญ'))          return `${base}/images/signature/than.png`;
-    if (id === '1476' || id.includes('วีระยุทธ'))     return `${base}/images/signature/veerayut.png`;
+    if (id === '1143' || id.includes('ประภาพร')) return `${base}/images/signature/prapaporn.png`;
+    if (id === '1177' || id.includes('ยุพา')) return `${base}/images/signature/yapha.png`;
+    if (id === '1183' || id.includes('สุกัญญา')) return `${base}/images/signature/sukanya.png`;
+    if (id === '1434' || id.includes('ธัญ')) return `${base}/images/signature/than.png`;
+    if (id === '1476' || id.includes('วีระยุทธ')) return `${base}/images/signature/veerayut.png`;
     return `${base}/images/signature/sukanya.png`;
 };
 
@@ -201,8 +204,8 @@ const _fmtNum = (v?: number | string) => {
 const _formatThaiDate = (dateStr?: string) => {
     const date = dateStr ? new Date(dateStr) : new Date();
     if (isNaN(date.getTime())) return '-';
-    const months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
-                    'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
     return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear() + 543}`;
 };
 
@@ -243,25 +246,24 @@ interface COADetailModalProps {
     onClose: () => void;
     onApprove: (row: SeedCOAData) => void;
     onEdit: (row: SeedCOAData) => void;
-    onVehicleCheck: (row: SeedCOAData) => void;
 }
 
-const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove, canEdit, onClose, onApprove, onEdit, onVehicleCheck }) => {
+const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove, canEdit, onClose, onApprove, onEdit }) => {
     const [docType, setDocType] = React.useState<'isp' | 'mun'>('isp');
     const [confirmed, setConfirmed] = React.useState(false);
     React.useEffect(() => { if (open) { setDocType('isp'); setConfirmed(false); } }, [open, data?.id]);
 
     if (!open || !data) return null;
 
-    const isWaiting  = data.status === 'W';
+    const isWaiting = data.status === 'W';
     const isApproved = data.status === 'A';
-    const thaiDate   = _formatThaiDate(data.created_at);
-    const inspSig    = _getSignaturePath(data.inspector || data.coa_user);
-    const mgrSig     = `${window.location.origin}/images/signature/prapaporn.png`;
+    const thaiDate = _formatThaiDate(data.created_at);
+    const inspSig = _getSignaturePath(data.inspector || data.coa_user);
+    const mgrSig = `${window.location.origin}/images/signature/prapaporn.png`;
 
     const results = [
-        { key: 'result_shell',  label: '%Shell',                     unit: '%', value: data.result_shell,  spec: data.spec_shell || '< 5.00 %' },
-        { key: 'result_kn_moisture',  label: '%KN Moisture',  unit: '%', value: data.result_kn_moisture,  spec: data.spec_kn_moisture || '< 6.00 %' },
+        { key: 'result_shell', label: '%Shell', unit: '%', value: data.result_shell, spec: data.spec_shell || '< 5.00 %' },
+        { key: 'result_kn_moisture', label: '%KN Moisture', unit: '%', value: data.result_kn_moisture, spec: data.spec_kn_moisture || '< 6.00 %' },
     ];
 
     const headerBg = isApproved ? '#059669' : isWaiting ? '#d97706' : '#475569';
@@ -344,9 +346,9 @@ const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove,
                                                 {_fmtNum(value)}{unit}
                                             </td>
                                             <td style={{ ...tdS, textAlign: 'center' }}>
-                                                {ok === true  && <CheckCircle className="w-4 h-4 text-emerald-500 mx-auto" />}
-                                                {ok === false && <XCircle    className="w-4 h-4 text-rose-500 mx-auto" />}
-                                                {ok === null  && <Minus       className="w-4 h-4 text-slate-300 mx-auto" />}
+                                                {ok === true && <CheckCircle className="w-4 h-4 text-emerald-500 mx-auto" />}
+                                                {ok === false && <XCircle className="w-4 h-4 text-rose-500 mx-auto" />}
+                                                {ok === null && <Minus className="w-4 h-4 text-slate-300 mx-auto" />}
                                             </td>
                                         </tr>
                                     );
@@ -365,27 +367,27 @@ const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove,
                     {/* Signatures */}
                     <div className="flex justify-around pt-2">
                         {[{ title: 'ผู้ตรวจสอบ / Inspector', name: data.coa_user || data.inspector || '-', sig: inspSig },
-                          { title: 'ผู้อนุมัติ / Approved By',  name: data.coa_mgr || 'ประภาพร เชื่อพระซอง', sig: mgrSig }]
-                          .map(({ title, name, sig }) => (
-                            <div key={title} className="flex flex-col items-center gap-1" style={{ width: '160px' }}>
-                                <div className="h-14 flex items-end justify-center">
-                                    <img src={sig} alt="sig" className="max-h-12 max-w-[130px] object-contain"
-                                         onError={e => (e.currentTarget.style.visibility='hidden')} />
+                        { title: 'ผู้อนุมัติ / Approved By', name: data.coa_mgr || 'ประภาพร เชื่อพระซอง', sig: mgrSig }]
+                            .map(({ title, name, sig }) => (
+                                <div key={title} className="flex flex-col items-center gap-1" style={{ width: '160px' }}>
+                                    <div className="h-14 flex items-end justify-center">
+                                        <img src={sig} alt="sig" className="max-h-12 max-w-[130px] object-contain"
+                                            onError={e => (e.currentTarget.style.visibility = 'hidden')} />
+                                    </div>
+                                    <div className="w-full border-t border-slate-400 pt-1 text-center">
+                                        <div className="text-xs font-bold text-slate-700">{name}</div>
+                                        <div className="text-[11px] text-slate-500">{title}</div>
+                                        <div className="text-[11px] text-slate-400">{thaiDate}</div>
+                                    </div>
                                 </div>
-                                <div className="w-full border-t border-slate-400 pt-1 text-center">
-                                    <div className="text-xs font-bold text-slate-700">{name}</div>
-                                    <div className="text-[11px] text-slate-500">{title}</div>
-                                    <div className="text-[11px] text-slate-400">{thaiDate}</div>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
                     </div>
 
                     {/* Approval Checkbox — approvers only, status W */}
                     {canApprove && isWaiting && (
                         <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-amber-200 bg-amber-50 p-4 hover:bg-amber-100 transition-colors">
                             <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}
-                                   className="mt-0.5 h-4 w-4 accent-emerald-600 cursor-pointer" />
+                                className="mt-0.5 h-4 w-4 accent-emerald-600 cursor-pointer" />
                             <span className="text-sm font-medium text-amber-800 leading-snug select-none">
                                 ข้าพเจ้าได้อ่านและตรวจสอบข้อมูลข้างต้นครบถ้วนแล้ว และยืนยันความถูกต้องของข้อมูลทั้งหมด
                             </span>
@@ -397,20 +399,16 @@ const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove,
                 <div className="shrink-0 border-t border-slate-100 bg-slate-50 px-6 py-3 flex justify-end gap-3">
                     {canApprove && canEdit && isApproved && (
                         <button onClick={() => { onEdit(data); onClose(); }}
-                                className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100 transition-colors">
+                            className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100 transition-colors">
                             <Pencil className="w-4 h-4" /> แก้ไข (QAC Admin)
                         </button>
                     )}
                     {canApprove && isWaiting && (
                         <button disabled={!confirmed} onClick={() => { onApprove(data); onClose(); }}
-                                className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-white transition-all ${ confirmed ? 'bg-emerald-600 hover:bg-emerald-700 shadow-md' : 'bg-slate-300 cursor-not-allowed' }`}>
+                            className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-white transition-all ${confirmed ? 'bg-emerald-600 hover:bg-emerald-700 shadow-md' : 'bg-slate-300 cursor-not-allowed'}`}>
                             <ClipboardCheck className="w-4 h-4" /> อนุมัติ
                         </button>
                     )}
-                    <button onClick={() => { onVehicleCheck(data); onClose(); }}
-                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-                        <Truck className="w-4 h-4" /> เช็ครถ
-                    </button>
                     <button onClick={onClose} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">ปิด</button>
                 </div>
             </div>
@@ -423,7 +421,7 @@ const Seed_COA: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
+    const [dateFilter, setDateFilter] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [currentPageBottom, setCurrentPageBottom] = useState(1);
     const [labModal, setLabModal] = useState<{ open: boolean; data: SeedCOAData | null }>({ open: false, data: null });
@@ -432,18 +430,38 @@ const Seed_COA: React.FC = () => {
     const [selectedRows, setSelectedRows] = useState<number[]>([]);
     const [selectAll, setSelectAll] = useState(false);
     const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const { auth } = usePage<any>().props;
     const currentUserName = auth?.employee_name || auth?.user?.name || '';
 
     // Authorization logic
-    const userRoles: string[] = Array.isArray(auth?.roles) ? auth.roles : [];
-    const isDeveloper = userRoles.some((r: string) => r.toLowerCase() === 'developer') || currentUserName === 'ประภาพร เชื่อพระซอง';
-    const isQACAdmin = isDeveloper || userRoles.some((r: string) => ['qac.admin', 'qac_admin'].includes(r.toLowerCase()));
+    const normalizeAccessList = (items: unknown): string[] => {
+        if (!Array.isArray(items)) return [];
+        return items
+            .map((item: any) => (typeof item === 'string' ? item : item?.name))
+            .filter(Boolean)
+            .map((item: string) => item.toLowerCase());
+    };
+    const userRoles = normalizeAccessList(auth?.roles);
+    const userPermissions = normalizeAccessList(auth?.permissions);
+    const hasAccess = (value: string) => {
+        const normalized = value.toLowerCase();
+        return userRoles.includes(normalized) || userPermissions.includes(normalized);
+    };
+    const isDeveloper = hasAccess('developer') || hasAccess('developer.view') || currentUserName === 'ประภาพร เชื่อพระซอง';
+
+    // QAC users may receive permissions without a matching role, so check both lists.
+    const isQACAdmin = isDeveloper || hasAccess('QAC.Admin') || hasAccess('qac.admin') || hasAccess('qac_admin');
+    const isQACUser = isQACAdmin || hasAccess('qac.view') || hasAccess('qac.edit') || hasAccess('qac.create') || hasAccess('qac.delete');
+    const canCreate = isQACAdmin || hasAccess('qac.create') || hasAccess('qac.edit');
+    const canEdit = isQACAdmin || hasAccess('qac.edit');
+    const canDelete = isQACAdmin || hasAccess('qac.delete');
     const canApprove = isQACAdmin;
 
     const canEditRow = (row: SeedCOAData) => {
-        if (row.status !== 'A') return true; // If not approved, anyone can edit
-        return isQACAdmin; // If approved, only developer or QAC Admin can edit
+        if (!isQACUser) return false;
+        if (row.status === 'A') return isQACAdmin; // ถ้าอนุมัติแล้ว เฉพาะ QAC Admin หรือ Developer เท่านั้นที่แก้ได้
+        return canEdit; // ถ้ายังไม่อนุมัติ ผู้ที่มีสิทธิ์ edit สามารถแก้ไขได้
     };
 
     const handleApprove = async (row: SeedCOAData) => {
@@ -589,10 +607,10 @@ const Seed_COA: React.FC = () => {
                 result_kn_moisture: row.result_kn_moisture,
                 spec_shell: row.spec_shell,
                 spec_kn_moisture: row.spec_kn_moisture,
-                inspector:     isMun ? 'MUN_FAN'   : (currentUserName || row.coa_user || row.inspector),
-                coa_user:      row.coa_user || row.inspector,
-                coa_user_id:   isMun ? 'MUN_FAN'   : (row.inspector || row.coa_user || auth?.user?.employee_id),
-                coa_mgr:       isMun ? 'MUN_PEACH' : undefined,
+                inspector: isMun ? 'MUN_FAN' : (currentUserName || row.coa_user || row.inspector),
+                coa_user: row.coa_user || row.inspector,
+                coa_user_id: isMun ? 'MUN_FAN' : (row.inspector || row.coa_user || auth?.user?.employee_id),
+                coa_mgr: isMun ? 'MUN_PEACH' : undefined,
                 notes: row.notes,
             };
             await generateAndDownloadCoa(pdfData, isMun ? 'seed_mun' : 'seed_isp');
@@ -643,6 +661,7 @@ const Seed_COA: React.FC = () => {
                     status: s.Status_coa || (s.Status === 'p' ? 'processing' : 'pending'),
                     sop_status: s.Status,
                     created_at: parseDateString(s.coa_date || s.SOPDate),
+                    sop_date_raw: (s.coa_date || s.SOPDate)?.split(' ')[0] || '',
                 }));
                 setData(mapped);
             }
@@ -659,6 +678,17 @@ const Seed_COA: React.FC = () => {
         }, 500);
         return () => clearTimeout(timer);
     }, [dateFilter, filter]);
+
+    // ผลักดันให้แสดงวันที่ล่าสุดในครั้งแรกที่โหลดข้อมูลได้
+    useEffect(() => {
+        if (isInitialLoad && !dateFilter && data.length > 0) {
+            const latestDate = data[0].sop_date_raw;
+            if (latestDate) {
+                setDateFilter(latestDate);
+                setIsInitialLoad(false);
+            }
+        }
+    }, [data, isInitialLoad, dateFilter]);
 
     useEffect(() => {
         // ตรวจสอบ SOPID จาก URL เพื่อดึงข้อมูลอัตโนมัติ
@@ -1032,169 +1062,170 @@ const Seed_COA: React.FC = () => {
                         ? getStatusBadge(
                             row.status,
                             () => setCoaDetailModal({ open: true, data: row as SeedCOAData })
-                          )
+                        )
                         : getStatusBadge(
                             row.status,
                             canEditRow(row as SeedCOAData) ? () => setLabModal({ open: true, data: row }) : undefined
-                          )
+                        )
                     }
                 </div>
             </td>
             {showActions && (
-            <td className="w-[76px] px-3 py-2 align-middle">
-                <div className="flex justify-center">
-                    <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                className="h-9 w-9 rounded-full border border-slate-200 bg-white p-0 text-slate-600 shadow-sm hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-200"
-                                aria-label="เปิดเมนูจัดการ"
-                            >
-                                <MoreHorizontal className="h-5 w-5" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                            align="end"
-                            sideOffset={0}
-                            disableAnimation
-                            hideUntilPlaced
-                            className="w-60 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"
-                        >
-                            <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                                จัดการรายการ
-                            </DropdownMenuLabel>
-
-                            {/* ดูรายละเอียด — เปิด COADetailModal แบบ COA format */}
-                            <DropdownMenuItem
-                                className="group flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700"
-                                onClick={() => setCoaDetailModal({ open: true, data: row as SeedCOAData })}
-                            >
-                                <div className="rounded-md bg-emerald-100 p-1.5">
-                                    <Eye className="h-4 w-4 text-emerald-600" />
-                                </div>
-                                <span className="font-medium">ดูรายละเอียด</span>
-                            </DropdownMenuItem>
-
-                            {/* แก้ไขข้อมูล */}
-                            {canEditRow(row as SeedCOAData) && (
-                                <DropdownMenuItem
-                                    className="group flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-700 focus:bg-amber-50 focus:text-amber-700"
-                                    onClick={() => setLabModal({ open: true, data: row as SeedCOAData })}
+                <td className="w-[76px] px-3 py-2 align-middle">
+                    <div className="flex justify-center">
+                        <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    className="h-9 w-9 rounded-full border border-slate-200 bg-white p-0 text-slate-600 shadow-sm hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-200"
+                                    aria-label="เปิดเมนูจัดการ"
                                 >
-                                    <div className="rounded-md bg-amber-100 p-1.5">
-                                        <Pencil className="h-4 w-4 text-amber-600" />
+                                    <MoreHorizontal className="h-5 w-5" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                align="end"
+                                sideOffset={0}
+                                disableAnimation
+                                hideUntilPlaced
+                                className="w-60 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"
+                            >
+                                <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                    จัดการรายการ
+                                </DropdownMenuLabel>
+
+                                {/* ดูรายละเอียด — เปิด COADetailModal แบบ COA format */}
+                                <DropdownMenuItem
+                                    className="group flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700"
+                                    onClick={() => setCoaDetailModal({ open: true, data: row as SeedCOAData })}
+                                >
+                                    <div className="rounded-md bg-emerald-100 p-1.5">
+                                        <Eye className="h-4 w-4 text-emerald-600" />
                                     </div>
-                                    <span className="font-medium">แก้ไขข้อมูล</span>
+                                    <span className="font-medium">ดูรายละเอียด</span>
                                 </DropdownMenuItem>
-                            )}
 
-                            <DropdownMenuSeparator className="my-2" />
-                            <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                การตรวจสอบ
-                            </DropdownMenuLabel>
-
-
-                            <DropdownMenuItem
-                                className="group flex items-center gap-1 rounded-lg px-3 py-1 text-sm cursor-pointer text-slate-700 hover:bg-blue-50 hover:text-blue-700 focus:bg-blue-50 focus:text-blue-700"
-                                onClick={() => window.open(`/qac/coa/seed/${(row as SeedCOAData).id}/vehicle-print`, '_blank')}
-                            >
-                                <div className="rounded-md p-1.5 bg-blue-100">
-                                    <Printer className="h-4 w-4 text-blue-600" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="font-medium">แบบฟอร์มตรวจรถ</span>
-                                    <span className="text-xs text-slate-400">FM-QAC-67-0029</span>
-                                </div>
-                            </DropdownMenuItem>
-
-                            <DropdownMenuSeparator className="my-2" />
-                            <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                ดาวน์โหลดเอกสาร
-                            </DropdownMenuLabel>
-
-                            {/* ดาวน์โหลด COA ISP — เทาถ้ายังไม่อนุมัติ */}
-                            <DropdownMenuItem
-                                disabled={(row as SeedCOAData).status !== 'A'}
-                                className={`group flex items-center gap-1 rounded-lg px-3 py-1 text-sm ${(row as SeedCOAData).status === 'A' ? 'cursor-pointer text-slate-700 hover:bg-sky-50 hover:text-sky-700 focus:bg-sky-50 focus:text-sky-700' : 'cursor-not-allowed opacity-40 text-slate-400'}`}
-                                onClick={() => (row as SeedCOAData).status === 'A' && handleGenerateCOA(row as SeedCOAData, 'isp')}
-                            >
-                                <div className={`rounded-md p-1.5 ${(row as SeedCOAData).status === 'A' ? 'bg-sky-100' : 'bg-slate-100'}`}>
-                                    <FileDown className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-sky-600' : 'text-slate-400'}`} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="font-medium">COA ISP</span>
-                                    <span className="text-xs text-slate-400">{(row as SeedCOAData).status === 'A' ? 'มาตรฐาน ISP' : 'ต้องอนุมัติก่อน'}</span>
-                                </div>
-                            </DropdownMenuItem>
-
-                            {/* ดาวน์โหลด COA MUN — เทาถ้ายังไม่อนุมัติ */}
-                            <DropdownMenuItem
-                                disabled={(row as SeedCOAData).status !== 'A'}
-                                className={`group flex items-center gap-1 rounded-lg px-3 py-1 text-sm ${(row as SeedCOAData).status === 'A' ? 'cursor-pointer text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700' : 'cursor-not-allowed opacity-40 text-slate-400'}`}
-                                onClick={() => (row as SeedCOAData).status === 'A' && handleGenerateCOA(row as SeedCOAData, 'mun')}
-                            >
-                                <div className={`rounded-md p-1.5 ${(row as SeedCOAData).status === 'A' ? 'bg-emerald-100' : 'bg-slate-100'}`}>
-                                    <FileDown className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-emerald-600' : 'text-slate-400'}`} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="font-medium">COA MUN</span>
-                                    <span className="text-xs text-slate-400">{(row as SeedCOAData).status === 'A' ? 'มาตรฐาน MUN' : 'ต้องอนุมัติก่อน'}</span>
-                                </div>
-                            </DropdownMenuItem>
-
-                            {/* พิมพ์เอกสาร — เทาถ้ายังไม่อนุมัติ */}
-                            <DropdownMenuItem
-                                disabled={(row as SeedCOAData).status !== 'A'}
-                                className={`group flex items-center gap-1 rounded-lg px-3 py-1 text-sm ${(row as SeedCOAData).status === 'A' ? 'cursor-pointer text-slate-700 hover:bg-slate-50 hover:text-slate-800 focus:bg-slate-50 focus:text-slate-800' : 'cursor-not-allowed opacity-40 text-slate-400'}`}
-                                onClick={() => (row as SeedCOAData).status === 'A' && window.open(`/qac/coa/seed/${row.id}/print`, '_blank')}
-                            >
-                                <div className={`rounded-md p-1.5 ${(row as SeedCOAData).status === 'A' ? 'bg-slate-100' : 'bg-slate-100'}`}>
-                                    <Printer className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-slate-600' : 'text-slate-400'}`} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="font-medium">พิมพ์เอกสาร</span>
-                                    <span className="text-xs text-slate-400">{(row as SeedCOAData).status === 'A' ? 'แสดง A4 Preview ก่อนพิมพ์' : 'ต้องอนุมัติก่อน'}</span>
-                                </div>
-                            </DropdownMenuItem>
-
-                            {canEditRow(row as SeedCOAData) && (
-                                <>
-                                    <DropdownMenuSeparator className="my-2" />
-                                    <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-rose-500 uppercase tracking-wider">
-                                        การดำเนินการพิเศษ
-                                    </DropdownMenuLabel>
-
+                                {/* แก้ไขข้อมูล */}
+                                {canEditRow(row as SeedCOAData) && (
                                     <DropdownMenuItem
-                                        className="group flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 focus:bg-orange-50 focus:text-orange-700"
-                                        onClick={() => handleCancel(row.id)}
+                                        className="group flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-700 focus:bg-amber-50 focus:text-amber-700"
+                                        onClick={() => setLabModal({ open: true, data: row as SeedCOAData })}
                                     >
-                                        <div className="rounded-md bg-orange-100 p-1.5">
-                                            <Ban className="h-4 w-4 text-orange-600" />
+                                        <div className="rounded-md bg-amber-100 p-1.5">
+                                            <Pencil className="h-4 w-4 text-amber-600" />
                                         </div>
-                                        <div className="flex flex-col">
-                                            <span className="font-medium">ยกเลิกรายการ</span>
-                                            <span className="text-xs text-slate-500">เปลี่ยนสถานะเป็นยกเลิก</span>
-                                        </div>
+                                        <span className="font-medium">แก้ไขข้อมูล</span>
                                     </DropdownMenuItem>
+                                )}
 
-                                    <DropdownMenuItem
-                                        className="group flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 focus:bg-red-50 focus:text-red-700"
-                                        onClick={() => handleDelete(row.id)}
-                                    >
-                                        <div className="rounded-md bg-red-100 p-1.5">
-                                            <Trash2 className="h-4 w-4 text-red-600" />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="font-medium">ลบข้อมูล</span>
-                                            <span className="text-xs text-slate-500">ลบถาวรไม่สามารถกู้คืน</span>
-                                        </div>
-                                    </DropdownMenuItem>
-                                </>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </td>
+                                <DropdownMenuSeparator className="my-2" />
+                                <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    การตรวจสอบ
+                                </DropdownMenuLabel>
+
+
+                                <DropdownMenuItem
+                                    className="group flex items-center gap-1 rounded-lg px-3 py-1 text-sm cursor-pointer text-slate-700 hover:bg-blue-50 hover:text-blue-700 focus:bg-blue-50 focus:text-blue-700"
+                                    onClick={() => window.open(`/qac/coa/seed/${(row as SeedCOAData).id}/vehicle-print`, '_blank')}
+                                >
+                                    <div className="rounded-md p-1.5 bg-blue-100">
+                                        <Printer className="h-4 w-4 text-blue-600" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">แบบฟอร์มตรวจรถ</span>
+                                        <span className="text-xs text-slate-400">FM-QAC-67-0029</span>
+                                    </div>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator className="my-2" />
+                                <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    ดาวน์โหลดเอกสาร
+                                </DropdownMenuLabel>
+
+                                {/* ดาวน์โหลด COA ISP — เทาถ้ายังไม่อนุมัติ */}
+                                <DropdownMenuItem
+                                    disabled={(row as SeedCOAData).status !== 'A'}
+                                    className={`group flex items-center gap-1 rounded-lg px-3 py-1 text-sm ${(row as SeedCOAData).status === 'A' ? 'cursor-pointer text-slate-700 hover:bg-sky-50 hover:text-sky-700 focus:bg-sky-50 focus:text-sky-700' : 'cursor-not-allowed opacity-40 text-slate-400'}`}
+                                    onClick={() => (row as SeedCOAData).status === 'A' && handleGenerateCOA(row as SeedCOAData, 'isp')}
+                                >
+                                    <div className={`rounded-md p-1.5 ${(row as SeedCOAData).status === 'A' ? 'bg-sky-100' : 'bg-slate-100'}`}>
+                                        <FileDown className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-sky-600' : 'text-slate-400'}`} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">COA ISP</span>
+                                        <span className="text-xs text-slate-400">{(row as SeedCOAData).status === 'A' ? 'มาตรฐาน ISP' : 'ต้องอนุมัติก่อน'}</span>
+                                    </div>
+                                </DropdownMenuItem>
+
+                                {/* ดาวน์โหลด COA MUN — เทาถ้ายังไม่อนุมัติ */}
+                                <DropdownMenuItem
+                                    disabled={(row as SeedCOAData).status !== 'A'}
+                                    className={`group flex items-center gap-1 rounded-lg px-3 py-1 text-sm ${(row as SeedCOAData).status === 'A' ? 'cursor-pointer text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700' : 'cursor-not-allowed opacity-40 text-slate-400'}`}
+                                    onClick={() => (row as SeedCOAData).status === 'A' && handleGenerateCOA(row as SeedCOAData, 'mun')}
+                                >
+                                    <div className={`rounded-md p-1.5 ${(row as SeedCOAData).status === 'A' ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+                                        <FileDown className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">COA MUN</span>
+                                        <span className="text-xs text-slate-400">{(row as SeedCOAData).status === 'A' ? 'มาตรฐาน MUN' : 'ต้องอนุมัติก่อน'}</span>
+                                    </div>
+                                </DropdownMenuItem>
+
+                                {/* พิมพ์เอกสาร — เทาถ้ายังไม่อนุมัติ */}
+                                <DropdownMenuItem
+                                    disabled={(row as SeedCOAData).status !== 'A'}
+                                    className={`group flex items-center gap-1 rounded-lg px-3 py-1 text-sm ${(row as SeedCOAData).status === 'A' ? 'cursor-pointer text-slate-700 hover:bg-slate-50 hover:text-slate-800 focus:bg-slate-50 focus:text-slate-800' : 'cursor-not-allowed opacity-40 text-slate-400'}`}
+                                    onClick={() => (row as SeedCOAData).status === 'A' && window.open(`/qac/coa/seed/${row.id}/print`, '_blank')}
+                                >
+                                    <div className={`rounded-md p-1.5 ${(row as SeedCOAData).status === 'A' ? 'bg-slate-100' : 'bg-slate-100'}`}>
+                                        <Printer className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-slate-600' : 'text-slate-400'}`} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">พิมพ์เอกสาร</span>
+                                        <span className="text-xs text-slate-400">{(row as SeedCOAData).status === 'A' ? 'แสดง A4 Preview ก่อนพิมพ์' : 'ต้องอนุมัติก่อน'}</span>
+                                    </div>
+                                </DropdownMenuItem>
+
+                                {/* สำหรับ QAC Admin เท่านั้น */}
+                                {canDelete && (
+                                    <>
+                                        <DropdownMenuSeparator className="my-2" />
+                                        <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-rose-500 uppercase tracking-wider">
+                                            การดำเนินการพิเศษ (Admin Only)
+                                        </DropdownMenuLabel>
+
+                                        <DropdownMenuItem
+                                            className="group flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 focus:bg-orange-50 focus:text-orange-700"
+                                            onClick={() => handleCancel(row.id)}
+                                        >
+                                            <div className="rounded-md bg-orange-100 p-1.5">
+                                                <Ban className="h-4 w-4 text-orange-600" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">ยกเลิกรายการ</span>
+                                                <span className="text-xs text-slate-500">เปลี่ยนสถานะเป็นยกเลิก</span>
+                                            </div>
+                                        </DropdownMenuItem>
+
+                                        <DropdownMenuItem
+                                            className="group flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 focus:bg-red-50 focus:text-red-700"
+                                            onClick={() => handleDelete(row.id)}
+                                        >
+                                            <div className="rounded-md bg-red-100 p-1.5">
+                                                <Trash2 className="h-4 w-4 text-red-600" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">ลบข้อมูล</span>
+                                                <span className="text-xs text-slate-500">ลบถาวรไม่สามารถกู้คืน</span>
+                                            </div>
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </td>
             )}
         </tr>
     );
@@ -1364,10 +1395,10 @@ const Seed_COA: React.FC = () => {
                                     </button>
                                 </div>
 
-                                {canEditRow(row as SeedCOAData) && (
+                                {canDelete && (
                                     <div className="py-1">
                                         <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-rose-500">
-                                            การดำเนินการพิเศษ
+                                            การดำเนินการพิเศษ (Admin Only)
                                         </div>
                                         <button
                                             type="button"
@@ -1403,130 +1434,130 @@ const Seed_COA: React.FC = () => {
         const sectionStyle = SECTION_STYLES[color] || SECTION_STYLES.blue;
 
         return (
-        <div className="mb-6">
-            <div className="mb-3 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <div className={`rounded-lg p-2 ${sectionStyle.icon}`}>
-                        {icon}
+            <div className="mb-6">
+                <div className="mb-3 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className={`rounded-lg p-2 ${sectionStyle.icon}`}>
+                            {icon}
+                        </div>
+                        <h2 className="text-base font-semibold text-slate-900">
+                            {title}
+                        </h2>
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${sectionStyle.badge}`}>
+                            {data.length} รายการ
+                        </span>
                     </div>
-                    <h2 className="text-base font-semibold text-slate-900">
-                        {title}
-                    </h2>
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${sectionStyle.badge}`}>
-                        {data.length} รายการ
-                    </span>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+                            <button
+                                title="มุมมองตาราง"
+                                onClick={() => setViewMode('table')}
+                                className={`rounded-md p-2 transition-colors ${viewMode === 'table' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+                            >
+                                <GanttChartSquare className="w-4 h-4" />
+                            </button>
+                            <button
+                                title="มุมมองการ์ด"
+                                onClick={() => setViewMode('grid')}
+                                className={`rounded-md p-2 transition-colors ${viewMode === 'grid' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+                            >
+                                <Package className="w-4 h-4" />
+                            </button>
+                        </div>
                         <button
-                            title="มุมมองตาราง"
-                            onClick={() => setViewMode('table')}
-                            className={`rounded-md p-2 transition-colors ${viewMode === 'table' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
+                            title="ย่อ/ขยาย"
+                            onClick={() => setExpanded(prev => ({ ...prev, [title === 'รายการรอตรวจสอบ' ? 'processing' : 'others']: !prev[title === 'รายการรอตรวจสอบ' ? 'processing' : 'others'] }))}
+                            className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition-colors hover:bg-slate-50"
                         >
-                            <GanttChartSquare className="w-4 h-4" />
-                        </button>
-                        <button
-                            title="มุมมองการ์ด"
-                            onClick={() => setViewMode('grid')}
-                            className={`rounded-md p-2 transition-colors ${viewMode === 'grid' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
-                        >
-                            <Package className="w-4 h-4" />
+                            {expanded[title === 'รายการรอตรวจสอบ' ? 'processing' : 'others'] ? <ArrowUp className="w-5 h-5 text-gray-500" /> : <ArrowDown className="w-5 h-5 text-gray-500" />}
                         </button>
                     </div>
-                    <button
-                        title="ย่อ/ขยาย"
-                        onClick={() => setExpanded(prev => ({ ...prev, [title === 'รายการรอตรวจสอบ' ? 'processing' : 'others']: !prev[title === 'รายการรอตรวจสอบ' ? 'processing' : 'others'] }))}
-                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition-colors hover:bg-slate-50"
-                    >
-                        {expanded[title === 'รายการรอตรวจสอบ' ? 'processing' : 'others'] ? <ArrowUp className="w-5 h-5 text-gray-500" /> : <ArrowDown className="w-5 h-5 text-gray-500" />}
-                    </button>
                 </div>
-            </div>
 
-            {expanded[title === 'รายการรอตรวจสอบ' ? 'processing' : 'others'] && (
-                <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-                    {viewMode === 'table' ? (
-                        <div className="w-full overflow-visible">
-                            <table className="w-full min-w-[1080px] table-fixed divide-y divide-slate-200">
-                                <thead className={`${sectionStyle.header} sticky top-0 z-[1]`}>
-                                    <tr>
-                                        <th className="w-[56px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">#</th>
-                                        <th className="w-[140px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">COA / วันที่</th>
-                                        <th className="w-[180px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Lot / สินค้า</th>
-                                        <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">ลูกค้า / ปลายทาง</th>
-                                        <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">รถ / คนขับ</th>
-                                        {showResults && <th className="w-[200px] border-x border-emerald-100 bg-emerald-100/40 px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-600">ผลตรวจ</th>}
-                                        <th className="w-[140px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">สถานะ</th>
-                                        {showResults && <th className="w-[76px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">จัดการ</th>}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
-                                    {pageData.length > 0 ? (
-                                        pageData.map((row, i) => <TableRow key={row.id} row={row} index={i} page={page} color={color} showResults={showResults} showActions={showResults} />)
-                                    ) : (
+                {expanded[title === 'รายการรอตรวจสอบ' ? 'processing' : 'others'] && (
+                    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                        {viewMode === 'table' ? (
+                            <div className="w-full overflow-visible">
+                                <table className="w-full min-w-[1080px] table-fixed divide-y divide-slate-200">
+                                    <thead className={`${sectionStyle.header} sticky top-0 z-[1]`}>
                                         <tr>
-                                            <td colSpan={showResults ? 8 : 6} className="px-4 py-8 text-center">
-                                                <div className="flex flex-col items-center justify-center">
-                                                    <div className="p-3 rounded-xl mb-2 bg-gray-100">
-                                                        <FileDown className="w-8 h-8 text-gray-400" />
-                                                    </div>
-                                                    <p className="text-sm text-gray-500">ไม่มีข้อมูล</p>
-                                                </div>
-                                            </td>
+                                            <th className="w-[56px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">#</th>
+                                            <th className="w-[140px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">COA / วันที่</th>
+                                            <th className="w-[180px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Lot / สินค้า</th>
+                                            <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">ลูกค้า / ปลายทาง</th>
+                                            <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">รถ / คนขับ</th>
+                                            {showResults && <th className="w-[200px] border-x border-emerald-100 bg-emerald-100/40 px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-600">ผลตรวจ</th>}
+                                            <th className="w-[140px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">สถานะ</th>
+                                            {showResults && <th className="w-[76px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">จัดการ</th>}
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <div className="p-6">
-                            {pageData.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {pageData.map((row) => (
-                                        <GridCard key={row.id} row={row} />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-12">
-                                    <div className="p-4 rounded-full bg-gray-50 mb-4">
-                                        <Package className="w-12 h-12 text-gray-400" />
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 bg-white">
+                                        {pageData.length > 0 ? (
+                                            pageData.map((row, i) => <TableRow key={row.id} row={row} index={i} page={page} color={color} showResults={showResults} showActions={showResults} />)
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={showResults ? 8 : 6} className="px-4 py-8 text-center">
+                                                    <div className="flex flex-col items-center justify-center">
+                                                        <div className="p-3 rounded-xl mb-2 bg-gray-100">
+                                                            <FileDown className="w-8 h-8 text-gray-400" />
+                                                        </div>
+                                                        <p className="text-sm text-gray-500">ไม่มีข้อมูล</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="p-6">
+                                {pageData.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {pageData.map((row) => (
+                                            <GridCard key={row.id} row={row} />
+                                        ))}
                                     </div>
-                                    <h3 className="text-lg font-medium text-gray-900 mb-1">ไม่พบข้อมูล</h3>
-                                    <p className="text-gray-500">ยังไม่มีรายการในสถานะนี้</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12">
+                                        <div className="p-4 rounded-full bg-gray-50 mb-4">
+                                            <Package className="w-12 h-12 text-gray-400" />
+                                        </div>
+                                        <h3 className="text-lg font-medium text-gray-900 mb-1">ไม่พบข้อมูล</h3>
+                                        <p className="text-gray-500">ยังไม่มีรายการในสถานะนี้</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
-                    {data.length > itemsPerPage && (
-                        <div className="border-t border-slate-200 bg-slate-50/70 px-4 py-3">
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-600">แสดง {Math.min(pageData.length, itemsPerPage)} จาก {data.length} รายการ</span>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => title === 'รายการรอตรวจสอบ' ? setCurrentPage(p => Math.max(1, p - 1)) : setCurrentPageBottom(p => Math.max(1, p - 1))}
-                                        disabled={title === 'รายการรอตรวจสอบ' ? currentPage === 1 : currentPageBottom === 1}
-                                        className="rounded-lg border border-slate-200 bg-white p-1 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
-                                    >
-                                        <ChevronLeft className="w-4 h-4" />
-                                    </button>
-                                    <span className="text-sm px-2 text-gray-700">
-                                        {title === 'รายการรอตรวจสอบ' ? currentPage : currentPageBottom} / {Math.ceil(data.length / itemsPerPage)}
-                                    </span>
-                                    <button
-                                        onClick={() => title === 'รายการรอตรวจสอบ' ? setCurrentPage(p => Math.min(p + 1, Math.ceil(data.length / itemsPerPage))) : setCurrentPageBottom(p => Math.min(p + 1, Math.ceil(data.length / itemsPerPage)))}
-                                        disabled={title === 'รายการรอตรวจสอบ' ? currentPage === Math.ceil(data.length / itemsPerPage) : currentPageBottom === Math.ceil(data.length / itemsPerPage)}
-                                        className="rounded-lg border border-slate-200 bg-white p-1 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
-                                    >
-                                        <ChevronRight className="w-4 h-4" />
-                                    </button>
+                        {data.length > itemsPerPage && (
+                            <div className="border-t border-slate-200 bg-slate-50/70 px-4 py-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-600">แสดง {Math.min(pageData.length, itemsPerPage)} จาก {data.length} รายการ</span>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => title === 'รายการรอตรวจสอบ' ? setCurrentPage(p => Math.max(1, p - 1)) : setCurrentPageBottom(p => Math.max(1, p - 1))}
+                                            disabled={title === 'รายการรอตรวจสอบ' ? currentPage === 1 : currentPageBottom === 1}
+                                            className="rounded-lg border border-slate-200 bg-white p-1 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                                        >
+                                            <ChevronLeft className="w-4 h-4" />
+                                        </button>
+                                        <span className="text-sm px-2 text-gray-700">
+                                            {title === 'รายการรอตรวจสอบ' ? currentPage : currentPageBottom} / {Math.ceil(data.length / itemsPerPage)}
+                                        </span>
+                                        <button
+                                            onClick={() => title === 'รายการรอตรวจสอบ' ? setCurrentPage(p => Math.min(p + 1, Math.ceil(data.length / itemsPerPage))) : setCurrentPageBottom(p => Math.min(p + 1, Math.ceil(data.length / itemsPerPage)))}
+                                            disabled={title === 'รายการรอตรวจสอบ' ? currentPage === Math.ceil(data.length / itemsPerPage) : currentPageBottom === Math.ceil(data.length / itemsPerPage)}
+                                            className="rounded-lg border border-slate-200 bg-white p-1 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                                        >
+                                            <ChevronRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
+                        )}
+                    </div>
+                )}
+            </div>
         );
     };
 
@@ -1539,7 +1570,7 @@ const Seed_COA: React.FC = () => {
                     <div className="pointer-events-none absolute inset-0 overflow-hidden">
                         <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-green-500/10 blur-3xl" />
                         <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+                        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjY1Ii8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsdGVyPSJ1cmwoI24pIiBvcGFjaXR5PSIuMDUiLz48L3N2Zz4=')] opacity-20 mix-blend-overlay" />
                     </div>
 
                     <div className="relative px-4 py-5 sm:px-6">
@@ -1567,7 +1598,7 @@ const Seed_COA: React.FC = () => {
                                 {STATS_CARDS.map(({ label, color, filter, icon: Icon }) => {
                                     const isActive = statusFilter === (filter || 'all');
                                     const count = filter ? data.filter(d => d.status === filter).length : data.length;
-                                    
+
                                     // Map original colors to dark theme equivalents
                                     const c: Record<string, { b: string, bg: string, t: string, g: string }> = {
                                         blue: { b: 'border-blue-500/50', bg: 'bg-blue-500/10', t: 'text-blue-400', g: 'from-blue-500 to-cyan-400' },
@@ -1584,11 +1615,10 @@ const Seed_COA: React.FC = () => {
                                             key={label}
                                             type="button"
                                             onClick={() => setStatusFilter(filter || 'all')}
-                                            className={`group relative flex flex-col items-start justify-between overflow-hidden rounded-xl border p-3.5 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
-                                                isActive 
-                                                    ? `${theme.b} ${theme.bg} shadow-black/40` 
+                                            className={`group relative flex flex-col items-start justify-between overflow-hidden rounded-xl border p-3.5 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${isActive
+                                                    ? `${theme.b} ${theme.bg} shadow-black/40`
                                                     : 'border-slate-700/50 bg-slate-800/40 hover:border-slate-600/60 hover:bg-slate-800/80 shadow-black/20'
-                                            }`}
+                                                }`}
                                         >
                                             <div className="flex w-full items-center justify-between">
                                                 <span className={`text-[11px] font-bold tracking-wider ${isActive ? theme.t : 'text-slate-400 group-hover:text-slate-300'}`}>
@@ -1601,7 +1631,7 @@ const Seed_COA: React.FC = () => {
                                             <div className={`mt-2.5 text-2xl font-black tracking-tight ${isActive ? 'text-white' : 'text-slate-200 group-hover:text-white transition-colors'}`}>
                                                 {count}
                                             </div>
-                                            
+
                                             {/* Active Glow Line */}
                                             {isActive && (
                                                 <div className={`absolute bottom-0 left-0 h-[3px] w-full bg-gradient-to-r ${theme.g}`} />
@@ -1616,79 +1646,94 @@ const Seed_COA: React.FC = () => {
 
                 {/* Main Content */}
                 <div className="p-6">
-                    {/* Recent Records Info Label */}
-                    {!dateFilter && !filter && (
-                        <div className="mb-4 flex items-center gap-2 text-xs font-medium text-green-600 bg-green-50/50 px-3 py-2 rounded-xl border border-green-100 w-fit animate-pulse">
-                            <Info className="w-3.5 h-3.5" />
-                            แสดงรายการย้อนหลัง 60 วัน (ระบุวันที่หรือค้นหาเพื่อดูข้อมูลเก่ากว่า)
-                        </div>
-                    )}
-                    {/* Filters */}
-                    <div className="bg-white/80 rounded-2xl shadow-xl border border-gray-200 p-5 mb-6">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div className="relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="ค้นหา COA No., LOT No., ทะเบียนรถ..."
-                                    value={filter}
-                                    onChange={e => setFilter(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
-                                />
+                    {isQACUser ? (
+                        <>
+                            {/* Recent Records Info Label */}
+                            {!dateFilter && !filter && (
+                                <div className="mb-4 flex items-center gap-2 text-xs font-medium text-green-600 bg-green-50/50 px-3 py-2 rounded-xl border border-green-100 w-fit animate-pulse">
+                                    <Info className="w-3.5 h-3.5" />
+                                    แสดงรายการย้อนหลัง 60 วัน (ระบุวันที่หรือค้นหาเพื่อดูข้อมูลเก่ากว่า)
+                                </div>
+                            )}
+                            {/* Filters */}
+                            <div className="bg-white/80 rounded-2xl shadow-xl border border-gray-200 p-5 mb-6">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="relative">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="ค้นหา COA No., LOT No., ทะเบียนรถ..."
+                                            value={filter}
+                                            onChange={e => setFilter(e.target.value)}
+                                            className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
+                                        />
+                                    </div>
+                                    <div className="relative">
+                                        <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                        <select
+                                            value={statusFilter}
+                                            onChange={e => setStatusFilter(e.target.value)}
+                                            className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 appearance-none cursor-pointer bg-white"
+                                        >
+                                            <option value="all">ทั้งหมด</option>
+                                            <option value="pending">รอรับผลตรวจ</option>
+                                            <option value="processing">กำลังตรวจ</option>
+                                            <option value="W">รออนุมัติ</option>
+                                            <option value="A">อนุมัติแล้ว</option>
+                                            <option value="rejected">ไม่ผ่าน</option>
+                                        </select>
+                                    </div>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                        <input
+                                            type="date"
+                                            value={dateFilter}
+                                            onChange={e => setDateFilter(e.target.value)}
+                                            className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => { setFilter(''); setStatusFilter('all'); setDateFilter(''); }}
+                                        className="px-6 py-3 rounded-xl border-2 border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 flex items-center justify-center gap-2 group transition-all hover:scale-105"
+                                    >
+                                        <RefreshCw className="w-5 h-5 text-gray-500 group-hover:rotate-180 transition-transform duration-500" />
+                                        <span className="font-medium">ล้างตัวกรอง</span>
+                                    </button>
+                                </div>
                             </div>
-                            <div className="relative">
-                                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <select
-                                    value={statusFilter}
-                                    onChange={e => setStatusFilter(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 appearance-none cursor-pointer bg-white"
-                                >
-                                    <option value="all">ทั้งหมด</option>
-                                    <option value="pending">รอรับผลตรวจ</option>
-                                    <option value="processing">กำลังตรวจ</option>
-                                    <option value="W">รออนุมัติ</option>
-                                    <option value="A">อนุมัติแล้ว</option>
-                                    <option value="rejected">ไม่ผ่าน</option>
-                                </select>
-                            </div>
-                            <div className="relative">
-                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <input
-                                    type="date"
-                                    value={dateFilter}
-                                    onChange={e => setDateFilter(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                                />
-                            </div>
-                            <button
-                                onClick={() => { setFilter(''); setStatusFilter('all'); setDateFilter(''); }}
-                                className="px-6 py-3 rounded-xl border-2 border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 flex items-center justify-center gap-2 group transition-all hover:scale-105"
-                            >
-                                <RefreshCw className="w-5 h-5 text-gray-500 group-hover:rotate-180 transition-transform duration-500" />
-                                <span className="font-medium">ล้างตัวกรอง</span>
-                            </button>
-                        </div>
-                    </div>
 
-                    {/* Tables */}
-                    {renderTable(
-                        pendingData,
-                        getPaginatedData(pendingData, currentPage),
-                        currentPage,
-                        'รายการรอตรวจสอบ',
-                        <RefreshCw className="w-5 h-5 text-sky-600" />,
-                        'sky',
-                        false
-                    )}
+                            {/* Tables */}
+                            {renderTable(
+                                pendingData,
+                                getPaginatedData(pendingData, currentPage),
+                                currentPage,
+                                'รายการรอตรวจสอบ',
+                                <RefreshCw className="w-5 h-5 text-sky-600" />,
+                                'sky',
+                                false
+                            )}
 
-                    {renderTable(
-                        processedData,
-                        getPaginatedData(processedData, currentPageBottom),
-                        currentPageBottom,
-                        'รายการที่ดำเนินการแล้ว',
-                        <CheckCircle className="w-5 h-5 text-blue-600" />,
-                        'blue',
-                        true
+                            {renderTable(
+                                processedData,
+                                getPaginatedData(processedData, currentPageBottom),
+                                currentPageBottom,
+                                'รายการที่ดำเนินการแล้ว',
+                                <CheckCircle className="w-5 h-5 text-blue-600" />,
+                                'blue',
+                                true
+                            )}
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20 bg-white/50 rounded-3xl border-2 border-dashed border-slate-200">
+                            <div className="p-4 bg-amber-100 rounded-full mb-4">
+                                <AlertTriangle className="w-12 h-12 text-amber-600" />
+                            </div>
+                            <h2 className="text-xl font-bold text-slate-800 mb-2">ขออภัย คุณไม่มีสิทธิ์เข้าถึงข้อมูลในส่วนนี้</h2>
+                            <p className="text-slate-500 max-w-md text-center">
+                                หน้าจอนี้ถูกจำกัดการเข้าถึงเฉพาะเจ้าหน้าที่แผนกควบคุมคุณภาพ (QAC) เท่านั้น
+                                หากคุณต้องการสิทธิ์การใช้งาน กรุณาติดต่อแผนก IT หรือผู้ดูแลระบบ
+                            </p>
+                        </div>
                     )}
                 </div>
             </div>
@@ -1709,7 +1754,6 @@ const Seed_COA: React.FC = () => {
                 onClose={() => setCoaDetailModal({ open: false, data: null })}
                 onApprove={handleApprove}
                 onEdit={(row) => setLabModal({ open: true, data: row })}
-                onVehicleCheck={(row) => setTruckModal({ open: true, data: row })}
             />
 
             <VehicleCheckModal

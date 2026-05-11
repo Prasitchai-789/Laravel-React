@@ -586,15 +586,30 @@ const Oil_COA: React.FC = () => {
 
     const { auth } = usePage<any>().props;
     const currentUserName = auth?.employee_name || auth?.user?.name || '';
-    const userRoles: string[] = Array.isArray(auth?.roles) ? auth.roles : [];
-    const isDeveloper = userRoles.some((r: string) => r.toLowerCase() === 'developer') || currentUserName === 'ประภาพร เชื่อพระซอง';
-    const isQACAdmin = isDeveloper || userRoles.some((r: string) => ['qac.admin', 'qac_admin'].includes(r.toLowerCase()));
+    const normalizeAccessList = (items: unknown): string[] => {
+        if (!Array.isArray(items)) return [];
+        return items
+            .map((item: any) => (typeof item === 'string' ? item : item?.name))
+            .filter(Boolean)
+            .map((item: string) => item.toLowerCase());
+    };
+    const userRoles = normalizeAccessList(auth?.roles);
+    const userPermissions = normalizeAccessList(auth?.permissions);
+    const hasAccess = (value: string) => {
+        const normalized = value.toLowerCase();
+        return userRoles.includes(normalized) || userPermissions.includes(normalized);
+    };
+    const isDeveloper = hasAccess('developer') || hasAccess('developer.view') || currentUserName === 'ประภาพร เชื่อพระซอง';
+    const isQACAdmin = isDeveloper || hasAccess('QAC.Admin') || hasAccess('qac.admin') || hasAccess('qac_admin');
+    const isQACUser = isQACAdmin || hasAccess('qac.view') || hasAccess('qac.edit') || hasAccess('qac.create') || hasAccess('qac.delete');
+    const canEdit = isQACAdmin || hasAccess('qac.edit');
     const canApprove = isQACAdmin;
     const itemsPerPage = 10;
 
     const canEditRow = (row: OilCOAData) => {
-        if (row.status !== 'A') return true;
-        return isQACAdmin;
+        if (!isQACUser) return false;
+        if (row.status === 'A') return isQACAdmin;
+        return canEdit;
     };
 
     const fetchData = async (date = '', keyword = '') => {
@@ -708,8 +723,8 @@ const Oil_COA: React.FC = () => {
         return `${value.toFixed(2)}${unit}`;
     };
 
-    const getStatusBadge = (status: OilCOAData['status'] | OilCOAData['sop_status'], onClick?: () => void) => {
-        const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+    const getStatusBadge = (status: OilCOAData['status'] | OilCOAData['sop_status'] | undefined, onClick?: () => void) => {
+        const config = STATUS_CONFIG[status ?? 'pending'] || STATUS_CONFIG.pending;
         const Icon = config.icon;
         return (
             <button
@@ -1020,7 +1035,7 @@ const Oil_COA: React.FC = () => {
         return `rounded-lg border p-3 shadow-sm transition-colors hover:bg-white ${styles.card}`;
     };
 
-    const TableRow = ({ row, index, page, color, showResults = true, showActions = true }: { row: SharedCOAData; index: number; page: number; color: string; showResults: boolean; showActions?: boolean }) => (
+    const TableRow = ({ row, index, page, color, showResults = true, showActions = true }: { row: OilCOAData; index: number; page: number; color: string; showResults: boolean; showActions?: boolean }) => (
         <tr className="group border-b border-slate-100 transition-colors hover:bg-slate-50/80">
             <td className="w-[56px] px-3 py-3 text-center align-middle">
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">

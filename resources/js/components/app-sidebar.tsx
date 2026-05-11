@@ -59,6 +59,7 @@ import AppLogo from './app-logo';
 type SidebarPageProps = {
     auth: {
         permissions?: string[];
+        roles?: string[];
     };
 };
 
@@ -144,13 +145,16 @@ const FerNavItems: NavItem[] = [
     { title: 'การผลิตปุ๋ย', href: '/fertilizer/productions', icon: Warehouse, permission: ['fer.view'] }
 ];
 
-const QACNavItems: NavItem[] = [
-    { title: 'COA น้ำมันปาล์มดิบ', href: '/qac/coa/oil', icon: Beaker, permission: ['qac.edit'] },
-    { title: 'COA เมล็ดในปาล์ม', href: '/qac/coa/seed', icon: Beaker, permission: ['qac.edit'] },
-    { title: 'บันทึกข้อมูล Stock CPO', href: '/cpo', icon: Beaker, permission: ['qac.edit'] },
-    { title: 'บันทึก Skim / Mix', href: '/skim-mix', icon: Beaker, permission: ['qac.edit'] },
-    { title: 'บันทึกข้อมูล Kernel', href: '/stock/kernel', icon: Beaker, permission: ['qac.edit'] },
-    { title: 'บันทึกข้อมูล สินค้าอื่น ๆ', href: '/stock/by-products', icon: Beaker, permission: ['qac.edit'] },
+const QACDataEntryNavItems: NavItem[] = [
+    { title: 'COA น้ำมันปาล์มดิบ', href: '/qac/coa/oil', icon: Beaker, permission: ['qac.view', 'qac.edit'] },
+    { title: 'COA เมล็ดในปาล์ม', href: '/qac/coa/seed', icon: Beaker, permission: ['qac.view', 'qac.edit'] },
+    { title: 'บันทึกข้อมูล Stock CPO', href: '/cpo', icon: Beaker, permission: ['qac.user', 'qac.edit'] },
+    { title: 'บันทึก Skim / Mix', href: '/skim-mix', icon: Beaker, permission: ['qac.user', 'qac.edit'] },
+    { title: 'บันทึกข้อมูล Kernel', href: '/stock/kernel', icon: Beaker, permission: ['qac.user', 'qac.edit'] },
+    { title: 'บันทึกข้อมูล สินค้าอื่น ๆ', href: '/stock/by-products', icon: Beaker, permission: ['qac.user', 'qac.edit'] },
+];
+
+const QACReportNavItems: NavItem[] = [
     { title: 'Stock CPO', href: '/stock/cpo', icon: Beaker, permission: ['qac.view'] },
     { title: 'รายงานการผลิต (Mill Daily)', href: '/qac/mill-daily-report', icon: ScrollText, permission: ['qac.edit'] },
     { title: 'รายงานการผลิต', href: '/stock/report', icon: ScrollText, permission: ['qac.view'] },
@@ -158,6 +162,8 @@ const QACNavItems: NavItem[] = [
     { title: 'รายงาน % Yield', href: '/yield-report', icon: ScrollText, permission: ['qac.view'] },
     { title: 'รายงาน % Yield (ตาราง)', href: '/yield-table', icon: ScrollText, permission: ['qac.view','mar.edit'] },
 ];
+
+const QACNavItems: NavItem[] = [...QACReportNavItems, ...QACDataEntryNavItems];
 
 const QMRNavItems: NavItem[] = [
     { title: 'บันทึกข้อมูลน้ำ', href: '/qmr/water-usage-reports', icon: Droplets, permission: ['qmr.view', 'admin.view', 'developer.view', 'gm.view', 'qac.view'] },
@@ -170,6 +176,14 @@ const CarUsageNavItems: NavItem[] = [
 
 // Helper function to check if user is developer
 const checkIsDeveloper = (permissions: string[]) => permissions.includes('developer.view');
+
+const normalizeAccessList = (items?: unknown[]) => {
+    if (!Array.isArray(items)) return [];
+    return items
+        .map((item: any) => (typeof item === 'string' ? item : item?.name))
+        .filter(Boolean)
+        .map((item: string) => item.toLowerCase());
+};
 
 // Helper function to filter items based on permissions or developer role
 const filterItemsByPermission = (items: NavItem[], permissions: string[]) => {
@@ -187,7 +201,21 @@ export function AppSidebar() {
     const page = usePage();
     const { auth } = page.props as unknown as SidebarPageProps;
     const permissions = auth.permissions || [];
+    const access = [...normalizeAccessList(auth.permissions), ...normalizeAccessList(auth.roles)];
+    const hasAccess = (permission: string) => access.includes(permission.toLowerCase());
     const isDev = checkIsDeveloper(permissions);
+    const isQacUserOnly =
+        hasAccess('qac.user') &&
+        !hasAccess('qac.edit') &&
+        !hasAccess('qac.admin') &&
+        !hasAccess('qac_admin') &&
+        !hasAccess('QAC.Admin') &&
+        !isDev;
+    const visibleQACNavItems = isQacUserOnly
+        ? filterItemsByPermission(QACDataEntryNavItems, access)
+        : filterItemsByPermission(QACNavItems, permissions);
+    const isActiveHref = (href: string) => page.url === href || page.url.startsWith(`${href}/`);
+    const hasActiveItem = (items: NavItem[]) => items.some((item) => isActiveHref(item.href));
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -208,7 +236,7 @@ export function AppSidebar() {
 
                 {/* Developer Menu */}
                 {(isDev || filterItemsByPermission(DevNavItems, permissions).length > 0) && (
-                    <Collapsible asChild defaultOpen={false} className="group/collapsible">
+                    <Collapsible asChild key={`dev-${page.url}`} defaultOpen={hasActiveItem(DevNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
                                 <SidebarMenuButton tooltip="Dashboard Report" className="hover:text-blue-800">
@@ -241,7 +269,7 @@ export function AppSidebar() {
 
                 {/* IT */}
                 {(isDev || filterItemsByPermission(ITNavItem, permissions).length > 0) && (
-                    <Collapsible asChild defaultOpen={false} className="group/collapsible">
+                    <Collapsible asChild key={`it-${page.url}`} defaultOpen={hasActiveItem(ITNavItem)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
                                 <SidebarMenuButton tooltip="ฝ่ายสารสนเทศและเทคโนโลยี" className="hover:text-blue-800">
@@ -271,7 +299,7 @@ export function AppSidebar() {
 
                 {/* PRO */}
                 {(isDev || filterItemsByPermission(PRONavItem, permissions).length > 0) && (
-                    <Collapsible asChild defaultOpen={false} className="group/collapsible">
+                    <Collapsible asChild key={`pro-${page.url}`} defaultOpen={hasActiveItem(PRONavItem)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
                                 <SidebarMenuButton tooltip="ฝ่ายผลิตและวิศวกรรม" className="hover:text-blue-800">
@@ -301,7 +329,7 @@ export function AppSidebar() {
 
                 {/* MAR */}
                 {(isDev || filterItemsByPermission(MARNavItems, permissions).length > 0) && (
-                    <Collapsible asChild defaultOpen={false} className="group/collapsible">
+                    <Collapsible asChild key={`mar-${page.url}`} defaultOpen={hasActiveItem(MARNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
                                 <SidebarMenuButton tooltip="ฝ่ายขายและการตลาด" className="hover:text-blue-800">
@@ -330,8 +358,8 @@ export function AppSidebar() {
                 )}
 
                 {/* QAC */}
-                {(isDev || filterItemsByPermission(QACNavItems, permissions).length > 0) && (
-                    <Collapsible asChild defaultOpen={false} className="group/collapsible">
+                {(isDev || visibleQACNavItems.length > 0) && (
+                    <Collapsible asChild key={`qac-${page.url}`} defaultOpen={hasActiveItem(visibleQACNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
                                 <SidebarMenuButton tooltip="ฝ่ายควบคุมคุณภาพ" className="hover:text-blue-800">
@@ -342,7 +370,7 @@ export function AppSidebar() {
                             </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <SidebarMenuSub>
-                                    {filterItemsByPermission(QACNavItems, permissions).map((item) => (
+                                    {visibleQACNavItems.map((item) => (
                                         <SidebarMenuSubItem key={item.title}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
@@ -359,7 +387,7 @@ export function AppSidebar() {
 
                 {/* STORE */}
                 {(isDev || filterItemsByPermission(StoreNavItems, permissions).length > 0) && (
-                    <Collapsible asChild defaultOpen={false} className="group/collapsible">
+                    <Collapsible asChild key={`store-${page.url}`} defaultOpen={hasActiveItem(StoreNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
                                 <SidebarMenuButton tooltip="จัดซื้อทั่วไป/สโตร์" className="hover:text-blue-800">
@@ -389,7 +417,7 @@ export function AppSidebar() {
 
                 {/* QMR */}
                 {(isDev || filterItemsByPermission(QMRNavItems, permissions).length > 0) && (
-                    <Collapsible asChild defaultOpen={false} className="group/collapsible">
+                    <Collapsible asChild key={`qmr-${page.url}`} defaultOpen={hasActiveItem(QMRNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
                                 <SidebarMenuButton tooltip="ฝ่ายแผนพัฒนาคุณภาพ" className="hover:text-blue-800">
@@ -419,7 +447,7 @@ export function AppSidebar() {
 
                 {/* Car Usage */}
                 {(isDev || filterItemsByPermission(CarUsageNavItems, permissions).length > 0) && (
-                    <Collapsible asChild defaultOpen={false} className="group/collapsible">
+                    <Collapsible asChild key={`car-${page.url}`} defaultOpen={hasActiveItem(CarUsageNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
                                 <SidebarMenuButton tooltip="รายงานการใช้รถ" className="hover:text-blue-800">
@@ -453,7 +481,7 @@ export function AppSidebar() {
 
             {/* FER */}
             {(isDev || filterItemsByPermission(FerNavItems, permissions).length > 0) && (
-                <Collapsible asChild defaultOpen={false} className="group/collapsible">
+                <Collapsible asChild key={`fer-${page.url}`} defaultOpen={hasActiveItem(FerNavItems)} className="group/collapsible">
                     <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
                             <SidebarMenuButton tooltip="โรงปุ๋ย" className="hover:text-blue-800">
@@ -481,7 +509,7 @@ export function AppSidebar() {
 
             {/* AGR */}
             {(isDev || filterItemsByPermission(AGRNavItems, permissions).length > 0) && (
-                <Collapsible asChild defaultOpen={false} className="group/collapsible">
+                <Collapsible asChild key={`agr-${page.url}`} defaultOpen={hasActiveItem(AGRNavItems)} className="group/collapsible">
                     <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
                             <SidebarMenuButton tooltip="ฝ่ายสวนและต้นกล้า" className="hover:text-blue-800">
@@ -512,7 +540,7 @@ export function AppSidebar() {
             <SidebarFooter>
                 {/* ADMIN */}
                 {(isDev || filterItemsByPermission(adminNavItems, permissions).length > 0) && (
-                    <Collapsible asChild defaultOpen={false} className="group/collapsible">
+                    <Collapsible asChild key={`admin-${page.url}`} defaultOpen={hasActiveItem(adminNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
                                 <SidebarMenuButton tooltip="Admin" className="hover:text-blue-800">
