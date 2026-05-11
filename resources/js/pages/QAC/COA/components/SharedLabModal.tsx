@@ -61,12 +61,25 @@ export default function SharedLabModal({ isOpen, onClose, data, type, onSave }: 
     useEffect(() => {
         if (isOpen && data) {
             if (!form.id || form.id !== data.id) {
-                setForm({ ...data });
+                const formData = { ...data };
+                
+                // ตั้งค่าเริ่มต้นของ Spec มาตรฐาน เพื่อลดการกรอก
+                if (type === 'seed') {
+                    if (!formData.spec_shell) formData.spec_shell = '< 10.00 %';
+                    if (!formData.spec_kn_moisture) formData.spec_kn_moisture = '< 8.00 %';
+                } else if (type === 'oil') {
+                    if (!formData.spec_ffa) formData.spec_ffa = 'Max 5.00 %';
+                    if (!formData.spec_moisture) formData.spec_moisture = 'Max 0.25 %';
+                    if (!formData.spec_iv) formData.spec_iv = 'Min 50.00';
+                    if (!formData.spec_dobi) formData.spec_dobi = 'Min 2.00';
+                }
+
+                setForm(formData);
             }
         } else if (!isOpen) {
             setForm({});
         }
-    }, [data?.id, isOpen]);
+    }, [data?.id, isOpen, type]);
 
     useEffect(() => {
         if (!isOpen || !data) return;

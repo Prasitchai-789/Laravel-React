@@ -8,8 +8,8 @@ interface D {
     coa_no: string; lot_no: string; product_name: string;
     customer_name: string; destination_name: string;
     license_plate: string; driver_name: string; coa_tank: string;
-    ffa?: number | string; m_i?: number | string; iv?: number | string; dobi?: number | string;
-    spec_ffa?: string; spec_moisture?: string; spec_iv?: string; spec_dobi?: string;
+    result_shell?: number | string; result_kn_moisture?: number | string;
+    spec_shell?: string; spec_kn_moisture?: string;
     notes?: string; coa_user?: string; coa_mgr?: string; inspector?: string;
     coa_user_id?: string; created_at?: string;
 }
@@ -64,7 +64,7 @@ const LabelRow = ({ label, value }: { label: string; value: string }) => (
 );
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-const Oil_COA_Print: React.FC = () => {
+const Seed_COA_Print: React.FC = () => {
     const { sopid } = usePage<any>().props;
     const [data, setData] = useState<D | null>(null);
     const [loading, setLoading] = useState(true);
@@ -80,15 +80,14 @@ const Oil_COA_Print: React.FC = () => {
                     const d = res.data;
                     setData({
                         coa_no: d.coa_no || '-', lot_no: d.coa_lot || '-',
-                        product_name: d.GoodName || 'น้ำมันปาล์มดิบ',
+                        product_name: d.GoodName || 'เมล็ดในปาล์ม',
                         customer_name: d.CustName || '-', destination_name: d.Recipient || '-',
                         license_plate: d.NumberCar || '-', driver_name: d.DriverName || '-',
                         coa_tank: d.coa_tank || '-',
-                        ffa: d.ffa, m_i: d.m_i, iv: d.iv, dobi: d.dobi,
-                        spec_ffa: d.spec_ffa || '< 5.00 %',
-                        spec_moisture: d.spec_moisture || '< 0.50 %',
-                        spec_iv: d.spec_iv || '50 - 55 %',
-                        spec_dobi: d.spec_dobi || '> 2.00',
+                        result_shell: d.result_shell,
+                        result_kn_moisture: d.result_kn_moisture,
+                        spec_shell: d.spec_shell || '< 10.00 %',
+                        spec_kn_moisture: d.spec_kn_moisture || '< 8.00 %',
                         notes: d.notes || '', coa_user: d.inspector || '',
                         coa_mgr: d.coa_mgr || 'ประภาพร เชื่อพระซอง',
                         inspector: d.inspector || '', coa_user_id: d.coa_user_id || '',
@@ -101,10 +100,8 @@ const Oil_COA_Print: React.FC = () => {
     }, [sopid]);
 
     const rows = data ? [
-        { no: 1, desc: 'Free Fatty Acid  ( % FFA)',       spec: data.spec_ffa,      val: fmt(data.ffa) },
-        { no: 2, desc: 'Moisture & Impurity  ( % M&I)',   spec: data.spec_moisture,  val: fmt(data.m_i) },
-        { no: 3, desc: 'Iodine Value  ( % IV)',            spec: data.spec_iv,        val: fmt(data.iv) },
-        { no: 4, desc: 'Dobi',                             spec: data.spec_dobi,      val: fmt(data.dobi) },
+        { no: 1, desc: 'Shell (%)',      spec: data.spec_shell,      val: fmt(data.result_shell) },
+        { no: 2, desc: 'Moisture (%)',   spec: data.spec_kn_moisture,  val: fmt(data.result_kn_moisture) },
     ] : [];
 
     const base = typeof window !== 'undefined' ? window.location.origin : '';
@@ -185,7 +182,7 @@ const Oil_COA_Print: React.FC = () => {
                         </div>
 
                         {/* ── 3. Info Fields ── */}
-                        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '8mm', fontSize: '11pt' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '8mm', fontSize: '10pt' }}>
                             <tbody>
                                 <tr>
                                     <td style={{ width: '50%', verticalAlign: 'top', paddingRight: '8mm' }}>
@@ -335,4 +332,4 @@ const Oil_COA_Print: React.FC = () => {
     );
 };
 
-export default Oil_COA_Print;
+export default Seed_COA_Print;

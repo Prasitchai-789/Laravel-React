@@ -13,6 +13,8 @@ import {
     DropdownMenuSub,
     DropdownMenuSubTrigger,
     DropdownMenuSubContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 
 import {
@@ -23,7 +25,7 @@ import {
     ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Printer, FileDown, Sprout, FileText,
     FlaskRound as Flask, Scale, Weight, Wind, Sun, Moon,
     Factory, Building2, TruckIcon, Fuel, ThermometerSun, Droplet, GanttChartSquare,
-    CheckSquare, Square, AlertTriangle, Info, MoreHorizontal, Leaf, Package, Hash, Truck
+    CheckSquare, Square, AlertTriangle, Info, MoreHorizontal, Leaf, Package, Hash, Truck, ClipboardCheck, UserCheck, MapPin, Ban
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -54,6 +56,8 @@ interface SeedCOAData {
     coa_tank?: string;
     coa_user?: string; // เพิ่มฟิลด์ coa_user
     coa_mgr?: string;  // เพิ่มฟิลด์ coa_mgr
+    destination_name?: string; // เพิ่มฟิลด์ destination_name
+    sop_status?: string; // เพิ่มฟิลด์ sop_status
 }
 
 const STATUS_CONFIG = {
@@ -141,6 +145,13 @@ const STATS_CARDS = [
     { label: 'ปฏิเสธ', color: 'rose', icon: XCircle, filter: 'rejected' }
 ];
 
+const SECTION_STYLES: Record<string, { icon: string; badge: string; header: string }> = {
+    sky: { icon: 'bg-sky-100 text-sky-700', badge: 'bg-sky-50 text-sky-700', header: 'bg-sky-50' },
+    blue: { icon: 'bg-blue-100 text-blue-700', badge: 'bg-blue-50 text-blue-700', header: 'bg-blue-50' },
+    emerald: { icon: 'bg-emerald-100 text-emerald-700', badge: 'bg-emerald-50 text-emerald-700', header: 'bg-emerald-50' },
+    amber: { icon: 'bg-amber-100 text-amber-700', badge: 'bg-amber-50 text-amber-700', header: 'bg-amber-50' },
+};
+
 const parseDateString = (dateStr: string) => {
     if (!dateStr) return new Date().toISOString().split('T')[0];
     const datePart = dateStr.split(' ')[0];
@@ -169,6 +180,244 @@ const formatDisplayDate = (dateStr: string) => {
     return `${d}/${m}/${y}`;
 };
 
+const _getSignaturePath = (identity?: string | number) => {
+    const id = identity ? identity.toString().trim() : '';
+    const base = typeof window !== 'undefined' ? window.location.origin : '';
+    if (id === '1149' || id.includes('ประสิทธิ์ชัย')) return `${base}/images/signature/prasitchai.png`;
+    if (id === '1143' || id.includes('ประภาพร'))     return `${base}/images/signature/prapaporn.png`;
+    if (id === '1177' || id.includes('ยุพา'))         return `${base}/images/signature/yapha.png`;
+    if (id === '1183' || id.includes('สุกัญญา'))      return `${base}/images/signature/sukanya.png`;
+    if (id === '1434' || id.includes('ธัญ'))          return `${base}/images/signature/than.png`;
+    if (id === '1476' || id.includes('วีระยุทธ'))     return `${base}/images/signature/veerayut.png`;
+    return `${base}/images/signature/sukanya.png`;
+};
+
+const _fmtNum = (v?: number | string) => {
+    if (v === undefined || v === null || v === '' || v === '-') return '-';
+    const n = typeof v === 'string' ? parseFloat(v) : v;
+    return isNaN(n as number) ? String(v) : (n as number).toFixed(2);
+};
+
+const _formatThaiDate = (dateStr?: string) => {
+    const date = dateStr ? new Date(dateStr) : new Date();
+    if (isNaN(date.getTime())) return '-';
+    const months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                    'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear() + 543}`;
+};
+
+const parseResultNumber = (value: number | string | undefined) => {
+    if (value === undefined || value === null || value === '') return null;
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    return Number.isNaN(numericValue) ? null : numericValue;
+};
+
+const isResultWithinSpec = (type: string, value: number | string | undefined, spec?: string) => {
+    const numericValue = parseResultNumber(value);
+    if (numericValue === null || !spec) return null;
+
+    const normalizedSpec = spec.replace(/,/g, '').trim().toLowerCase();
+    const numbers = normalizedSpec.match(/\d+(?:\.\d+)?|\.\d+/g)?.map(Number) || [];
+    if (numbers.length === 0) return null;
+
+    const hasRange = numbers.length >= 2 && /(?:\d|\.)\s*(?:-|–|—|to|ถึง)\s*(?:\d|\.)/i.test(normalizedSpec);
+    if (hasRange) {
+        const [min, max] = [Math.min(numbers[0], numbers[1]), Math.max(numbers[0], numbers[1])];
+        return numericValue >= min && numericValue <= max;
+    }
+
+    const limit = numbers[0];
+    if (/(>=|≥|>|มากกว่า|ไม่น้อยกว่า|min|minimum)/i.test(normalizedSpec)) return numericValue >= limit;
+    if (/(<=|≤|<|น้อยกว่า|ไม่เกิน|ไม่มากกว่า|max|maximum)/i.test(normalizedSpec)) return numericValue <= limit;
+
+    // Default for Seed parameters (Shell, Moisture) is to be <= limit
+    return numericValue <= limit;
+};
+
+// ─── COADetailModal (Certificate of Analysis view) ──────────────────────────
+interface COADetailModalProps {
+    open: boolean;
+    data: SeedCOAData | null;
+    canApprove: boolean;
+    canEdit: boolean;
+    onClose: () => void;
+    onApprove: (row: SeedCOAData) => void;
+    onEdit: (row: SeedCOAData) => void;
+    onVehicleCheck: (row: SeedCOAData) => void;
+}
+
+const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove, canEdit, onClose, onApprove, onEdit, onVehicleCheck }) => {
+    const [docType, setDocType] = React.useState<'isp' | 'mun'>('isp');
+    const [confirmed, setConfirmed] = React.useState(false);
+    React.useEffect(() => { if (open) { setDocType('isp'); setConfirmed(false); } }, [open, data?.id]);
+
+    if (!open || !data) return null;
+
+    const isWaiting  = data.status === 'W';
+    const isApproved = data.status === 'A';
+    const thaiDate   = _formatThaiDate(data.created_at);
+    const inspSig    = _getSignaturePath(data.inspector || data.coa_user);
+    const mgrSig     = `${window.location.origin}/images/signature/prapaporn.png`;
+
+    const results = [
+        { key: 'result_shell',  label: '%Shell',                     unit: '%', value: data.result_shell,  spec: data.spec_shell || '< 5.00 %' },
+        { key: 'result_kn_moisture',  label: '%KN Moisture',  unit: '%', value: data.result_kn_moisture,  spec: data.spec_kn_moisture || '< 6.00 %' },
+    ];
+
+    const headerBg = isApproved ? '#059669' : isWaiting ? '#d97706' : '#475569';
+    const statusLabel = isApproved ? 'อนุมัติแล้ว' : isWaiting ? 'รออนุมัติ' : 'ยังไม่อนุมัติ';
+
+    const tdS: React.CSSProperties = { padding: '5px 10px', border: '1px solid #cbd5e1', verticalAlign: 'middle', fontSize: '13px' };
+    const thS: React.CSSProperties = { padding: '6px 10px', border: '1px solid #10b981', fontWeight: 700, fontSize: '12px', color: '#fff' };
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div className="relative flex h-full max-h-[95vh] w-full max-w-3xl flex-col rounded-2xl bg-white shadow-2xl overflow-hidden">
+
+                {/* ── Header Bar ── */}
+                <div style={{ background: headerBg }} className="flex items-center justify-between px-6 py-3 shrink-0">
+                    <div className="flex items-center gap-3">
+                        <ClipboardCheck className="w-5 h-5 text-white" />
+                        <div>
+                            <div className="text-base font-bold text-white">CERTIFICATE OF ANALYSIS</div>
+                            <div className="text-xs text-white/80">{statusLabel} — {data.coa_no}</div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {/* Print preview */}
+                        <button onClick={() => window.open(`/qac/coa/seed/${data.id}/print`, '_blank')} className="flex items-center gap-1 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400 transition-colors">
+                            <Printer className="w-3.5 h-3.5" /> พิมพ์เอกสาร A4
+                        </button>
+                        <button onClick={onClose} className="rounded-full bg-red-400 p-1.5 text-white hover:bg-red-600 transition-colors"><X className="w-4 h-4" /></button>
+                    </div>
+                </div>
+
+                {/* ── Scrollable Body ── */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-4" style={{ fontFamily: "'THSarabunNew','Sarabun',sans-serif", fontSize: '14px' }}>
+
+                    {/* Doc Info */}
+                    <div className="grid grid-cols-3 gap-2">
+                        {[['COA No.', data.coa_no, true], ['Lot No.', data.lot_no, false], ['วันที่', _formatThaiDate(data.created_at), false]].map(([l, v, h]) => (
+                            <div key={String(l)} className="rounded-lg bg-slate-50 px-3 py-2">
+                                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{String(l)}</div>
+                                <div className={`font-bold text-sm ${h ? 'text-emerald-700' : 'text-slate-800'}`}>{String(v)}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Customer/Product Info */}
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+                            {[['ลูกค้า', data.customer_name], ['สินค้า', data.product_name], ['ถัง Tank', data.coa_tank], ['ทะเบียน', data.license_plate], ['ปลายทาง', data.destination_name], ['คนขับ', data.driver_name]].map(([l, v]) => (
+                                <div key={String(l)} className="flex items-baseline gap-2">
+                                    <span className="text-slate-400 text-xs shrink-0 w-20">{String(l)}:</span>
+                                    <span className="font-semibold text-slate-800">{String(v) || '-'}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Test Results */}
+                    <div>
+                        <div className="mb-2 flex items-center gap-2">
+                            <Sprout className="w-4 h-4 text-emerald-600" />
+                            <span className="text-sm font-bold text-emerald-700">ผลการวิเคราะห์ / Test Results</span>
+                            <span className="ml-auto rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-600">{docType.toUpperCase()}</span>
+                        </div>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                            <thead>
+                                <tr style={{ background: '#059669' }}>
+                                    <th style={thS}>รายการ / Parameter</th>
+                                    {docType === 'isp' && <th style={thS}>ข้อกำหนด / Specification</th>}
+                                    <th style={thS}>ผลทดสอบ / Result</th>
+                                    <th style={{ ...thS, width: '60px', textAlign: 'center' }}>ผ่าน</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {results.map(({ key, label, unit, value, spec }, i) => {
+                                    const ok = isResultWithinSpec(key, value, spec);
+                                    return (
+                                        <tr key={key} style={{ background: i % 2 === 0 ? '#ecfdf5' : '#fff' }}>
+                                            <td style={tdS}>{label}</td>
+                                            {docType === 'isp' && <td style={{ ...tdS, color: '#64748b' }}>{spec}</td>}
+                                            <td style={{ ...tdS, fontWeight: 700, color: ok === false ? '#dc2626' : ok === true ? '#059669' : '#111' }}>
+                                                {_fmtNum(value)}{unit}
+                                            </td>
+                                            <td style={{ ...tdS, textAlign: 'center' }}>
+                                                {ok === true  && <CheckCircle className="w-4 h-4 text-emerald-500 mx-auto" />}
+                                                {ok === false && <XCircle    className="w-4 h-4 text-rose-500 mx-auto" />}
+                                                {ok === null  && <Minus       className="w-4 h-4 text-slate-300 mx-auto" />}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Notes */}
+                    {data.notes && (
+                        <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">
+                            <span className="font-semibold">หมายเหตุ:</span> {data.notes}
+                        </div>
+                    )}
+
+                    {/* Signatures */}
+                    <div className="flex justify-around pt-2">
+                        {[{ title: 'ผู้ตรวจสอบ / Inspector', name: data.coa_user || data.inspector || '-', sig: inspSig },
+                          { title: 'ผู้อนุมัติ / Approved By',  name: data.coa_mgr || 'ประภาพร เชื่อพระซอง', sig: mgrSig }]
+                          .map(({ title, name, sig }) => (
+                            <div key={title} className="flex flex-col items-center gap-1" style={{ width: '160px' }}>
+                                <div className="h-14 flex items-end justify-center">
+                                    <img src={sig} alt="sig" className="max-h-12 max-w-[130px] object-contain"
+                                         onError={e => (e.currentTarget.style.visibility='hidden')} />
+                                </div>
+                                <div className="w-full border-t border-slate-400 pt-1 text-center">
+                                    <div className="text-xs font-bold text-slate-700">{name}</div>
+                                    <div className="text-[11px] text-slate-500">{title}</div>
+                                    <div className="text-[11px] text-slate-400">{thaiDate}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Approval Checkbox — approvers only, status W */}
+                    {canApprove && isWaiting && (
+                        <label className="flex cursor-pointer items-start gap-3 rounded-xl border-2 border-amber-200 bg-amber-50 p-4 hover:bg-amber-100 transition-colors">
+                            <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}
+                                   className="mt-0.5 h-4 w-4 accent-emerald-600 cursor-pointer" />
+                            <span className="text-sm font-medium text-amber-800 leading-snug select-none">
+                                ข้าพเจ้าได้อ่านและตรวจสอบข้อมูลข้างต้นครบถ้วนแล้ว และยืนยันความถูกต้องของข้อมูลทั้งหมด
+                            </span>
+                        </label>
+                    )}
+                </div>
+
+                {/* ── Footer ── */}
+                <div className="shrink-0 border-t border-slate-100 bg-slate-50 px-6 py-3 flex justify-end gap-3">
+                    {canApprove && canEdit && isApproved && (
+                        <button onClick={() => { onEdit(data); onClose(); }}
+                                className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100 transition-colors">
+                            <Pencil className="w-4 h-4" /> แก้ไข (QAC Admin)
+                        </button>
+                    )}
+                    {canApprove && isWaiting && (
+                        <button disabled={!confirmed} onClick={() => { onApprove(data); onClose(); }}
+                                className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-bold text-white transition-all ${ confirmed ? 'bg-emerald-600 hover:bg-emerald-700 shadow-md' : 'bg-slate-300 cursor-not-allowed' }`}>
+                            <ClipboardCheck className="w-4 h-4" /> อนุมัติ
+                        </button>
+                    )}
+                    <button onClick={() => { onVehicleCheck(data); onClose(); }}
+                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+                        <Truck className="w-4 h-4" /> เช็ครถ
+                    </button>
+                    <button onClick={onClose} className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">ปิด</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const Seed_COA: React.FC = () => {
     const [data, setData] = useState<SeedCOAData[]>([]);
     const [loading, setLoading] = useState(false);
@@ -179,6 +428,7 @@ const Seed_COA: React.FC = () => {
     const [currentPageBottom, setCurrentPageBottom] = useState(1);
     const [labModal, setLabModal] = useState<{ open: boolean; data: SeedCOAData | null }>({ open: false, data: null });
     const [truckModal, setTruckModal] = useState<{ open: boolean; data: SeedCOAData | null }>({ open: false, data: null });
+    const [coaDetailModal, setCoaDetailModal] = useState<{ open: boolean; data: SeedCOAData | null }>({ open: false, data: null });
     const [selectedRows, setSelectedRows] = useState<number[]>([]);
     const [selectAll, setSelectAll] = useState(false);
     const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
@@ -188,10 +438,12 @@ const Seed_COA: React.FC = () => {
     // Authorization logic
     const userRoles: string[] = Array.isArray(auth?.roles) ? auth.roles : [];
     const isDeveloper = userRoles.some((r: string) => r.toLowerCase() === 'developer') || currentUserName === 'ประภาพร เชื่อพระซอง';
+    const isQACAdmin = isDeveloper || userRoles.some((r: string) => ['qac.admin', 'qac_admin'].includes(r.toLowerCase()));
+    const canApprove = isQACAdmin;
 
     const canEditRow = (row: SeedCOAData) => {
         if (row.status !== 'A') return true; // If not approved, anyone can edit
-        return isDeveloper; // If approved, only developer or Prapaporn can edit
+        return isQACAdmin; // If approved, only developer or QAC Admin can edit
     };
 
     const handleApprove = async (row: SeedCOAData) => {
@@ -322,11 +574,12 @@ const Seed_COA: React.FC = () => {
 
     const handleGenerateCOA = async (row: SeedCOAData, type: 'isp' | 'mun' = 'isp') => {
         try {
+            const isMun = type === 'mun';
             const pdfData: COAFields = {
                 coa_no: row.coa_no,
                 lot_no: row.lot_no,
                 product_name: row.product_name,
-                customer_name: row.customer_name,
+                customer_name: isMun ? (row.destination_name || row.customer_name) : row.customer_name,
                 license_plate: row.license_plate,
                 driver_name: row.driver_name,
                 coa_tank: row.coa_tank || '-',
@@ -336,12 +589,13 @@ const Seed_COA: React.FC = () => {
                 result_kn_moisture: row.result_kn_moisture,
                 spec_shell: row.spec_shell,
                 spec_kn_moisture: row.spec_kn_moisture,
-                inspector: currentUserName || row.coa_user || row.inspector,
-                coa_user: row.coa_user || row.inspector,
-                coa_user_id: row.inspector || row.coa_user || auth?.user?.employee_id,
+                inspector:     isMun ? 'MUN_FAN'   : (currentUserName || row.coa_user || row.inspector),
+                coa_user:      row.coa_user || row.inspector,
+                coa_user_id:   isMun ? 'MUN_FAN'   : (row.inspector || row.coa_user || auth?.user?.employee_id),
+                coa_mgr:       isMun ? 'MUN_PEACH' : undefined,
                 notes: row.notes,
             };
-            await generateAndDownloadCoa(pdfData, type === 'mun' ? 'seed_mun' : 'seed_isp');
+            await generateAndDownloadCoa(pdfData, isMun ? 'seed_mun' : 'seed_isp');
             Swal.fire({
                 icon: 'success',
                 title: 'สร้าง PDF สำเร็จ',
@@ -385,7 +639,9 @@ const Seed_COA: React.FC = () => {
                     inspector: s.coa_user_id || s.inspector,
                     coa_user: s.inspector, // ดึงข้อมูล coa_user
                     coa_mgr: s.coa_mgr,   // ดึงข้อมูล coa_mgr
+                    destination_name: s.Recipient || '', // ดึงข้อมูลปลายทาง
                     status: s.Status_coa || (s.Status === 'p' ? 'processing' : 'pending'),
+                    sop_status: s.Status,
                     created_at: parseDateString(s.coa_date || s.SOPDate),
                 }));
                 setData(mapped);
@@ -561,7 +817,8 @@ const Seed_COA: React.FC = () => {
 
     const filteredData = data.filter(item =>
         (!filter || [item.coa_no, item.lot_no, item.product_name, item.driver_name, item.license_plate, item.customer_name, item.id?.toString() || ''].join(' ').toLowerCase().includes(filter.toLowerCase())) &&
-        (statusFilter === 'all' || item.status === statusFilter)
+        (statusFilter === 'all' || item.status === statusFilter) &&
+        item.sop_status !== 'C'
     );
 
     const pendingData = filteredData.filter(item => ['pending', 'processing'].includes(item.status));
@@ -700,120 +957,237 @@ const Seed_COA: React.FC = () => {
     const getStatsCardClass = (color: string) =>
         `group relative overflow-hidden rounded-xl p-4 transition-all hover:scale-105 hover:shadow-xl bg-gradient-to-br from-${color}-50 to-${color}-100 border border-${color}-200 cursor-pointer`;
 
-    const TableRow = ({ row, index, page, color, showResults = true }: { row: SeedCOAData; index: number; page: number; color: string; showResults: boolean }) => (
-        <tr className={`transition-all group hover:scale-[1.01] hover:shadow-lg hover:bg-gray-50`}>
-            <td className="px-4 py-3 text-sm font-medium text-gray-900">{(page - 1) * itemsPerPage + index + 1}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{formatDisplayDate(row.created_at)}</td>
-            <td className={`px-4 py-3 text-sm font-semibold text-${color}-600`}>{row.coa_no}</td>
-            <td className="px-4 py-3 text-sm text-gray-900 font-bold">{row.coa_tank || '-'}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{row.lot_no}</td>
-            <td className="px-4 py-3 text-sm text-gray-900">{row.product_name}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{row.license_plate || '-'}</td>
-            <td className="px-4 py-3 text-sm text-gray-600">{row.driver_name || '-'}</td>
-
-            {showResults && ['result_shell', 'result_kn_moisture'].map((type) => (
-                <td key={type} className="px-2 py-3 text-center">
-                    <div className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-medium border-2 hover:scale-105 transition-all ${getResultColor(type, row[type as keyof SeedCOAData] as number)}`}>
-                        <ResultIcon type={type} />
-                        {getResultValue(row[type as keyof SeedCOAData] as number, '%')}
-                        {getTrendIcon(row[type as keyof SeedCOAData] as number, type)}
+    const TableRow = ({ row, index, page, color, showResults = true, showActions = true }: { row: SeedCOAData; index: number; page: number; color: string; showResults: boolean; showActions?: boolean }) => (
+        <tr className="group border-b border-slate-100 transition-colors hover:bg-slate-50/80">
+            <td className="w-[56px] px-3 py-3 text-center align-middle">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
+                    {(page - 1) * itemsPerPage + index + 1}
+                </span>
+            </td>
+            <td className="px-2 py-2 align-middle">
+                <div className="flex min-w-0 flex-col gap-1">
+                    <span className="w-fit rounded-md bg-emerald-50 px-2.5 py-1 text-sm font-bold text-emerald-700">
+                        {row.coa_no}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {formatDisplayDate(row.created_at)}
+                    </span>
+                </div>
+            </td>
+            <td className="px-2 py-2 align-middle">
+                <div className="flex min-w-0 flex-col gap-1">
+                    <span className="truncate text-sm font-semibold text-slate-900">{row.lot_no}</span>
+                    <span className="flex max-w-[220px] items-center gap-1.5 truncate text-xs font-medium text-slate-500">
+                        <Sprout className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                        {row.product_name}
+                    </span>
+                </div>
+            </td>
+            <td className="px-2 py-2 align-middle">
+                <div className="flex min-w-0 flex-col gap-1">
+                    <span className="flex max-w-[240px] items-center gap-1.5 truncate text-sm font-semibold text-slate-800">
+                        <UserCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                        {row.customer_name || '-'}
+                    </span>
+                    <span className="flex max-w-[240px] items-center gap-1.5 truncate text-xs font-medium text-slate-500">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        {row.destination_name || '-'}
+                    </span>
+                </div>
+            </td>
+            <td className="px-2 py-2 align-middle">
+                <div className="flex min-w-0 flex-col gap-1">
+                    <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+                        <Truck className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        {row.license_plate || '-'}
+                    </span>
+                    <span className="flex max-w-[180px] items-center gap-1.5 truncate text-xs text-slate-500">
+                        <User className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        {row.driver_name || '-'}
+                    </span>
+                </div>
+            </td>
+            {showResults && (
+                <td className="px-2 py-2 align-middle">
+                    <div className="grid min-w-[180px] grid-cols-2 gap-1.5">
+                        {[
+                            { key: 'result_shell', label: '%Shell', unit: '%' },
+                            { key: 'result_kn_moisture', label: '%KN Moisture', unit: '%' },
+                        ].map(({ key, label, unit }) => (
+                            <div key={key} className={`rounded-lg border px-2 py-1.5 text-center ${getResultColor(key, row[key as keyof SeedCOAData] as number)}`}>
+                                <div className="text-[10px] font-semibold leading-none opacity-80">{label}</div>
+                                <div className="mt-1 flex items-center justify-center gap-1 text-xs font-bold">
+                                    {getResultValue(row[key as keyof SeedCOAData] as number, unit)}
+                                    {getTrendIcon(row[key as keyof SeedCOAData] as number, key)}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </td>
-            ))}
-            <td className="px-4 py-3">
-                <div className="flex flex-col gap-1 text-xs">
-                    <div className="flex items-center gap-1.5 text-gray-600">
-                        <User className="w-3.5 h-3.5" />
-                        <span className="truncate max-w-[120px]" title={row.coa_user || row.inspector || '-'}>{row.coa_user || row.inspector || '-'}</span>
-                    </div>
-                    {row.status === 'A' && (
-                        <div className="flex items-center gap-1.5 text-emerald-600">
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            <span className="truncate max-w-[120px]" title={row.coa_mgr || '-'}>{row.coa_mgr || '-'}</span>
-                        </div>
-                    )}
+            )}
+            <td className="px-3 py-2 align-middle">
+                <div className="flex min-w-[128px] flex-col items-start gap-1.5">
+                    {showResults
+                        ? getStatusBadge(
+                            row.status,
+                            () => setCoaDetailModal({ open: true, data: row as SeedCOAData })
+                          )
+                        : getStatusBadge(
+                            row.status,
+                            canEditRow(row as SeedCOAData) ? () => setLabModal({ open: true, data: row }) : undefined
+                          )
+                    }
                 </div>
             </td>
-            <td className="px-4 py-3">
-                <div className="flex flex-col gap-1">
-                    {getStatusBadge(row.status, canEditRow(row) ? () => setLabModal({ open: true, data: row }) : undefined)}
-                    {row.status === 'W' && (
-                        <button
-                            onClick={() => handleApprove(row)}
-                            className="px-2 py-1 text-[10px] bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all hover:scale-105 font-bold"
-                        >
-                            ยืนยัน
-                        </button>
-                    )}
-                </div>
-            </td>
-            <td className="px-4 py-3">
-                <div className="flex justify-end gap-2">
-                    <button
-                        onClick={() => setTruckModal({ open: true, data: row })}
-                        className="p-1.5 bg-orange-50 text-orange-600 rounded-lg hover:bg-orange-100 transition-all font-bold group relative"
-                        title="ตรวจสอบสภาพรถ"
-                    >
-                        <Truck className="w-4 h-4" />
-                        {/* Optional un-checked indicator dot */}
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-                    </button>
-
-                    <DropdownMenu>
+            {showActions && (
+            <td className="w-[76px] px-3 py-2 align-middle">
+                <div className="flex justify-center">
+                    <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
+                            <Button
+                                variant="ghost"
+                                className="h-9 w-9 rounded-full border border-slate-200 bg-white p-0 text-slate-600 shadow-sm hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-200"
+                                aria-label="เปิดเมนูจัดการ"
+                            >
+                                <MoreHorizontal className="h-5 w-5" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={() => Swal.fire({ icon: 'info', title: 'Coming Soon', text: 'This feature is currently under development.' })}>
-                                <Eye className="h-4 w-4 text-blue-500" />
-                                <span>ดูรายละเอียด</span>
+                        <DropdownMenuContent
+                            align="end"
+                            sideOffset={0}
+                            disableAnimation
+                            hideUntilPlaced
+                            className="w-60 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10"
+                        >
+                            <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                จัดการรายการ
+                            </DropdownMenuLabel>
+
+                            {/* ดูรายละเอียด — เปิด COADetailModal แบบ COA format */}
+                            <DropdownMenuItem
+                                className="group flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700"
+                                onClick={() => setCoaDetailModal({ open: true, data: row as SeedCOAData })}
+                            >
+                                <div className="rounded-md bg-emerald-100 p-1.5">
+                                    <Eye className="h-4 w-4 text-emerald-600" />
+                                </div>
+                                <span className="font-medium">ดูรายละเอียด</span>
                             </DropdownMenuItem>
-                            {canEditRow(row) && (
-                                <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={() => setLabModal({ open: true, data: row })}>
-                                    <Pencil className="h-4 w-4 text-green-500" />
-                                    <span>แก้ไข</span>
+
+                            {/* แก้ไขข้อมูล */}
+                            {canEditRow(row as SeedCOAData) && (
+                                <DropdownMenuItem
+                                    className="group flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-700 focus:bg-amber-50 focus:text-amber-700"
+                                    onClick={() => setLabModal({ open: true, data: row as SeedCOAData })}
+                                >
+                                    <div className="rounded-md bg-amber-100 p-1.5">
+                                        <Pencil className="h-4 w-4 text-amber-600" />
+                                    </div>
+                                    <span className="font-medium">แก้ไขข้อมูล</span>
                                 </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={() => Swal.fire({ icon: 'info', title: 'Coming Soon', text: 'History view is currently under development.' })}>
-                                <History className="h-4 w-4 text-purple-500" />
-                                <span>ประวัติ</span>
+
+                            <DropdownMenuSeparator className="my-2" />
+                            <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                การตรวจสอบ
+                            </DropdownMenuLabel>
+
+
+                            <DropdownMenuItem
+                                className="group flex items-center gap-1 rounded-lg px-3 py-1 text-sm cursor-pointer text-slate-700 hover:bg-blue-50 hover:text-blue-700 focus:bg-blue-50 focus:text-blue-700"
+                                onClick={() => window.open(`/qac/coa/seed/${(row as SeedCOAData).id}/vehicle-print`, '_blank')}
+                            >
+                                <div className="rounded-md p-1.5 bg-blue-100">
+                                    <Printer className="h-4 w-4 text-blue-600" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-medium">แบบฟอร์มตรวจรถ</span>
+                                    <span className="text-xs text-slate-400">FM-QAC-67-0029</span>
+                                </div>
                             </DropdownMenuItem>
-                            <DropdownMenuSub>
-                                <DropdownMenuSubTrigger className="flex items-center gap-2">
-                                    <FileDown className="h-4 w-4 text-emerald-600" />
-                                    <span>ดาวน์โหลด COA</span>
-                                </DropdownMenuSubTrigger>
-                                <DropdownMenuSubContent>
-                                    <DropdownMenuItem className="cursor-pointer" onClick={() => handleGenerateCOA(row, 'isp')}>
-                                        ใบรายงานผล (ISP)
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className="cursor-pointer" onClick={() => handleGenerateCOA(row, 'mun')}>
-                                        ใบรายงานผล (MUN)
-                                    </DropdownMenuItem>
-                                </DropdownMenuSubContent>
-                            </DropdownMenuSub>
-                            <DropdownMenuItem className="flex items-center gap-2 cursor-pointer" onClick={() => window.open(`/qac/coa/seed/${row.id}/print`, '_blank')}>
-                                <Printer className="h-4 w-4 text-gray-500" />
-                                <span>พิมพ์ (หลังบ้าน)</span>
+
+                            <DropdownMenuSeparator className="my-2" />
+                            <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                ดาวน์โหลดเอกสาร
+                            </DropdownMenuLabel>
+
+                            {/* ดาวน์โหลด COA ISP — เทาถ้ายังไม่อนุมัติ */}
+                            <DropdownMenuItem
+                                disabled={(row as SeedCOAData).status !== 'A'}
+                                className={`group flex items-center gap-1 rounded-lg px-3 py-1 text-sm ${(row as SeedCOAData).status === 'A' ? 'cursor-pointer text-slate-700 hover:bg-sky-50 hover:text-sky-700 focus:bg-sky-50 focus:text-sky-700' : 'cursor-not-allowed opacity-40 text-slate-400'}`}
+                                onClick={() => (row as SeedCOAData).status === 'A' && handleGenerateCOA(row as SeedCOAData, 'isp')}
+                            >
+                                <div className={`rounded-md p-1.5 ${(row as SeedCOAData).status === 'A' ? 'bg-sky-100' : 'bg-slate-100'}`}>
+                                    <FileDown className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-sky-600' : 'text-slate-400'}`} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-medium">COA ISP</span>
+                                    <span className="text-xs text-slate-400">{(row as SeedCOAData).status === 'A' ? 'มาตรฐาน ISP' : 'ต้องอนุมัติก่อน'}</span>
+                                </div>
                             </DropdownMenuItem>
-                            {canEditRow(row) && (
+
+                            {/* ดาวน์โหลด COA MUN — เทาถ้ายังไม่อนุมัติ */}
+                            <DropdownMenuItem
+                                disabled={(row as SeedCOAData).status !== 'A'}
+                                className={`group flex items-center gap-1 rounded-lg px-3 py-1 text-sm ${(row as SeedCOAData).status === 'A' ? 'cursor-pointer text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700' : 'cursor-not-allowed opacity-40 text-slate-400'}`}
+                                onClick={() => (row as SeedCOAData).status === 'A' && handleGenerateCOA(row as SeedCOAData, 'mun')}
+                            >
+                                <div className={`rounded-md p-1.5 ${(row as SeedCOAData).status === 'A' ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+                                    <FileDown className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-medium">COA MUN</span>
+                                    <span className="text-xs text-slate-400">{(row as SeedCOAData).status === 'A' ? 'มาตรฐาน MUN' : 'ต้องอนุมัติก่อน'}</span>
+                                </div>
+                            </DropdownMenuItem>
+
+                            {/* พิมพ์เอกสาร — เทาถ้ายังไม่อนุมัติ */}
+                            <DropdownMenuItem
+                                disabled={(row as SeedCOAData).status !== 'A'}
+                                className={`group flex items-center gap-1 rounded-lg px-3 py-1 text-sm ${(row as SeedCOAData).status === 'A' ? 'cursor-pointer text-slate-700 hover:bg-slate-50 hover:text-slate-800 focus:bg-slate-50 focus:text-slate-800' : 'cursor-not-allowed opacity-40 text-slate-400'}`}
+                                onClick={() => (row as SeedCOAData).status === 'A' && window.open(`/qac/coa/seed/${row.id}/print`, '_blank')}
+                            >
+                                <div className={`rounded-md p-1.5 ${(row as SeedCOAData).status === 'A' ? 'bg-slate-100' : 'bg-slate-100'}`}>
+                                    <Printer className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-slate-600' : 'text-slate-400'}`} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-medium">พิมพ์เอกสาร</span>
+                                    <span className="text-xs text-slate-400">{(row as SeedCOAData).status === 'A' ? 'แสดง A4 Preview ก่อนพิมพ์' : 'ต้องอนุมัติก่อน'}</span>
+                                </div>
+                            </DropdownMenuItem>
+
+                            {canEditRow(row as SeedCOAData) && (
                                 <>
-                                    <div className="h-px bg-gray-100 my-1 mx-2" />
+                                    <DropdownMenuSeparator className="my-2" />
+                                    <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-rose-500 uppercase tracking-wider">
+                                        การดำเนินการพิเศษ
+                                    </DropdownMenuLabel>
+
                                     <DropdownMenuItem
-                                        className="flex items-center gap-2 text-orange-600 cursor-pointer focus:text-orange-600 focus:bg-orange-50"
+                                        className="group flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-700 focus:bg-orange-50 focus:text-orange-700"
                                         onClick={() => handleCancel(row.id)}
                                     >
-                                        <XCircle className="h-4 w-4" />
-                                        <span>ยกเลิก</span>
+                                        <div className="rounded-md bg-orange-100 p-1.5">
+                                            <Ban className="h-4 w-4 text-orange-600" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-medium">ยกเลิกรายการ</span>
+                                            <span className="text-xs text-slate-500">เปลี่ยนสถานะเป็นยกเลิก</span>
+                                        </div>
                                     </DropdownMenuItem>
+
                                     <DropdownMenuItem
-                                        className="flex items-center gap-2 text-red-600 cursor-pointer focus:text-red-600 focus:bg-red-50"
+                                        className="group flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 focus:bg-red-50 focus:text-red-700"
                                         onClick={() => handleDelete(row.id)}
                                     >
-                                        <Trash2 className="h-4 w-4" />
-                                        <span>ลบข้อมูล</span>
+                                        <div className="rounded-md bg-red-100 p-1.5">
+                                            <Trash2 className="h-4 w-4 text-red-600" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-medium">ลบข้อมูล</span>
+                                            <span className="text-xs text-slate-500">ลบถาวรไม่สามารถกู้คืน</span>
+                                        </div>
                                     </DropdownMenuItem>
                                 </>
                             )}
@@ -821,178 +1195,282 @@ const Seed_COA: React.FC = () => {
                     </DropdownMenu>
                 </div>
             </td>
+            )}
         </tr>
     );
 
     const GridCard = ({ row }: { row: SeedCOAData }) => {
         const config = STATUS_CONFIG[row.status];
         const Icon = config.icon;
+        const actionMenuRef = React.useRef<HTMLDivElement>(null);
+        const [actionMenuOpen, setActionMenuOpen] = React.useState(false);
+
+        React.useEffect(() => {
+            if (!actionMenuOpen) return;
+            const handleClickOutside = (event: MouseEvent) => {
+                if (!actionMenuRef.current?.contains(event.target as Node)) {
+                    setActionMenuOpen(false);
+                }
+            };
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => document.removeEventListener('mousedown', handleClickOutside);
+        }, [actionMenuOpen]);
+
+        const runAction = (action: () => void) => {
+            setActionMenuOpen(false);
+            action();
+        };
 
         return (
-            <div className="bg-white rounded-xl border-2 border-gray-200 p-4 hover:shadow-xl transition-all hover:scale-105 group">
-                <div className="flex justify-between items-start mb-3">
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500">COA No.</span>
-                            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">{formatDisplayDate(row.created_at)}</span>
-                        </div>
-                        <div className="font-bold text-gray-900">{row.coa_no}</div>
-                    </div>
-                    <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${config.bg} ${config.text} flex items-center gap-1`}>
-                        <Icon className="w-3 h-3" />
+            <div className="group relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-slate-300">
+                {/* Status Badge - Top Right */}
+                <div className="absolute top-4 right-4">
+                    <div className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border ${STATUS_BADGE_WIDTH_CLASS} ${config.bg} ${config.border} ${config.text}`}>
+                        <Icon className="w-3.5 h-3.5" />
                         {config.label}
                     </div>
                 </div>
 
-                <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-sm">
-                        <Fuel className="w-4 h-4 text-gray-400" />
-                        <span>Tank: <span className="font-medium">{row.coa_tank || '-'}</span></span>
+                {/* Header Section */}
+                <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="w-4 h-4 text-slate-400" />
+                        <span className="text-xs text-slate-500">{formatDisplayDate(row.created_at)}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                        <Hash className="w-4 h-4 text-gray-400" />
-                        <span>Lot: <span className="font-medium">{row.lot_no}</span></span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                        <Leaf className="w-4 h-4 text-gray-400" />
-                        <span>{row.product_name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                        <Truck className="w-4 h-4 text-gray-400" />
-                        <span>{row.license_plate || '-'}</span>
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg">
+                            {row.coa_no}
+                        </h3>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 mb-4">
-                    <div className={`p-2 rounded-lg text-center ${getResultColor('result_shell', row.result_shell)}`}>
-                        <div className="text-xs">Shell</div>
-                        <div className="font-bold">{getResultValue(row.result_shell, '%')}</div>
-                    </div>
-                    <div className={`p-2 rounded-lg text-center ${getResultColor('result_kn_moisture', row.result_kn_moisture)}`}>
-                        <div className="text-xs">KN Moisture</div>
-                        <div className="font-bold">{getResultValue(row.result_kn_moisture, '%')}</div>
-                    </div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-3 mb-4 space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                        <User className="w-3.5 h-3.5" />
-                        <span className="font-medium text-gray-900 truncate flex-1">
-                            {row.coa_user || row.inspector || '-'}
-                        </span>
-                    </div>
-                    {row.status === 'A' && (
-                        <div className="flex items-center gap-2 text-xs text-emerald-600">
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            <span className="font-medium truncate flex-1">
-                                {row.coa_mgr || '-'}
-                            </span>
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-50">
+                        <Hash className="w-4 h-4 text-slate-500" />
+                        <div className="text-sm">
+                            <span className="text-slate-500">Lot:</span>
+                            <span className="ml-1 font-semibold text-slate-800">{row.lot_no}</span>
                         </div>
-                    )}
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-50">
+                        <Fuel className="w-4 h-4 text-slate-500" />
+                        <div className="text-sm">
+                            <span className="text-slate-500">Tank:</span>
+                            <span className="ml-1 font-semibold text-slate-800">{row.coa_tank || '-'}</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="flex justify-end gap-2">
-                    {canEditRow(row) && (
+                <div className="space-y-2 mb-4">
+                    <div className="flex items-center gap-2 text-sm p-2 rounded-lg bg-slate-50">
+                        <Sprout className="w-4 h-4 text-emerald-600" />
+                        <span className="text-slate-700">{row.product_name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm p-2 rounded-lg bg-slate-50">
+                        <Truck className="w-4 h-4 text-slate-500" />
+                        <span className="text-slate-700">{row.license_plate || '-'}</span>
+                    </div>
+                </div>
+
+                {row.status !== 'processing' && row.status !== 'pending' && (
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                        {['result_shell', 'result_kn_moisture'].map((type) => (
+                            <div key={type} className={`rounded-lg p-3 text-center ${getResultColor(type, row[type as keyof SeedCOAData] as number)}`}>
+                                <div className="flex items-center justify-center gap-1 text-xs font-medium mb-1 uppercase">
+                                    <ResultIcon type={type} />
+                                    {type === 'result_shell' ? 'SHELL' : 'KN MOISTURE'}
+                                </div>
+                                <div className="font-bold text-sm">
+                                    {getResultValue(row[type as keyof SeedCOAData] as number, '%')}
+                                </div>
+                                <div className="flex justify-center mt-1">
+                                    {getTrendIcon(row[type as keyof SeedCOAData] as number, type)}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex justify-end pt-2">
+                    <div ref={actionMenuRef} className="relative inline-block text-left">
                         <button
-                            onClick={() => setLabModal({ open: true, data: row })}
-                            className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-all"
+                            type="button"
+                            onClick={() => setActionMenuOpen(open => !open)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200"
+                            aria-expanded={actionMenuOpen}
+                            aria-haspopup="menu"
+                            aria-label="เปิดเมนูจัดการ"
                         >
-                            <Pencil className="w-4 h-4" />
+                            <MoreHorizontal className="h-5 w-5" />
                         </button>
-                    )}
-                    <button
-                        onClick={() => window.open(`/qac/coa/seed/${row.id}/print`, '_blank')}
-                        className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-all"
-                    >
-                        <Printer className="w-4 h-4" />
-                    </button>
+
+                        {actionMenuOpen && (
+                            <div className="absolute right-0 z-50 mt-2 w-56 origin-top-right divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10">
+                                <div className="py-1">
+                                    <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                        จัดการรายการ
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => runAction(() => setCoaDetailModal({ open: true, data: row as SeedCOAData }))}
+                                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700 focus:outline-none"
+                                    >
+                                        <span className="rounded-md bg-emerald-100 p-1.5">
+                                            <Eye className="h-4 w-4 text-emerald-600" />
+                                        </span>
+                                        <span className="font-medium">ดูรายละเอียด</span>
+                                    </button>
+                                    {canEditRow(row as SeedCOAData) && (
+                                        <button
+                                            type="button"
+                                            onClick={() => runAction(() => setLabModal({ open: true, data: row as SeedCOAData }))}
+                                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-700 focus:bg-amber-50 focus:text-amber-700 focus:outline-none"
+                                        >
+                                            <span className="rounded-md bg-amber-100 p-1.5">
+                                                <Pencil className="h-4 w-4 text-amber-600" />
+                                            </span>
+                                            <span className="font-medium">แก้ไขข้อมูล</span>
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="py-1">
+                                    <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                        ดาวน์โหลดเอกสาร
+                                    </div>
+                                    <button
+                                        type="button"
+                                        disabled={(row as SeedCOAData).status !== 'A'}
+                                        onClick={() => runAction(() => handleGenerateCOA(row as SeedCOAData, 'isp'))}
+                                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm ${(row as SeedCOAData).status === 'A' ? 'text-slate-700 hover:bg-sky-50 hover:text-sky-700 focus:bg-sky-50 focus:text-sky-700' : 'cursor-not-allowed opacity-40 text-slate-400'} focus:outline-none`}
+                                    >
+                                        <span className={`rounded-md p-1.5 ${(row as SeedCOAData).status === 'A' ? 'bg-sky-100' : 'bg-slate-100'}`}>
+                                            <FileDown className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-sky-600' : 'text-slate-400'}`} />
+                                        </span>
+                                        <span className="font-medium">COA ISP</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={(row as SeedCOAData).status !== 'A'}
+                                        onClick={() => runAction(() => handleGenerateCOA(row as SeedCOAData, 'mun'))}
+                                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm ${(row as SeedCOAData).status === 'A' ? 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 focus:bg-emerald-50 focus:text-emerald-700' : 'cursor-not-allowed opacity-40 text-slate-400'} focus:outline-none`}
+                                    >
+                                        <span className={`rounded-md p-1.5 ${(row as SeedCOAData).status === 'A' ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+                                            <FileDown className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                        </span>
+                                        <span className="font-medium">COA MUN</span>
+                                    </button>
+                                </div>
+
+                                {canEditRow(row as SeedCOAData) && (
+                                    <div className="py-1">
+                                        <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-rose-500">
+                                            การดำเนินการพิเศษ
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => runAction(() => handleCancel(row.id))}
+                                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-orange-600 hover:bg-orange-50 hover:text-orange-700 focus:bg-orange-50 focus:text-orange-700 focus:outline-none"
+                                        >
+                                            <span className="rounded-md bg-orange-100 p-1.5">
+                                                <Ban className="h-4 w-4 text-orange-600" />
+                                            </span>
+                                            <span className="font-medium">ยกเลิกรายการ</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => runAction(() => handleDelete(row.id))}
+                                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 hover:text-red-700 focus:bg-red-50 focus:text-red-700 focus:outline-none"
+                                        >
+                                            <span className="rounded-md bg-red-100 p-1.5">
+                                                <Trash2 className="h-4 w-4 text-red-600" />
+                                            </span>
+                                            <span className="font-medium">ลบข้อมูล</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         );
     };
 
-    const renderTable = (data: SeedCOAData[], pageData: SeedCOAData[], page: number, title: string, icon: React.ReactNode, color: string, showResults: boolean = true) => (
-        <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
+    const renderTable = (data: SeedCOAData[], pageData: SeedCOAData[], page: number, title: string, icon: React.ReactNode, color: string, showResults: boolean = true) => {
+        const sectionStyle = SECTION_STYLES[color] || SECTION_STYLES.blue;
+
+        return (
+        <div className="mb-6">
+            <div className="mb-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <div className={`p-2 bg-${color}-100 rounded-xl`}>
+                    <div className={`rounded-lg p-2 ${sectionStyle.icon}`}>
                         {icon}
                     </div>
-                    <h2 className="text-lg font-semibold text-gray-800">
+                    <h2 className="text-base font-semibold text-slate-900">
                         {title}
                     </h2>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium bg-${color}-100 text-${color}-700`}>
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${sectionStyle.badge}`}>
                         {data.length} รายการ
                     </span>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="flex gap-1 border-2 border-gray-200 rounded-lg p-1">
+                    <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
                         <button
+                            title="มุมมองตาราง"
                             onClick={() => setViewMode('table')}
-                            className={`p-2 rounded-lg transition-all ${viewMode === 'table' ? 'bg-green-600 text-white' : 'hover:bg-gray-100'}`}
+                            className={`rounded-md p-2 transition-colors ${viewMode === 'table' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
                         >
                             <GanttChartSquare className="w-4 h-4" />
                         </button>
                         <button
+                            title="มุมมองการ์ด"
                             onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-green-600 text-white' : 'hover:bg-gray-100'}`}
+                            className={`rounded-md p-2 transition-colors ${viewMode === 'grid' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100'}`}
                         >
                             <Package className="w-4 h-4" />
                         </button>
                     </div>
                     <button
+                        title="ย่อ/ขยาย"
                         onClick={() => setExpanded(prev => ({ ...prev, [title === 'รายการรอตรวจสอบ' ? 'processing' : 'others']: !prev[title === 'รายการรอตรวจสอบ' ? 'processing' : 'others'] }))}
-                        className="p-2 rounded-lg hover:bg-gray-100 transition-all"
+                        className="rounded-lg border border-slate-200 bg-white p-2 text-slate-500 shadow-sm transition-colors hover:bg-slate-50"
                     >
-                        {expanded[title === 'รายการรอตรวจสอบ' ? 'processing' : 'others'] ?
-                            <ArrowUp className="w-5 h-5" /> :
-                            <ArrowDown className="w-5 h-5" />
-                        }
+                        {expanded[title === 'รายการรอตรวจสอบ' ? 'processing' : 'others'] ? <ArrowUp className="w-5 h-5 text-gray-500" /> : <ArrowDown className="w-5 h-5 text-gray-500" />}
                     </button>
                 </div>
             </div>
 
             {expanded[title === 'รายการรอตรวจสอบ' ? 'processing' : 'others'] && (
-                <div className="bg-white/80 rounded-2xl shadow-xl border border-gray-200 animate-slideDown">
+                <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
                     {viewMode === 'table' ? (
-                        <div className="w-full">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className={`bg-gradient-to-r from-${color}-50 to-${color}-100`}>
+                        <div className="w-full overflow-visible">
+                            <table className="w-full min-w-[1080px] table-fixed divide-y divide-slate-200">
+                                <thead className={`${sectionStyle.header} sticky top-0 z-[1]`}>
                                     <tr>
-                                        <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">ลำดับ</th>
-                                        <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
-                                        <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">COA No.</th>
-                                        <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">Tank</th>
-                                        <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">LOT No.</th>
-                                        <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">สินค้า</th>
-                                        <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">ทะเบียนรถ</th>
-                                        <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">คนขับ</th>
-                                        {showResults && <th colSpan={2} className="px-4 py-4 text-center text-xs font-medium text-gray-500 uppercase bg-gradient-to-r from-blue-500/10 to-purple-500/10">Result</th>}
-                                        <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">ผู้ตรวจสอบ / ผู้อนุมัติ</th>
-                                        <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">สถานะ</th>
-                                        <th rowSpan={2} className="px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase">ดำเนินการ</th>
-                                    </tr>
-                                    <tr>
-                                        {showResults && (
-                                            <>
-                                                <th className="px-2 py-2 text-center text-xs font-medium border-l text-orange-600">%Shell</th>
-                                                <th className="px-2 py-2 text-center text-xs font-medium border-r text-sky-600">%KN Moisture</th>
-                                            </>
-                                        )}
+                                        <th className="w-[56px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">#</th>
+                                        <th className="w-[140px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">COA / วันที่</th>
+                                        <th className="w-[180px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Lot / สินค้า</th>
+                                        <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">ลูกค้า / ปลายทาง</th>
+                                        <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">รถ / คนขับ</th>
+                                        {showResults && <th className="w-[200px] border-x border-emerald-100 bg-emerald-100/40 px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-600">ผลตรวจ</th>}
+                                        <th className="w-[140px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">สถานะ</th>
+                                        {showResults && <th className="w-[76px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">จัดการ</th>}
                                     </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                                <tbody className="divide-y divide-slate-100 bg-white">
                                     {pageData.length > 0 ? (
-                                        pageData.map((row, i) => <TableRow key={row.id} row={row} index={i} page={page} color={color} showResults={showResults} />)
+                                        pageData.map((row, i) => <TableRow key={row.id} row={row} index={i} page={page} color={color} showResults={showResults} showActions={showResults} />)
                                     ) : (
                                         <tr>
-                                            <td colSpan={showResults ? 13 : 11} className="px-4 py-12 text-center">
+                                            <td colSpan={showResults ? 8 : 6} className="px-4 py-8 text-center">
                                                 <div className="flex flex-col items-center justify-center">
-                                                    <div className="p-4 rounded-xl mb-3 bg-gray-100">
-                                                        <FileDown className="w-12 h-12 text-gray-400" />
+                                                    <div className="p-3 rounded-xl mb-2 bg-gray-100">
+                                                        <FileDown className="w-8 h-8 text-gray-400" />
                                                     </div>
-                                                    <p className="text-sm font-medium text-gray-500">ไม่มีข้อมูล</p>
-                                                    <p className="text-xs text-gray-400 mt-1">กรุณาตรวจสอบการค้นหาหรือตัวกรอง</p>
+                                                    <p className="text-sm text-gray-500">ไม่มีข้อมูล</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1002,33 +1480,43 @@ const Seed_COA: React.FC = () => {
                         </div>
                     ) : (
                         <div className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {pageData.map(row => <GridCard key={row.id} row={row} />)}
-                            </div>
+                            {pageData.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                    {pageData.map((row) => (
+                                        <GridCard key={row.id} row={row} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12">
+                                    <div className="p-4 rounded-full bg-gray-50 mb-4">
+                                        <Package className="w-12 h-12 text-gray-400" />
+                                    </div>
+                                    <h3 className="text-lg font-medium text-gray-900 mb-1">ไม่พบข้อมูล</h3>
+                                    <p className="text-gray-500">ยังไม่มีรายการในสถานะนี้</p>
+                                </div>
+                            )}
                         </div>
                     )}
 
                     {data.length > itemsPerPage && (
-                        <div className="px-4 py-3 border-t border-gray-200 bg-gray-50/50">
+                        <div className="border-t border-slate-200 bg-slate-50/70 px-4 py-3">
                             <div className="flex justify-between items-center">
-                                <span className="text-sm text-gray-600">
-                                    แสดง {Math.min(pageData.length, itemsPerPage)} จาก {data.length} รายการ
-                                </span>
+                                <span className="text-sm text-gray-600">แสดง {Math.min(pageData.length, itemsPerPage)} จาก {data.length} รายการ</span>
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => title === 'รายการรอตรวจสอบ' ? setCurrentPage(p => Math.max(1, p - 1)) : setCurrentPageBottom(p => Math.max(1, p - 1))}
                                         disabled={title === 'รายการรอตรวจสอบ' ? currentPage === 1 : currentPageBottom === 1}
-                                        className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-50 text-gray-600 transition-all hover:scale-110"
+                                        className="rounded-lg border border-slate-200 bg-white p-1 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
                                     >
                                         <ChevronLeft className="w-4 h-4" />
                                     </button>
-                                    <span className="text-sm px-3 py-2 bg-white rounded-lg border border-gray-200 text-gray-700">
+                                    <span className="text-sm px-2 text-gray-700">
                                         {title === 'รายการรอตรวจสอบ' ? currentPage : currentPageBottom} / {Math.ceil(data.length / itemsPerPage)}
                                     </span>
                                     <button
                                         onClick={() => title === 'รายการรอตรวจสอบ' ? setCurrentPage(p => Math.min(p + 1, Math.ceil(data.length / itemsPerPage))) : setCurrentPageBottom(p => Math.min(p + 1, Math.ceil(data.length / itemsPerPage)))}
                                         disabled={title === 'รายการรอตรวจสอบ' ? currentPage === Math.ceil(data.length / itemsPerPage) : currentPageBottom === Math.ceil(data.length / itemsPerPage)}
-                                        className="p-2 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-50 text-gray-600 transition-all hover:scale-110"
+                                        className="rounded-lg border border-slate-200 bg-white p-1 text-slate-600 hover:bg-slate-100 disabled:opacity-50"
                                     >
                                         <ChevronRight className="w-4 h-4" />
                                     </button>
@@ -1039,73 +1527,89 @@ const Seed_COA: React.FC = () => {
                 </div>
             )}
         </div>
-    );
+        );
+    };
 
     return (
         <AppLayout>
             <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
                 {/* Header */}
-                <div className="sticky top-0 z-10 bg-white/80 border-b border-gray-200 backdrop-blur-xl shadow-lg">
-                    <div className="px-6 py-4">
-                        <div className="flex items-center justify-between">
+                <div className="sticky top-0 z-10 border-b border-slate-800 bg-slate-900 shadow-2xl">
+                    {/* Decorative Background Elements */}
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                        <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-green-500/10 blur-3xl" />
+                        <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
+                        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+                    </div>
+
+                    <div className="relative px-4 py-5 sm:px-6">
+                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                            {/* Title Section */}
                             <div className="flex items-center gap-4">
-                                <div className="p-3 bg-gradient-to-br from-green-600 to-emerald-600 rounded-2xl shadow-xl animate-pulse">
-                                    <Sprout className="w-7 h-7 text-white" />
+                                <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/20 ring-1 ring-white/10">
+                                    <Sprout className="h-7 w-7 text-white drop-shadow-md" />
                                 </div>
                                 <div>
-                                    <h1 className="text-3xl font-bold bg-gradient-to-r from-green-700 to-emerald-700 bg-clip-text text-transparent">
+                                    <h1 className="bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-2xl font-black tracking-tight text-transparent drop-shadow-sm">
                                         Seed COA Management
                                     </h1>
-                                    <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-2">
-                                        <Activity className="w-4 h-4" />
-                                        ระบบควบคุมคุณภาพและตรวจสอบ Certificate of Analysis (เมล็ดปาล์ม)
-                                    </p>
+                                    <div className="mt-1 flex items-center gap-2">
+                                        <span className="flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                                        <p className="text-sm font-medium tracking-wide text-slate-400">
+                                            Certificate of Analysis • <span className="text-slate-300">ควบคุมคุณภาพเมล็ดในปาล์ม</span>
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Quick Actions */}
-                            {/* <div className="flex items-center gap-3">
-                                    <button
-                                        onClick={() => router.get('/qac/coa/seed/history')}
-                                        className="px-4 py-2 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2"
-                                    >
-                                        <History className="w-4 h-4" />
-                                        <span>ประวัติ</span>
-                                    </button>
-                                    <button
-                                        onClick={handleAddNew}
-                                        className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 font-semibold group"
-                                    >
-                                        <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-                                        <span>บันทึกใหม่</span>
-                                    </button>
-                                </div> */}
+                            {/* KPI Cards */}
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 lg:w-[750px]">
+                                {STATS_CARDS.map(({ label, color, filter, icon: Icon }) => {
+                                    const isActive = statusFilter === (filter || 'all');
+                                    const count = filter ? data.filter(d => d.status === filter).length : data.length;
+                                    
+                                    // Map original colors to dark theme equivalents
+                                    const c: Record<string, { b: string, bg: string, t: string, g: string }> = {
+                                        blue: { b: 'border-blue-500/50', bg: 'bg-blue-500/10', t: 'text-blue-400', g: 'from-blue-500 to-cyan-400' },
+                                        amber: { b: 'border-amber-500/50', bg: 'bg-amber-500/10', t: 'text-amber-400', g: 'from-amber-500 to-yellow-400' },
+                                        sky: { b: 'border-sky-500/50', bg: 'bg-sky-500/10', t: 'text-sky-400', g: 'from-sky-500 to-blue-400' },
+                                        rose: { b: 'border-rose-500/50', bg: 'bg-rose-500/10', t: 'text-rose-400', g: 'from-rose-500 to-red-400' },
+                                        emerald: { b: 'border-emerald-500/50', bg: 'bg-emerald-500/10', t: 'text-emerald-400', g: 'from-emerald-500 to-green-400' },
+                                        slate: { b: 'border-slate-500/50', bg: 'bg-slate-500/10', t: 'text-slate-300', g: 'from-slate-400 to-slate-300' },
+                                    };
+                                    const theme = c[color] || c.blue;
 
-                        </div>
-
-                        {/* Stats Cards */}
-                        <div className="grid grid-cols-5 gap-4 mt-6">
-                            {STATS_CARDS.map(({ label, color, icon: Icon, filter }) => {
-                                const count = filter ? data.filter(d => d.status === filter).length : data.length;
-                                return (
-                                    <div
-                                        key={label}
-                                        onClick={() => filter && setStatusFilter(filter)}
-                                        className={`group relative overflow-hidden rounded-xl p-4 transition-all hover:scale-105 hover:shadow-xl bg-gradient-to-br from-${color}-50 to-${color}-100 border-2 border-${color}-200 cursor-pointer ${statusFilter === filter ? `ring-2 ring-${color}-500` : ''}`}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className={`text-sm font-medium text-${color}-600`}>{label}</div>
-                                                <div className={`text-2xl font-bold mt-1 text-${color}-700`}>{count}</div>
+                                    return (
+                                        <button
+                                            key={label}
+                                            type="button"
+                                            onClick={() => setStatusFilter(filter || 'all')}
+                                            className={`group relative flex flex-col items-start justify-between overflow-hidden rounded-xl border p-3.5 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
+                                                isActive 
+                                                    ? `${theme.b} ${theme.bg} shadow-black/40` 
+                                                    : 'border-slate-700/50 bg-slate-800/40 hover:border-slate-600/60 hover:bg-slate-800/80 shadow-black/20'
+                                            }`}
+                                        >
+                                            <div className="flex w-full items-center justify-between">
+                                                <span className={`text-[11px] font-bold tracking-wider ${isActive ? theme.t : 'text-slate-400 group-hover:text-slate-300'}`}>
+                                                    {label}
+                                                </span>
+                                                <div className={`rounded-lg p-1 ${isActive ? theme.bg : 'bg-slate-800/50 group-hover:bg-slate-700/50'} transition-colors`}>
+                                                    <Icon className={`h-4 w-4 ${isActive ? theme.t : 'text-slate-500 group-hover:text-slate-400'}`} />
+                                                </div>
                                             </div>
-                                            <div className={`p-3 bg-${color}-100 rounded-xl`}>
-                                                <Icon className={`w-6 h-6 text-${color}-600`} />
+                                            <div className={`mt-2.5 text-2xl font-black tracking-tight ${isActive ? 'text-white' : 'text-slate-200 group-hover:text-white transition-colors'}`}>
+                                                {count}
                                             </div>
-                                        </div>
-                                        <div className={`absolute -bottom-2 -right-2 w-20 h-20 rounded-full opacity-10 group-hover:scale-150 transition-transform bg-${color}-400`} />
-                                    </div>
-                                );
-                            })}
+                                            
+                                            {/* Active Glow Line */}
+                                            {isActive && (
+                                                <div className={`absolute bottom-0 left-0 h-[3px] w-full bg-gradient-to-r ${theme.g}`} />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1197,12 +1701,29 @@ const Seed_COA: React.FC = () => {
                 onSave={handleSaveLab}
             />
 
+            <COADetailModal
+                open={coaDetailModal.open}
+                data={coaDetailModal.data}
+                canApprove={canApprove}
+                canEdit={isQACAdmin}
+                onClose={() => setCoaDetailModal({ open: false, data: null })}
+                onApprove={handleApprove}
+                onEdit={(row) => setLabModal({ open: true, data: row })}
+                onVehicleCheck={(row) => setTruckModal({ open: true, data: row })}
+            />
+
             <VehicleCheckModal
                 isOpen={truckModal.open}
                 onClose={() => setTruckModal({ open: false, data: null })}
                 order={truckModal.data}
                 onGenerateCAR={handleGenerateCAR}
                 autoDownload={false}
+                customLabels={[
+                    { id: 'is_clean', label: '1. พื้นกะบะสะอาด / ไม่ชื้น' },
+                    { id: 'is_covered', label: '2. ไม่มีการปนเปื้อนยางรวมในกะบะบรรทุกสินค้า' },
+                    { id: 'is_no_smell', label: '3. ไม่มีการปนเปื้อนนายิสในกะบะบรรทุกสินค้า' },
+                    { id: 'is_doc_valid', label: '4. ไม่มีสิ่งอื่นใดในท้ายกะบะบรรทุกสินค้า' },
+                ]}
             />
 
             {/* Global Styles */}

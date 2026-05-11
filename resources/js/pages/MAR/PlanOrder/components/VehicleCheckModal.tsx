@@ -22,6 +22,7 @@ interface VehicleCheckModalProps {
     order: any | null;
     onGenerateCAR: (order: any) => void;
     autoDownload?: boolean;
+    customLabels?: { id: string; label: string }[];
 }
 
 import { router, usePage } from '@inertiajs/react';
@@ -32,6 +33,7 @@ export default function VehicleCheckModal({
     order,
     onGenerateCAR,
     autoDownload = true,
+    customLabels,
 }: VehicleCheckModalProps) {
     const { auth } = usePage<any>().props;
     const currentUserName = auth?.employee_name || auth?.user?.name || '';
@@ -139,13 +141,15 @@ export default function VehicleCheckModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-md font-anuphut">
-                <DialogHeader>
+            <DialogContent className="max-w-md font-anuphut max-h-[90vh] flex flex-col p-0">
+                <DialogHeader className="p-6 pb-0">
                     <DialogTitle className="flex items-center gap-2">
                         <FileText className="h-5 w-5 text-purple-600" />
                         แบบฟอร์มตรวจสอบสภาพรถ (CAR)
                     </DialogTitle>
                 </DialogHeader>
+
+                <div className="flex-1 overflow-hidden px-6">
 
                 {isLoading ? (
                     <div className="flex justify-center items-center py-10">
@@ -153,7 +157,7 @@ export default function VehicleCheckModal({
                         <span className="ml-2">กำลังโหลดข้อมูล...</span>
                     </div>
                 ) : (
-                    <div className="space-y-6 pt-4">
+                    <div className="space-y-6 pt-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                         <div className="grid gap-2 text-sm bg-gray-50 p-3 rounded-lg border">
                             <div className="flex justify-between">
                                 <span className="text-gray-500">หมายเลขอ้างอิง:</span>
@@ -172,27 +176,29 @@ export default function VehicleCheckModal({
                         <div className="space-y-4">
                             <h4 className="font-semibold text-gray-900 border-b pb-2">รายการตรวจสอบ</h4>
 
-                            {[
+                            {(customLabels || [
                                 { id: 'is_clean', label: '1. สภาพรถสะอาด ไม่มีคราบสกปรก' },
                                 { id: 'is_covered', label: '2. มีผ้าใบคลุมมิดชิด (ถ้ามีกระบะ)' },
                                 { id: 'is_no_smell', label: '3. ไม่มีกลิ่นเหม็น หรือกลิ่นแปลกปลอม' },
                                 { id: 'is_doc_valid', label: '4. เอกสารประจำรถและใบขับขี่ถูกต้องตรงกัน' },
-                            ].map((item) => (
+                            ]).map((item) => (
                                 <div key={item.id} className="flex flex-col gap-2 p-3 bg-white rounded-lg border shadow-sm">
                                     <span className="text-sm font-medium text-gray-700">{item.label}</span>
                                     <div className="flex gap-2">
                                         <Button
                                             type="button"
+                                            size="sm"
                                             variant={form[item.id as keyof typeof form] === true ? 'default' : 'outline'}
-                                            className={`flex-1 transition-all ${form[item.id as keyof typeof form] === true ? 'bg-green-600 hover:bg-green-700 text-white' : 'hover:bg-green-50 hover:text-green-600'}`}
+                                            className={`flex-1 transition-all h-9 ${form[item.id as keyof typeof form] === true ? 'bg-green-600 hover:bg-green-700 text-white' : 'hover:bg-green-50 hover:text-green-600'}`}
                                             onClick={() => handleChange(item.id, true)}
                                         >
                                             ใช่
                                         </Button>
                                         <Button
                                             type="button"
+                                            size="sm"
                                             variant={form[item.id as keyof typeof form] === false ? 'default' : 'outline'}
-                                            className={`flex-1 transition-all ${form[item.id as keyof typeof form] === false ? 'bg-red-600 hover:bg-red-700 text-white' : 'hover:bg-red-50 hover:text-red-600'}`}
+                                            className={`flex-1 transition-all h-9 ${form[item.id as keyof typeof form] === false ? 'bg-red-600 hover:bg-red-700 text-white' : 'hover:bg-red-50 hover:text-red-600'}`}
                                             onClick={() => handleChange(item.id, false)}
                                         >
                                             ไม่ใช่
@@ -211,7 +217,7 @@ export default function VehicleCheckModal({
                             />
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-2 pb-2">
                             <label className="text-sm font-semibold">หมายเหตุ (ถ้ามี)</label>
                             <Textarea
                                 placeholder="รายละเอียดเพิ่มเติม..."
@@ -222,8 +228,9 @@ export default function VehicleCheckModal({
                         </div>
                     </div>
                 )}
+                </div>
 
-                <DialogFooter className="mt-6 border-t pt-4">
+                <DialogFooter className="border-t p-6 pt-4">
                     <Button variant="outline" onClick={onClose} disabled={isSaving}>ยกเลิก</Button>
                     <Button
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white"
