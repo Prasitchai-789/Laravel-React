@@ -418,8 +418,9 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
                 spec_shell: data.spec_shell,
                 spec_kn_moisture: data.spec_kn_moisture,
 
-                inspector: props.auth?.employee_name || props.auth?.user?.name || data.inspector || '-',
-                coa_user_id: props.auth?.user?.employee_id || data.coa_user_id || data.inspector,
+                inspector: data.inspector || props.auth?.employee_name || props.auth?.user?.name || '-',
+                coa_user: data.coa_user || data.coa_user_id || data.inspector,
+                coa_user_id: data.coa_user_id || data.coa_user || data.inspector || props.auth?.user?.employee_id,
                 notes: data.notes || '-',
                 created_at: data.SOPDate || order.orderDate,
             };

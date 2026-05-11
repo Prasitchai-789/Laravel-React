@@ -13,6 +13,7 @@ export interface COAFields {
     driver_name?: string;
     coa_tank?: string;
     inspector?: string;
+    coa_user?: string | number;
     coa_user_id?: string | number;
     coa_mgr?: string;
     notes?: string;
@@ -62,12 +63,22 @@ const formatThaiDate = (dateString?: string) => {
     return `${day} ${month} ${year}`;
 };
 
-/** helper: mapping signature path */
-const getSignaturePath = (identity?: string | number) => {
-    // Identity can be a User ID (number/string) or a User Name (string)
-    const id = identity ? identity.toString() : '';
+const withOrigin = (path: string) => {
     const baseUrl = window.location.origin;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    if (path.startsWith('/')) return `${baseUrl}${path}`;
+    return `${baseUrl}/${path}`;
+};
 
+/** helper: mapping signature path ตาม logic เดิมของ isanpalm */
+const getSignaturePath = (identity?: string | number) => {
+    const id = identity ? identity.toString().trim() : '';
+
+    if (id.includes('/images/signature/') || id.startsWith('http://') || id.startsWith('https://')) {
+        return withOrigin(id);
+    }
+
+    const baseUrl = window.location.origin;
     // Check by ID
     if (id === '1149') return `${baseUrl}/images/signature/prasitchai.png`;
     if (id === '1143') return `${baseUrl}/images/signature/prapaporn.png`;
@@ -87,6 +98,17 @@ const getSignaturePath = (identity?: string | number) => {
 
     // Default signature if no match
     return `${baseUrl}/images/signature/sukanya.png`;
+};
+
+const getInspectorSignaturePath = (fields: COAFields) => {
+    const id = (fields.coa_user_id || fields.coa_user || fields.inspector || '').toString();
+    if (id === 'MUN_FAN') return `${window.location.origin}/images/signature/fan.png`;
+    return getSignaturePath(id);
+};
+
+const getManagerSignaturePath = (fields?: COAFields) => {
+    if (fields && fields.coa_mgr === 'MUN_PEACH') return `${window.location.origin}/images/signature/peach.png`;
+    return `${window.location.origin}/images/signature/prapaporn.png`;
 };
 
 /** helper: download file จาก Uint8Array */
@@ -170,25 +192,24 @@ export async function generateOilCoaPdf(fields: COAFields, coaType: 'isp' | 'mun
 
     // ─── ลายเซ็น ───────────────────────────────────────────────────
     try {
-        const baseUrl = window.location.origin;
         // ลายเซ็น User (Inspector)
-        const userSigPath = coaType === 'mun' ? `${baseUrl}/images/signature/fan.png` : getSignaturePath(fields.coa_user_id);
+        const userSigPath = getInspectorSignaturePath(fields);
         const userSigBytes = await fetch(userSigPath).then(r => {
             if (!r.ok) throw new Error(`Failed to fetch ${userSigPath}: ${r.statusText}`);
             return r.arrayBuffer();
         });
         const userSigImage = await pdfDoc.embedPng(userSigBytes);
-        const userSigScale = coaType === 'mun' ? 0.25 : 0.10;
+        const userSigScale = userSigPath.includes('fan.png') ? 0.35 : 0.10;
         const userSigDims = userSigImage.scale(userSigScale);
 
         // ลายเซ็น Manager
-        const mgrSigPath = coaType === 'mun' ? `${baseUrl}/images/signature/peach.png` : `${baseUrl}/images/signature/prapaporn.png`;
+        const mgrSigPath = getManagerSignaturePath(fields);
         const mgrSigBytes = await fetch(mgrSigPath).then(r => {
             if (!r.ok) throw new Error(`Failed to fetch ${mgrSigPath}: ${r.statusText}`);
             return r.arrayBuffer();
         });
         const mgrSigImage = await pdfDoc.embedPng(mgrSigBytes);
-        const mgrSigScale = coaType === 'mun' ? 0.15 : 0.25;
+        const mgrSigScale = mgrSigPath.includes('peach.png') ? 0.12 : 0.25;
         const mgrSigDims = mgrSigImage.scale(mgrSigScale);
 
         if (coaType === 'mun') {
@@ -300,25 +321,24 @@ export async function generateSeedCoaPdf(fields: COAFields, coaType: 'isp' | 'mu
 
     // ลายเซ็น
     try {
-        const baseUrl = window.location.origin;
         // ลายเซ็น User (Inspector)
-        const userSigPath = coaType === 'mun' ? `${baseUrl}/images/signature/fan.png` : getSignaturePath(fields.coa_user_id);
+        const userSigPath = getInspectorSignaturePath(fields);
         const userSigBytes = await fetch(userSigPath).then(r => {
             if (!r.ok) throw new Error(`Failed to fetch ${userSigPath}: ${r.statusText}`);
             return r.arrayBuffer();
         });
         const userSigImage = await pdfDoc.embedPng(userSigBytes);
-        const userSigScale = coaType === 'mun' ? 0.25 : 0.10;
+        const userSigScale = userSigPath.includes('fan.png') ? 0.35 : 0.10;
         const userSigDims = userSigImage.scale(userSigScale);
 
         // ลายเซ็น Manager
-        const mgrSigPath = coaType === 'mun' ? `${baseUrl}/images/signature/peach.png` : `${baseUrl}/images/signature/prapaporn.png`;
+        const mgrSigPath = getManagerSignaturePath(fields);
         const mgrSigBytes = await fetch(mgrSigPath).then(r => {
             if (!r.ok) throw new Error(`Failed to fetch ${mgrSigPath}: ${r.statusText}`);
             return r.arrayBuffer();
         });
         const mgrSigImage = await pdfDoc.embedPng(mgrSigBytes);
-        const mgrSigScale = coaType === 'mun' ? 0.15 : 0.25;
+        const mgrSigScale = mgrSigPath.includes('peach.png') ? 0.12 : 0.25;
         const mgrSigDims = mgrSigImage.scale(mgrSigScale);
 
         if (coaType === 'mun') {
@@ -430,26 +450,24 @@ export async function generateCarPdf(fields: COAFields): Promise<Uint8Array> {
 
     // ─── ลายเซ็น ───────────────────────────────────────────────────
     try {
-        const baseUrl = window.location.origin;
-
         // ลายเซ็น User (Inspector) -> ดึงตาม login เหมือน ISP
-        const userSigPath = getSignaturePath(fields.coa_user_id);
+        const userSigPath = getInspectorSignaturePath(fields);
         const userSigBytes = await fetch(userSigPath).then(r => {
             if (!r.ok) throw new Error(`Failed to fetch user signature ${userSigPath}: ${r.statusText}`);
             return r.arrayBuffer();
         });
         const userSigImage = await pdfDoc.embedPng(userSigBytes);
-        const userSigScale = 0.10;
+        const userSigScale = userSigPath.includes('fan.png') ? 0.35 : 0.10;
         const userSigDims = userSigImage.scale(userSigScale);
 
-        // ลายเซ็น Manager -> prapaporn เสมอ
-        const mgrSigPath = `${baseUrl}/images/signature/prapaporn.png`;
+        // ลายเซ็น Manager -> prapaporn เสมอ (ยกเว้นมีระบุ)
+        const mgrSigPath = getManagerSignaturePath(fields);
         const mgrSigBytes = await fetch(mgrSigPath).then(r => {
             if (!r.ok) throw new Error(`Failed to fetch manager signature ${mgrSigPath}: ${r.statusText}`);
             return r.arrayBuffer();
         });
         const mgrSigImage = await pdfDoc.embedPng(mgrSigBytes);
-        const mgrSigScale = 0.25;
+        const mgrSigScale = mgrSigPath.includes('peach.png') ? 0.12 : 0.25;
         const mgrSigDims = mgrSigImage.scale(mgrSigScale);
 
         // วางลงกระดาษ (พิกัด Y นับจากจุดเริ่มต้นด้านบนของจอกระดาษ โดยใช้ math height - fromTop)
