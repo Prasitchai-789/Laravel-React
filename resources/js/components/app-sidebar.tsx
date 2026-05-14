@@ -146,6 +146,8 @@ const FerNavItems: NavItem[] = [
 ];
 
 const QACDataEntryNavItems: NavItem[] = [
+    { title: 'COA น้ำมันปาล์มดิบ', href: '/qac/coa/oil', icon: Beaker, permission: ['qac.user', 'qac.view', 'qac.edit'] },
+    { title: 'COA เมล็ดในปาล์ม', href: '/qac/coa/seed', icon: Beaker, permission: ['qac.user', 'qac.view', 'qac.edit'] },
     { title: 'บันทึกข้อมูล Stock CPO', href: '/cpo', icon: Beaker, permission: ['qac.user', 'qac.edit'] },
     { title: 'บันทึก Skim / Mix', href: '/skim-mix', icon: Beaker, permission: ['qac.user', 'qac.edit'] },
     { title: 'บันทึกข้อมูล Kernel', href: '/stock/kernel', icon: Beaker, permission: ['qac.user', 'qac.edit'] },
@@ -153,14 +155,13 @@ const QACDataEntryNavItems: NavItem[] = [
 ];
 
 const QACReportNavItems: NavItem[] = [
-    { title: 'COA น้ำมันปาล์มดิบ', href: '/qac/coa/oil', icon: Beaker, permission: ['qac.view', 'qac.edit'] },
-    { title: 'COA เมล็ดในปาล์ม', href: '/qac/coa/seed', icon: Beaker, permission: ['qac.view', 'qac.edit'] },
-    { title: 'Stock CPO', href: '/stock/cpo', icon: Beaker, permission: ['qac.view'] },
-    { title: 'รายงานการผลิต (Mill Daily)', href: '/qac/mill-daily-report', icon: ScrollText, permission: ['qac.edit'] },
-    { title: 'รายงานการผลิต', href: '/stock/report', icon: ScrollText, permission: ['qac.view'] },
-    { title: 'รายงานพาณิชย์', href: '/stock/production-report', icon: ScrollText, permission: ['qac.view', 'mar.edit'] },
-    { title: 'รายงาน % Yield', href: '/yield-report', icon: ScrollText, permission: ['qac.view'] },
-    { title: 'รายงาน % Yield (ตาราง)', href: '/yield-table', icon: ScrollText, permission: ['qac.view', 'mar.edit'] },
+
+    { title: 'Stock CPO', href: '/stock/cpo', icon: Beaker, permission: ['qac.delete'] },
+    { title: 'รายงานการผลิต (Mill Daily)', href: '/qac/mill-daily-report', icon: ScrollText, permission: ['qac.delete'] },
+    { title: 'รายงานการผลิต', href: '/stock/report', icon: ScrollText, permission: ['qac.delete'] },
+    { title: 'รายงานพาณิชย์', href: '/stock/production-report', icon: ScrollText, permission: ['qac.delete', 'mar.edit'] },
+    { title: 'รายงาน % Yield', href: '/yield-report', icon: ScrollText, permission: ['qac.delete'] },
+    { title: 'รายงาน % Yield (ตาราง)', href: '/yield-table', icon: ScrollText, permission: ['qac.delete', 'mar.edit'] },
 ];
 
 const QACNavItems: NavItem[] = [...QACReportNavItems, ...QACDataEntryNavItems];

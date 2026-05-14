@@ -194,11 +194,6 @@ const convertSOPlanToPlanOrder = (s: SOPlanData, index?: number): PlanOrder => {
     };
 };
 
-const isOilPlan = (s: SOPlanData): boolean => {
-    const productType = s.productType || mapProductType(s.GoodID, s.GoodName);
-    return productType === 'cpo' || productType === 'palm-oil';
-};
-
 // Mock data
 const mockOrders: PlanOrder[] = [
     {
@@ -484,48 +479,15 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
         }
     }, [setIsLoading]);
 
-    // ============ โหลดข้อมูลเริ่มต้น และจัดกลุ่ม (Grouping) ============
+    // ============ โหลดข้อมูลเริ่มต้น ============
     useEffect(() => {
         if (soplans && soplans.length > 0) {
-            // จัดกลุ่มรายการที่มี วันที่, สินค้า, ลูกค้า, ปลายทาง และน้ำหนักแผน ตรงกัน
-            // เพื่อให้รถหลายคันในแผนเดียวกันแสดงเป็นแถวเดียว
-            // ยกเว้นข้อมูลน้ำมัน ต้องแสดงแยกตามรายการ/SOPID เพื่อให้ COA และเอกสารอ้างอิงไม่ปนกัน
-            const groups: { [key: string]: PlanOrder } = {};
-            
-            soplans.forEach((s, idx) => {
-                const key = isOilPlan(s)
-                    ? `oil_${s.SOPID || idx}`
-                    : `${s.SOPDate}_${s.GoodID}_${s.CustID}_${s.AmntLoad}_${s.Recipient}_${s.Remarks || ''}`;
-                
-                if (groups[key]) {
-                    // ถ้ามีกลุ่มอยู่แล้ว ให้เพิ่มชื่อรถและคนขับ (คั่นด้วยคอมมา)
-                    if (s.NumberCar && s.NumberCar !== '-') {
-                        groups[key].licensePlate = groups[key].licensePlate 
-                            ? `${groups[key].licensePlate}, ${s.NumberCar}` 
-                            : s.NumberCar;
-                    }
-                    if (s.DriverName && s.DriverName !== '-') {
-                        groups[key].driverName = groups[key].driverName 
-                            ? `${groups[key].driverName}, ${s.DriverName}` 
-                            : s.DriverName;
-                    }
-                    // เก็บ SOPID ทั้งหมดไว้ใน array (เช็คไม่ให้ซ้ำ)
-                    if (groups[key].rawData) {
-                        const allIds = (groups[key].rawData as any).allIds || [groups[key].rawData.sopId];
-                        if (!allIds.includes(s.SOPID)) {
-                            allIds.push(s.SOPID);
-                        }
-                        (groups[key].rawData as any).allIds = allIds;
-                    }
-                } else {
-                    // ถ้ายังไม่มีกลุ่ม ให้สร้างใหม่
-                    const order = convertSOPlanToPlanOrder(s, idx);
-                    (order.rawData as any).allIds = [s.SOPID];
-                    groups[key] = order;
-                }
+            const mapped = soplans.map((s, idx) => {
+                const order = convertSOPlanToPlanOrder(s, idx);
+                (order.rawData as any).allIds = [s.SOPID];
+                return order;
             });
-            
-            setOrders(Object.values(groups));
+            setOrders(mapped);
         } else {
             setOrders(mockOrders);
         }

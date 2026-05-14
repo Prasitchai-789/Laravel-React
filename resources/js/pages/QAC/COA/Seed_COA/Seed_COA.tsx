@@ -493,8 +493,8 @@ const Seed_COA: React.FC = () => {
 
     // QAC users may receive permissions without a matching role, so check both lists.
     const isQACAdmin = isDeveloper || hasAccess('QAC.Admin') || hasAccess('qac.admin') || hasAccess('qac_admin');
-    const isQACUser = isQACAdmin || hasAccess('qac.view') || hasAccess('qac.edit') || hasAccess('qac.create') || hasAccess('qac.delete');
-    const canEdit = isQACAdmin || hasAccess('qac.edit');
+    const isQACUser = isQACAdmin || hasAccess('qac.user') || hasAccess('qac.view') || hasAccess('qac.edit') || hasAccess('qac.create') || hasAccess('qac.delete');
+    const canEdit = isQACAdmin || hasAccess('qac.user') || hasAccess('qac.edit');
     const canDelete = isQACAdmin || hasAccess('qac.delete');
     const canApprove = isQACAdmin;
 
@@ -1733,7 +1733,7 @@ const Seed_COA: React.FC = () => {
                 open={coaDetailModal.open}
                 data={coaDetailModal.data}
                 canApprove={canApprove}
-                canEdit={isQACAdmin}
+                canEdit={canEdit}
                 onClose={() => setCoaDetailModal({ open: false, data: null })}
                 onApprove={handleApprove}
                 onEdit={(row) => setLabModal({ open: true, data: row })}

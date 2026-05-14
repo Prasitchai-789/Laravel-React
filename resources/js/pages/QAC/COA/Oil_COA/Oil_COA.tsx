@@ -644,8 +644,8 @@ const Oil_COA: React.FC = () => {
     };
     const isDeveloper = hasAccess('developer') || hasAccess('developer.view') || currentUserName === 'ประภาพร เชื่อพระซอง';
     const isQACAdmin = isDeveloper || hasAccess('QAC.Admin') || hasAccess('qac.admin') || hasAccess('qac_admin');
-    const isQACUser = isQACAdmin || hasAccess('qac.view') || hasAccess('qac.edit') || hasAccess('qac.create') || hasAccess('qac.delete');
-    const canEdit = isQACAdmin || hasAccess('qac.edit');
+    const isQACUser = isQACAdmin || hasAccess('qac.user') || hasAccess('qac.view') || hasAccess('qac.edit') || hasAccess('qac.create') || hasAccess('qac.delete');
+    const canEdit = isQACAdmin || hasAccess('qac.user') || hasAccess('qac.edit');
     const canApprove = isQACAdmin;
     const itemsPerPage = 10;
 
@@ -1193,8 +1193,8 @@ const Oil_COA: React.FC = () => {
                                 <span className="font-medium">ดูรายละเอียด</span>
                             </DropdownMenuItem>
 
-                            {/* แก้ไขข้อมูล — เฉพาะ QACAdmin เท่านั้น */}
-                            {isQACAdmin && canEditRow(row as OilCOAData) && (
+                            {/* แก้ไขข้อมูล */}
+                            {canEditRow(row as OilCOAData) && (
                                 <DropdownMenuItem
                                     className="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 hover:bg-amber-50 hover:text-amber-700 focus:bg-amber-50 focus:text-amber-700"
                                     onClick={() => setLabModal({ open: true, data: row as OilCOAData })}
@@ -1813,7 +1813,7 @@ const Oil_COA: React.FC = () => {
                 open={approvalModal.open}
                 data={approvalModal.data}
                 canApprove={canApprove}
-                canEdit={isQACAdmin}
+                canEdit={canEdit}
                 onClose={() => setApprovalModal({ open: false, data: null })}
                 onApprove={handleApprove}
                 onEdit={(row) => setLabModal({ open: true, data: row })}
@@ -1823,7 +1823,7 @@ const Oil_COA: React.FC = () => {
                 open={coaDetailModal.open}
                 data={coaDetailModal.data}
                 canApprove={canApprove}
-                canEdit={isQACAdmin}
+                canEdit={canEdit}
                 onClose={() => setCoaDetailModal({ open: false, data: null })}
                 onApprove={handleApprove}
                 onEdit={(row) => setLabModal({ open: true, data: row })}
