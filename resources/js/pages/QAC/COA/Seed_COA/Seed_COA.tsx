@@ -1,8 +1,7 @@
 // resources/js/pages/QAC/COA/Seed_COA/Seed_COA.tsx
 import AppLayout from '@/layouts/app-layout';
 import React, { useEffect, useState } from 'react';
-import { router, usePage } from '@inertiajs/react';
-import { type SharedData } from '@/types';
+import { usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,27 +9,22 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-    DropdownMenuSub,
-    DropdownMenuSubTrigger,
-    DropdownMenuSubContent,
     DropdownMenuLabel,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 
 import {
-    Search, Filter, RefreshCw, Plus, Eye, Pencil, Trash2,
+    Search, Filter, RefreshCw, Eye, Pencil, Trash2,
     CheckCircle, XCircle, Clock, Calendar, User,
-    Activity, Gauge, Droplets, Beaker, Thermometer,
-    MoreVertical, History, AlertCircle, X, TrendingUp, TrendingDown, Minus,
-    ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Printer, FileDown, Sprout, FileText,
-    FlaskRound as Flask, Scale, Weight, Wind, Sun, Moon,
-    Factory, Building2, TruckIcon, Fuel, ThermometerSun, Droplet, GanttChartSquare,
-    CheckSquare, Square, AlertTriangle, Info, MoreHorizontal, Leaf, Package, Hash, Truck, ClipboardCheck, UserCheck, MapPin, Ban
+    Gauge, Droplets, Beaker, Thermometer,
+    X, TrendingUp, TrendingDown, Minus,
+    ArrowDown, ArrowUp, ChevronLeft, ChevronRight, Printer, FileDown, Sprout,
+    Fuel, Droplet, GanttChartSquare,
+    AlertTriangle, Info, MoreHorizontal, Package, Hash, Truck, ClipboardCheck, UserCheck, MapPin, Ban
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 import SharedLabModal, { SharedCOAData } from '../components/SharedLabModal';
-import VehicleCheckModal from '../../../MAR/PlanOrder/components/VehicleCheckModal';
 import { generateAndDownloadCoa, COAFields } from '../PDF/coaPdfGenerator';
 
 interface SeedCOAData {
@@ -58,8 +52,58 @@ interface SeedCOAData {
     coa_mgr?: string;  // เพิ่มฟิลด์ coa_mgr
     destination_name?: string; // เพิ่มฟิลด์ destination_name
     sop_status?: string; // เพิ่มฟิลด์ sop_status
-    sop_date_raw?: string;
 }
+
+interface SeedCOAPageProps {
+    auth?: {
+        user?: {
+            name?: string;
+            employee_id?: string | number;
+        };
+        employee_name?: string;
+        roles?: unknown[];
+        permissions?: unknown[];
+    };
+}
+
+type AccessEntry = string | { name?: string };
+
+interface PendingCOAItem {
+    SOPID: number;
+    SOPDate?: string;
+    GoodName?: string;
+    CustName?: string;
+    NumberCar?: string;
+    DriverName?: string;
+    ffa?: number | string;
+    m_i?: number | string;
+    iv?: number | string;
+    dobi?: number | string;
+    result_shell?: number | string;
+    result_kn_moisture?: number | string;
+    spec_shell?: string;
+    spec_kn_moisture?: string;
+    coa_tank?: string;
+    notes?: string;
+    coa_user_id?: string;
+    inspector?: string;
+    coa_mgr?: string;
+    Recipient?: string;
+    Status_coa?: SeedCOAData['status'];
+    Status?: string;
+    coa_date?: string;
+    coa_no?: string;
+    coa_lot?: string;
+}
+
+const getErrorMessage = (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+        const data = error.response?.data as { message?: string } | undefined;
+        return data?.message || error.message;
+    }
+
+    return error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ';
+};
 
 const STATUS_BADGE_WIDTH_CLASS = 'w-[120px] justify-center whitespace-nowrap';
 
@@ -273,47 +317,47 @@ const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove,
     const thS: React.CSSProperties = { padding: '6px 10px', border: '1px solid #10b981', fontWeight: 700, fontSize: '12px', color: '#fff' };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div className="relative flex h-full max-h-[95vh] w-full max-w-3xl flex-col rounded-2xl bg-white shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-2 backdrop-blur-sm sm:p-4">
+            <div className="relative flex h-full max-h-[96vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
 
                 {/* ── Header Bar ── */}
-                <div style={{ background: headerBg }} className="flex items-center justify-between px-6 py-3 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <ClipboardCheck className="w-5 h-5 text-white" />
-                        <div>
-                            <div className="text-base font-bold text-white">CERTIFICATE OF ANALYSIS</div>
-                            <div className="text-xs text-white/80">{statusLabel} — {data.coa_no}</div>
+                <div style={{ background: headerBg }} className="flex shrink-0 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <ClipboardCheck className="h-5 w-5 shrink-0 text-white" />
+                        <div className="min-w-0">
+                            <div className="text-sm font-bold text-white sm:text-base">CERTIFICATE OF ANALYSIS</div>
+                            <div className="truncate text-xs text-white/80">{statusLabel} — {data.coa_no}</div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-2 sm:justify-end">
                         {/* Print preview */}
-                        <button onClick={() => window.open(`/qac/coa/seed/${data.id}/print`, '_blank')} className="flex items-center gap-1 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-400 transition-colors">
+                        <button onClick={() => window.open(`/qac/coa/seed/${data.id}/print`, '_blank')} className="flex min-h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-400 sm:flex-none">
                             <Printer className="w-3.5 h-3.5" /> พิมพ์เอกสาร A4
                         </button>
-                        <button onClick={onClose} className="rounded-full bg-red-400 p-1.5 text-white hover:bg-red-600 transition-colors"><X className="w-4 h-4" /></button>
+                        <button onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-400 text-white transition-colors hover:bg-red-600"><X className="w-4 h-4" /></button>
                     </div>
                 </div>
 
                 {/* ── Scrollable Body ── */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4" style={{ fontFamily: "'THSarabunNew','Sarabun',sans-serif", fontSize: '14px' }}>
+                <div className="flex-1 space-y-4 overflow-y-auto p-3 sm:p-6" style={{ fontFamily: "'THSarabunNew','Sarabun',sans-serif", fontSize: '14px' }}>
 
                     {/* Doc Info */}
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                         {[['COA No.', data.coa_no, true], ['Lot No.', data.lot_no, false], ['วันที่', _formatThaiDate(data.created_at), false]].map(([l, v, h]) => (
                             <div key={String(l)} className="rounded-lg bg-slate-50 px-3 py-2">
                                 <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{String(l)}</div>
-                                <div className={`font-bold text-sm ${h ? 'text-emerald-700' : 'text-slate-800'}`}>{String(v)}</div>
+                                <div className={`break-words text-sm font-bold ${h ? 'text-emerald-700' : 'text-slate-800'}`}>{String(v)}</div>
                             </div>
                         ))}
                     </div>
 
                     {/* Customer/Product Info */}
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 sm:px-4">
+                        <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1.5">
                             {[['ลูกค้า', data.customer_name], ['สินค้า', data.product_name], ['ถัง Tank', data.coa_tank], ['ทะเบียน', data.license_plate], ['ปลายทาง', data.destination_name], ['คนขับ', data.driver_name]].map(([l, v]) => (
-                                <div key={String(l)} className="flex items-baseline gap-2">
-                                    <span className="text-slate-400 text-xs shrink-0 w-20">{String(l)}:</span>
-                                    <span className="font-semibold text-slate-800">{String(v) || '-'}</span>
+                                <div key={String(l)} className="grid grid-cols-[78px_minmax(0,1fr)] items-start gap-2 sm:flex sm:items-baseline">
+                                    <span className="shrink-0 text-xs text-slate-400 sm:w-20">{String(l)}:</span>
+                                    <span className="min-w-0 break-words font-semibold text-slate-800">{String(v) || '-'}</span>
                                 </div>
                             ))}
                         </div>
@@ -326,7 +370,8 @@ const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove,
                             <span className="text-sm font-bold text-emerald-700">ผลการวิเคราะห์ / Test Results</span>
                             <span className="ml-auto rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-600">{docType.toUpperCase()}</span>
                         </div>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                        <div className="overflow-x-auto">
+                        <table style={{ width: '100%', minWidth: '520px', borderCollapse: 'collapse', fontSize: '13px' }}>
                             <thead>
                                 <tr style={{ background: '#059669' }}>
                                     <th style={thS}>รายการ / Parameter</th>
@@ -355,6 +400,7 @@ const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove,
                                 })}
                             </tbody>
                         </table>
+                        </div>
                     </div>
 
                     {/* Notes */}
@@ -418,29 +464,24 @@ const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove,
 
 const Seed_COA: React.FC = () => {
     const [data, setData] = useState<SeedCOAData[]>([]);
-    const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [dateFilter, setDateFilter] = useState('');
+    const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
     const [currentPage, setCurrentPage] = useState(1);
     const [currentPageBottom, setCurrentPageBottom] = useState(1);
     const [labModal, setLabModal] = useState<{ open: boolean; data: SeedCOAData | null }>({ open: false, data: null });
-    const [truckModal, setTruckModal] = useState<{ open: boolean; data: SeedCOAData | null }>({ open: false, data: null });
     const [coaDetailModal, setCoaDetailModal] = useState<{ open: boolean; data: SeedCOAData | null }>({ open: false, data: null });
-    const [selectedRows, setSelectedRows] = useState<number[]>([]);
-    const [selectAll, setSelectAll] = useState(false);
     const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-    const [isInitialLoad, setIsInitialLoad] = useState(true);
-    const { auth } = usePage<any>().props;
+    const { auth } = usePage().props as unknown as SeedCOAPageProps;
     const currentUserName = auth?.employee_name || auth?.user?.name || '';
 
     // Authorization logic
     const normalizeAccessList = (items: unknown): string[] => {
         if (!Array.isArray(items)) return [];
         return items
-            .map((item: any) => (typeof item === 'string' ? item : item?.name))
-            .filter(Boolean)
-            .map((item: string) => item.toLowerCase());
+            .map((item: AccessEntry) => (typeof item === 'string' ? item : item.name))
+            .filter((item): item is string => Boolean(item))
+            .map((item) => item.toLowerCase());
     };
     const userRoles = normalizeAccessList(auth?.roles);
     const userPermissions = normalizeAccessList(auth?.permissions);
@@ -453,7 +494,6 @@ const Seed_COA: React.FC = () => {
     // QAC users may receive permissions without a matching role, so check both lists.
     const isQACAdmin = isDeveloper || hasAccess('QAC.Admin') || hasAccess('qac.admin') || hasAccess('qac_admin');
     const isQACUser = isQACAdmin || hasAccess('qac.view') || hasAccess('qac.edit') || hasAccess('qac.create') || hasAccess('qac.delete');
-    const canCreate = isQACAdmin || hasAccess('qac.create') || hasAccess('qac.edit');
     const canEdit = isQACAdmin || hasAccess('qac.edit');
     const canDelete = isQACAdmin || hasAccess('qac.delete');
     const canApprove = isQACAdmin;
@@ -507,7 +547,7 @@ const Seed_COA: React.FC = () => {
                     coa_mgr: 'ประภาพร เชื่อพระซอง' // บังคับใช้ชื่อนี้เสมอ
                 });
                 if (response.data.success) {
-                    fetchData();
+                    fetchData(dateFilter, filter);
                     Swal.fire({
                         icon: 'success',
                         title: 'อนุมัติสำเร็จ',
@@ -539,7 +579,7 @@ const Seed_COA: React.FC = () => {
         if (result.isConfirmed) {
             try {
                 await axios.delete(`/qac/coa/seed/${id}`);
-                fetchData();
+                fetchData(dateFilter, filter);
                 Swal.fire({
                     icon: 'success',
                     title: 'ลบข้อมูลสำเร็จ',
@@ -552,41 +592,6 @@ const Seed_COA: React.FC = () => {
                 console.error('Delete error:', error);
                 Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถลบข้อมูลได้', 'error');
             }
-        }
-    };
-
-    const handleGenerateCAR = async (order: any) => {
-        try {
-            const sopId = order.id || order.rawData?.sopId || order.orderNumber;
-            const pdfData: COAFields = {
-                po_no: sopId,
-                date: new Date().toLocaleDateString('th-TH'),
-                license_plate: order.license_plate || order.licensePlate || '-',
-                driver_name: order.driver_name || order.driverName || '-',
-                inspector: currentUserName || '-',
-                coa_user_id: auth?.user?.employee_id || '-',
-            };
-
-            // ดึงข้อมูล
-            try {
-                const res = await axios.get(`/mar/vehicle-inspections/${sopId}`);
-                if (res.data.success && res.data.data) {
-                    pdfData.vehicle_inspection = res.data.data;
-                }
-            } catch (e) { console.error('No vehicle inspection data found', e) }
-
-            await generateAndDownloadCoa(pdfData, 'car');
-            Swal.fire({
-                icon: 'success',
-                title: 'สร้าง CAR PDF สำเร็จ',
-                timer: 1500,
-                showConfirmButton: false,
-                toast: true,
-                position: 'top-end'
-            });
-        } catch (error) {
-            console.error('PDF Generation Error:', error);
-            Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถสร้าง PDF ได้', 'error');
         }
     };
 
@@ -633,10 +638,9 @@ const Seed_COA: React.FC = () => {
 
     const fetchData = async (date = '', keyword = '') => {
         try {
-            setLoading(true);
             const response = await axios.get(`/mar/plan-order/pending-coa?type=palm-kernel${date ? `&date=${date}` : ''}${keyword ? `&q=${keyword}` : ''}`);
             if (response.data.success && response.data.data) {
-                const mapped: SeedCOAData[] = response.data.data.map((s: any) => ({
+                const mapped: SeedCOAData[] = response.data.data.map((s: PendingCOAItem) => ({
                     id: s.SOPID,
                     coa_no: s.coa_no || '-',
                     lot_no: s.coa_lot || '-',
@@ -660,15 +664,12 @@ const Seed_COA: React.FC = () => {
                     destination_name: s.Recipient || '', // ดึงข้อมูลปลายทาง
                     status: s.Status_coa || (s.Status === 'p' ? 'processing' : 'pending'),
                     sop_status: s.Status,
-                    created_at: parseDateString(s.coa_date || s.SOPDate),
-                    sop_date_raw: (s.coa_date || s.SOPDate)?.split(' ')[0] || '',
+                    created_at: parseDateString(s.coa_date || s.SOPDate || ''),
                 }));
                 setData(mapped);
             }
         } catch (err) {
             console.error('Fetch error:', err);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -678,17 +679,6 @@ const Seed_COA: React.FC = () => {
         }, 500);
         return () => clearTimeout(timer);
     }, [dateFilter, filter]);
-
-    // ผลักดันให้แสดงวันที่ล่าสุดในครั้งแรกที่โหลดข้อมูลได้
-    useEffect(() => {
-        if (isInitialLoad && !dateFilter && data.length > 0) {
-            const latestDate = data[0].sop_date_raw;
-            if (latestDate) {
-                setDateFilter(latestDate);
-                setIsInitialLoad(false);
-            }
-        }
-    }, [data, isInitialLoad, dateFilter]);
 
     useEffect(() => {
         // ตรวจสอบ SOPID จาก URL เพื่อดึงข้อมูลอัตโนมัติ
@@ -730,18 +720,6 @@ const Seed_COA: React.FC = () => {
         }
     }, []);
 
-    const handleAddNew = () => {
-        const newData: SeedCOAData = {
-            id: Date.now(),
-            coa_no: '-',
-            lot_no: '-',
-            product_name: 'เมล็ดปาล์ม',
-            status: 'pending',
-            created_at: new Date().toISOString().split('T')[0],
-        };
-        setLabModal({ open: true, data: newData });
-    };
-
     // ฟังก์ชันบันทึกข้อมูลจาก Modal - แก้ไขให้ส่ง coa_tank, coa_user, coa_mgr ครบถ้วน
     const handleSaveLab = async (formData: Partial<SharedCOAData>) => {
         if (!labModal.data) return;
@@ -781,7 +759,7 @@ const Seed_COA: React.FC = () => {
 
             const res = response.data;
             if (res.success) {
-                await fetchData(dateFilter);
+                await fetchData(dateFilter, filter);
                 setLabModal({ open: false, data: null });
                 Swal.fire({
                     icon: 'success',
@@ -803,12 +781,12 @@ const Seed_COA: React.FC = () => {
                     confirmButtonColor: '#ef4444'
                 });
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Save error:', err);
             Swal.fire({
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
-                text: err.response?.data?.message || err.message,
+                text: getErrorMessage(err),
                 confirmButtonColor: '#ef4444'
             });
         }
@@ -829,7 +807,7 @@ const Seed_COA: React.FC = () => {
         if (result.isConfirmed) {
             try {
                 await axios.post('/qac/coa/cancel', { SOPID: id });
-                fetchData(dateFilter);
+                fetchData(dateFilter, filter);
                 Swal.fire({
                     icon: 'success',
                     title: 'ยกเลิกข้อมูลสำเร็จ',
@@ -906,7 +884,7 @@ const Seed_COA: React.FC = () => {
     };
 
     const ResultIcon = ({ type }: { type: string }) => {
-        const icons: Record<string, any> = {
+        const icons: Record<string, React.ComponentType<{ className?: string }>> = {
             ffa: Droplets,
             m_i: Beaker,
             iv: Thermometer,
@@ -926,68 +904,7 @@ const Seed_COA: React.FC = () => {
         return Icon ? <Icon className={`w-3 h-3 mr-1 ${colors[type]}`} /> : null;
     };
 
-    const handleSelectAll = (data: SeedCOAData[]) => {
-        if (selectAll) {
-            setSelectedRows([]);
-        } else {
-            setSelectedRows(data.map(item => item.id));
-        }
-        setSelectAll(!selectAll);
-    };
-
-    const handleSelectRow = (id: number) => {
-        if (selectedRows.includes(id)) {
-            setSelectedRows(selectedRows.filter(rowId => rowId !== id));
-            setSelectAll(false);
-        } else {
-            setSelectedRows([...selectedRows, id]);
-        }
-    };
-
-    const handleBulkApprove = async () => {
-        if (selectedRows.length === 0) return;
-
-        const result = await Swal.fire({
-            title: `ยืนยันการอนุมัติ ${selectedRows.length} รายการ?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#10b981',
-            cancelButtonColor: '#ef4444',
-            confirmButtonText: 'ยืนยัน',
-            cancelButtonText: 'ยกเลิก'
-        });
-
-        if (result.isConfirmed) {
-            try {
-                await Promise.all(selectedRows.map(id =>
-                    axios.post('/qac/coa/approve', {
-                        SOPID: id,
-                        coa_mgr: 'ประภาพร เชื่อพระซอง' // บังคับใช้ชื่อนี้เสมอ
-                    })
-                ));
-                fetchData(dateFilter);
-                setSelectedRows([]);
-                setSelectAll(false);
-                Swal.fire({
-                    icon: 'success',
-                    title: 'อนุมัติสำเร็จ',
-                    text: `อนุมัติ ${selectedRows.length} รายการเรียบร้อยแล้ว`,
-                    timer: 1500,
-                    showConfirmButton: false,
-                    position: 'top-end',
-                    toast: true
-                });
-            } catch (error) {
-                console.error('Bulk approve error:', error);
-                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถอนุมัติตามที่เลือกได้', 'error');
-            }
-        }
-    };
-
-    const getStatsCardClass = (color: string) =>
-        `group relative overflow-hidden rounded-xl p-4 transition-all hover:scale-105 hover:shadow-xl bg-gradient-to-br from-${color}-50 to-${color}-100 border border-${color}-200 cursor-pointer`;
-
-    const TableRow = ({ row, index, page, color, showResults = true, showActions = true }: { row: SeedCOAData; index: number; page: number; color: string; showResults: boolean; showActions?: boolean }) => (
+    const TableRow = ({ row, index, page, showResults = true, showActions = true }: { row: SeedCOAData; index: number; page: number; showResults: boolean; showActions?: boolean }) => (
         <tr className="group border-b border-slate-100 transition-colors hover:bg-slate-50/80">
             <td className="w-[56px] px-3 py-3 text-center align-middle">
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
@@ -1251,15 +1168,29 @@ const Seed_COA: React.FC = () => {
             setActionMenuOpen(false);
             action();
         };
+        const handleStatusClick = () => {
+            if (row.status === 'pending' || row.status === 'processing') {
+                if (canEditRow(row)) {
+                    setLabModal({ open: true, data: row });
+                }
+                return;
+            }
+
+            setCoaDetailModal({ open: true, data: row });
+        };
 
         return (
             <div className="group relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-slate-300">
                 {/* Status Badge - Top Right */}
                 <div className="absolute top-4 right-4">
-                    <div className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border ${STATUS_BADGE_WIDTH_CLASS} ${config.bg} ${config.border} ${config.text}`}>
+                    <button
+                        type="button"
+                        onClick={handleStatusClick}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border ${STATUS_BADGE_WIDTH_CLASS} ${config.bg} ${config.border} ${config.text} ${canEditRow(row) || !['pending', 'processing'].includes(row.status) ? 'cursor-pointer hover:bg-white' : 'cursor-default'}`}
+                    >
                         <Icon className="w-3.5 h-3.5" />
                         {config.label}
-                    </div>
+                    </button>
                 </div>
 
                 {/* Header Section */}
@@ -1338,7 +1269,7 @@ const Seed_COA: React.FC = () => {
                         </button>
 
                         {actionMenuOpen && (
-                            <div className="absolute right-0 z-50 mt-2 w-56 origin-top-right divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10">
+                            <div className="fixed inset-x-3 bottom-3 z-50 max-h-[70vh] w-auto divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl shadow-slate-900/20 sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:mt-2 sm:max-h-[70vh] sm:w-56 sm:origin-top-right sm:shadow-xl sm:shadow-slate-900/10">
                                 <div className="py-1">
                                     <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                                         จัดการรายการ
@@ -1369,6 +1300,25 @@ const Seed_COA: React.FC = () => {
 
                                 <div className="py-1">
                                     <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                        การตรวจสอบ
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => runAction(() => window.open(`/qac/coa/seed/${row.id}/vehicle-print`, '_blank'))}
+                                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 focus:bg-blue-50 focus:text-blue-700 focus:outline-none"
+                                    >
+                                        <span className="rounded-md bg-blue-100 p-1.5">
+                                            <Printer className="h-4 w-4 text-blue-600" />
+                                        </span>
+                                        <span className="flex flex-col">
+                                            <span className="font-medium">แบบฟอร์มตรวจรถ</span>
+                                            <span className="text-xs text-slate-400">FM-QAC-67-0029</span>
+                                        </span>
+                                    </button>
+                                </div>
+
+                                <div className="py-1">
+                                    <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                                         ดาวน์โหลดเอกสาร
                                     </div>
                                     <button
@@ -1392,6 +1342,20 @@ const Seed_COA: React.FC = () => {
                                             <FileDown className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-emerald-600' : 'text-slate-400'}`} />
                                         </span>
                                         <span className="font-medium">COA MUN</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={(row as SeedCOAData).status !== 'A'}
+                                        onClick={() => runAction(() => window.open(`/qac/coa/seed/${row.id}/print`, '_blank'))}
+                                        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm ${(row as SeedCOAData).status === 'A' ? 'text-slate-700 hover:bg-slate-50 hover:text-slate-800 focus:bg-slate-50 focus:text-slate-800' : 'cursor-not-allowed opacity-40 text-slate-400'} focus:outline-none`}
+                                    >
+                                        <span className="rounded-md bg-slate-100 p-1.5">
+                                            <Printer className={`h-4 w-4 ${(row as SeedCOAData).status === 'A' ? 'text-slate-600' : 'text-slate-400'}`} />
+                                        </span>
+                                        <span className="flex flex-col">
+                                            <span className="font-medium">พิมพ์เอกสาร</span>
+                                            <span className="text-xs text-slate-400">{(row as SeedCOAData).status === 'A' ? 'แสดง A4 Preview ก่อนพิมพ์' : 'ต้องอนุมัติก่อน'}</span>
+                                        </span>
                                     </button>
                                 </div>
 
@@ -1435,8 +1399,8 @@ const Seed_COA: React.FC = () => {
 
         return (
             <div className="mb-6">
-                <div className="mb-3 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
+                <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <div className="flex flex-wrap items-center gap-3">
                         <div className={`rounded-lg p-2 ${sectionStyle.icon}`}>
                             {icon}
                         </div>
@@ -1447,7 +1411,7 @@ const Seed_COA: React.FC = () => {
                             {data.length} รายการ
                         </span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-between gap-3 sm:justify-end">
                         <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
                             <button
                                 title="มุมมองตาราง"
@@ -1475,42 +1439,61 @@ const Seed_COA: React.FC = () => {
                 </div>
 
                 {expanded[title === 'รายการรอตรวจสอบ' ? 'processing' : 'others'] && (
-                    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                         {viewMode === 'table' ? (
-                            <div className="w-full overflow-visible">
-                                <table className="w-full min-w-[1080px] table-fixed divide-y divide-slate-200">
-                                    <thead className={`${sectionStyle.header} sticky top-0 z-[1]`}>
-                                        <tr>
-                                            <th className="w-[56px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">#</th>
-                                            <th className="w-[140px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">COA / วันที่</th>
-                                            <th className="w-[180px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Lot / สินค้า</th>
-                                            <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">ลูกค้า / ปลายทาง</th>
-                                            <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">รถ / คนขับ</th>
-                                            {showResults && <th className="w-[200px] border-x border-emerald-100 bg-emerald-100/40 px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-600">ผลตรวจ</th>}
-                                            <th className="w-[140px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">สถานะ</th>
-                                            {showResults && <th className="w-[76px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">จัดการ</th>}
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100 bg-white">
-                                        {pageData.length > 0 ? (
-                                            pageData.map((row, i) => <TableRow key={row.id} row={row} index={i} page={page} color={color} showResults={showResults} showActions={showResults} />)
-                                        ) : (
+                            <>
+                                <div className="block p-3 md:hidden">
+                                    {pageData.length > 0 ? (
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {pageData.map((row) => (
+                                                <GridCard key={row.id} row={row} />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-10">
+                                            <div className="mb-3 rounded-full bg-gray-50 p-4">
+                                                <Package className="h-10 w-10 text-gray-400" />
+                                            </div>
+                                            <h3 className="mb-1 text-base font-medium text-gray-900">ไม่พบข้อมูล</h3>
+                                            <p className="text-sm text-gray-500">ยังไม่มีรายการในสถานะนี้</p>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="hidden w-full overflow-x-auto md:block">
+                                    <table className="w-full min-w-[1080px] table-fixed divide-y divide-slate-200">
+                                        <thead className={`${sectionStyle.header} sticky top-0 z-[1]`}>
                                             <tr>
-                                                <td colSpan={showResults ? 8 : 6} className="px-4 py-8 text-center">
-                                                    <div className="flex flex-col items-center justify-center">
-                                                        <div className="p-3 rounded-xl mb-2 bg-gray-100">
-                                                            <FileDown className="w-8 h-8 text-gray-400" />
-                                                        </div>
-                                                        <p className="text-sm text-gray-500">ไม่มีข้อมูล</p>
-                                                    </div>
-                                                </td>
+                                                <th className="w-[56px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">#</th>
+                                                <th className="w-[140px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">COA / วันที่</th>
+                                                <th className="w-[180px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Lot / สินค้า</th>
+                                                <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">ลูกค้า / ปลายทาง</th>
+                                                <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">รถ / คนขับ</th>
+                                                {showResults && <th className="w-[200px] border-x border-emerald-100 bg-emerald-100/40 px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-600">ผลตรวจ</th>}
+                                                <th className="w-[140px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">สถานะ</th>
+                                                {showResults && <th className="w-[76px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">จัดการ</th>}
                                             </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 bg-white">
+                                            {pageData.length > 0 ? (
+                                                pageData.map((row, i) => <TableRow key={row.id} row={row} index={i} page={page} showResults={showResults} showActions={showResults} />)
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={showResults ? 8 : 6} className="px-4 py-8 text-center">
+                                                        <div className="flex flex-col items-center justify-center">
+                                                            <div className="p-3 rounded-xl mb-2 bg-gray-100">
+                                                                <FileDown className="w-8 h-8 text-gray-400" />
+                                                            </div>
+                                                            <p className="text-sm text-gray-500">ไม่มีข้อมูล</p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
                         ) : (
-                            <div className="p-6">
+                            <div className="p-3 sm:p-6">
                                 {pageData.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                         {pageData.map((row) => (
@@ -1582,7 +1565,7 @@ const Seed_COA: React.FC = () => {
                                 </div>
                                 <div>
                                     <h1 className="bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-2xl font-black tracking-tight text-transparent drop-shadow-sm">
-                                        Seed COA Management
+                                        Kernel COA Management
                                     </h1>
                                     <div className="mt-1 flex items-center gap-2">
                                         <span className="flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
@@ -1645,7 +1628,7 @@ const Seed_COA: React.FC = () => {
                 </div>
 
                 {/* Main Content */}
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                     {isQACUser ? (
                         <>
                             {/* Recent Records Info Label */}
@@ -1741,7 +1724,7 @@ const Seed_COA: React.FC = () => {
             <SharedLabModal
                 isOpen={labModal.open}
                 onClose={() => setLabModal({ open: false, data: null })}
-                data={labModal.data as any}
+                data={labModal.data}
                 type="seed"
                 onSave={handleSaveLab}
             />
@@ -1754,20 +1737,6 @@ const Seed_COA: React.FC = () => {
                 onClose={() => setCoaDetailModal({ open: false, data: null })}
                 onApprove={handleApprove}
                 onEdit={(row) => setLabModal({ open: true, data: row })}
-            />
-
-            <VehicleCheckModal
-                isOpen={truckModal.open}
-                onClose={() => setTruckModal({ open: false, data: null })}
-                order={truckModal.data}
-                onGenerateCAR={handleGenerateCAR}
-                autoDownload={false}
-                customLabels={[
-                    { id: 'is_clean', label: '1. พื้นกะบะสะอาด / ไม่ชื้น' },
-                    { id: 'is_covered', label: '2. ไม่มีการปนเปื้อนยางรวมในกะบะบรรทุกสินค้า' },
-                    { id: 'is_no_smell', label: '3. ไม่มีการปนเปื้อนนายิสในกะบะบรรทุกสินค้า' },
-                    { id: 'is_doc_valid', label: '4. ไม่มีสิ่งอื่นใดในท้ายกะบะบรรทุกสินค้า' },
-                ]}
             />
 
             {/* Global Styles */}

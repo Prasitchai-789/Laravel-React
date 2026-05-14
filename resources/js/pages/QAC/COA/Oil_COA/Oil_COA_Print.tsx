@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import React, { useEffect, useState } from 'react';
 import { usePage } from '@inertiajs/react';
-import { Printer, ArrowLeft } from 'lucide-react';
+import { Printer } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface D {
@@ -12,6 +12,10 @@ interface D {
     spec_ffa?: string; spec_moisture?: string; spec_iv?: string; spec_dobi?: string;
     notes?: string; coa_user?: string; coa_mgr?: string; inspector?: string;
     coa_user_id?: string; created_at?: string;
+}
+
+interface PrintPageProps {
+    sopid?: string | number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -65,7 +69,7 @@ const LabelRow = ({ label, value }: { label: string; value: string }) => (
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const Oil_COA_Print: React.FC = () => {
-    const { sopid } = usePage<any>().props;
+    const { sopid } = usePage().props as unknown as PrintPageProps;
     const [data, setData] = useState<D | null>(null);
     const [loading, setLoading] = useState(true);
     const [docType, setDocType] = useState<'isp'|'mun'>('isp');
@@ -110,8 +114,6 @@ const Oil_COA_Print: React.FC = () => {
     const base = typeof window !== 'undefined' ? window.location.origin : '';
     const inspSig = docType === 'mun' ? `${base}/images/signature/fan.png`   : (data ? sigPath(data.coa_user_id || data.coa_user || data.inspector) : '');
     const mgrSig  = docType === 'mun' ? `${base}/images/signature/peach.png` : `${base}/images/signature/prapaporn.png`;
-    const inspName = docType === 'mun' ? '' : (data?.coa_user || data?.inspector || '-');
-    const mgrName  = docType === 'mun' ? '' : (data?.coa_mgr  || 'ประภาพร เชื่อพระซอง');
     const date    = thaiDate(data?.created_at);
 
     const P: React.CSSProperties = { fontFamily: "'THSarabunNew','Sarabun','TH Sarabun New',sans-serif" };
@@ -120,7 +122,7 @@ const Oil_COA_Print: React.FC = () => {
     return (
         <AppLayout>
             {/* ── Toolbar ── */}
-            <div className="no-print sticky top-0 z-20 flex items-center gap-3 border-b bg-white px-6 py-3 shadow-sm">
+            <div className="no-print sticky top-0 z-20 flex flex-wrap items-center gap-3 border-b bg-white px-3 py-3 shadow-sm sm:px-6">
                 <div className="flex items-center gap-1 rounded-lg border bg-slate-50 p-1">
                     {(['isp','mun'] as const).map(t => (
                         <button key={t} onClick={() => setDocType(t)}
@@ -130,13 +132,13 @@ const Oil_COA_Print: React.FC = () => {
                     ))}
                 </div>
                 <span className="text-sm text-slate-500">{docType==='isp'?'มาตรฐาน ISP — แสดง Specification':'มาตรฐาน MUN — ไม่แสดง Specification'}</span>
-                <button onClick={() => window.print()} className="ml-auto flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">
+                <button onClick={() => window.print()} className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 sm:ml-auto sm:w-auto">
                     <Printer className="w-4 h-4" /> พิมพ์เอกสาร
                 </button>
             </div>
 
             {/* ── Page wrapper ── */}
-            <div className="min-h-screen bg-slate-200 py-8 flex justify-center print:bg-white print:py-0">
+            <div className="coa-preview-wrapper min-h-screen bg-slate-200 py-8 flex justify-center print:bg-white print:py-0">
                 {loading && <p className="mt-20 text-slate-500 animate-pulse">กำลังโหลด...</p>}
                 {error   && <p className="mt-20 text-rose-600">{error}</p>}
 
@@ -249,9 +251,9 @@ const Oil_COA_Print: React.FC = () => {
                             <tbody>
                                 <tr>
                                     {[
-                                        { label: 'Reported by:', sig: inspSig, title: 'Chief Quality Control', name: inspName },
-                                        { label: 'Approved by:', sig: mgrSig,  title: 'Manager',              name: mgrName },
-                                    ].map(({ label, sig, title, name }) => (
+                                        { label: 'Reported by:', sig: inspSig, title: 'Chief Quality Control' },
+                                        { label: 'Approved by:', sig: mgrSig,  title: 'Manager' },
+                                    ].map(({ label, sig, title }) => (
                                         <td key={label} style={{ width: '50%', textAlign: 'center', verticalAlign: 'bottom', paddingTop: '8mm' }}>
                                             <div style={{ textAlign: 'left', paddingLeft: '8mm', display: 'flex', alignItems: 'flex-end', gap: '6mm' }}>
                                                 <span style={{ height: '16mm', maxWidth: '40mm', objectFit: 'contain', paddingTop: '2mm' }}>{label} </span>
@@ -298,6 +300,19 @@ const Oil_COA_Print: React.FC = () => {
 
             {/* ── Print CSS ── */}
             <style>{`
+                @media screen and (max-width: 900px) {
+                    .coa-preview-wrapper {
+                        align-items: flex-start;
+                        overflow-x: hidden;
+                        padding: 12px 0 24px !important;
+                    }
+
+                    #coa-paper {
+                        transform: scale(min(1, calc((100vw - 24px) / 794)));
+                        transform-origin: top center;
+                    }
+                }
+
                 @media print {
                     @page { size: A4; margin: 0; }
 
@@ -328,6 +343,7 @@ const Oil_COA_Print: React.FC = () => {
                         box-shadow: none !important;
                         background: white !important;
                         box-sizing: border-box !important;
+                        transform: none !important;
                     }
                 }
             `}</style>

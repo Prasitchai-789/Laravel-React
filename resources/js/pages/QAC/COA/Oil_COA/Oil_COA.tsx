@@ -1,8 +1,7 @@
 // resources/js/pages/QAC/COA/Oil_COA/Oil.COA.tsx
 import AppLayout from '@/layouts/app-layout';
 import React, { useEffect, useRef, useState } from 'react';
-import { router, usePage } from '@inertiajs/react';
-import { type SharedData } from '@/types';
+import { usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,13 +14,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import {
-    Search, Filter, RefreshCw, Plus, Eye, Pencil, Trash2,
+    Search, Filter, RefreshCw, Eye, Pencil, Trash2,
     CheckCircle, XCircle, Clock, Calendar, Truck, User, Package, Hash,
     FlaskConical, Activity, Gauge, Droplets, Beaker, Thermometer,
-    MoreVertical, History, AlertCircle, X, TrendingUp, TrendingDown, Minus,
+    History, X, Minus,
     ArrowDown, ChevronLeft, ChevronRight, Printer, FileDown, ArrowUp, MoreHorizontal,
-    GanttChartSquare, Leaf, Fuel, Info, UserCheck, ClipboardCheck,
-    FileText, Download, Ban, RotateCcw, MapPin
+    GanttChartSquare, Droplet, Fuel, Info, UserCheck, ClipboardCheck,
+    Ban, MapPin
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -55,6 +54,57 @@ interface OilCOAData {
     coa_mgr?: string;
 }
 
+interface OilCOAPageProps {
+    auth?: {
+        user?: {
+            name?: string;
+            employee_id?: string | number;
+        };
+        employee_name?: string;
+        roles?: unknown[];
+        permissions?: unknown[];
+    };
+}
+
+type AccessEntry = string | { name?: string };
+
+interface PendingCOAItem {
+    SOPID: number;
+    SOPDate?: string;
+    GoodName?: string;
+    CustName?: string;
+    NumberCar?: string;
+    DriverName?: string;
+    ffa?: number | string;
+    m_i?: number | string;
+    iv?: number | string;
+    dobi?: number | string;
+    spec_ffa?: string;
+    spec_moisture?: string;
+    spec_iv?: string;
+    spec_dobi?: string;
+    coa_tank?: string;
+    notes?: string;
+    coa_user_id?: string;
+    inspector?: string;
+    coa_mgr?: string;
+    Recipient?: string;
+    Status_coa?: OilCOAData['status'];
+    Status?: string;
+    coa_date?: string;
+    coa_no?: string;
+    coa_lot?: string;
+}
+
+const getErrorMessage = (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+        const data = error.response?.data as { message?: string } | undefined;
+        return data?.message || error.message;
+    }
+
+    return error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ';
+};
+
 const STATUS_CONFIG = {
     pending: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: Clock, label: 'รอตรวจสอบ' },
     processing: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', icon: RefreshCw, label: 'กำลังดำเนินการ' },
@@ -84,15 +134,6 @@ const STATS_CARDS = [
     { label: 'อนุมัติ', color: 'emerald', filter: 'A', icon: CheckCircle },
     { label: 'ยกเลิก', color: 'slate', filter: 'C', icon: XCircle },
 ];
-
-const STAT_CARD_STYLES: Record<string, { card: string; text: string; icon: string; value: string }> = {
-    blue: { card: 'border-blue-100 bg-blue-50/70 hover:border-blue-200', text: 'text-blue-700', icon: 'bg-blue-100 text-blue-700', value: 'text-blue-900' },
-    amber: { card: 'border-amber-100 bg-amber-50/70 hover:border-amber-200', text: 'text-amber-700', icon: 'bg-amber-100 text-amber-700', value: 'text-amber-900' },
-    sky: { card: 'border-sky-100 bg-sky-50/70 hover:border-sky-200', text: 'text-sky-700', icon: 'bg-sky-100 text-sky-700', value: 'text-sky-900' },
-    violet: { card: 'border-violet-100 bg-violet-50/70 hover:border-violet-200', text: 'text-violet-700', icon: 'bg-violet-100 text-violet-700', value: 'text-violet-900' },
-    emerald: { card: 'border-emerald-100 bg-emerald-50/70 hover:border-emerald-200', text: 'text-emerald-700', icon: 'bg-emerald-100 text-emerald-700', value: 'text-emerald-900' },
-    slate: { card: 'border-slate-200 bg-slate-50 hover:border-slate-300', text: 'text-slate-600', icon: 'bg-slate-200 text-slate-700', value: 'text-slate-900' },
-};
 
 const SECTION_STYLES: Record<string, { icon: string; badge: string; header: string }> = {
     sky: { icon: 'bg-sky-100 text-sky-700', badge: 'bg-sky-50 text-sky-700', header: 'bg-sky-50' },
@@ -243,47 +284,47 @@ const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove,
     const thS: React.CSSProperties = { padding: '6px 10px', border: '1px solid #1d4ed8', fontWeight: 700, fontSize: '12px', color: '#fff' };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div className="relative flex h-full max-h-[95vh] w-full max-w-3xl flex-col rounded-2xl bg-white shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 backdrop-blur-sm sm:p-4">
+            <div className="relative flex h-full max-h-[96vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
 
                 {/* ── Header Bar ── */}
-                <div style={{ background: headerBg }} className="flex items-center justify-between px-6 py-3 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <ClipboardCheck className="w-5 h-5 text-white" />
-                        <div>
-                            <div className="text-base font-bold text-white">CERTIFICATE OF ANALYSIS</div>
-                            <div className="text-xs text-white/80">{statusLabel} — {data.coa_no}</div>
+                <div style={{ background: headerBg }} className="flex shrink-0 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <ClipboardCheck className="h-5 w-5 shrink-0 text-white" />
+                        <div className="min-w-0">
+                            <div className="text-sm font-bold text-white sm:text-base">CERTIFICATE OF ANALYSIS</div>
+                            <div className="truncate text-xs text-white/80">{statusLabel} — {data.coa_no}</div>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-2 sm:justify-end">
                         {/* Print preview */}
-                        <button onClick={() => window.open(`/qac/coa/oil/${data.id}/print`, '_blank')} className="flex items-center gap-1 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-400 transition-colors">
+                        <button onClick={() => window.open(`/qac/coa/oil/${data.id}/print`, '_blank')} className="flex min-h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-400 sm:flex-none">
                             <Printer className="w-3.5 h-3.5" /> พิมพ์เอกสาร A4
                         </button>
-                        <button onClick={onClose} className="rounded-full bg-red-400 p-1.5 text-white hover:bg-red-600 transition-colors"><X className="w-4 h-4" /></button>
+                        <button onClick={onClose} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-400 text-white transition-colors hover:bg-red-600"><X className="w-4 h-4" /></button>
                     </div>
                 </div>
 
                 {/* ── Scrollable Body ── */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4" style={{ fontFamily: "'THSarabunNew','Sarabun',sans-serif", fontSize: '14px' }}>
+                <div className="flex-1 space-y-4 overflow-y-auto p-3 sm:p-6" style={{ fontFamily: "'THSarabunNew','Sarabun',sans-serif", fontSize: '14px' }}>
 
                     {/* Doc Info */}
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                         {[['COA No.', data.coa_no, true], ['Lot No.', data.lot_no, false], ['วันที่', _formatThaiDate(data.created_at), false]].map(([l, v, h]) => (
                             <div key={String(l)} className="rounded-lg bg-slate-50 px-3 py-2">
                                 <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{String(l)}</div>
-                                <div className={`font-bold text-sm ${h ? 'text-blue-700' : 'text-slate-800'}`}>{String(v)}</div>
+                                <div className={`break-words text-sm font-bold ${h ? 'text-blue-700' : 'text-slate-800'}`}>{String(v)}</div>
                             </div>
                         ))}
                     </div>
 
                     {/* Customer/Product Info */}
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 sm:px-4">
+                        <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 sm:gap-x-6 sm:gap-y-1.5">
                             {[['\u0e25\u0e39\u0e01\u0e04\u0e49\u0e32', data.customer_name], ['\u0e2a\u0e34\u0e19\u0e04\u0e49\u0e32', data.product_name], ['\u0e16\u0e31\u0e07 Tank', data.coa_tank], ['\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19', data.license_plate], ['\u0e1b\u0e25\u0e32\u0e22\u0e17\u0e32\u0e07', data.destination_name], ['\u0e04\u0e19\u0e02\u0e31\u0e1a', data.driver_name]].map(([l, v]) => (
-                                <div key={String(l)} className="flex items-baseline gap-2">
-                                    <span className="text-slate-400 text-xs shrink-0 w-20">{String(l)}:</span>
-                                    <span className="font-semibold text-slate-800">{String(v) || '-'}</span>
+                                <div key={String(l)} className="grid grid-cols-[78px_minmax(0,1fr)] items-start gap-2 sm:flex sm:items-baseline">
+                                    <span className="shrink-0 text-xs text-slate-400 sm:w-20">{String(l)}:</span>
+                                    <span className="min-w-0 break-words font-semibold text-slate-800">{String(v) || '-'}</span>
                                 </div>
                             ))}
                         </div>
@@ -296,7 +337,8 @@ const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove,
                             <span className="text-sm font-bold text-blue-700">ผลการวิเคราะห์ / Test Results</span>
                             <span className="ml-auto rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-600">{docType.toUpperCase()}</span>
                         </div>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                        <div className="overflow-x-auto">
+                        <table style={{ width: '100%', minWidth: '520px', borderCollapse: 'collapse', fontSize: '13px' }}>
                             <thead>
                                 <tr style={{ background: '#1d4ed8' }}>
                                     <th style={thS}>รายการ / Parameter</th>
@@ -325,6 +367,7 @@ const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove,
                                 })}
                             </tbody>
                         </table>
+                        </div>
                     </div>
 
                     {/* Notes */}
@@ -460,7 +503,7 @@ const ApprovalModal: React.FC<ApprovalModalProps> = ({ open, data, canApprove, c
                         <_InfoRow icon={<Calendar className="w-3.5 h-3.5 text-slate-400" />}  label="วันที่"     value={formatDisplayDate(data.created_at)} />
                         <_InfoRow icon={<Package className="w-3.5 h-3.5 text-green-500" />}   label="Lot No."   value={data.lot_no} />
                         <_InfoRow icon={<Fuel className="w-3.5 h-3.5 text-orange-500" />}     label="Tank"      value={data.coa_tank || '-'} />
-                        <_InfoRow icon={<Leaf className="w-3.5 h-3.5 text-green-600" />}      label="สินค้า"    value={data.product_name} />
+                        <_InfoRow icon={<Droplet className="w-3.5 h-3.5 text-amber-600" />}    label="สินค้า"    value={data.product_name} />
                         <_InfoRow icon={<UserCheck className="w-3.5 h-3.5 text-blue-500" />}  label="ลูกค้า"    value={data.customer_name || '-'} />
                         <_InfoRow icon={<Truck className="w-3.5 h-3.5 text-slate-400" />}     label="ทะเบียน"   value={data.license_plate || '-'} />
                         <_InfoRow icon={<User className="w-3.5 h-3.5 text-slate-400" />}      label="คนขับ"     value={data.driver_name || '-'} />
@@ -584,14 +627,14 @@ const Oil_COA: React.FC = () => {
     const [approvalModal, setApprovalModal] = useState<{ open: boolean; data: OilCOAData | null }>({ open: false, data: null });
     const [coaDetailModal, setCoaDetailModal] = useState<{ open: boolean; data: OilCOAData | null }>({ open: false, data: null });
 
-    const { auth } = usePage<any>().props;
+    const { auth } = usePage().props as unknown as OilCOAPageProps;
     const currentUserName = auth?.employee_name || auth?.user?.name || '';
     const normalizeAccessList = (items: unknown): string[] => {
         if (!Array.isArray(items)) return [];
         return items
-            .map((item: any) => (typeof item === 'string' ? item : item?.name))
-            .filter(Boolean)
-            .map((item: string) => item.toLowerCase());
+            .map((item: AccessEntry) => (typeof item === 'string' ? item : item.name))
+            .filter((item): item is string => Boolean(item))
+            .map((item) => item.toLowerCase());
     };
     const userRoles = normalizeAccessList(auth?.roles);
     const userPermissions = normalizeAccessList(auth?.permissions);
@@ -617,7 +660,7 @@ const Oil_COA: React.FC = () => {
             setLoading(true);
             const response = await axios.get(`/mar/plan-order/pending-coa?type=cpo${date ? `&date=${date}` : ''}${keyword ? `&q=${keyword}` : ''}`);
             if (response.data.success && response.data.data) {
-                const mapped: OilCOAData[] = response.data.data.map((s: any) => ({
+                const mapped: OilCOAData[] = response.data.data.map((s: PendingCOAItem) => ({
                     id: s.SOPID,
                     coa_no: s.coa_no || '-',
                     lot_no: s.coa_lot || '-',
@@ -641,7 +684,7 @@ const Oil_COA: React.FC = () => {
                     coa_mgr: s.coa_mgr,
                     status: s.Status_coa || (s.Status === 'p' ? 'processing' : 'pending'),
                     sop_status: mapSOPlanStatus(s.Status),
-                    created_at: parseDateString(s.coa_date || s.SOPDate),
+                    created_at: parseDateString(s.coa_date || s.SOPDate || ''),
                 }));
                 setData(mapped);
             }
@@ -786,7 +829,7 @@ const Oil_COA: React.FC = () => {
             });
             const res = response.data;
             if (res.success) {
-                fetchData();
+                fetchData(dateFilter, filter);
                 setLabModal({ open: false, data: null });
                 Swal.fire({
                     icon: 'success',
@@ -808,12 +851,12 @@ const Oil_COA: React.FC = () => {
                     confirmButtonColor: '#ef4444'
                 });
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Save error:', err);
             Swal.fire({
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
-                text: err.response?.data?.message || err.message,
+                text: getErrorMessage(err),
                 confirmButtonColor: '#ef4444'
             });
         }
@@ -901,7 +944,7 @@ const Oil_COA: React.FC = () => {
             try {
                 const response = await axios.post('/qac/coa/approve', { SOPID: row.id, coa_mgr: currentUserName });
                 if (response.data.success) {
-                    fetchData();
+                    fetchData(dateFilter, filter);
                     Swal.fire({
                         icon: 'success',
                         title: 'อนุมัติสำเร็จ',
@@ -933,7 +976,7 @@ const Oil_COA: React.FC = () => {
         if (result.isConfirmed) {
             try {
                 await axios.post('/qac/coa/cancel', { SOPID: id });
-                fetchData();
+                fetchData(dateFilter, filter);
                 Swal.fire({
                     icon: 'success',
                     title: 'ยกเลิกข้อมูลสำเร็จ',
@@ -964,7 +1007,7 @@ const Oil_COA: React.FC = () => {
         if (result.isConfirmed) {
             try {
                 await axios.delete(`/qac/coa/oil/${id}`);
-                fetchData();
+                fetchData(dateFilter, filter);
                 Swal.fire({
                     icon: 'success',
                     title: 'ลบข้อมูลสำเร็จ',
@@ -1020,8 +1063,8 @@ const Oil_COA: React.FC = () => {
             } else {
                 Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: response.data.message, confirmButtonColor: '#ef4444' });
             }
-        } catch (err: any) {
-            Swal.fire('เกิดข้อผิดพลาด', err.response?.data?.message || err.message, 'error');
+        } catch (err: unknown) {
+            Swal.fire('เกิดข้อผิดพลาด', getErrorMessage(err), 'error');
         }
     };
 
@@ -1030,12 +1073,7 @@ const Oil_COA: React.FC = () => {
         return data.filter(item => item.status === status).length;
     };
 
-    const getStatsCardClass = (color: string) => {
-        const styles = STAT_CARD_STYLES[color] || STAT_CARD_STYLES.blue;
-        return `rounded-lg border p-3 shadow-sm transition-colors hover:bg-white ${styles.card}`;
-    };
-
-    const TableRow = ({ row, index, page, color, showResults = true, showActions = true }: { row: OilCOAData; index: number; page: number; color: string; showResults: boolean; showActions?: boolean }) => (
+    const TableRow = ({ row, index, page, showResults = true, showActions = true }: { row: OilCOAData; index: number; page: number; showResults: boolean; showActions?: boolean }) => (
         <tr className="group border-b border-slate-100 transition-colors hover:bg-slate-50/80">
             <td className="w-[56px] px-3 py-3 text-center align-middle">
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
@@ -1057,7 +1095,7 @@ const Oil_COA: React.FC = () => {
                 <div className="flex min-w-0 flex-col gap-1">
                     <span className="truncate text-sm font-semibold text-slate-900">{row.lot_no}</span>
                     <span className="flex max-w-[220px] items-center gap-1.5 truncate text-xs font-medium text-slate-500">
-                        <Leaf className="h-3.5 w-3.5 shrink-0 text-green-600" />
+                        <Droplet className="h-3.5 w-3.5 shrink-0 text-amber-600" />
                         {row.product_name}
                     </span>
                 </div>
@@ -1284,15 +1322,29 @@ const Oil_COA: React.FC = () => {
             setActionMenuOpen(false);
             action();
         };
+        const handleStatusClick = () => {
+            if (row.status === 'pending' || row.status === 'processing') {
+                if (canEditRow(row)) {
+                    setLabModal({ open: true, data: row });
+                }
+                return;
+            }
+
+            setCoaDetailModal({ open: true, data: row });
+        };
 
         return (
             <div className="group relative rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-slate-300">
                 {/* Status Badge - Top Right */}
                 <div className="absolute top-4 right-4">
-                    <div className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border ${STATUS_BADGE_WIDTH_CLASS} ${config.bg} ${config.border} ${config.text}`}>
+                    <button
+                        type="button"
+                        onClick={handleStatusClick}
+                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border ${STATUS_BADGE_WIDTH_CLASS} ${config.bg} ${config.border} ${config.text} ${canEditRow(row) || !['pending', 'processing'].includes(row.status) ? 'cursor-pointer hover:bg-white' : 'cursor-default'}`}
+                    >
                         <Icon className="w-3.5 h-3.5" />
                         {config.label}
-                    </div>
+                    </button>
                 </div>
 
                 {/* Header Section */}
@@ -1328,7 +1380,7 @@ const Oil_COA: React.FC = () => {
 
                 <div className="space-y-2 mb-4">
                     <div className="flex items-center gap-2 text-sm p-2 rounded-lg bg-slate-50">
-                        <Leaf className="w-4 h-4 text-green-600" />
+                        <Droplet className="w-4 h-4 text-amber-600" />
                         <span className="text-slate-700">{row.product_name}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm p-2 rounded-lg bg-slate-50">
@@ -1371,14 +1423,14 @@ const Oil_COA: React.FC = () => {
                         </button>
 
                         {actionMenuOpen && (
-                            <div className="absolute right-0 z-50 mt-2 w-56 origin-top-right divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10">
+                            <div className="fixed inset-x-3 bottom-3 z-50 max-h-[70vh] w-auto divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl shadow-slate-900/20 sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:mt-2 sm:max-h-[70vh] sm:w-56 sm:origin-top-right sm:shadow-xl sm:shadow-slate-900/10">
                                 <div className="py-1">
                                     <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                                         จัดการรายการ
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={() => runAction(() => Swal.fire({ icon: 'info', title: 'Coming Soon', text: 'This feature is currently under development.' }))}
+                                        onClick={() => runAction(() => setCoaDetailModal({ open: true, data: row }))}
                                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 focus:bg-blue-50 focus:text-blue-700 focus:outline-none"
                                     >
                                         <span className="rounded-md bg-blue-100 p-1.5">
@@ -1456,8 +1508,8 @@ const Oil_COA: React.FC = () => {
 
         return (
         <div className="mb-6">
-            <div className="mb-3 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                     <div className={`rounded-lg p-2 ${sectionStyle.icon}`}>
                         {icon}
                     </div>
@@ -1468,7 +1520,7 @@ const Oil_COA: React.FC = () => {
                         {data.length} รายการ
                     </span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-3 sm:justify-end">
                     <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
                         <button
                             title="มุมมองตาราง"
@@ -1496,42 +1548,61 @@ const Oil_COA: React.FC = () => {
             </div>
 
             {expanded[title === 'รายการรอตรวจสอบ' ? 'processing' : 'others'] && (
-                <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                     {viewMode === 'table' ? (
-                        <div className="w-full overflow-visible">
-                            <table className="w-full min-w-[1080px] table-fixed divide-y divide-slate-200">
-                                <thead className={`${sectionStyle.header} sticky top-0 z-[1]`}>
-                                    <tr>
-                                        <th className="w-[56px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">#</th>
-                                        <th className="w-[140px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">COA / วันที่</th>
-                                        <th className="w-[180px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Lot / สินค้า</th>
-                                        <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">ลูกค้า / ปลายทาง</th>
-                                        <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">รถ / คนขับ</th>
-                                        {showResults && <th className="w-[300px] border-x border-blue-100 bg-blue-100/40 px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-600">ผลตรวจ</th>}
-                                        <th className="w-[140px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">สถานะ</th>
-                                        {showResults && <th className="w-[76px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">จัดการ</th>}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 bg-white">
-                                    {pageData.length > 0 ? (
-                                        pageData.map((row, i) => <TableRow key={row.id} row={row} index={i} page={page} color={color} showResults={showResults} showActions={showResults} />)
-                                    ) : (
+                        <>
+                            <div className="block p-3 md:hidden">
+                                {pageData.length > 0 ? (
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {pageData.map((row) => (
+                                            <GridCard key={row.id} row={row} />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-10">
+                                        <div className="mb-3 rounded-full bg-gray-50 p-4">
+                                            <Package className="h-10 w-10 text-gray-400" />
+                                        </div>
+                                        <h3 className="mb-1 text-base font-medium text-gray-900">ไม่พบข้อมูล</h3>
+                                        <p className="text-sm text-gray-500">ยังไม่มีรายการในสถานะนี้</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="hidden w-full overflow-x-auto md:block">
+                                <table className="w-full min-w-[1080px] table-fixed divide-y divide-slate-200">
+                                    <thead className={`${sectionStyle.header} sticky top-0 z-[1]`}>
                                         <tr>
-                                            <td colSpan={showResults ? 8 : 6} className="px-4 py-8 text-center">
-                                                <div className="flex flex-col items-center justify-center">
-                                                    <div className="p-3 rounded-xl mb-2 bg-gray-100">
-                                                        <FileDown className="w-8 h-8 text-gray-400" />
-                                                    </div>
-                                                    <p className="text-sm text-gray-500">ไม่มีข้อมูล</p>
-                                                </div>
-                                            </td>
+                                            <th className="w-[56px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">#</th>
+                                            <th className="w-[140px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">COA / วันที่</th>
+                                            <th className="w-[180px] px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Lot / สินค้า</th>
+                                            <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">ลูกค้า / ปลายทาง</th>
+                                            <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">รถ / คนขับ</th>
+                                            {showResults && <th className="w-[300px] border-x border-blue-100 bg-blue-100/40 px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-600">ผลตรวจ</th>}
+                                            <th className="w-[140px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">สถานะ</th>
+                                            {showResults && <th className="w-[76px] px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide text-slate-500">จัดการ</th>}
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 bg-white">
+                                        {pageData.length > 0 ? (
+                                            pageData.map((row, i) => <TableRow key={row.id} row={row} index={i} page={page} showResults={showResults} showActions={showResults} />)
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={showResults ? 8 : 6} className="px-4 py-8 text-center">
+                                                    <div className="flex flex-col items-center justify-center">
+                                                        <div className="p-3 rounded-xl mb-2 bg-gray-100">
+                                                            <FileDown className="w-8 h-8 text-gray-400" />
+                                                        </div>
+                                                        <p className="text-sm text-gray-500">ไม่มีข้อมูล</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
                     ) : (
-                        <div className="p-6">
+                        <div className="p-3 sm:p-6">
                             {pageData.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                     {pageData.map((row) => (
@@ -1733,7 +1804,7 @@ const Oil_COA: React.FC = () => {
             <SharedLabModal
                 isOpen={labModal.open}
                 onClose={() => setLabModal({ open: false, data: null })}
-                data={labModal.data as any}
+                data={labModal.data}
                 type="oil"
                 onSave={labModal.data?.status === 'A' ? handleEditAfterApprove : handleSaveLab}
             />

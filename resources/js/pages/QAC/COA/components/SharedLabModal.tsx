@@ -1,13 +1,12 @@
 // resources/js/pages/QAC/COA/components/SharedLabModal.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePage } from '@inertiajs/react';
 import {
     X, FlaskConical, Package, Activity, Droplets, Beaker, Thermometer, Gauge,
-    TrendingUp, User, FileText, Info, Droplet, FileDown, Loader2, Save,
+    TrendingUp, User, FileText, Droplet, Save,
     CheckCircle2, AlertTriangle, Truck, ClipboardList, Zap, ChevronDown
 } from 'lucide-react';
 import axios from 'axios';
-import { generateAndDownloadCoa } from '../PDF/coaPdfGenerator';
 
 export interface SharedCOAData {
     id: number;
@@ -18,7 +17,7 @@ export interface SharedCOAData {
     destination_name?: string;
     license_plate?: string;
     driver_name?: string;
-    status: 'pending' | 'processing' | 'approved' | 'rejected' | 'W' | 'A';
+    status: 'pending' | 'processing' | 'approved' | 'rejected' | 'W' | 'A' | 'C';
     notes?: string;
     created_at?: string;
     inspector?: string;
@@ -47,15 +46,25 @@ interface SharedLabModalProps {
     onClose: () => void;
     data: SharedCOAData | null;
     type: 'oil' | 'seed';
-    onSave: (data: Partial<SharedCOAData>) => void;
+    onSave: (data: Partial<SharedCOAData>) => void | Promise<void>;
+}
+
+interface SharedLabPageProps {
+    auth?: {
+        user?: {
+            name?: string;
+            employee_id?: string | number;
+        };
+        employee_name?: string;
+    };
 }
 
 export default function SharedLabModal({ isOpen, onClose, data, type, onSave }: SharedLabModalProps) {
     const [form, setForm] = useState<Partial<SharedCOAData>>({});
-    const [pdfLoading, setPdfLoading] = useState(false);
-    const [employees, setEmployees] = useState<{ EmpID: number, EmpName: string }[]>([]);
+    const [tankError, setTankError] = useState('');
+    const tankSelectRef = useRef<HTMLSelectElement>(null);
 
-    const { auth } = usePage<any>().props;
+    const { auth } = usePage().props as unknown as SharedLabPageProps;
     const currentUserName = auth?.employee_name || auth?.user?.name || '';
 
     useEffect(() => {
@@ -75,11 +84,13 @@ export default function SharedLabModal({ isOpen, onClose, data, type, onSave }: 
                 }
 
                 setForm(formData);
+                setTankError('');
             }
         } else if (!isOpen) {
             setForm({});
+            setTankError('');
         }
-    }, [data?.id, isOpen, type]);
+    }, [data, data?.id, form.id, isOpen, type]);
 
     useEffect(() => {
         if (!isOpen || !data) return;
@@ -106,48 +117,28 @@ export default function SharedLabModal({ isOpen, onClose, data, type, onSave }: 
                 });
             })
             .catch((err) => console.error('Failed to fetch next COA number', err));
-    }, [data?.id, data?.coa_no, isOpen, type]);
-
-    useEffect(() => {
-        axios.get('/api/employees')
-            .then(res => {
-                if (res.data.success) {
-                    setEmployees(res.data.data);
-                }
-            })
-            .catch(err => console.error('Failed to fetch employees', err));
-    }, []);
+    }, [data, data?.id, data?.coa_no, isOpen, type]);
 
     if (!isOpen || !data) return null;
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onSave({
+        if (!String(form.coa_tank || '').trim()) {
+            setTankError('กรุณาเลือก Tank ก่อนบันทึก COA');
+            tankSelectRef.current?.focus();
+            return;
+        }
+
+        await onSave({
             ...form,
-            status: 'W' as any,
+            status: 'W',
             inspector: currentUserName || form.inspector,
-            coa_user_id: auth?.user?.employee_id || form.coa_user_id
+            coa_user_id: String(auth?.user?.employee_id || form.coa_user_id || '')
         });
         onClose();
     };
 
-    const handleDownloadPdf = async () => {
-        setPdfLoading(true);
-        try {
-            await generateAndDownloadCoa({
-                ...form,
-                inspector: currentUserName || form.inspector,
-                coa_user_id: auth?.user?.employee_id || form.coa_user_id,
-            } as any, type);
-        } catch (err) {
-            console.error('PDF generation error:', err);
-        } finally {
-            setPdfLoading(false);
-        }
-    };
-
     const isOil = type === 'oil';
-    const isSeed = type === 'seed';
 
     const theme = {
         primary: isOil ? 'blue' : 'emerald',
@@ -289,9 +280,15 @@ export default function SharedLabModal({ isOpen, onClose, data, type, onSave }: 
                                     </label>
                                     <div className="relative">
                                         <select
+                                            ref={tankSelectRef}
+                                            required
                                             value={form.coa_tank || ''}
-                                            onChange={(e) => setForm({ ...form, coa_tank: e.target.value })}
-                                            className={`w-full appearance-none bg-gray-50 border-2 border-gray-200 rounded-xl py-2 pl-4 pr-12 ${theme.inputFocus} transition-all duration-200 text-sm font-medium cursor-pointer`}
+                                            onChange={(e) => {
+                                                setForm({ ...form, coa_tank: e.target.value });
+                                                if (e.target.value) setTankError('');
+                                            }}
+                                            aria-invalid={Boolean(tankError)}
+                                            className={`w-full appearance-none bg-gray-50 border-2 ${tankError ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : `border-gray-200 ${theme.inputFocus}`} rounded-xl py-2 pl-4 pr-12 transition-all duration-200 text-sm font-medium cursor-pointer`}
                                         >
                                             <option value="">เลือก Tank</option>
                                             <option value="1">Tank 1</option>
@@ -301,6 +298,12 @@ export default function SharedLabModal({ isOpen, onClose, data, type, onSave }: 
                                         </select>
                                         <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
                                     </div>
+                                    {tankError && (
+                                        <p className="flex items-center gap-1.5 text-xs font-semibold text-red-600">
+                                            <AlertTriangle className="h-3.5 w-3.5" />
+                                            {tankError}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </div>

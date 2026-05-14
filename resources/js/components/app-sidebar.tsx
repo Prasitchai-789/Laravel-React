@@ -146,8 +146,6 @@ const FerNavItems: NavItem[] = [
 ];
 
 const QACDataEntryNavItems: NavItem[] = [
-    { title: 'COA น้ำมันปาล์มดิบ', href: '/qac/coa/oil', icon: Beaker, permission: ['qac.view', 'qac.edit'] },
-    { title: 'COA เมล็ดในปาล์ม', href: '/qac/coa/seed', icon: Beaker, permission: ['qac.view', 'qac.edit'] },
     { title: 'บันทึกข้อมูล Stock CPO', href: '/cpo', icon: Beaker, permission: ['qac.user', 'qac.edit'] },
     { title: 'บันทึก Skim / Mix', href: '/skim-mix', icon: Beaker, permission: ['qac.user', 'qac.edit'] },
     { title: 'บันทึกข้อมูล Kernel', href: '/stock/kernel', icon: Beaker, permission: ['qac.user', 'qac.edit'] },
@@ -155,12 +153,14 @@ const QACDataEntryNavItems: NavItem[] = [
 ];
 
 const QACReportNavItems: NavItem[] = [
+    { title: 'COA น้ำมันปาล์มดิบ', href: '/qac/coa/oil', icon: Beaker, permission: ['qac.view', 'qac.edit'] },
+    { title: 'COA เมล็ดในปาล์ม', href: '/qac/coa/seed', icon: Beaker, permission: ['qac.view', 'qac.edit'] },
     { title: 'Stock CPO', href: '/stock/cpo', icon: Beaker, permission: ['qac.view'] },
     { title: 'รายงานการผลิต (Mill Daily)', href: '/qac/mill-daily-report', icon: ScrollText, permission: ['qac.edit'] },
     { title: 'รายงานการผลิต', href: '/stock/report', icon: ScrollText, permission: ['qac.view'] },
-    { title: 'รายงานพาณิชย์', href: '/stock/production-report', icon: ScrollText, permission: ['qac.view','mar.edit'] },
+    { title: 'รายงานพาณิชย์', href: '/stock/production-report', icon: ScrollText, permission: ['qac.view', 'mar.edit'] },
     { title: 'รายงาน % Yield', href: '/yield-report', icon: ScrollText, permission: ['qac.view'] },
-    { title: 'รายงาน % Yield (ตาราง)', href: '/yield-table', icon: ScrollText, permission: ['qac.view','mar.edit'] },
+    { title: 'รายงาน % Yield (ตาราง)', href: '/yield-table', icon: ScrollText, permission: ['qac.view', 'mar.edit'] },
 ];
 
 const QACNavItems: NavItem[] = [...QACReportNavItems, ...QACDataEntryNavItems];
@@ -197,23 +197,26 @@ const filterItemsByPermission = (items: NavItem[], permissions: string[]) => {
     });
 };
 
+const uniqueAccessList = (items: string[]) => Array.from(new Set(items.map((item) => item.toLowerCase())));
+
 export function AppSidebar() {
     const page = usePage();
     const { auth } = page.props as unknown as SidebarPageProps;
-    const permissions = auth.permissions || [];
-    const access = [...normalizeAccessList(auth.permissions), ...normalizeAccessList(auth.roles)];
+    const permissions = normalizeAccessList(auth.permissions);
+    const access = uniqueAccessList([...permissions, ...normalizeAccessList(auth.roles)]);
     const hasAccess = (permission: string) => access.includes(permission.toLowerCase());
-    const isDev = checkIsDeveloper(permissions);
+    const isDev = checkIsDeveloper(access);
     const isQacUserOnly =
         hasAccess('qac.user') &&
         !hasAccess('qac.edit') &&
+        !hasAccess('mar.edit') &&
         !hasAccess('qac.admin') &&
         !hasAccess('qac_admin') &&
         !hasAccess('QAC.Admin') &&
         !isDev;
     const visibleQACNavItems = isQacUserOnly
         ? filterItemsByPermission(QACDataEntryNavItems, access)
-        : filterItemsByPermission(QACNavItems, permissions);
+        : filterItemsByPermission(QACNavItems, access);
     const isActiveHref = (href: string) => page.url === href || page.url.startsWith(`${href}/`);
     const hasActiveItem = (items: NavItem[]) => items.some((item) => isActiveHref(item.href));
 
@@ -235,7 +238,7 @@ export function AppSidebar() {
                 <SidebarGroupLabel>Report Present</SidebarGroupLabel>
 
                 {/* Developer Menu */}
-                {(isDev || filterItemsByPermission(DevNavItems, permissions).length > 0) && (
+                {(isDev || filterItemsByPermission(DevNavItems, access).length > 0) && (
                     <Collapsible asChild key={`dev-${page.url}`} defaultOpen={hasActiveItem(DevNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
@@ -247,7 +250,7 @@ export function AppSidebar() {
                             </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <SidebarMenuSub>
-                                    {filterItemsByPermission(DevNavItems, permissions).map((item) => (
+                                    {filterItemsByPermission(DevNavItems, access).map((item) => (
                                         <SidebarMenuSubItem key={item.title}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
@@ -268,7 +271,7 @@ export function AppSidebar() {
                 <SidebarGroupLabel>ISP</SidebarGroupLabel>
 
                 {/* IT */}
-                {(isDev || filterItemsByPermission(ITNavItem, permissions).length > 0) && (
+                {(isDev || filterItemsByPermission(ITNavItem, access).length > 0) && (
                     <Collapsible asChild key={`it-${page.url}`} defaultOpen={hasActiveItem(ITNavItem)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
@@ -282,7 +285,7 @@ export function AppSidebar() {
                             </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <SidebarMenuSub>
-                                    {filterItemsByPermission(ITNavItem, permissions).map((item) => (
+                                    {filterItemsByPermission(ITNavItem, access).map((item) => (
                                         <SidebarMenuSubItem key={item.title}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
@@ -298,7 +301,7 @@ export function AppSidebar() {
                 )}
 
                 {/* PRO */}
-                {(isDev || filterItemsByPermission(PRONavItem, permissions).length > 0) && (
+                {(isDev || filterItemsByPermission(PRONavItem, access).length > 0) && (
                     <Collapsible asChild key={`pro-${page.url}`} defaultOpen={hasActiveItem(PRONavItem)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
@@ -312,7 +315,7 @@ export function AppSidebar() {
                             </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <SidebarMenuSub>
-                                    {filterItemsByPermission(PRONavItem, permissions).map((item) => (
+                                    {filterItemsByPermission(PRONavItem, access).map((item) => (
                                         <SidebarMenuSubItem key={item.title}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
@@ -328,7 +331,7 @@ export function AppSidebar() {
                 )}
 
                 {/* MAR */}
-                {(isDev || filterItemsByPermission(MARNavItems, permissions).length > 0) && (
+                {(isDev || filterItemsByPermission(MARNavItems, access).length > 0) && (
                     <Collapsible asChild key={`mar-${page.url}`} defaultOpen={hasActiveItem(MARNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
@@ -342,7 +345,7 @@ export function AppSidebar() {
                             </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <SidebarMenuSub>
-                                    {filterItemsByPermission(MARNavItems, permissions).map((item) => (
+                                    {filterItemsByPermission(MARNavItems, access).map((item) => (
                                         <SidebarMenuSubItem key={item.title}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
@@ -384,9 +387,8 @@ export function AppSidebar() {
                         </SidebarMenuItem>
                     </Collapsible>
                 )}
-
                 {/* STORE */}
-                {(isDev || filterItemsByPermission(StoreNavItems, permissions).length > 0) && (
+                {(isDev || filterItemsByPermission(StoreNavItems, access).length > 0) && (
                     <Collapsible asChild key={`store-${page.url}`} defaultOpen={hasActiveItem(StoreNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
@@ -400,7 +402,7 @@ export function AppSidebar() {
                             </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <SidebarMenuSub>
-                                    {filterItemsByPermission(StoreNavItems, permissions).map((item) => (
+                                    {filterItemsByPermission(StoreNavItems, access).map((item) => (
                                         <SidebarMenuSubItem key={item.title}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
@@ -416,7 +418,7 @@ export function AppSidebar() {
                 )}
 
                 {/* QMR */}
-                {(isDev || filterItemsByPermission(QMRNavItems, permissions).length > 0) && (
+                {(isDev || filterItemsByPermission(QMRNavItems, access).length > 0) && (
                     <Collapsible asChild key={`qmr-${page.url}`} defaultOpen={hasActiveItem(QMRNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
@@ -430,7 +432,7 @@ export function AppSidebar() {
                             </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <SidebarMenuSub>
-                                    {filterItemsByPermission(QMRNavItems, permissions).map((item) => (
+                                    {filterItemsByPermission(QMRNavItems, access).map((item) => (
                                         <SidebarMenuSubItem key={item.title}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
@@ -446,7 +448,7 @@ export function AppSidebar() {
                 )}
 
                 {/* Car Usage */}
-                {(isDev || filterItemsByPermission(CarUsageNavItems, permissions).length > 0) && (
+                {(isDev || filterItemsByPermission(CarUsageNavItems, access).length > 0) && (
                     <Collapsible asChild key={`car-${page.url}`} defaultOpen={hasActiveItem(CarUsageNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
@@ -460,7 +462,7 @@ export function AppSidebar() {
                             </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <SidebarMenuSub>
-                                    {filterItemsByPermission(CarUsageNavItems, permissions).map((item) => (
+                                    {filterItemsByPermission(CarUsageNavItems, access).map((item) => (
                                         <SidebarMenuSubItem key={item.title}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
@@ -480,7 +482,7 @@ export function AppSidebar() {
             <SidebarGroupLabel>MUN</SidebarGroupLabel>
 
             {/* FER */}
-            {(isDev || filterItemsByPermission(FerNavItems, permissions).length > 0) && (
+            {(isDev || filterItemsByPermission(FerNavItems, access).length > 0) && (
                 <Collapsible asChild key={`fer-${page.url}`} defaultOpen={hasActiveItem(FerNavItems)} className="group/collapsible">
                     <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
@@ -492,7 +494,7 @@ export function AppSidebar() {
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                             <SidebarMenuSub>
-                                {filterItemsByPermission(FerNavItems, permissions).map((item) => (
+                                {filterItemsByPermission(FerNavItems, access).map((item) => (
                                     <SidebarMenuSubItem key={item.title}>
                                         <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                             <Link href={item.href} prefetch className="font-anuphan">
@@ -508,7 +510,7 @@ export function AppSidebar() {
             )}
 
             {/* AGR */}
-            {(isDev || filterItemsByPermission(AGRNavItems, permissions).length > 0) && (
+            {(isDev || filterItemsByPermission(AGRNavItems, access).length > 0) && (
                 <Collapsible asChild key={`agr-${page.url}`} defaultOpen={hasActiveItem(AGRNavItems)} className="group/collapsible">
                     <SidebarMenuItem>
                         <CollapsibleTrigger asChild>
@@ -520,7 +522,7 @@ export function AppSidebar() {
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                             <SidebarMenuSub>
-                                {filterItemsByPermission(AGRNavItems, permissions).map((item) => (
+                                {filterItemsByPermission(AGRNavItems, access).map((item) => (
                                     <SidebarMenuSubItem key={item.title}>
                                         <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                             <Link href={item.href} prefetch className="font-anuphan">
@@ -539,7 +541,7 @@ export function AppSidebar() {
 
             <SidebarFooter>
                 {/* ADMIN */}
-                {(isDev || filterItemsByPermission(adminNavItems, permissions).length > 0) && (
+                {(isDev || filterItemsByPermission(adminNavItems, access).length > 0) && (
                     <Collapsible asChild key={`admin-${page.url}`} defaultOpen={hasActiveItem(adminNavItems)} className="group/collapsible">
                         <SidebarMenuItem>
                             <CollapsibleTrigger asChild>
@@ -551,7 +553,7 @@ export function AppSidebar() {
                             </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <SidebarMenuSub>
-                                    {filterItemsByPermission(adminNavItems, permissions).map((item) => (
+                                    {filterItemsByPermission(adminNavItems, access).map((item) => (
                                         <SidebarMenuSubItem key={item.title}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
