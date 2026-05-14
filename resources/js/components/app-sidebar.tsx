@@ -73,11 +73,11 @@ const mainNavItems: NavItem[] = [
 ];
 
 const StoreNavItems: NavItem[] = [
-    { title: 'Dashboard', href: '/StoreOrder/Dashboard', icon: ChartLine, permission: ['PUR.edit', 'PUR.Admin'] },
-    { title: 'StoreOrder', href: '/StoreOrder', icon: Store, permission: ['PUR.edit', 'PUR.Admin'] },
-    { title: 'Product Withdrawal', href: '/StoreOrder/StoreOrderIssue', icon: ShoppingCart, permission: ['PUR.view', 'users.view', 'PUR.Admin'] },
-    { title: 'Stock Report', href: '/StoreOrder/StoreIssueIndex', icon: ClipboardMinus, permission: ['PUR.view', 'PUR.Admin', 'users.view'] },
-    { title: 'Store Movement', href: '/StoreOrder/StoreMovement', icon: ClipboardMinus, permission: ['PUR.edit', 'PUR.Admin'] },
+    { title: 'Dashboard', href: '/StoreOrder/Dashboard', icon: ChartLine, permission: ['PUR.edit', 'PUR.Admin','pur.edit'] },
+    { title: 'StoreOrder', href: '/StoreOrder', icon: Store, permission: ['PUR.edit', 'PUR.Admin','pur.edit'] },
+    { title: 'Product Withdrawal', href: '/StoreOrder/StoreOrderIssue', icon: ShoppingCart, permission: ['PUR.view', 'users.view', 'PUR.Admin','pur.edit'] },
+    { title: 'Stock Report', href: '/StoreOrder/StoreIssueIndex', icon: ClipboardMinus, permission: ['PUR.view', 'PUR.Admin', 'users.view','pur.edit'] },
+    { title: 'Store Movement', href: '/StoreOrder/StoreMovement', icon: ClipboardMinus, permission: ['PUR.edit', 'PUR.Admin','pur.edit'] },
 ];
 
 const ITNavItem: NavItem[] = [
