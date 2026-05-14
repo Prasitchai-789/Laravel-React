@@ -8,6 +8,7 @@ use App\Http\Controllers\MAR\DeliveryPlanController;
 use App\Http\Controllers\MAR\SalesController as MARSalesController;
 use App\Http\Controllers\MAR\SOPlanController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/delivery-plan', [DeliveryPlanController::class, 'page'])->name('delivery-plan.page');
@@ -43,6 +44,19 @@ Route::middleware(['auth', 'permission:developer.view|mar.view|gm.view|qac.view|
     Route::get('/plan-order', [SOPlanController::class, 'index'])->name('plan-order.index');
     Route::get('/plan-order/data/{id}', [SOPlanController::class, 'show'])->name('plan-order.data-item');
     Route::get('/plan-order/pending-coa', [SOPlanController::class, 'pendingCOA'])->name('plan-order.pending-coa');
+
+    // Print pages — reuse existing COA print views
+    Route::get('/plan-order/{id}/print/oil', function ($id) {
+        return Inertia::render('QAC/COA/Oil_COA/Oil_COA_Print', ['sopid' => (string) $id]);
+    })->name('plan-order.print.oil');
+
+    Route::get('/plan-order/{id}/print/seed', function ($id) {
+        return Inertia::render('QAC/COA/Seed_COA/Seed_COA_Print', ['sopid' => (string) $id]);
+    })->name('plan-order.print.seed');
+
+    Route::get('/plan-order/{id}/vehicle-print', function ($id) {
+        return Inertia::render('QAC/COA/Seed_COA/Seed_Vehicle_Print', ['sopid' => (string) $id]);
+    })->name('plan-order.vehicle-print');
 
     Route::get('/vehicle-inspections/{sop_id}', [VehicleInspectionController::class, 'show']);
     Route::post('/vehicle-inspections', [VehicleInspectionController::class, 'store']);

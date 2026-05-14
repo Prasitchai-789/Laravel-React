@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 interface PlanOrder {
     id: number;
-    status: 'pending' | 'processing' | 'production' | 'completed' | 'cancelled' | 'confirmed' | string;
+    status: 'W' | 'P' | 'F' | 'C' | string;
     priority?: 'normal' | 'high' | 'urgent';
     productType?: string;
     productName?: string;
@@ -35,7 +35,7 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
     const PRODUCT_META: {
         [key: string]: {
             name: string;
-            icon: JSX.Element;
+            icon: React.ReactNode;
             color: string;
             unit: string;
             bgLight: string;
@@ -138,16 +138,16 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
     // คำนวณสถิติ
     const stats = useMemo(() => {
         const total = orders.length;
-        const completed = orders.filter((o) => o.status === 'completed').length;
-        const pending = orders.filter((o) => o.status === 'pending').length;
-        const processing = orders.filter((o) => o.status === 'processing').length;
-        const production = orders.filter((o) => o.status === 'production').length;
-        const confirmed = orders.filter((o) => o.status === 'confirmed').length;
-        const cancelled = orders.filter((o) => o.status === 'cancelled').length;
+        const completed = orders.filter((o) => o.status === 'F').length;
+        const pending = orders.filter((o) => o.status === 'W').length;
+        const processing = orders.filter((o) => o.status === 'P').length;
+        const production = 0;
+        const confirmed = 0;
+        const cancelled = orders.filter((o) => o.status === 'C').length;
 
         // คำนวณน้ำหนักรวมทั้งหมด
         const totalWeight = orders.reduce((sum, o) => sum + (o.netWeight || 0), 0);
-        const completedWeight = orders.filter((o) => o.status === 'completed').reduce((sum, o) => sum + (o.netWeight || 0), 0);
+        const completedWeight = orders.filter((o) => o.status === 'F').reduce((sum, o) => sum + (o.netWeight || 0), 0);
 
         return {
             total,
@@ -351,15 +351,20 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
                 const totalWeight = productOrders.reduce((sum, o) => sum + (o.netWeight || 0), 0);
 
                 // คำนวณน้ำหนักที่สำเร็จ
-                const completedWeight = productOrders.filter((o) => o.status === 'completed').reduce((sum, o) => sum + (o.netWeight || 0), 0);
+                const completedWeight = productOrders.filter((o) => o.status === 'F').reduce((sum, o) => sum + (o.netWeight || 0), 0);
 
                 // คำนวณน้ำหนักที่รอ
-                const pendingWeight = productOrders.filter((o) => o.status === 'pending').reduce((sum, o) => sum + (o.netWeight || 0), 0);
+                const pendingWeight = productOrders.filter((o) => o.status === 'W').reduce((sum, o) => sum + (o.netWeight || 0), 0);
 
                 // คำนวณน้ำหนักที่ยกเลิก
-                const cancelledWeight = productOrders.filter((o) => o.status === 'cancelled').reduce((sum, o) => sum + (o.netWeight || 0), 0);
+                const cancelledWeight = productOrders.filter((o) => o.status === 'C').reduce((sum, o) => sum + (o.netWeight || 0), 0);
 
-                const progress = totalWeight > 0 ? Math.round((completedWeight / totalWeight) * 100) : 0;
+                // คำนวณคันที่มีน้ำหนักแล้ว และจำนวนคันทั้งหมด
+                const carsWithWeight = productOrders.filter((o) => (o.netWeight || 0) > 0).length;
+                const totalCars = productOrders.length;
+
+                // %สำเร็จ คำนวณจากคันที่มีน้ำหนักแล้ว เทียบกับจำนวนคันทั้งหมด
+                const progress = totalCars > 0 ? Math.round((carsWithWeight / totalCars) * 100) : 0;
 
                 return {
                     key,
@@ -600,50 +605,102 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
     }, []);
 
     return (
-        <div className="relative mb-4 space-y-3">
+        <div className="relative mb-6 space-y-4">
             {/* Main Stats Cards */}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+                {/* Card 1: Overview */}
                 <div
-                    className="cursor-pointer rounded-lg bg-blue-500 p-3 text-white transition-colors hover:bg-blue-600"
+                    className="cursor-pointer relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300 group p-5 flex flex-col h-full lg:col-span-1"
                     onClick={() => handleProductClick(null)}
                     title="คลิกเพื่อล้างตัวกรอง"
                 >
-                    <div className="mb-2 flex items-center justify-between">
-                        <div className="text-xs text-blue-100">ทั้งหมด</div>
-                        <Package className="h-4 w-4 text-blue-200" />
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl -mr-6 -mt-6 transition-all group-hover:bg-blue-500/20"></div>
+                    <div className="relative z-10 flex flex-col h-full justify-between">
+                        <div className="mb-2 flex items-center justify-between">
+                            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">ภาพรวมคำสั่งขนส่ง</p>
+                            <div className="p-2 rounded-xl bg-blue-50 text-blue-600 shadow-sm">
+                                <Package className="h-4 w-4" />
+                            </div>
+                        </div>
+                        <div>
+                            <div className="flex items-baseline gap-2">
+                                <div className={`text-4xl font-black text-slate-800 tracking-tight transition-transform ${animateNumber ? 'scale-110' : ''}`}>
+                                    {formatNumber(stats.total)}
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">รายการ</span>
+                            </div>
+                            <div className="mt-2 text-xs font-bold text-blue-600 bg-blue-50 w-fit px-2 py-1 rounded-md">
+                                น้ำหนักรวม {formatWeight(stats.totalWeight)}
+                            </div>
+                        </div>
                     </div>
-                    <div className={`text-2xl font-bold ${animateNumber ? 'scale-110' : ''}`}>{formatNumber(stats.total)}</div>
-                    <div className="mt-1 text-[8px] text-blue-200">น้ำหนักรวม {formatWeight(stats.totalWeight)}</div>
                 </div>
 
-                <div className="rounded-lg bg-green-500 p-3 text-white">
-                    <div className="mb-2 flex items-center justify-between">
-                        <div className="text-xs text-green-100">เสร็จสิ้น</div>
-                        <CheckCircle className="h-4 w-4 text-green-200" />
-                    </div>
-                    <div className="text-2xl font-bold">{formatNumber(stats.completed)}</div>
-                    <div className="mt-1 text-[8px] text-green-200">
-                        {formatWeight(stats.completedWeight)} ({stats.completionWeightRate}%)
-                    </div>
-                </div>
+                {/* Card 2: Delivery Status */}
+                <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300 group p-5 flex flex-col h-full lg:col-span-3">
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-emerald-500/5 via-sky-500/5 to-rose-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                    <div className="relative z-10 flex flex-col h-full justify-between">
+                        <div className="mb-3 flex items-center justify-between">
+                            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">สถานะการจัดส่ง</p>
+                        </div>
+                        
+                        {/* Progress Bar */}
+                        <div className="w-full h-2 bg-slate-100 rounded-full mb-5 overflow-hidden flex shadow-inner">
+                            {stats.total > 0 && (
+                                <>
+                                    <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${(stats.completed / stats.total) * 100}%` }}></div>
+                                    <div className="h-full bg-sky-500 transition-all duration-1000 delay-100" style={{ width: `${(stats.processing / stats.total) * 100}%` }}></div>
+                                    <div className="h-full bg-rose-500 transition-all duration-1000 delay-200" style={{ width: `${(stats.cancelled / stats.total) * 100}%` }}></div>
+                                </>
+                            )}
+                        </div>
 
-                <div className="rounded-lg bg-yellow-500 p-3 text-white">
-                    <div className="mb-2 flex items-center justify-between">
-                        <div className="text-xs text-yellow-100">กำลังดำเนินการ</div>
-                        <TrendingUp className="h-4 w-4 text-yellow-200" />
-                    </div>
-                    <div className="text-2xl font-bold">{formatNumber(stats.processing)}</div>
-                    <div className="mt-1 text-[8px] text-yellow-200">{formatNumber(stats.processing)} รายการ</div>
-                </div>
+                        <div className="grid grid-cols-3 gap-2 md:gap-4 mt-auto divide-x divide-slate-100">
+                            {/* Processing */}
+                            <div className="flex items-center gap-2 md:gap-3 px-2">
+                                <div className="p-2 md:p-2.5 rounded-xl bg-sky-50 text-sky-600 shadow-sm shrink-0">
+                                    <TrendingUp className="h-4 w-4 md:h-5 md:w-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase truncate">ดำเนินการ</p>
+                                    <div className="flex items-baseline gap-1">
+                                        <p className="text-xl md:text-2xl font-black text-slate-800 tracking-tight truncate">{formatNumber(stats.processing)}</p>
+                                        <span className="text-[10px] font-bold text-slate-400 hidden sm:inline">รายการ</span>
+                                    </div>
+                                </div>
+                            </div>
 
-                <div className="rounded-lg bg-red-500 p-3 text-white">
-                    <div className="mb-2 flex items-center justify-between">
-                        <div className="text-xs text-red-100">ยกเลิก</div>
-                        <XCircle className="h-4 w-4 text-red-200" />
-                    </div>
-                    <div className="text-2xl font-bold">{formatNumber(stats.cancelled)}</div>
-                    <div className="mt-1 text-[8px] text-red-200">
-                        {stats.cancelled > 0 ? `${formatNumber(stats.cancelled)} รายการ` : 'ไม่มีรายการ'}
+                            {/* Completed */}
+                            <div className="flex items-center gap-2 md:gap-3 px-2 md:px-4">
+                                <div className="p-2 md:p-2.5 rounded-xl bg-emerald-50 text-emerald-600 shadow-sm shrink-0">
+                                    <CheckCircle className="h-4 w-4 md:h-5 md:w-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase truncate">สิ้นสุด</p>
+                                    <div className="flex items-center gap-1 md:gap-2">
+                                        <div className="flex items-baseline gap-1">
+                                            <p className="text-xl md:text-2xl font-black text-slate-800 tracking-tight truncate">{formatNumber(stats.completed)}</p>
+                                            <span className="text-[10px] font-bold text-slate-400 hidden lg:inline">รายการ</span>
+                                        </div>
+                                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-md shrink-0">{stats.completionWeightRate}%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Cancelled */}
+                            <div className="flex items-center gap-2 md:gap-3 pl-2 md:pl-4">
+                                <div className="p-2 md:p-2.5 rounded-xl bg-rose-50 text-rose-600 shadow-sm shrink-0">
+                                    <XCircle className="h-4 w-4 md:h-5 md:w-5" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[10px] md:text-[11px] font-bold text-slate-400 uppercase truncate">ยกเลิก</p>
+                                    <div className="flex items-baseline gap-1">
+                                        <p className="text-xl md:text-2xl font-black text-slate-800 tracking-tight truncate">{formatNumber(stats.cancelled)}</p>
+                                        <span className="text-[10px] font-bold text-slate-400 hidden sm:inline">รายการ</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -677,55 +734,45 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
                                 return (
                                     <div key={`${product.key}-${index}`} className="w-1/5 flex-none px-1">
                                         <div
-                                            className={` ${product.bgLight} border ${product.border} h-full cursor-pointer rounded-lg p-2 ${isSelected ? `ring-2 ring-${product.color}-500 bg-white shadow-md` : 'hover:bg-white hover:shadow'} transition-all ${isDragging ? 'transition-none' : ''} `}
+                                            className={`relative overflow-hidden ${isSelected ? `bg-white shadow-md ring-2 ring-${product.color}-400` : 'bg-white/60 backdrop-blur-sm shadow-sm hover:shadow-md hover:bg-white'} border border-white h-full cursor-pointer rounded-2xl p-4 transition-all duration-300 ${isDragging ? 'transition-none' : ''} group`}
                                             onClick={() => handleProductClick(realProduct.key)}
                                             title={isSelected ? 'คลิกเพื่อล้างตัวกรอง' : `เลือกเฉพาะ ${product.name}`}
                                         >
-                                            <div className="relative">
-                                                <div className="mb-2 flex items-center justify-between">
-                                                    <div className={`rounded-lg bg-white p-1.5 ${product.text}`}>{product.icon}</div>
-                                                    <span className={`rounded-full bg-white px-1.5 py-0.5 text-[8px] ${product.text}`}>
-                                                        {product.unit}
-                                                    </span>
+                                            <div className={`absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl -mr-6 -mt-6 opacity-20 transition-all group-hover:opacity-40 bg-${product.color}-500`}></div>
+                                            <div className="relative z-10 flex flex-col h-full justify-between">
+                                                <div>
+                                                    <div className="mb-3 flex items-center justify-between">
+                                                        <div className={`rounded-xl bg-white shadow-sm p-2 ${product.text}`}>{product.icon}</div>
+                                                    </div>
+
+                                                    <p className="mb-1 truncate text-xs font-black text-slate-800 tracking-wide">{product.name}</p>
+
+                                                    <div className="flex items-baseline gap-1 mb-3">
+                                                        <span className={`text-2xl font-black tracking-tight ${product.text}`}>
+                                                            {formatWeight(product.totalWeight, product.unit).split(' ')[0]}
+                                                        </span>
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase">
+                                                            {product.unit}
+                                                        </span>
+                                                    </div>
                                                 </div>
 
-                                                <p className="mb-1 truncate text-xs font-medium text-gray-800">{product.name}</p>
-
-                                                <div className="flex items-baseline justify-between">
-                                                    <span className={`text-lg font-bold ${product.text}`}>
-                                                        {formatWeight(product.totalWeight, product.unit).split(' ')[0]}
-                                                    </span>
-                                                    <span className="text-[8px] text-gray-500">
-                                                        {formatWeight(product.totalWeight, product.unit).split(' ')[1] || product.unit}
-                                                    </span>
-                                                </div>
-
-                                                {product.progress > 0 && (
-                                                    <div className="mt-2 h-1 w-full rounded-full bg-gray-200">
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{Math.round(product.progress)}% สำเร็จ</span>
+                                                    </div>
+                                                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
                                                         <div
-                                                            className={`h-full bg-${product.color}-500 rounded-full`}
+                                                            className={`h-full bg-${product.color}-500 rounded-full transition-all duration-1000`}
                                                             style={{ width: `${product.progress}%` }}
                                                         />
                                                     </div>
-                                                )}
-
-                                                <div className="mt-2 flex items-center justify-between text-[8px]">
-                                                    <span className="flex items-center gap-0.5 text-green-600">
-                                                        <CheckCircle2 className="h-2.5 w-2.5" />
-                                                        {formatWeight(product.completedWeight, product.unit).split(' ')[0]}
-                                                    </span>
-                                                    {product.pendingWeight > 0 && (
-                                                        <span className="flex items-center gap-0.5 text-yellow-600">
-                                                            <Clock className="h-2.5 w-2.5" />
-                                                            {formatWeight(product.pendingWeight, product.unit).split(' ')[0]}
-                                                        </span>
-                                                    )}
                                                 </div>
 
                                                 {isSelected && (
-                                                    <div className="absolute -top-1 -right-1">
+                                                    <div className="absolute -top-2 -right-2">
                                                         <span className="flex h-3 w-3">
-                                                            <span className="relative inline-flex h-3 w-3 animate-pulse rounded-full bg-blue-500"></span>
+                                                            <span className="relative inline-flex h-3 w-3 animate-pulse rounded-full bg-blue-500 shadow-lg shadow-blue-500/50"></span>
                                                         </span>
                                                     </div>
                                                 )}
@@ -786,8 +833,8 @@ export default function PlanOrderSummary({ orders, onRefresh, onExport, onProduc
                     <div className="grid grid-cols-7 gap-2 border-b bg-gray-50 p-2 text-[10px] font-medium text-gray-600">
                         <div className="col-span-2">สินค้า</div>
                         <div className="text-right">น้ำหนักรวม</div>
-                        <div className="text-right">เสร็จ</div>
-                        <div className="text-right">รอ</div>
+                        <div className="text-right">สิ้นสุด</div>
+                        <div className="text-right">กำลังรอ</div>
                         <div className="text-right">ยกเลิก</div>
                         <div className="text-right">ความคืบหน้า</div>
                     </div>

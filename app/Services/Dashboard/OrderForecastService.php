@@ -38,7 +38,7 @@ class OrderForecastService
         // We look for CPO (GoodID 2147) that are not cancelled
         $totalOrders = DB::connection('sqlsrv2')->table('SOPlan')
             ->where('GoodID', '2147')
-            ->whereIn('Status', ['w', 'p'])
+            ->whereIn('Status', ['W', 'P'])
             ->whereNull('deleted_at')
             ->sum('AmntLoad') ?? 0;
         
