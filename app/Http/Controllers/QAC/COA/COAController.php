@@ -86,6 +86,39 @@ class COAController extends Controller
         return 'QAC' . $thaiDate->format('ym');
     }
 
+    private function resolveCoaTypeLabel(?Certificate $cert = null, ?SOPlan $soplan = null): string
+    {
+        $coaNumber = strtoupper((string) ($cert?->coa_number ?? ''));
+        if (str_starts_with($coaNumber, 'KN')) {
+            return 'เมล็ดในปาล์ม (KN)';
+        }
+
+        if (str_starts_with($coaNumber, 'CPO')) {
+            return 'น้ำมันปาล์มดิบ (CPO)';
+        }
+
+        return $this->resolveCoaPrefix(null, $soplan) === 'KN'
+            ? 'เมล็ดในปาล์ม (KN)'
+            : 'น้ำมันปาล์มดิบ (CPO)';
+    }
+
+    private function buildCoaTelegramMessage(string $sopid, ?Certificate $cert, ?SOPlan $soplan, ?string $approvedBy): string
+    {
+        $typeLabel = $this->resolveCoaTypeLabel($cert, $soplan);
+
+        return implode("\n", [
+            '✅ แจ้ง COA อนุมัติแล้ว',
+            "🧪 ประเภท : {$typeLabel}",
+            '📄 COA No. : ' . ($cert?->coa_number ?: '-'),
+            '🏷️ Lot No. : ' . ($cert?->coa_lot ?: '-'),
+            '📦 สินค้า : ' . ($soplan?->GoodName ?: $typeLabel),
+            '🚛 : ' . ($soplan?->NumberCar ?: '-'),
+            '👤 : ' . ($soplan?->DriverName ?: '-'),
+            '📍 : ' . ($soplan?->Recipient ?: '-'),
+            '🖊️ : ' . ($approvedBy ?: ($cert?->coa_mgr ?: '-')),
+        ]);
+    }
+
     public function nextNumber(Request $request): JsonResponse
     {
         $now = now();
@@ -241,16 +274,28 @@ class COAController extends Controller
 
             DB::beginTransaction();
 
-            // ตรวจสอบว่าเป็นการอนุมัติครั้งแรก (status ยังไม่ใช่ 'A')
-            $cert = Certificate::where('SOPID', $sopid)->first();
-            $isFirstApproval = $cert && $cert->status !== 'A';
+            // Lock row so repeated/double-click approvals cannot send duplicate Telegram messages.
+            $cert = Certificate::where('SOPID', $sopid)->lockForUpdate()->first();
+            if (!$cert) {
+                throw new \Exception('ไม่พบข้อมูล COA');
+            }
+
+            $isFirstApproval = $cert->status !== 'A';
+            if (!$isFirstApproval) {
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'รายการนี้อนุมัติแล้ว',
+                    'already_approved' => true,
+                ]);
+            }
 
             // 1. Update Certificate status to Approved (A) and save manager
-            Certificate::where('SOPID', $sopid)->update([
-                'status' => 'A',
-                'coa_mgr' => $request->get('coa_mgr'),
-                'updated_at' => $this->sqlServerDateTime()
-            ]);
+            $cert->status = 'A';
+            $cert->coa_mgr = $request->get('coa_mgr');
+            $cert->updated_at = $this->sqlServerDateTime();
+            $cert->save();
 
             // 2. Update SOPlan Status_coa to Approved (A)
             SOPlan::where('SOPID', $sopid)->update([
@@ -260,22 +305,23 @@ class COAController extends Controller
             DB::commit();
 
             // 3. ส่งแจ้งเตือน Telegram เมื่ออนุมัติครั้งแรก
-            if ($isFirstApproval && $cert) {
+            if ($isFirstApproval) {
                 try {
                     $soplan = SOPlan::where('SOPID', $sopid)->first();
-                    $coaNumber = $cert->coa_number ?? '-';
-                    $goodName  = $soplan?->GoodName ?? 'เมล็ดปาล์ม';
-                    $numberCar = $soplan?->NumberCar ?? '-';
-                    $siteUrl   = config('app.url', 'http://isanpalm.dyndns.info:8001/');
-
-                    $message = "แจ้ง COA\n";
-                    $message .= "🙎‍♂️ :{$coaNumber}\n";
-                    $message .= "📦 :{$goodName}\n";
-                    $message .= "🚍 :{$numberCar}\n";
-                    $message .= "🌐 :{$siteUrl}";
+                    $message = $this->buildCoaTelegramMessage(
+                        (string) $sopid,
+                        $cert,
+                        $soplan,
+                        $request->get('coa_mgr')
+                    );
 
                     $telegram = new TelegramService();
                     $telegram->sendToTelegramCOA($message);
+                    Log::info('✅ Telegram COA notification sent', [
+                        'SOPID' => $sopid,
+                        'coa_number' => $cert->coa_number,
+                        'coa_type' => $this->resolveCoaTypeLabel($cert, $soplan),
+                    ]);
                 } catch (\Exception $telegramEx) {
                     Log::warning('⚠️ Telegram COA notification failed: ' . $telegramEx->getMessage());
                 }

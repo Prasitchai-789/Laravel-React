@@ -33,7 +33,7 @@ class TelegramService extends Controller
     public function sendToTelegramLoad($message)
     {
         $telegram = new Api('7975458636:AAEO5iSSC1V9gJ9DEtEef7Um6iIsmOaIaEw');
-        $chatId = -4667395415 ;
+        $chatId = -4667395415;
 
         $telegram->sendMessage([
             'chat_id' => $chatId,
@@ -43,7 +43,7 @@ class TelegramService extends Controller
     public function sendToTelegramSales($message)
     {
         $telegram = new Api('7797769037:AAFQshadSXX7MvUBXcl9ktvIfQxw7sXFORk');
-        $chatId = -4737025613 ;
+        $chatId = -4737025613;
 
         $telegram->sendMessage([
             'chat_id' => $chatId,
@@ -53,7 +53,7 @@ class TelegramService extends Controller
     public function sendToTelegramITE($message)
     {
         $telegram = new Api('7579608948:AAHSF6GbjI1mqF_YlcqmgNn7P0eiUFh-bpE');
-        $chatId = -4723323365 ;
+        $chatId = -4723323365;
 
         $telegram->sendMessage([
             'chat_id' => $chatId,
@@ -63,7 +63,7 @@ class TelegramService extends Controller
     public function sendToTelegramMT($message)
     {
         $telegram = new Api('7828630375:AAHMFhQEO0jz6YoJ8-aOM6z_X3vfzG4HbQM');
-        $chatId = -4727411984 ;
+        $chatId = -4727411984;
 
         $telegram->sendMessage([
             'chat_id' => $chatId,
@@ -73,7 +73,7 @@ class TelegramService extends Controller
     public function sendToTelegramCarRequest($message)
     {
         $telegram = new Api('7881990195:AAFz8qi7VRqTjeiS3Pvk5rRXwGGjOqYyKWw');
-        $chatId = -4537055248 ;
+        $chatId = -4537055248;
 
         $telegram->sendMessage([
             'chat_id' => $chatId,
@@ -84,7 +84,7 @@ class TelegramService extends Controller
     public function sendToTelegramPassCar($message)
     {
         $telegram = new Api('7727097108:AAGqUpEAIjF9upJCxhSXrX01ibvOFXh14f0');
-        $chatId = -4629180512 ;
+        $chatId = -4629180512;
 
         $telegram->sendMessage([
             'chat_id' => $chatId,
@@ -95,7 +95,7 @@ class TelegramService extends Controller
     public function sendToTelegramPROCount($message)
     {
         $telegram = new Api('7980130203:AAHNcVv8mXQf_Po6pndG9Z6CX9-0YfwDiEw');
-        $chatId = -4705495902 ;
+        $chatId = -4705495902;
 
         $telegram->sendMessage([
             'chat_id' => $chatId,
@@ -106,7 +106,7 @@ class TelegramService extends Controller
     public function sendToTelegramDARRequest($message)
     {
         $telegram = new Api('7578266293:AAEliuzApJRAnGpdenTdfjNsVntftyLk1IU');
-        $chatId = -4669248453 ;
+        $chatId = -4669248453;
 
         $telegram->sendMessage([
             'chat_id' => $chatId,
@@ -117,7 +117,7 @@ class TelegramService extends Controller
     public function sendToTelegramDAR($message)
     {
         $telegram = new Api('7839618642:AAEtzTdu1MeuYdAF9Rx1Mb84eZcouSIbNi4');
-        $chatId = -4695191448 ;
+        $chatId = -4695191448;
 
         $telegram->sendMessage([
             'chat_id' => $chatId,
@@ -218,7 +218,7 @@ class TelegramService extends Controller
 
     public function sendToTelegramCOA($message)
     {
-        $telegram = new Api('7758595144:AAFbgkQ3LyyP3QdLZeszsxfbrpOBttdswug');
+        $telegram = new Api('8059832263:AAEznK2zOWGotj1IKrDH0MY6ddnas2tHW0o');
         $chatId =  -4549872150;
 
         $telegram->sendMessage([
@@ -227,7 +227,7 @@ class TelegramService extends Controller
         ]);
     }
 
-     public function sendToTelegramFER($message)
+    public function sendToTelegramFER($message)
     {
         $telegram = new Api('8219702884:AAEC2N4rrVSGSSsfKLmRbt-6RNzb4yg76U8');
         $chatId =  -1003147225934;
