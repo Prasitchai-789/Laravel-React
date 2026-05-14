@@ -9,9 +9,31 @@ use App\Models\Certificate;
 use App\Models\MAR\SOPlan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
+use App\Http\Controllers\Notifications\TelegramService;
 
 class COAController extends Controller
 {
+    private function sqlServerDateTime($date = null): string
+    {
+        return ($date ? \Carbon\Carbon::parse($date) : now())->format('Y-m-d H:i:s');
+    }
+
+    private function sqlServerDateTimeWithMilliseconds($date = null): string
+    {
+        return ($date ? \Carbon\Carbon::parse($date) : now())->format('Y-m-d H:i:s.v');
+    }
+
+    private function textOrNull($value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
     private function resolveCoaPrefix(?string $type = null, ?SOPlan $soplan = null): string
     {
         if ($type === 'seed' || $type === 'palm-kernel') {
@@ -94,14 +116,21 @@ class COAController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            DB::beginTransaction();
             Log::info('📥 COA store request received:', $request->all());
+
+            $tank = $this->textOrNull($request->input('tank', $request->input('coa_tank')));
+            if (!$tank) {
+                return response()->json([
+                    'success' => false,
+                    'field' => 'tank',
+                    'message' => 'กรุณาเลือก Tank ก่อนบันทึก COA',
+                ], 422);
+            }
+
+            DB::beginTransaction();
 
             $now = now();
             $yearBE = $now->year + 543;
-            $month = $now->format('m');
-            $day = $now->format('d');
-            $year2 = substr($yearBE, -2);
 
             // 5. Update or Create Certificate
             // Check if exists for this SOPID to prevent duplicates
@@ -131,21 +160,16 @@ class COAController extends Controller
             }
 
             if (!$cert) {
-                // Get next ID if creating new
-                $maxId = Certificate::max(DB::raw('TRY_CAST(id as INT)')) ?? 0;
-                $nextId = (int) $maxId + 1;
-
                 $cert = new Certificate();
-                $cert->id = (string) $nextId;
                 $cert->SOPID = (string) $request->get('SOPID');
-                $cert->created_at = $now->format('d/m/Y H:i:s');
+                $cert->created_at = $this->sqlServerDateTime($now);
             }
 
             // Explicit assignment for better visibility and safety
-            $cert->date_coa = $cert->date_coa ?? $now->format('Y-m-d H:i:s.v');
+            $cert->date_coa = $cert->date_coa ?? $this->sqlServerDateTimeWithMilliseconds($now);
             $cert->coa_number = $coaNumber;
             $cert->coa_lot = $coaLot;
-            $cert->coa_tank = $request->get('tank', '-');
+            $cert->coa_tank = $tank;
 
             // Results
             $cert->result_FFA = $request->get('ffa');
@@ -172,7 +196,7 @@ class COAController extends Controller
             }
 
             $cert->status = 'W';
-            $cert->updated_at = $now->format('d/m/Y H:i:s');
+            $cert->updated_at = $this->sqlServerDateTime($now);
             $cert->coa_remark = $request->get('notes');
 
             Log::info('💾 Cert about to save:', $cert->toArray());
@@ -217,11 +241,15 @@ class COAController extends Controller
 
             DB::beginTransaction();
 
+            // ตรวจสอบว่าเป็นการอนุมัติครั้งแรก (status ยังไม่ใช่ 'A')
+            $cert = Certificate::where('SOPID', $sopid)->first();
+            $isFirstApproval = $cert && $cert->status !== 'A';
+
             // 1. Update Certificate status to Approved (A) and save manager
             Certificate::where('SOPID', $sopid)->update([
                 'status' => 'A',
                 'coa_mgr' => $request->get('coa_mgr'),
-                'updated_at' => now()->format('d/m/Y H:i:s')
+                'updated_at' => $this->sqlServerDateTime()
             ]);
 
             // 2. Update SOPlan Status_coa to Approved (A)
@@ -230,6 +258,28 @@ class COAController extends Controller
             ]);
 
             DB::commit();
+
+            // 3. ส่งแจ้งเตือน Telegram เมื่ออนุมัติครั้งแรก
+            if ($isFirstApproval && $cert) {
+                try {
+                    $soplan = SOPlan::where('SOPID', $sopid)->first();
+                    $coaNumber = $cert->coa_number ?? '-';
+                    $goodName  = $soplan?->GoodName ?? 'เมล็ดปาล์ม';
+                    $numberCar = $soplan?->NumberCar ?? '-';
+                    $siteUrl   = config('app.url', 'http://isanpalm.dyndns.info:8001/');
+
+                    $message = "แจ้ง COA\n";
+                    $message .= "🙎‍♂️ :{$coaNumber}\n";
+                    $message .= "📦 :{$goodName}\n";
+                    $message .= "🚍 :{$numberCar}\n";
+                    $message .= "🌐 :{$siteUrl}";
+
+                    $telegram = new TelegramService();
+                    $telegram->sendToTelegramCOA($message);
+                } catch (\Exception $telegramEx) {
+                    Log::warning('⚠️ Telegram COA notification failed: ' . $telegramEx->getMessage());
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -258,7 +308,7 @@ class COAController extends Controller
             // 1. Update Certificate status to Canceled (C)
             Certificate::where('SOPID', $sopid)->update([
                 'status' => 'C',
-                'updated_at' => now()->format('d/m/Y H:i:s')
+                'updated_at' => $this->sqlServerDateTime()
             ]);
 
             // 2. Update SOPlan Status_coa to Canceled (C)
@@ -292,6 +342,7 @@ class COAController extends Controller
 
             // Capture before-state for audit
             $before = Certificate::where('SOPID', $sopid)->first()?->toArray();
+            $wasApproved = ($before['status'] ?? null) === 'A';
 
             // Re-use store() logic to persist the updated data
             $storeResponse = $this->store($request);
@@ -299,6 +350,17 @@ class COAController extends Controller
 
             if (!($storeData['success'] ?? false)) {
                 return response()->json($storeData, 500);
+            }
+
+            if ($wasApproved) {
+                Certificate::where('SOPID', $sopid)->update([
+                    'status' => 'A',
+                    'updated_at' => $this->sqlServerDateTime(),
+                ]);
+
+                SOPlan::where('SOPID', $sopid)->update([
+                    'Status_coa' => 'A',
+                ]);
             }
 
             // Record audit log

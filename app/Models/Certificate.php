@@ -22,7 +22,6 @@ class Certificate extends Model
     public $timestamps = false;
     // ฟิลด์ที่อนุญาตให้ mass assignment
     protected $fillable = [
-        'id',
         'date_coa',
         'SOPID',
         'coa_number',

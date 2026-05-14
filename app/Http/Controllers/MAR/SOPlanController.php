@@ -15,6 +15,16 @@ use App\Models\WIN\WebappEmp;
 
 class SOPlanController extends Controller
 {
+    private function sqlServerDateTime($date = null): string
+    {
+        return ($date ? \Carbon\Carbon::parse($date) : now())->format('Y-m-d H:i:s');
+    }
+
+    private function sqlServerDateTimeWithMilliseconds($date = null): string
+    {
+        return ($date ? \Carbon\Carbon::parse($date) : now())->format('Y-m-d H:i:s.v');
+    }
+
     private function getEmployeeName($empIdOrName)
     {
         if (!$empIdOrName)
@@ -600,19 +610,15 @@ class SOPlanController extends Controller
                 $coaNumber = $prefix . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT) . "/{$yearBE}";
                 $coaLot = 'QAC' . $year2 . $month . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT);
 
-                $maxId = \App\Models\Certificate::max(\Illuminate\Support\Facades\DB::raw('TRY_CAST(id as INT)')) ?? 0;
-                $certAutoIdSeq = (int)$maxId + 1;
-
                 $certData = [
-                    'id' => (string)$certAutoIdSeq,
                     'SOPID' => (string)$plan->SOPID,
-                    'date_coa' => $now->format('Y-m-d H:i:s.v'),
+                    'date_coa' => $this->sqlServerDateTimeWithMilliseconds($now),
                     'coa_number' => $coaNumber,
                     'coa_lot' => $coaLot,
                     'coa_tank' => '-',
                     'status' => 'pending',
-                    'created_at' => $now->format('d/m/Y H:i:s'),
-                    'updated_at' => $now->format('d/m/Y H:i:s'),
+                    'created_at' => $this->sqlServerDateTime($now),
+                    'updated_at' => $this->sqlServerDateTime($now),
                 ];
 
                 if ($prefix === 'KN') {
@@ -924,19 +930,15 @@ class SOPlanController extends Controller
             $coaLot = 'QAC' . $year2 . $month . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT);
 
             if (!$cert) {
-                $maxId = \App\Models\Certificate::max(\Illuminate\Support\Facades\DB::raw('TRY_CAST(id as INT)')) ?? 0;
-                $certAutoIdSeq = (int)$maxId + 1;
-
                 $certData = [
-                    'id' => (string)$certAutoIdSeq,
                     'SOPID' => $id,
-                    'date_coa' => $now->format('Y-m-d H:i:s.v'),
+                    'date_coa' => $this->sqlServerDateTimeWithMilliseconds($now),
                     'coa_number' => $coaNumber,
                     'coa_lot' => $coaLot,
                     'coa_tank' => '-',
                     'status' => 'pending',
-                    'created_at' => $now->format('d/m/Y H:i:s'),
-                    'updated_at' => $now->format('d/m/Y H:i:s'),
+                    'created_at' => $this->sqlServerDateTime($now),
+                    'updated_at' => $this->sqlServerDateTime($now),
                 ];
 
                 if ($prefix === 'KN') {
