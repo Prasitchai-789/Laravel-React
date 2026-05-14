@@ -199,7 +199,7 @@ export async function generateOilCoaPdf(fields: COAFields, coaType: 'isp' | 'mun
             return r.arrayBuffer();
         });
         const userSigImage = await pdfDoc.embedPng(userSigBytes);
-        const userSigScale = userSigPath.includes('fan.png') ? 0.35 : 0.10;
+        const userSigScale = userSigPath.includes('fan.png') ? 0.35 : 0.20;
         const userSigDims = userSigImage.scale(userSigScale);
 
         // ลายเซ็น Manager
@@ -328,7 +328,7 @@ export async function generateSeedCoaPdf(fields: COAFields, coaType: 'isp' | 'mu
             return r.arrayBuffer();
         });
         const userSigImage = await pdfDoc.embedPng(userSigBytes);
-        const userSigScale = userSigPath.includes('fan.png') ? 0.35 : 0.10;
+        const userSigScale = userSigPath.includes('fan.png') ? 0.35 : 0.20;
         const userSigDims = userSigImage.scale(userSigScale);
 
         // ลายเซ็น Manager
@@ -457,7 +457,7 @@ export async function generateCarPdf(fields: COAFields): Promise<Uint8Array> {
             return r.arrayBuffer();
         });
         const userSigImage = await pdfDoc.embedPng(userSigBytes);
-        const userSigScale = userSigPath.includes('fan.png') ? 0.35 : 0.10;
+        const userSigScale = userSigPath.includes('fan.png') ? 0.35 : 0.20;
         const userSigDims = userSigImage.scale(userSigScale);
 
         // ลายเซ็น Manager -> prapaporn เสมอ (ยกเว้นมีระบุ)

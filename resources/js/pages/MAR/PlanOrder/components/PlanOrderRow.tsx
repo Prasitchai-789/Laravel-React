@@ -21,7 +21,7 @@ interface PlanOrder {
     customerName: string;
     netWeight: number;
     unit: string;
-    status: 'pending' | 'confirmed' | 'production' | 'completed' | 'cancelled';
+    status: 'W' | 'P' | 'F' | 'C';
 }
 
 interface Props {

@@ -45,10 +45,10 @@ interface Stats {
     cancelled: number;
     totalWeight?: number;
     statusCodes?: {
-        w: number;
-        p: number;
-        f: number;
-        c: number;
+        W: number;
+        P: number;
+        F: number;
+        C: number;
     };
 }
 
@@ -181,10 +181,10 @@ const PRODUCT_COLOR_CLASSES = {
 // แก้ไข STATUS_OPTIONS ให้ใช้ค่า database โดยตรง
 const STATUS_OPTIONS = [
     { value: 'all', label: 'ทั้งหมด', icon: Package, color: 'gray' },
-    { value: 'w', label: 'รอดำเนินการ', icon: Clock, color: 'yellow' },
-    { value: 'p', label: 'กำลังดำเนินการ', icon: TrendingUp, color: 'sky' },
-    { value: 'f', label: 'เสร็จแล้ว', icon: CheckCircle2, color: 'emerald' },
-    { value: 'c', label: 'ยกเลิก', icon: XCircle, color: 'gray' },
+    { value: 'W', label: 'กำลังรอ', icon: Clock, color: 'yellow' },
+    { value: 'P', label: 'ดำเนินการ', icon: TrendingUp, color: 'sky' },
+    { value: 'F', label: 'สิ้นสุด', icon: CheckCircle2, color: 'emerald' },
+    { value: 'C', label: 'ยกเลิก', icon: XCircle, color: 'gray' },
 ];
 
 // PRODUCT_OPTIONS คงเดิม
@@ -457,10 +457,10 @@ export default function PlanOrderFilters({
 
     const getStatusLabel = (value: string) => {
         const statusMap: { [key: string]: string } = {
-            'w': 'รอดำเนินการ',
-            'p': 'กำลังดำเนินการ',
-            'f': 'เสร็จแล้ว',
-            'c': 'ยกเลิก',
+            'W': 'กำลังรอ',
+            'P': 'ดำเนินการ',
+            'F': 'สิ้นสุด',
+            'C': 'ยกเลิก',
         };
         return statusMap[value] || value;
     };
@@ -542,91 +542,17 @@ export default function PlanOrderFilters({
     };
 
     return (
-        <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            {/* Header */}
-            <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="rounded-lg bg-blue-500 p-1.5">
-                        <Filter className="h-3.5 w-3.5 text-white" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-gray-800">ค้นหาและกรอง</h3>
-                    {activeFilterCount > 0 && (
-                        <Badge variant="secondary" className="bg-blue-100 text-xs text-blue-700">
-                            {activeFilterCount} ตัวกรอง
-                        </Badge>
-                    )}
-                    {totalCount > 0 && (
-                        <span className="ml-2 text-xs text-gray-400">พบ {totalCount} รายการ</span>
-                    )}
-                </div>
-
-                {/* Quick Filters */}
-                <div className="flex items-center gap-1">
-                    {['today', 'yesterday', 'thisWeek'].map((type) => {
-                        const icons = {
-                            today: Calendar,
-                            yesterday: CalendarX,
-                            thisWeek: CalendarRange,
-                        };
-                        const labels = {
-                            today: 'วันนี้',
-                            yesterday: 'เมื่อวาน',
-                            thisWeek: 'สัปดาห์นี้',
-                        };
-                        const Icon = icons[type as keyof typeof icons];
-                        const isActive = isDateRangeActive(type);
-
-                        return (
-                            <Button
-                                key={type}
-                                variant={isActive ? "default" : "ghost"}
-                                size="sm"
-                                onClick={() => handleDateClick(type)}
-                                className={`h-7 px-2 text-xs ${isActive
-                                    ? 'bg-blue-500 text-white hover:bg-blue-600'
-                                    : 'text-gray-600 hover:text-blue-600'
-                                    }`}
-                                title={isActive ? `คลิกเพื่อล้างตัวกรอง${labels[type as keyof typeof labels]}` : `เลือก${labels[type as keyof typeof labels]}`}
-                            >
-                                <Icon className="mr-1 h-3 w-3" />
-                                {labels[type as keyof typeof labels]}
-                            </Button>
-                        );
-                    })}
-
-                    {/* ปีข้อมูล (Year Selector) ไปอยู่หลัง สัปดาห์นี้ */}
-                    {availableYears && availableYears.length > 0 && (
-                        <div className="ml-2 flex items-center gap-1.5 border-l pl-2 border-gray-200">
-                            <Calendar className="h-3 w-3 text-gray-400" />
-                            <Select
-                                value={String(selectedYear ?? new Date().getFullYear())}
-                                onValueChange={(v) => onYearChange?.(v)}
-                            >
-                                <SelectTrigger className="h-7 w-[90px] border-2 text-xs bg-white">
-                                    <SelectValue placeholder="ปี" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availableYears.map(y => (
-                                        <SelectItem key={y} value={String(y)} className="text-xs">
-                                            {y}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Search Bar */}
-            <div className="relative">
-                <div className="flex gap-2">
+        <div className="mb-6 rounded-[2rem] border border-white/60 bg-white/40 p-4 shadow-sm backdrop-blur-md">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                
+                {/* 1. Left: Search Bar & Filter Toggle */}
+                <div className="flex-1 flex gap-2 w-full xl:max-w-2xl">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                         <Input
                             ref={searchInputRef}
                             placeholder="ค้นหาเลขที่คำสั่งซื้อ, ชื่อลูกค้า, ทะเบียนรถ, ชื่อคนขับ..."
-                            className="border-2 py-2 pl-9 pr-4 text-sm transition-all focus:border-blue-400"
+                            className="border-0 bg-white/80 shadow-inner py-2 pl-9 pr-4 text-sm transition-all focus:ring-2 focus:ring-blue-400 rounded-xl w-full h-10"
                             value={filters.search || ''}
                             onChange={(e) => handleChange('search', e.target.value)}
                             onFocus={() => setShowSearchHistory(true)}
@@ -634,17 +560,17 @@ export default function PlanOrderFilters({
                         />
 
                         {showSearchHistory && searchHistory.length > 0 && (
-                            <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-lg border bg-white py-1 shadow-lg">
+                            <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-xl border border-blue-100 bg-white/90 backdrop-blur-xl py-2 shadow-xl">
                                 {searchHistory.map((term, i) => (
                                     <button
                                         key={i}
-                                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-gray-50"
+                                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
                                         onClick={() => {
                                             handleChange('search', term);
                                             setShowSearchHistory(false);
                                         }}
                                     >
-                                        <Search className="h-3 w-3 text-gray-400" />
+                                        <Search className="h-3 w-3 text-blue-400" />
                                         {term}
                                     </button>
                                 ))}
@@ -655,13 +581,12 @@ export default function PlanOrderFilters({
                     <Button
                         variant="outline"
                         onClick={() => setShowFilters(!showFilters)}
-                        className={`gap-2 border-2 transition-all ${showFilters ? 'border-blue-400 bg-blue-50 text-blue-700' : ''
-                            }`}
+                        className={`gap-2 border-0 bg-white shadow-sm hover:bg-slate-50 transition-all rounded-xl h-10 px-4 ${showFilters ? 'ring-2 ring-blue-400 text-blue-700' : 'text-slate-600'}`}
                     >
                         <Filter className="h-4 w-4" />
-                        <span className="hidden sm:inline">ตัวกรอง</span>
+                        <span className="hidden sm:inline font-bold">ตัวกรอง</span>
                         {activeFilterCount > 0 && (
-                            <Badge variant="secondary" className="ml-1 bg-blue-100 text-blue-700">
+                            <Badge variant="secondary" className="ml-1 bg-blue-100 text-blue-700 rounded-md px-1.5 py-0 text-[10px]">
                                 {activeFilterCount}
                             </Badge>
                         )}
@@ -673,11 +598,73 @@ export default function PlanOrderFilters({
                             variant="ghost"
                             size="icon"
                             onClick={clearFilters}
-                            className="text-gray-500 hover:bg-red-50 hover:text-red-600"
+                            className="text-gray-400 hover:bg-red-100 hover:text-red-600 rounded-xl h-10 w-10 shrink-0"
                             title="ล้างตัวกรองทั้งหมด"
                         >
                             <X className="h-4 w-4" />
                         </Button>
+                    )}
+                </div>
+
+                {/* 2. Right: Quick Filters & Info */}
+                <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                    {totalCount > 0 && (
+                        <span className="text-xs font-bold text-blue-800 bg-blue-100/50 border border-blue-200 px-3 py-2 rounded-xl">
+                            พบ {totalCount} รายการ
+                        </span>
+                    )}
+                    
+                    <div className="flex items-center bg-white/50 p-1 rounded-xl shadow-inner border border-white/60">
+                        {['today', 'yesterday', 'thisWeek'].map((type) => {
+                            const icons = {
+                                today: Calendar,
+                                yesterday: CalendarX,
+                                thisWeek: CalendarRange,
+                            };
+                            const labels = {
+                                today: 'วันนี้',
+                                yesterday: 'เมื่อวาน',
+                                thisWeek: 'สัปดาห์นี้',
+                            };
+                            const Icon = icons[type as keyof typeof icons];
+                            const isActive = isDateRangeActive(type);
+
+                            return (
+                                <Button
+                                    key={type}
+                                    variant={isActive ? "default" : "ghost"}
+                                    size="sm"
+                                    onClick={() => handleDateClick(type)}
+                                    className={`h-8 px-3 text-xs font-bold rounded-lg transition-all ${isActive
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'text-slate-600 hover:bg-white hover:text-blue-600'
+                                        }`}
+                                    title={isActive ? `คลิกเพื่อล้างตัวกรอง${labels[type as keyof typeof labels]}` : `เลือก${labels[type as keyof typeof labels]}`}
+                                >
+                                    <Icon className="mr-1.5 h-3.5 w-3.5" />
+                                    {labels[type as keyof typeof labels]}
+                                </Button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Year Selector */}
+                    {availableYears && availableYears.length > 0 && (
+                        <Select
+                            value={String(selectedYear ?? new Date().getFullYear())}
+                            onValueChange={(v) => onYearChange?.(v)}
+                        >
+                            <SelectTrigger className="h-10 w-[100px] border-0 bg-white shadow-sm rounded-xl text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-400">
+                                <SelectValue placeholder="ปี" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-blue-100 shadow-xl">
+                                {availableYears.map(y => (
+                                    <SelectItem key={y} value={String(y)} className="text-xs font-bold cursor-pointer rounded-lg m-1">
+                                        ปี {y}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     )}
                 </div>
             </div>
@@ -960,13 +947,13 @@ export default function PlanOrderFilters({
                             {stats && (
                                 <>
                                     <span className="flex items-center gap-1 text-yellow-600">
-                                        <Clock className="h-3.5 w-3.5" /> รอ {stats.pending}
+                                        <Clock className="h-3.5 w-3.5" /> กำลังรอ {stats.pending}
                                     </span>
                                     <span className="flex items-center gap-1 text-sky-600">
-                                        <TrendingUp className="h-3.5 w-3.5" /> กำลัง {stats.processing}
+                                        <TrendingUp className="h-3.5 w-3.5" /> ดำเนินการ {stats.processing}
                                     </span>
                                     <span className="flex items-center gap-1 text-emerald-600">
-                                        <CheckCircle2 className="h-3.5 w-3.5" /> เสร็จ {stats.completed}
+                                        <CheckCircle2 className="h-3.5 w-3.5" /> สิ้นสุด {stats.completed}
                                     </span>
                                     <span className="flex items-center gap-1 text-gray-500">
                                         <XCircle className="h-3.5 w-3.5" /> ยกเลิก {stats.cancelled}

@@ -126,22 +126,23 @@ const parseWeight = (weightStr: any): number => {
 // ฟังก์ชัน map สถานะจาก database เป็น frontend status
 const mapStatus = (dbStatus: string): string => {
     const statusMap: { [key: string]: string } = {
-        'w': 'pending',
-        'p': 'processing',
-        'f': 'completed',
-        'c': 'cancelled',
-        'W': 'W', // ✅ status 'W' จาก Status_coa
-        'pending': 'pending',
-        'processing': 'processing',
-        'completed': 'completed',
-        'cancelled': 'cancelled',
-        'รอ': 'pending',
-        'ดำเนินการ': 'processing',
-        'เสร็จ': 'completed',
-        'ยกเลิก': 'cancelled',
+        'W': 'W',
+        'P': 'P',
+        'F': 'F',
+        'C': 'C',
+        'pending': 'W',
+        'processing': 'P',
+        'completed': 'F',
+        'cancelled': 'C',
+        'รอ': 'W',
+        'กำลังรอ': 'W',
+        'ดำเนินการ': 'P',
+        'เสร็จ': 'F',
+        'สิ้นสุด': 'F',
+        'ยกเลิก': 'C',
     };
 
-    return statusMap[dbStatus] || statusMap[dbStatus?.toLowerCase()] || 'pending';
+    return statusMap[dbStatus] || statusMap[dbStatus?.toUpperCase()] || 'W';
 };
 
 // ฟังก์ชันแปลง SOPlanData เป็น PlanOrder
@@ -168,7 +169,7 @@ const convertSOPlanToPlanOrder = (s: SOPlanData, index?: number): PlanOrder => {
         plannedWeight: parseWeight(s.AmntLoad) || 0,
         unit: unit,
         displayWeight: displayWeight.toFixed(2),
-        status: (s.Status_coa === 'W' ? 'W' : mappedStatus) as 'pending' | 'processing' | 'completed' | 'cancelled' | 'confirmed' | 'production' | 'W',
+        status: mappedStatus as 'W' | 'P' | 'F' | 'C',
         priority: 'normal',
         destination: s.Recipient,
         coaNumber: s.coa_number,
@@ -193,6 +194,11 @@ const convertSOPlanToPlanOrder = (s: SOPlanData, index?: number): PlanOrder => {
     };
 };
 
+const isOilPlan = (s: SOPlanData): boolean => {
+    const productType = s.productType || mapProductType(s.GoodID, s.GoodName);
+    return productType === 'cpo' || productType === 'palm-oil';
+};
+
 // Mock data
 const mockOrders: PlanOrder[] = [
     {
@@ -208,7 +214,7 @@ const mockOrders: PlanOrder[] = [
         netWeight: 30000,
         plannedWeight: 30000,
         unit: 'กก.',
-        status: 'pending',
+        status: 'W',
         priority: 'high',
         destination: 'โรงงานระยอง'
     },
@@ -225,7 +231,7 @@ const mockOrders: PlanOrder[] = [
         netWeight: 15000,
         plannedWeight: 15000,
         unit: 'กก.',
-        status: 'processing',
+        status: 'P',
         priority: 'normal',
         destination: 'โรงงานชลบุรี'
     }
@@ -286,10 +292,10 @@ const showWarning = (message: string) => {
     });
 };
 
-const showConfirmDelete = async (orderNumber: string): Promise<boolean> => {
+const showConfirmDelete = async (productName: string): Promise<boolean> => {
     const result = await Swal.fire({
         title: 'ยืนยันการลบ',
-        text: `คุณต้องการลบรายการ ${orderNumber} ใช่หรือไม่?`,
+        text: `คุณต้องการลบแผนงานของสินค้า "${productName}" ใช่หรือไม่?`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
@@ -454,6 +460,13 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
                     : `${prefix}${sopId}`;
             }
 
+            // ใช้ลายเซ็นต์ Fan และ Peach และเปลี่ยนลูกค้าเป็นปลายทางสำหรับ MUN
+            if (docType === 'coa_mun' || docType === 'seed_mun') {
+                (pdfData as any).coa_user_id = 'MUN_FAN';
+                (pdfData as any).coa_mgr = 'MUN_PEACH';
+                (pdfData as any).customer_name = data.Recipient || order.destination || data.CustName || order.customerName || '-';
+            }
+
             await generateAndDownloadCoa(pdfData as any, docType as any);
 
             // คืนค่า coa_no ตามเดิม
@@ -471,11 +484,48 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
         }
     }, [setIsLoading]);
 
-    // ============ โหลดข้อมูลเริ่มต้น ============
+    // ============ โหลดข้อมูลเริ่มต้น และจัดกลุ่ม (Grouping) ============
     useEffect(() => {
         if (soplans && soplans.length > 0) {
-            const mapped = soplans.map((s, idx) => convertSOPlanToPlanOrder(s, idx));
-            setOrders(mapped);
+            // จัดกลุ่มรายการที่มี วันที่, สินค้า, ลูกค้า, ปลายทาง และน้ำหนักแผน ตรงกัน
+            // เพื่อให้รถหลายคันในแผนเดียวกันแสดงเป็นแถวเดียว
+            // ยกเว้นข้อมูลน้ำมัน ต้องแสดงแยกตามรายการ/SOPID เพื่อให้ COA และเอกสารอ้างอิงไม่ปนกัน
+            const groups: { [key: string]: PlanOrder } = {};
+            
+            soplans.forEach((s, idx) => {
+                const key = isOilPlan(s)
+                    ? `oil_${s.SOPID || idx}`
+                    : `${s.SOPDate}_${s.GoodID}_${s.CustID}_${s.AmntLoad}_${s.Recipient}_${s.Remarks || ''}`;
+                
+                if (groups[key]) {
+                    // ถ้ามีกลุ่มอยู่แล้ว ให้เพิ่มชื่อรถและคนขับ (คั่นด้วยคอมมา)
+                    if (s.NumberCar && s.NumberCar !== '-') {
+                        groups[key].licensePlate = groups[key].licensePlate 
+                            ? `${groups[key].licensePlate}, ${s.NumberCar}` 
+                            : s.NumberCar;
+                    }
+                    if (s.DriverName && s.DriverName !== '-') {
+                        groups[key].driverName = groups[key].driverName 
+                            ? `${groups[key].driverName}, ${s.DriverName}` 
+                            : s.DriverName;
+                    }
+                    // เก็บ SOPID ทั้งหมดไว้ใน array (เช็คไม่ให้ซ้ำ)
+                    if (groups[key].rawData) {
+                        const allIds = (groups[key].rawData as any).allIds || [groups[key].rawData.sopId];
+                        if (!allIds.includes(s.SOPID)) {
+                            allIds.push(s.SOPID);
+                        }
+                        (groups[key].rawData as any).allIds = allIds;
+                    }
+                } else {
+                    // ถ้ายังไม่มีกลุ่ม ให้สร้างใหม่
+                    const order = convertSOPlanToPlanOrder(s, idx);
+                    (order.rawData as any).allIds = [s.SOPID];
+                    groups[key] = order;
+                }
+            });
+            
+            setOrders(Object.values(groups));
         } else {
             setOrders(mockOrders);
         }
@@ -514,19 +564,8 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
                 if (!matchSearch) return false;
             }
 
-            // กรองตามสถานะ
             if (filters.status && filters.status !== 'all') {
-                // filters.status เป็นค่า database ('w','p','f','c')
-                // order.status เป็น frontend status ('pending','processing','completed','cancelled')
-                // ต้อง map กลับ
-                const statusMap: { [key: string]: string } = {
-                    'w': 'pending',
-                    'p': 'processing',
-                    'f': 'completed',
-                    'c': 'cancelled',
-                };
-                const mappedStatus = statusMap[filters.status];
-                if (order.status !== mappedStatus) return false;
+                if (order.status !== filters.status) return false;
             }
 
             // กรองตามประเภทสินค้า
@@ -574,10 +613,10 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
     // filteredStats - ใช้ frontend status
     const filteredStats = useMemo(() => {
         const total = filteredOrders.length;
-        const pending = filteredOrders.filter(o => o.status === 'pending').length;
-        const processing = filteredOrders.filter(o => o.status === 'processing').length;
-        const completed = filteredOrders.filter(o => o.status === 'completed').length;
-        const cancelled = filteredOrders.filter(o => o.status === 'cancelled').length;
+        const pending = filteredOrders.filter(o => o.status === 'W').length;
+        const processing = filteredOrders.filter(o => o.status === 'P').length;
+        const completed = filteredOrders.filter(o => o.status === 'F').length;
+        const cancelled = filteredOrders.filter(o => o.status === 'C').length;
         const totalWeight = filteredOrders.reduce((sum, o) => sum + o.netWeight, 0);
 
         return {
@@ -587,12 +626,11 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
             completed,
             cancelled,
             totalWeight,
-            // statusCodes สำหรับ PlanOrderFilters ที่ใช้ค่า database
             statusCodes: {
-                w: pending,
-                p: processing,
-                f: completed,
-                c: cancelled
+                W: pending,
+                P: processing,
+                F: completed,
+                C: cancelled
             }
         };
     }, [filteredOrders]);
@@ -682,7 +720,7 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
                 }
 
                 setIsCreateModalOpen(false);
-                showSuccess('เพิ่มแผนการขนส่งเรียบร้อย');
+                showSuccess(`เพิ่มแผนงาน "${data.goodName}" เรียบร้อย`);
             },
             onError: (errors) => {
                 console.error('Create error:', errors);
@@ -740,7 +778,7 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
 
                 setIsEditModalOpen(false);
                 setEditingOrder(null);
-                showSuccess('แก้ไขข้อมูลเรียบร้อย');
+                showSuccess(`แก้ไขแผนงาน "${data.goodName}" เรียบร้อย`);
             },
             onError: (errors) => {
                 console.error('Edit error:', errors);
@@ -759,12 +797,15 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
 
     // ============ ฟังก์ชันลบ - Real-time update ============
     const handleDelete = async (order: PlanOrder) => {
-        const confirmed = await showConfirmDelete(order.orderNumber);
+        const confirmed = await showConfirmDelete(order.productName);
         if (confirmed) {
-            // optimistic delete - ลบออกจาก state ทันที
+            // ดึง IDs ทั้งหมดในกลุ่ม (ถ้ามี)
+            const idsToDelete = (order.rawData as any).allIds?.join(',') || order.id;
+
+            // optimistic delete
             setOrders(prev => prev.filter(o => o.id !== order.id));
 
-            router.delete(`/mar/plan-order/${order.id}`, {
+            router.delete(`/mar/plan-order/${idsToDelete}`, {
                 preserveState: true,
                 preserveScroll: true,
                 onSuccess: () => {
@@ -790,23 +831,18 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
             )
         );
 
-        // แปลงสถานะกลับเป็น database status ก่อนส่ง
-        const dbStatusMap: { [key: string]: string } = {
-            'pending': 'w',
-            'processing': 'p',
-            'completed': 'f',
-            'cancelled': 'c',
-        };
+        const dbStatus = mapStatus(newStatus);
+        
+        // ดึง IDs ทั้งหมดในกลุ่ม (ถ้ามี)
+        const idsToUpdate = (order.rawData as any).allIds?.join(',') || order.rawData?.sopId || order.id;
 
-        const dbStatus = dbStatusMap[newStatus] || 'w';
-
-        router.put(`/mar/plan-order/${order.rawData?.sopId}/status`, {
+        router.put(`/mar/plan-order/${idsToUpdate}/status`, {
             status: dbStatus  // ส่งเฉพาะสถานะ
         }, {
             preserveState: true,
             preserveScroll: true,
             onSuccess: () => {
-                showSuccess('เปลี่ยนสถานะเรียบร้อย');
+                showSuccess(`เปลี่ยนสถานะ "${order.productName}" เรียบร้อย`);
             },
             onError: (errors) => {
                 console.error('Status change error:', errors);
@@ -825,8 +861,8 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
         <AppLayout>
             <Head title="วางแผนการขนส่ง" />
 
-            <div className="py-6 ">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 font-anuphut">
+            <div className="min-h-screen bg-gradient-to-br from-blue-50/40 via-white to-slate-50/40 p-4 md:p-4 lg:p-6 font-anuphan space-y-6">
+                <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
                     <PlanOrderHeader
                         viewMode={viewMode}
                         onViewModeChange={setViewMode}

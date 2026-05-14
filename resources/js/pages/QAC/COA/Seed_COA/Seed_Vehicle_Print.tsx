@@ -141,9 +141,6 @@ const Seed_Vehicle_Print: React.FC = () => {
         <AppLayout>
             <div className="no-print sticky top-0 z-20 flex items-center gap-3 border-b bg-white px-6 py-3 shadow-sm">
                 <div className="ml-auto flex items-center gap-2">
-                    <button onClick={handleSave} className="flex items-center gap-2 rounded-lg border border-blue-600 px-4 py-2 text-sm font-bold text-blue-600 hover:bg-blue-50">
-                        บันทึกการแก้ไข
-                    </button>
                     <button onClick={() => window.print()} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">
                         <Printer className="w-4 h-4" /> พิมพ์แบบฟอร์ม
                     </button>
@@ -233,14 +230,12 @@ const Seed_Vehicle_Print: React.FC = () => {
                                         <div style={{ flex: 1 }}>{item.label}</div>
                                         <div style={{ display: 'flex', gap: '10mm', paddingRight: '30mm' }}>
                                             <div
-                                                onClick={() => handleToggleCheck(item.id, true)}
-                                                style={{ width: '7mm', height: '7mm', border: '1px solid #000', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', cursor: 'pointer' }}
+                                                style={{ width: '7mm', height: '7mm', border: '1px solid #000', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}
                                             >
                                                 {val === true && <span style={{ fontSize: '18pt', fontWeight: 'bold', color: '#00f', position: 'absolute' }}>/</span>}
                                             </div>
                                             <div
-                                                onClick={() => handleToggleCheck(item.id, false)}
-                                                style={{ width: '7mm', height: '7mm', border: '1px solid #000', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', cursor: 'pointer' }}
+                                                style={{ width: '7mm', height: '7mm', border: '1px solid #000', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}
                                             >
                                                 {val === false && <span style={{ fontSize: '18pt', fontWeight: 'bold', color: '#f00', position: 'absolute' }}>/</span>}
                                             </div>

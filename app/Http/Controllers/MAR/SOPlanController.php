@@ -525,10 +525,10 @@ class SOPlanController extends Controller
 
         $data = $request->validate([
             'receiveDate' => 'required|date',
-            'goodID' => 'required|string',
+            'goodID' => 'required',
             'goodName' => 'required|string',
             'loadPlan' => 'required|numeric',
-            'custID' => 'required|string',
+            'custID' => 'required',
             'custCode' => 'nullable|string',
             'custName' => 'required|string',
             'destination' => 'required|string',
@@ -561,7 +561,7 @@ class SOPlanController extends Controller
             $plan->AmntLoad = $data['loadPlan'];
             $plan->CustID = $data['custID'];
             $plan->Recipient = $data['destination'];
-            $plan->Status = 'w';
+            $plan->Status = 'W';
 
             $numberCar = $vehicle['numberCar'] ?? '';
             $driverName = $vehicle['driverName'] ?? '';
@@ -572,60 +572,71 @@ class SOPlanController extends Controller
             $plan->DriverName = $driverName;
 
             try {
+                Log::info("🔹 Attempting to save SOPlan...", [
+                    'SOPDate' => $plan->SOPDate,
+                    'GoodID' => $plan->GoodID,
+                    'CustID' => $plan->CustID,
+                    'NumberCar' => $plan->NumberCar
+                ]);
                 $plan->save();
                 $sopidString = (string)$plan->SOPID;
                 Log::info("🔹 SOPlan saved: SOPID=" . $sopidString . " for Car=" . $plan->NumberCar);
 
                 // ==========================================
-                // สร้าง Certificate อัตโนมัติ (ตาม Logic เดิม)
+                // สร้าง Certificate อัตโนมัติ (เฉพาะสินค้าที่มีการวิเคราะห์)
                 // ==========================================
-                $now = now();
-                $yearBE = $now->year + 543;
-                $month = $now->format('m');
-                $year2 = substr($yearBE, -2);
-
-                $prefix = 'CPO';
                 $gn = strtolower($plan->GoodName ?? '');
-                if (str_contains($gn, 'เมล็ด') || str_contains($gn, 'kernel') || str_contains($gn, 'cpko')) {
-                    $prefix = 'KN';
-                }
+                $isOil = str_contains($gn, 'น้ำมัน') || str_contains($gn, 'oil') || str_contains($gn, 'cpo');
+                $isKernel = str_contains($gn, 'เมล็ด') || str_contains($gn, 'kernel') || str_contains($gn, 'cpko');
 
-                // หาลำดับ COA Number ของปีนี้
-                $allCertsThisYear = \App\Models\Certificate::where('coa_number', 'like', "%/{$yearBE}")->pluck('coa_number');
-                $certBaseSeq = 0;
-                foreach ($allCertsThisYear as $coa) {
-                    if (preg_match('/[A-Z]+(\d+)\/' . $yearBE . '/', $coa, $matches)) {
-                        $seqVal = (int) $matches[1];
-                        if ($seqVal > $certBaseSeq) $certBaseSeq = $seqVal;
+                if ($isOil || $isKernel) {
+                    $now = now();
+                    $yearBE = $now->year + 543;
+                    $month = $now->format('m');
+                    $year2 = substr($yearBE, -2);
+
+                    $prefix = $isKernel ? 'KN' : 'CPO';
+
+                    // หาลำดับ COA Number ของปีนี้
+                    $allCertsThisYear = \App\Models\Certificate::where('coa_number', 'like', "%/{$yearBE}")->pluck('coa_number');
+                    $certBaseSeq = 0;
+                    foreach ($allCertsThisYear as $coa) {
+                        if (preg_match('/[A-Z]+(\d+)\/' . $yearBE . '/', $coa, $matches)) {
+                            $seqVal = (int) $matches[1];
+                            if ($seqVal > $certBaseSeq) $certBaseSeq = $seqVal;
+                        }
                     }
-                }
-                $certBaseSeq++;
-                $coaNumber = $prefix . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT) . "/{$yearBE}";
-                $coaLot = 'QAC' . $year2 . $month . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT);
+                    $certBaseSeq++;
+                    $coaNumber = $prefix . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT) . "/{$yearBE}";
+                    $coaLot = 'QAC' . $year2 . $month . str_pad($certBaseSeq, 4, '0', STR_PAD_LEFT);
 
-                $certData = [
-                    'SOPID' => (string)$plan->SOPID,
-                    'date_coa' => $this->sqlServerDateTimeWithMilliseconds($now),
-                    'coa_number' => $coaNumber,
-                    'coa_lot' => $coaLot,
-                    'coa_tank' => '-',
-                    'status' => 'pending',
-                    'created_at' => $this->sqlServerDateTime($now),
-                    'updated_at' => $this->sqlServerDateTime($now),
-                ];
+                    $certData = [
+                        'SOPID' => (string)$plan->SOPID,
+                        'date_coa' => $this->sqlServerDateTimeWithMilliseconds($now),
+                        'coa_number' => $coaNumber,
+                        'coa_lot' => $coaLot,
+                        'coa_tank' => '-',
+                        'status' => 'pending',
+                        'created_at' => $this->sqlServerDateTime($now),
+                        'updated_at' => $this->sqlServerDateTime($now),
+                    ];
 
-                if ($prefix === 'KN') {
-                    $certData['spec_shell'] = '< 10.00 %';
-                    $certData['spec_kn_moisture'] = '< 8.00 %';
+                    if ($prefix === 'KN') {
+                        $certData['spec_shell'] = '< 10.00 %';
+                        $certData['spec_kn_moisture'] = '< 8.00 %';
+                    } else {
+                        $certData['spec_FFA'] = '< 5.00 %';
+                        $certData['spec_moisture'] = '< 0.50 %';
+                        $certData['spec_IV'] = '50 - 55 %';
+                        $certData['spec_dobi'] = '> 2.00';
+                    }
+
+                    \App\Models\Certificate::create($certData);
+                    Log::info("🔹 Certificate auto-created for SOPID=" . $sopidString . " CoaNo=" . $coaNumber);
                 } else {
-                    $certData['spec_FFA'] = '< 5.00 %';
-                    $certData['spec_moisture'] = '< 0.50 %';
-                    $certData['spec_IV'] = '50 - 55 %';
-                    $certData['spec_dobi'] = '> 2.00';
+                    Log::info("⏭️ Skipping Certificate creation for non-lab product: " . $plan->GoodName);
                 }
-
-                \App\Models\Certificate::create($certData);
-                Log::info("🔹 Certificate auto-created for SOPID=" . $sopidString . " CoaNo=" . $coaNumber);
+                // ==========================================
                 // ==========================================
 
                 $savedPlans[] = [
@@ -648,9 +659,7 @@ class SOPlanController extends Controller
         // ย้ายการสร้าง COA ออกไปให้ Index หรือ Manual จัดการแทนตามเดิม
 
         $vehicleCount = count($savedPlans);
-        $message = $vehicleCount > 1
-            ? "บันทึกแผนการขนส่งเรียบร้อย {$vehicleCount} รายการ (SOPID: " . implode(', ', array_column($savedPlans, 'SOPID')) . ")"
-            : "บันทึกแผนการขนส่งเรียบร้อย (SOPID: {$savedPlans[0]['SOPID']})";
+        $message = "บันทึกแผนงานสินค้า \"{$data['goodName']}\" เรียบร้อย ({$vehicleCount} รายการ)";
 
         return redirect()->back()->with('success', $message);
     }
@@ -664,10 +673,10 @@ class SOPlanController extends Controller
 
         $data = $request->validate([
             'receiveDate' => 'required|date',
-            'goodID' => 'required|string',
+            'goodID' => 'required',
             'goodName' => 'required|string',
             'loadPlan' => 'required|numeric',
-            'custID' => 'required|string',
+            'custID' => 'required',
             'custCode' => 'nullable|string',
             'custName' => 'required|string',
             'destination' => 'required|string',
@@ -716,7 +725,7 @@ class SOPlanController extends Controller
 
             Log::info('✅ SOPlan updated', ['SOPID' => $id]);
 
-            return redirect()->back()->with('success', 'แก้ไขข้อมูลเรียบร้อย (SOPID: ' . $id . ')');
+            return redirect()->back()->with('success', "แก้ไขแผนงานสินค้า \"{$data['goodName']}\" เรียบร้อย");
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -729,21 +738,30 @@ class SOPlanController extends Controller
     // ============================================================
     public function updateStatus(Request $request, $id)
     {
-        Illuminate\Support\Facades\Log::info('📥 SOPlan update status request:', ['id' => $id, 'status' => $request->status]);
+        Log::info('📥 SOPlan update status request:', ['id' => $id, 'status' => $request->status]);
 
-        $status = $request->status;
+        $status = strtoupper((string) $request->status);
+
+        if (!in_array($status, ['W', 'P', 'F', 'C'], true)) {
+            return $this->errorResponse($request, 'สถานะไม่ถูกต้อง', 422);
+        }
 
         try {
-            $plan = SOPlan::where('SOPID', $id)->first();
+            // รองรับทั้ง ID เดียว และ IDs หลายตัวคั่นด้วยคอมมา
+            $ids = explode(',', $id);
+            
+            $plans = SOPlan::whereIn('SOPID', $ids)->get();
 
-            if (!$plan) {
+            if ($plans->isEmpty()) {
                 return $this->errorResponse($request, 'ไม่พบข้อมูลที่ต้องการเปลี่ยนสถานะ', 404);
             }
 
-            $plan->Status = $status;
-            $plan->save();
+            foreach ($plans as $plan) {
+                $plan->Status = $status;
+                $plan->save();
+            }
 
-            Illuminate\Support\Facades\Log::info('✅ SOPlan status updated', ['SOPID' => $id, 'newStatus' => $status]);
+            Log::info('✅ SOPlan status updated', ['SOPIDs' => $ids, 'newStatus' => $status]);
 
             if ($request->wantsJson()) {
                 return response()->json([
@@ -756,7 +774,7 @@ class SOPlanController extends Controller
             return redirect()->back()->with('success', 'เปลี่ยนสถานะเรียบร้อย (SOPID: ' . $id . ')');
 
         } catch (\Exception $e) {
-            Illuminate\Support\Facades\Log::error('❌ Error updating SOPlan status: ' . $e->getMessage());
+            Log::error('❌ Error updating SOPlan status: ' . $e->getMessage());
             return $this->errorResponse($request, 'เกิดข้อผิดพลาดในการเปลี่ยนสถานะ: ' . $e->getMessage(), 500);
         }
     }
@@ -768,26 +786,32 @@ class SOPlanController extends Controller
     {
         Log::info('🗑️ SOPlan soft-delete request:', ['id' => $id]);
 
-        $plan = SOPlan::where('SOPID', $id)->first();
-
-        if (!$plan) {
-            return $this->errorResponse($request, 'ไม่พบข้อมูลที่ต้องการลบ', 404);
-        }
-
         try {
-            // SoftDeletes trait จะ set deleted_at อัตโนมัติ — ไม่ลบจริง
-            $plan->delete();
+            // รองรับทั้ง ID เดียว และ IDs หลายตัวคั่นด้วยคอมมา
+            $ids = explode(',', $id);
+            
+            $plans = SOPlan::whereIn('SOPID', $ids)->get();
 
-            Log::info('✅ SOPlan soft-deleted', ['SOPID' => $id]);
+            if ($plans->isEmpty()) {
+                return $this->errorResponse($request, 'ไม่พบข้อมูลที่ต้องการลบ', 404);
+            }
+
+            $firstPlanName = $plans->first()->GoodName;
+
+            foreach ($plans as $plan) {
+                $plan->delete(); // Soft Delete
+            }
+
+            Log::info('✅ SOPlan soft-deleted', ['SOPIDs' => $ids]);
 
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'ลบข้อมูลเรียบร้อย (SOPID: ' . $id . ')',
+                    'message' => "ลบแผนงานสินค้า \"{$firstPlanName}\" เรียบร้อย",
                 ], 200);
             }
 
-            return redirect()->back()->with('success', 'ลบข้อมูลเรียบร้อย (SOPID: ' . $id . ')');
+            return redirect()->back()->with('success', "ลบแผนงานสินค้า \"{$firstPlanName}\" เรียบร้อย");
 
         } catch (\Exception $e) {
             Log::error('❌ Error soft-deleting SOPlan: ' . $e->getMessage());

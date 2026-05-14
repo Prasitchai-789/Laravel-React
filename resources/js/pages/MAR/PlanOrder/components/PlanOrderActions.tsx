@@ -93,34 +93,34 @@ export default function PlanOrderActions({ selectedOrders, onActionComplete }: P
                         <Button
                             variant="outline"
                             className="flex flex-col items-center p-4 h-auto"
-                            onClick={() => handleUpdateStatus('confirmed')}
+                            onClick={() => handleUpdateStatus('W')}
                         >
                             <CheckCircle className="h-6 w-6 text-blue-500 mb-2" />
-                            <span>ยืนยันคำสั่งซื้อ</span>
+                            <span>กำลังรอ</span>
                         </Button>
 
                         <Button
                             variant="outline"
                             className="flex flex-col items-center p-4 h-auto"
-                            onClick={() => handleUpdateStatus('production')}
+                            onClick={() => handleUpdateStatus('P')}
                         >
                             <Calendar className="h-6 w-6 text-purple-500 mb-2" />
-                            <span>เริ่มการผลิต</span>
+                            <span>ดำเนินการ</span>
                         </Button>
 
                         <Button
                             variant="outline"
                             className="flex flex-col items-center p-4 h-auto"
-                            onClick={() => handleUpdateStatus('completed')}
+                            onClick={() => handleUpdateStatus('F')}
                         >
                             <CheckCircle className="h-6 w-6 text-green-500 mb-2" />
-                            <span>เสร็จสิ้น</span>
+                            <span>สิ้นสุด</span>
                         </Button>
 
                         <Button
                             variant="outline"
                             className="flex flex-col items-center p-4 h-auto"
-                            onClick={() => handleUpdateStatus('cancelled')}
+                            onClick={() => handleUpdateStatus('C')}
                         >
                             <XCircle className="h-6 w-6 text-red-500 mb-2" />
                             <span>ยกเลิก</span>

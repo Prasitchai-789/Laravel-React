@@ -74,7 +74,7 @@ export interface PlanOrder {
     coaNumber?: string;
     destination?: string | null;
     priority?: 'high' | 'medium' | 'normal';
-    status: 'pending' | 'processing' | 'completed' | 'cancelled' | 'confirmed' | 'production' | 'W';
+    status: 'W' | 'P' | 'F' | 'C';
     isInspected?: boolean;
     rawData?: {
         sopId?: string;
@@ -125,47 +125,29 @@ interface Props {
 
 // ============ STATUS CONFIG ============
 const STATUS_CONFIG = {
-    pending: {
+    W: {
         color: 'bg-amber-50 text-amber-700 border-amber-200',
         dot: 'bg-amber-500',
         icon: Clock,
-        label: 'รอ',
+        label: 'กำลังรอ',
     },
-    confirmed: {
-        color: 'bg-sky-50 text-sky-700 border-sky-200',
-        dot: 'bg-sky-500',
-        icon: CheckCircle,
-        label: 'ยืนยัน',
-    },
-    production: {
-        color: 'bg-purple-50 text-purple-700 border-purple-200',
-        dot: 'bg-purple-500',
-        icon: Package,
-        label: 'ผลิต',
-    },
-    processing: {
+    P: {
         color: 'bg-blue-50 text-blue-700 border-blue-200',
         dot: 'bg-blue-500',
         icon: TrendingUp,
         label: 'ดำเนินการ',
     },
-    completed: {
+    F: {
         color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         dot: 'bg-emerald-500',
         icon: CheckCircle,
-        label: 'เสร็จ',
+        label: 'สิ้นสุด',
     },
-    cancelled: {
+    C: {
         color: 'bg-rose-50 text-rose-700 border-rose-200',
         dot: 'bg-rose-500',
         icon: XCircle,
         label: 'ยกเลิก',
-    },
-    W: {
-        color: 'bg-amber-50 text-amber-700 border-amber-200',
-        dot: 'bg-amber-500',
-        icon: Clock,
-        label: 'รออนุมัติ',
     },
 };
 
@@ -242,12 +224,9 @@ export default function PlanOrderTable({
 
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage] = useState(10);
-    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-    const [selectedOrder, setSelectedOrder] = useState<PlanOrder | null>(null);
 
     const ordersArray = Array.isArray(orders) ? orders : [];
 
-    // ฟังก์ชันสกัดตัวเลขจาก SOPID
     const extractNumberFromId = (id: string): number => {
         if (!id) return 0;
         const numbers = id.replace(/[^0-9]/g, '');
@@ -333,16 +312,9 @@ export default function PlanOrderTable({
 
     // ============ ฟังก์ชันอื่นๆ ============
     const handleDelete = (order: PlanOrder) => {
-        setSelectedOrder(order);
-        setShowDeleteDialog(true);
-    };
-
-    const confirmDelete = () => {
-        if (selectedOrder && onDelete) {
-            onDelete(selectedOrder);
+        if (onDelete) {
+            onDelete(order);
         }
-        setShowDeleteDialog(false);
-        setSelectedOrder(null);
     };
 
     const handlePDFAction = (order: PlanOrder, action: 'generate' | 'print' | 'download' | 'email', type: string) => {
@@ -415,95 +387,80 @@ export default function PlanOrderTable({
             <div className="space-y-4 font-anuphut">
 
                 {/* ตารางข้อมูล */}
-                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md font-anuphut">
+                <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-lg">
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
-                                <TableRow className="border-b-2 border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100/80">
+                                <TableRow className="border-0 bg-gradient-to-r from-blue-800 to-blue-700 hover:bg-transparent">
                                     <TableHead
-                                        className="w-[110px] cursor-pointer transition-colors hover:bg-gray-200/80 text-center"
+                                        className="w-[120px] cursor-pointer px-4 py-4 transition-colors hover:bg-blue-600/30 rounded-tl-2xl"
                                         onClick={() => requestSort('orderDate')}
                                     >
-                                        <div className="flex items-center gap-1.5 font-medium text-gray-700">
-                                            <Calendar className="h-4 w-4 text-gray-500" />
+                                        <div className="flex items-center gap-1.5 text-xs font-bold whitespace-nowrap text-white">
+                                            <Calendar className="h-3.5 w-3.5 text-blue-200" />
                                             <span>วันที่</span>
                                             {sortConfig?.key === 'orderDate' && (
-                                                <ArrowUpDown
-                                                    className={`h-3.5 w-3.5 text-blue-600 transition-transform duration-300 ${sortConfig.direction === 'desc' ? 'rotate-180' : ''
-                                                        }`}
-                                                />
+                                                <ArrowUpDown className={`h-3 w-3 text-white transition-transform ${sortConfig.direction === 'desc' ? 'rotate-180' : ''}`} />
                                             )}
                                         </div>
                                     </TableHead>
 
-
-                                    {/* <TableHead>
-                                        <div className="flex items-center gap-1.5 font-medium text-gray-700">
-                                            <FileCheck className="h-4 w-4 text-gray-500" />
-                                            <span>COA No.</span>
-                                        </div>
-                                    </TableHead> */}
-
                                     <TableHead
-                                        className="cursor-pointer transition-colors hover:bg-gray-200/80"
+                                        className="cursor-pointer px-4 py-4 transition-colors hover:bg-blue-600/30 border-l border-blue-600"
                                         onClick={() => requestSort('productName')}
                                     >
-                                        <div className="flex items-center gap-1.5 font-medium text-gray-700">
-                                            <Package className="h-4 w-4 text-gray-500" />
+                                        <div className="flex items-center gap-1.5 text-xs font-bold whitespace-nowrap text-white">
+                                            <Package className="h-3.5 w-3.5 text-emerald-300" />
                                             <span>สินค้า</span>
                                             {sortConfig?.key === 'productName' && (
-                                                <ArrowUpDown
-                                                    className={`h-3.5 w-3.5 text-blue-600 transition-transform duration-300 ${sortConfig.direction === 'desc' ? 'rotate-180' : ''
-                                                        }`}
-                                                />
+                                                <ArrowUpDown className={`h-3 w-3 text-white transition-transform ${sortConfig.direction === 'desc' ? 'rotate-180' : ''}`} />
                                             )}
                                         </div>
                                     </TableHead>
 
                                     <TableHead
-                                        className="cursor-pointer transition-colors hover:bg-gray-200/80"
+                                        className="cursor-pointer px-4 py-4 transition-colors hover:bg-blue-600/30 border-l border-blue-600"
                                         onClick={() => requestSort('customerName')}
                                     >
-                                        <div className="flex items-center gap-1.5 font-medium text-gray-700">
-                                            <Building2 className="h-4 w-4 text-gray-500" />
-                                            <span>คู่ค้า</span>
+                                        <div className="flex items-center gap-1.5 text-xs font-bold whitespace-nowrap text-white">
+                                            <Building2 className="h-3.5 w-3.5 text-blue-200" />
+                                            <span>คู่ค้า & ปลายทาง</span>
                                             {sortConfig?.key === 'customerName' && (
-                                                <ArrowUpDown
-                                                    className={`h-3.5 w-3.5 text-blue-600 transition-transform duration-300 ${sortConfig.direction === 'desc' ? 'rotate-180' : ''
-                                                        }`}
-                                                />
+                                                <ArrowUpDown className={`h-3 w-3 text-white transition-transform ${sortConfig.direction === 'desc' ? 'rotate-180' : ''}`} />
                                             )}
                                         </div>
                                     </TableHead>
 
-                                    <TableHead>ขนส่ง</TableHead>
+                                    <TableHead className="px-4 py-4 border-l border-blue-600">
+                                        <div className="flex items-center gap-1.5 text-xs font-bold whitespace-nowrap text-white">
+                                            <Truck className="h-3.5 w-3.5 text-blue-200" />
+                                            <span>ขนส่ง</span>
+                                        </div>
+                                    </TableHead>
 
                                     <TableHead
-                                        className="w-[150px] cursor-pointer text-right transition-colors hover:bg-gray-200/80"
+                                        className="w-[140px] cursor-pointer px-4 py-4 text-right transition-colors hover:bg-blue-600/30 border-l border-blue-600"
                                         onClick={() => requestSort('netWeight')}
                                     >
-                                        <div className="flex items-center justify-end gap-1.5 font-medium text-gray-700">
-                                            <Scale className="h-4 w-4 text-gray-500" />
+                                        <div className="flex items-center justify-end gap-1.5 text-xs font-bold whitespace-nowrap text-white">
+                                            <Scale className="h-3.5 w-3.5 text-orange-300" />
                                             <span>น้ำหนัก (กก.)</span>
                                             {sortConfig?.key === 'netWeight' && (
-                                                <ArrowUpDown
-                                                    className={`h-3.5 w-3.5 text-blue-600 transition-transform duration-300 ${sortConfig.direction === 'desc' ? 'rotate-180' : ''
-                                                        }`}
-                                                />
+                                                <ArrowUpDown className={`h-3 w-3 text-white transition-transform ${sortConfig.direction === 'desc' ? 'rotate-180' : ''}`} />
                                             )}
                                         </div>
                                     </TableHead>
 
-                                    <TableHead className="w-[80px]">
-                                        <div className="flex items-center gap-1.5 font-medium text-gray-700">
-                                            <Shield className="h-4 w-4 text-gray-500" />
+                                    <TableHead className="w-[120px] px-4 py-4 border-l border-blue-600 text-center">
+                                        <div className="flex items-center justify-center gap-1.5 text-xs font-bold whitespace-nowrap text-white">
+                                            <Shield className="h-3.5 w-3.5 text-blue-200" />
                                             <span>สถานะ</span>
                                         </div>
                                     </TableHead>
 
-                                    <TableHead className="w-[50px] text-center">
+                                    <TableHead className="w-[70px] px-2 py-4 text-center border-l border-blue-600">
                                         <div className="flex items-center justify-center">
-                                            <Settings2 className="h-4 w-4 text-gray-500" />
+                                            <Settings2 className="h-3.5 w-3.5 text-blue-200" />
                                         </div>
                                     </TableHead>
                                 </TableRow>
@@ -524,111 +481,92 @@ export default function PlanOrderTable({
                                     </TableRow>
                                 ) : (
                                     paginatedOrders.map((order, index) => {
-                                        const statusConfig = getStatusConfig(order.status || 'pending');
+                                        const statusConfig = getStatusConfig(order.status || 'W');
                                         const StatusIcon = statusConfig.icon;
-
                                         return (
                                             <TableRow
                                                 key={order.id || index}
-                                                className={`group transition-all duration-200 hover:bg-blue-50/30 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/20'}`}
+                                                className={`group transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-blue-50/30'} hover:bg-blue-50/50`}
                                             >
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <div>
-                                                            <div className="text-sm font-medium text-gray-900">
-                                                                {formatDateThai(order.orderDate)}
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                {/* วันที่ */}
+                                                <TableCell className="px-4 py-3 align-middle border-l border-blue-50">
+                                                    <span className="text-sm font-semibold text-slate-800">
+                                                        {formatDateThai(order.orderDate)}
+                                                    </span>
                                                 </TableCell>
 
-
-
-                                                <TableCell>
-                                                     <div className="space-y-1">
-                                                            <div className="flex items-center gap-1.5 text-[12px]">
-                                                               <div className="text-sm font-medium text-gray-900 truncate">{order.productName || '-'}</div>
-                                                            </div>
-                                                            <div className="flex items-center gap-1.5 text-[10px]">
-                                                                <span className="truncate text-blue-600">
-                                                                     {order.rawData?.coaNumber || '-'}
-                                                                </span>
-                                                            </div>
-                                                        
-                                                    </div>
-                                                </TableCell>
-
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <Building2 className="h-4 w-4 shrink-0 text-gray-400" />
-                                                        <div className="min-w-0">
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <div
-                                                                        className="truncate text-sm font-medium"
-                                                                        title={order.customerName || ''}
-                                                                    >
-                                                                        {order.customerName || 'ไม่ระบุลูกค้า'}
-                                                                    </div>
-                                                                </TooltipTrigger>
-                                                                <TooltipContent side="top" className="max-w-xs text-xs break-words">
-                                                                    {order.customerName || 'ไม่ระบุลูกค้า'}
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </div>
-                                                    </div>
-                                                </TableCell>
-
-                                                <TableCell>
-                                                    <div className="space-y-1">
-                                                        {order.licensePlate && (
-                                                            <div className="flex items-center gap-1.5 text-[12px]">
-                                                                <Truck className="h-3 w-3 shrink-0 text-gray-500" />
-                                                                <span className="max-w-[200px] truncate text-gray-700" title={order.licensePlate}>
-                                                                    {order.licensePlate}
-                                                                </span>
-                                                            </div>
+                                                {/* สินค้า */}
+                                                <TableCell className="px-4 py-3 align-middle border-l border-blue-50">
+                                                    <div className="flex min-w-0 flex-col gap-1">
+                                                        <span className="truncate text-sm font-semibold text-slate-900">
+                                                            {order.productName || '-'}
+                                                        </span>
+                                                        {order.rawData?.coaNumber && order.rawData.coaNumber !== '-' ? (
+                                                            <span className="w-fit rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                                                                {order.rawData.coaNumber}
+                                                            </span>
+                                                        ) : (
+                                                            (order.productType === 'cpo' || order.productType === 'palm-kernel') && (
+                                                                <span className="text-[10px] text-slate-400">ยังไม่มี COA</span>
+                                                            )
                                                         )}
+                                                    </div>
+                                                </TableCell>
+
+                                                {/* คู่ค้า */}
+                                                <TableCell className="px-4 py-3 align-middle border-l border-blue-50">
+                                                    <div className="flex min-w-0 flex-col gap-1">
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <span className="flex max-w-[220px] items-center gap-1.5 truncate text-sm font-semibold text-slate-800">
+                                                                    <Building2 className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+                                                                    {order.customerName || 'ไม่ระบุ'}
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" className="max-w-xs text-xs break-words">
+                                                                {order.customerName || 'ไม่ระบุลูกค้า'}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                        {order.destination && (
+                                                            <span className="flex max-w-[220px] items-center gap-1.5 truncate text-[10px] text-slate-500">
+                                                                <MapPin className="h-3 w-3 shrink-0 text-slate-400" />
+                                                                {order.destination}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+
+                                                {/* ขนส่ง */}
+                                                <TableCell className="px-4 py-3 align-middle border-l border-blue-50">
+                                                    <div className="flex min-w-0 flex-col gap-1">
+                                                        <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+                                                            <Truck className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                                                            {order.licensePlate || '-'}
+                                                        </span>
                                                         {order.driverName && (
-                                                            <div className="flex items-center gap-1.5 text-[10px]">
-                                                                <User className="h-3 w-3 shrink-0 text-gray-500" />
-                                                                <span className="max-w-[200px] truncate text-gray-700" title={order.driverName}>
-                                                                    {order.driverName}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                        {/* {order.destination && (
-                                                            <div className="flex items-center gap-1.5 text-[10px]">
-                                                                <MapPin className="h-3 w-3 shrink-0 text-gray-500" />
-                                                                <span className="max-w-[100px] truncate text-gray-700" title={order.destination}>
-                                                                    {order.destination}
-                                                                </span>
-                                                            </div>
-                                                        )} */}
-                                                        {!order.licensePlate && !order.driverName && (
-                                                            <span className="text-[10px] text-gray-400">-</span>
+                                                            <span className="flex max-w-[200px] items-center gap-1.5 truncate text-[10px] text-slate-500">
+                                                                <User className="h-3 w-3 shrink-0 text-slate-400" />
+                                                                {order.driverName}
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </TableCell>
 
-                                                <TableCell className="text-right">
-                                                    <div className="flex flex-col items-end">
-                                                        <div className="text-sm font-bold text-gray-900 leading-tight">
-                                                            {formatWeight(order.netWeight, '')}
-                                                        </div>
-                                                    </div>
+                                                {/* น้ำหนัก */}
+                                                <TableCell className="px-4 py-3 text-right align-middle border-l border-blue-50">
+                                                    <span className="text-sm font-bold text-slate-800">
+                                                        {formatWeight(order.netWeight, '')}
+                                                    </span>
                                                 </TableCell>
 
-                                                <TableCell>
-                                                    <Badge
-                                                        className={`${statusConfig.color} flex w-fit items-center gap-1 border px-2 py-0.5 text-[10px] shadow-sm transition-all hover:shadow`}
-                                                    >
-                                                        <StatusIcon className="h-3 w-3" />
+                                                {/* สถานะ */}
+                                                <TableCell className="px-4 py-3 align-middle border-l border-blue-50 text-center">
+                                                    <span className={`inline-flex w-[80px] items-center justify-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold ${statusConfig.color}`}>
+                                                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusConfig.dot}`} />
                                                         {statusConfig.label}
-                                                    </Badge>
+                                                    </span>
                                                 </TableCell>
-
-                                                <TableCell className="text-center">
+                                                <TableCell className="px-2 py-3 text-center border-l border-blue-50 bg-blue-50/20">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                             <Button
@@ -659,52 +597,113 @@ export default function PlanOrderTable({
                                                                 <span>แก้ไขข้อมูล</span>
                                                             </DropdownMenuItem>
 
-                                                            {getPDFOptions(order.productType).length > 0 && (
-                                                                <>
-                                                                    <DropdownMenuSeparator />
+                                                            {(order.productType === 'cpo' || order.productType === 'palm-kernel') && (() => {
+                                                                const isApproved = order.rawData?.statusCoa === 'A';
+                                                                const isInspected = order.isInspected;
+                                                                const isSeed = order.productType === 'palm-kernel';
+                                                                const sopId = order.rawData?.sopId || order.id;
 
-                                                                    <DropdownMenuLabel className="text-[10px] text-gray-500">
-                                                                        เอกสาร
-                                                                    </DropdownMenuLabel>
+                                                                const docItems: {
+                                                                    value: string;
+                                                                    label: string;
+                                                                    icon: React.ElementType;
+                                                                    bg: string;
+                                                                    color: string;
+                                                                    disabled: boolean;
+                                                                    hint: string | null;
+                                                                    action: 'print' | 'download';
+                                                                    url?: string;
+                                                                }[] = [
+                                                                    // ── พิมพ์ COA ──
+                                                                    {
+                                                                        value: 'print_coa',
+                                                                        label: 'พิมพ์เอกสาร COA',
+                                                                        icon: Printer,
+                                                                        bg: 'bg-blue-50',
+                                                                        color: 'text-blue-600',
+                                                                        disabled: !isApproved,
+                                                                        hint: !isApproved ? 'รออนุมัติผล LAB' : null,
+                                                                        action: 'print',
+                                                                        url: isSeed
+                                                                            ? `/mar/plan-order/${sopId}/print/seed`
+                                                                            : `/mar/plan-order/${sopId}/print/oil`,
+                                                                    },
+                                                                    // ── ดาวน์โหลด COA ISP ──
+                                                                    {
+                                                                        value: 'coa_isp',
+                                                                        label: 'ดาวน์โหลด COA ISP',
+                                                                        icon: FileCheck,
+                                                                        bg: 'bg-indigo-50',
+                                                                        color: 'text-indigo-600',
+                                                                        disabled: !isApproved,
+                                                                        hint: !isApproved ? 'รออนุมัติผล LAB' : null,
+                                                                        action: 'download',
+                                                                    },
+                                                                    // ── ดาวน์โหลด COA MUN ──
+                                                                    {
+                                                                        value: 'coa_mun',
+                                                                        label: 'ดาวน์โหลด COA MUN',
+                                                                        icon: FileCheck,
+                                                                        bg: 'bg-emerald-50',
+                                                                        color: 'text-emerald-600',
+                                                                        disabled: !isApproved,
+                                                                        hint: !isApproved ? 'รออนุมัติผล LAB' : null,
+                                                                        action: 'download',
+                                                                    },
+                                                                    // ── พิมพ์เอกสารรถ (เมล็ดในเท่านั้น) ──
+                                                                    ...(isSeed ? [{
+                                                                        value: 'generate_car_pdf',
+                                                                        label: 'พิมพ์เอกสารรถ',
+                                                                        icon: FileText,
+                                                                        bg: 'bg-rose-50',
+                                                                        color: 'text-rose-600',
+                                                                        disabled: !isInspected,
+                                                                        hint: !isInspected ? 'ยังไม่บันทึกข้อมูลรถ' : null,
+                                                                        action: 'print' as const,
+                                                                        url: `/mar/plan-order/${sopId}/vehicle-print`,
+                                                                    }] : []),
+                                                                ];
 
-                                                                    {getPDFOptions(order.productType).map((pdf, idx) => {
-                                                                        // ล็อกการดาวน์โหลด COA ไว้จนกว่าจะอนุมัติผลแลป (Status A)
-                                                                        const isDownloadCOA = pdf.value === 'coa_isp' || pdf.value === 'coa_mun';
-                                                                        const isDownloadCAR = pdf.value === 'generate_car_pdf';
-                                                                        const isApproved = order.rawData?.statusCoa === 'A';
-                                                                        const isInspected = order.isInspected;
-                                                                        const isDisabled = (isDownloadCOA && !isApproved) || (isDownloadCAR && !isInspected);
+                                                                return (
+                                                                    <>
+                                                                        <DropdownMenuSeparator />
+                                                                        <DropdownMenuLabel className="text-[10px] text-gray-500">
+                                                                            เอกสาร
+                                                                        </DropdownMenuLabel>
 
-                                                                        const Icon = pdf.icon;
-                                                                        return (
-                                                                            <DropdownMenuItem
-                                                                                key={idx}
-                                                                                disabled={isDisabled}
-                                                                                onClick={() => {
-                                                                                    if (isDisabled) return;
-                                                                                    if (pdf.value === 'check_vehicle' && onCheckVehicle) {
-                                                                                        onCheckVehicle(order);
-                                                                                    } else {
-                                                                                        handlePDFAction(order, 'generate', pdf.value);
-                                                                                    }
-                                                                                }}
-                                                                                className={`gap-2 text-xs cursor-pointer ${isDisabled ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
-                                                                            >
-                                                                                <div className={`rounded p-1 ${pdf.bg}`}>
-                                                                                    <Icon className={`h-3 w-3 ${pdf.color}`} />
-                                                                                </div>
-                                                                                <div className="flex flex-col">
-                                                                                    <span>{pdf.label}</span>
-                                                                                    {isDownloadCOA && !isApproved && <span className="text-[9px] text-rose-500 font-bold">รออนุมัติผล LAB</span>}
-                                                                                    {isDownloadCAR && !isInspected && <span className="text-[9px] text-rose-500 font-bold">ยังไม่บันทึกข้อมูลรถ</span>}
-                                                                                </div>
-                                                                            </DropdownMenuItem>
-                                                                        );
-                                                                    })}
+                                                                        {docItems.map((item, idx) => {
+                                                                            const Icon = item.icon;
+                                                                            return (
+                                                                                <DropdownMenuItem
+                                                                                    key={idx}
+                                                                                    disabled={item.disabled}
+                                                                                    onClick={() => {
+                                                                                        if (item.disabled) return;
+                                                                                        if (item.action === 'print' && item.url) {
+                                                                                            window.open(item.url, '_blank');
+                                                                                        } else {
+                                                                                            handlePDFAction(order, 'generate', item.value);
+                                                                                        }
+                                                                                    }}
+                                                                                    className={`gap-2 text-xs ${item.disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                                                                                >
+                                                                                    <div className={`rounded p-1 ${item.bg}`}>
+                                                                                        <Icon className={`h-3 w-3 ${item.color}`} />
+                                                                                    </div>
+                                                                                    <div className="flex flex-col">
+                                                                                        <span>{item.label}</span>
+                                                                                        {item.hint && (
+                                                                                            <span className="text-[9px] font-bold text-rose-500">{item.hint}</span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </DropdownMenuItem>
+                                                                            );
+                                                                        })}
 
-                                                                    <DropdownMenuSeparator />
-                                                                </>
-                                                            )}
+                                                                        <DropdownMenuSeparator />
+                                                                    </>
+                                                                );
+                                                            })()}
 
                                                             <DropdownMenuItem
                                                                 onClick={async () => {
@@ -719,7 +718,7 @@ export default function PlanOrderTable({
                                                                         cancelButtonText: 'กลับ'
                                                                     });
                                                                     if (confirmed.isConfirmed) {
-                                                                        onStatusChange?.(order, 'cancelled');
+                                                                        onStatusChange?.(order, 'C');
                                                                     }
                                                                 }}
                                                                 className="gap-2 text-xs text-orange-600 focus:text-orange-600 cursor-pointer"
@@ -835,34 +834,6 @@ export default function PlanOrderTable({
                         </div>
                     )}
                 </div>
-
-                {/* Delete Confirmation Dialog */}
-                <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2 text-base">
-                                <div className="rounded-lg bg-red-100 p-2">
-                                    <Trash2 className="h-4 w-4 text-red-600" />
-                                </div>
-                                <span>ยืนยันการลบ</span>
-                            </DialogTitle>
-                            <DialogDescription className="pt-2 text-sm">
-                                คุณต้องการลบรายการ <span className="font-semibold text-gray-900">{selectedOrder?.orderNumber}</span> ใช่หรือไม่?
-                                <br />
-                                <span className="mt-2 block text-xs text-red-600">การดำเนินการนี้ไม่สามารถเรียกคืนได้</span>
-                            </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter className="gap-2 sm:gap-0">
-                            <Button variant="outline" size="sm" onClick={() => setShowDeleteDialog(false)} className="text-xs">
-                                ยกเลิก
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={confirmDelete} className="gap-2 text-xs">
-                                <Trash2 className="h-3.5 w-3.5" />
-                                ลบ
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
             </div>
         </TooltipProvider>
     );
