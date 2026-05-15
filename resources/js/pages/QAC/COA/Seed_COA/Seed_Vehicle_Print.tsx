@@ -50,12 +50,28 @@ const sigPath = (id?: string | number) => {
     return `${b}/images/signature/sukanya.png`;
 };
 
+const normalizeAccessList = (items?: unknown[]) => {
+    if (!Array.isArray(items)) return [];
+    return items
+        .map((item: any) => (typeof item === 'string' ? item : item?.name))
+        .filter(Boolean)
+        .map((item: string) => item.toLowerCase());
+};
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const Seed_Vehicle_Print: React.FC = () => {
-    const { sopid } = usePage<any>().props;
+    const page = usePage<any>();
+    const { sopid, auth } = page.props;
     const [data, setData] = useState<D | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const access = new Set([...normalizeAccessList(auth?.permissions), ...normalizeAccessList(auth?.roles)]);
+    const canEdit =
+        access.has('developer.view') ||
+        access.has('qac.user') ||
+        access.has('qac.admin') ||
+        access.has('qac_admin') ||
+        access.has('qac.edit');
 
     useEffect(() => {
         if (!sopid) { setError('ไม่พบ SOPID'); setLoading(false); return; }
@@ -141,6 +157,14 @@ const Seed_Vehicle_Print: React.FC = () => {
         <AppLayout>
             <div className="no-print sticky top-0 z-20 flex items-center gap-3 border-b bg-white px-6 py-3 shadow-sm">
                 <div className="ml-auto flex items-center gap-2">
+                    {canEdit && (
+                        <button
+                            onClick={handleSave}
+                            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700"
+                        >
+                            บันทึกแก้ไข
+                        </button>
+                    )}
                     <button onClick={() => window.print()} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">
                         <Printer className="w-4 h-4" /> พิมพ์แบบฟอร์ม
                     </button>
@@ -230,12 +254,36 @@ const Seed_Vehicle_Print: React.FC = () => {
                                         <div style={{ flex: 1 }}>{item.label}</div>
                                         <div style={{ display: 'flex', gap: '10mm', paddingRight: '30mm' }}>
                                             <div
-                                                style={{ width: '7mm', height: '7mm', border: '1px solid #000', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}
+                                                onClick={() => canEdit && handleToggleCheck(item.id, true)}
+                                                title={canEdit ? 'คลิกเพื่อเลือก ใช่' : undefined}
+                                                style={{
+                                                    width: '7mm',
+                                                    height: '7mm',
+                                                    border: '1px solid #000',
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    position: 'relative',
+                                                    cursor: canEdit ? 'pointer' : 'default',
+                                                    backgroundColor: canEdit && val === true ? '#eefcf3' : undefined,
+                                                }}
                                             >
                                                 {val === true && <span style={{ fontSize: '18pt', fontWeight: 'bold', color: '#00f', position: 'absolute' }}>/</span>}
                                             </div>
                                             <div
-                                                style={{ width: '7mm', height: '7mm', border: '1px solid #000', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}
+                                                onClick={() => canEdit && handleToggleCheck(item.id, false)}
+                                                title={canEdit ? 'คลิกเพื่อเลือก ไม่ใช่' : undefined}
+                                                style={{
+                                                    width: '7mm',
+                                                    height: '7mm',
+                                                    border: '1px solid #000',
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    position: 'relative',
+                                                    cursor: canEdit ? 'pointer' : 'default',
+                                                    backgroundColor: canEdit && val === false ? '#fff1f1' : undefined,
+                                                }}
                                             >
                                                 {val === false && <span style={{ fontSize: '18pt', fontWeight: 'bold', color: '#f00', position: 'absolute' }}>/</span>}
                                             </div>

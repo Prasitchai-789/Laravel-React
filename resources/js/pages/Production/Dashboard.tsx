@@ -213,7 +213,7 @@ export default function ProductionDashboard() {
                                         Palm Input vs Production Trend
                                     </h3>
                                     <div className="h-[320px]">
-                                        <ResponsiveContainer width="100%" height="100%">
+                                        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                                             <LineChart data={chartData}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
@@ -235,7 +235,7 @@ export default function ProductionDashboard() {
                                         Extraction Yield Trend
                                     </h3>
                                     <div className="h-[320px]">
-                                        <ResponsiveContainer width="100%" height="100%">
+                                        <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                                             <AreaChart data={chartData}>
                                                 <defs>
                                                     <linearGradient id="colorYield" x1="0" y1="0" x2="0" y2="1">

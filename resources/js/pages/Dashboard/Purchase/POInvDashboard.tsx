@@ -170,7 +170,7 @@ export default function POInvDashboard() {
                       </div>
                     </div>
                     <div className="h-16 lg:h-20 -mx-4 lg:-mx-4.5 mt-2 overflow-hidden">
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                         <AreaChart data={data.chart.slice(-7)}>
                           <defs>
                             <linearGradient id={`sg${card.key}`} x1="0" y1="0" x2="0" y2="1">
@@ -209,7 +209,7 @@ export default function POInvDashboard() {
                     </div>
                   </div>
                   <div className="flex-1 min-h-[140px] lg:min-h-0 relative">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                       <BarChart data={data.chart.slice(-7)} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                         <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#000000ff', fontSize: 10, fontWeight: 600 }} dy={10} />

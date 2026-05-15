@@ -497,7 +497,7 @@ export default function YieldReport() {
                                             <span className="text-sm">ไม่มีข้อมูลในเดือนที่เลือก</span>
                                         </div>
                                     ) : (
-                                        <ResponsiveContainer width="100%" height={400}>
+                                        <ResponsiveContainer width="100%" height={400} minWidth={1} minHeight={1}>
                                             <BarChart data={chartData} margin={{ top: 24, right: 20, left: 0, bottom: 5 }} barCategoryGap="10%">
                                                 <defs>
                                                     <linearGradient id="yieldGradient" x1="0" y1="0" x2="0" y2="1">

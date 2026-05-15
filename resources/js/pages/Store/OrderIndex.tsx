@@ -77,15 +77,6 @@ const GoodsIndex = ({ goods: initialGoods }) => {
 
     // 🔹 คำนวณ stock/reserved/available - ใช้ข้อมูลจาก Backend โดยตรง
     const calculateStockInfo = (product: any) => {
-        console.log('🔍 PRODUCT DEBUG:', {
-            GoodCode: product.GoodCode,
-            initial_stock: product.initial_stock,
-            backend_stock_qty: product.stock_qty,
-            backend_reservedQty: product.reservedQty,
-            backend_availableQty: product.availableQty,
-            movements: product.movements_debug
-        });
-
         return {
             stockQty: Number(product.stock_qty ?? 0),
             reservedQty: Number(product.reservedQty ?? 0),

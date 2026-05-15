@@ -13,7 +13,7 @@ use App\Http\Controllers\QAC\YieldTableController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::middleware(['auth', 'permission:developer.view|qac.user|qac.view|gm.view|mar.edit'])->group(function () {
+Route::middleware(['auth', 'permission:developer.view|qac.user|QAC.User|qac.admin|qac_admin|QAC.Admin|qac.view|gm.view|mar.edit'])->group(function () {
     Route::get('/qac/mill-daily-report', [MillDailyReportController::class, 'index'])->name('qac.mill-report');
     Route::get('/api/qac/mill-daily-data', [MillDailyReportController::class, 'getData']);
     Route::post('/api/qac/mill-daily-additional', [MillDailyReportController::class, 'saveAdditionalData']);

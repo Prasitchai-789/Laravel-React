@@ -199,6 +199,7 @@ const filterItemsByPermission = (items: NavItem[], permissions: string[]) => {
 };
 
 const uniqueAccessList = (items: string[]) => Array.from(new Set(items.map((item) => item.toLowerCase())));
+const navItemKey = (item: NavItem) => `${item.href}-${item.title}`;
 
 export function AppSidebar() {
     const page = usePage();
@@ -252,7 +253,7 @@ export function AppSidebar() {
                             <CollapsibleContent>
                                 <SidebarMenuSub>
                                     {filterItemsByPermission(DevNavItems, access).map((item) => (
-                                        <SidebarMenuSubItem key={item.title}>
+                                        <SidebarMenuSubItem key={navItemKey(item)}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
                                                     <span>{item.title}</span>
@@ -287,7 +288,7 @@ export function AppSidebar() {
                             <CollapsibleContent>
                                 <SidebarMenuSub>
                                     {filterItemsByPermission(ITNavItem, access).map((item) => (
-                                        <SidebarMenuSubItem key={item.title}>
+                                        <SidebarMenuSubItem key={navItemKey(item)}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
                                                     <span>{item.title}</span>
@@ -317,7 +318,7 @@ export function AppSidebar() {
                             <CollapsibleContent>
                                 <SidebarMenuSub>
                                     {filterItemsByPermission(PRONavItem, access).map((item) => (
-                                        <SidebarMenuSubItem key={item.title}>
+                                        <SidebarMenuSubItem key={navItemKey(item)}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
                                                     <span>{item.title}</span>
@@ -347,7 +348,7 @@ export function AppSidebar() {
                             <CollapsibleContent>
                                 <SidebarMenuSub>
                                     {filterItemsByPermission(MARNavItems, access).map((item) => (
-                                        <SidebarMenuSubItem key={item.title}>
+                                        <SidebarMenuSubItem key={navItemKey(item)}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
                                                     <span>{item.title}</span>
@@ -375,7 +376,7 @@ export function AppSidebar() {
                             <CollapsibleContent>
                                 <SidebarMenuSub>
                                     {visibleQACNavItems.map((item) => (
-                                        <SidebarMenuSubItem key={item.title}>
+                                        <SidebarMenuSubItem key={navItemKey(item)}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
                                                     <span>{item.title}</span>
@@ -404,7 +405,7 @@ export function AppSidebar() {
                             <CollapsibleContent>
                                 <SidebarMenuSub>
                                     {filterItemsByPermission(StoreNavItems, access).map((item) => (
-                                        <SidebarMenuSubItem key={item.title}>
+                                        <SidebarMenuSubItem key={navItemKey(item)}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
                                                     <span>{item.title}</span>
@@ -434,7 +435,7 @@ export function AppSidebar() {
                             <CollapsibleContent>
                                 <SidebarMenuSub>
                                     {filterItemsByPermission(QMRNavItems, access).map((item) => (
-                                        <SidebarMenuSubItem key={item.title}>
+                                        <SidebarMenuSubItem key={navItemKey(item)}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
                                                     <span>{item.title}</span>
@@ -464,7 +465,7 @@ export function AppSidebar() {
                             <CollapsibleContent>
                                 <SidebarMenuSub>
                                     {filterItemsByPermission(CarUsageNavItems, access).map((item) => (
-                                        <SidebarMenuSubItem key={item.title}>
+                                        <SidebarMenuSubItem key={navItemKey(item)}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
                                                     <span>{item.title}</span>
@@ -496,7 +497,7 @@ export function AppSidebar() {
                         <CollapsibleContent>
                             <SidebarMenuSub>
                                 {filterItemsByPermission(FerNavItems, access).map((item) => (
-                                    <SidebarMenuSubItem key={item.title}>
+                                    <SidebarMenuSubItem key={navItemKey(item)}>
                                         <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                             <Link href={item.href} prefetch className="font-anuphan">
                                                 <span>{item.title}</span>
@@ -524,7 +525,7 @@ export function AppSidebar() {
                         <CollapsibleContent>
                             <SidebarMenuSub>
                                 {filterItemsByPermission(AGRNavItems, access).map((item) => (
-                                    <SidebarMenuSubItem key={item.title}>
+                                    <SidebarMenuSubItem key={navItemKey(item)}>
                                         <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                             <Link href={item.href} prefetch className="font-anuphan">
                                                 <span>{item.title}</span>
@@ -555,7 +556,7 @@ export function AppSidebar() {
                             <CollapsibleContent>
                                 <SidebarMenuSub>
                                     {filterItemsByPermission(adminNavItems, access).map((item) => (
-                                        <SidebarMenuSubItem key={item.title}>
+                                        <SidebarMenuSubItem key={navItemKey(item)}>
                                             <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)}>
                                                 <Link href={item.href} prefetch className="font-anuphan">
                                                     <span>{item.title}</span>
