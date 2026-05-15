@@ -49,8 +49,13 @@ Route::middleware(['auth'])->group(function () {
                 Route::get('top-customers', [SalesApiController::class, 'getTopCustomers'])->name('top.customers');
             });
 
+        });
+
+        Route::middleware(['permission:developer.view|gm.view|pro.view|acc.view'])->group(function () {
             Route::prefix('financial')->name('api.financial.')->group(function () {
                 Route::get('accounts', [FinancialApiController::class, 'getAccountBalances'])->name('accounts');
+                Route::get('account-categories', [FinancialApiController::class, 'accountCategories'])->name('account-categories');
+                Route::post('account-categories', [FinancialApiController::class, 'saveAccountCategories'])->name('account-categories.save');
             });
         });
     });
@@ -78,6 +83,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/sales-mar/api', [SalesApiController::class, 'getDetailedSummary']);
         Route::get('/sales-mar-win/api', [SalesApiController::class, 'getDetailedSummary']);
 
+    });
+
+    Route::middleware(['permission:developer.view|gm.view|acc.view'])->group(function () {
         Route::get('/accounts/api', [FinancialApiController::class, 'getAccountBalances']);
+        Route::get('/accounts/categories/api', [FinancialApiController::class, 'accountCategories']);
+        Route::post('/accounts/categories/api', [FinancialApiController::class, 'saveAccountCategories']);
     });
 });

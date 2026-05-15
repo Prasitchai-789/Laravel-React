@@ -13,6 +13,19 @@ class AccountController extends Controller
     {
         return Inertia::render('ACC/FinancialReport', []);
     }
+
+    public function dashboardReport(Request $request)
+    {
+        return Inertia::render('ACC/FinancialReport', [
+            'dashboardOnly' => true,
+        ]);
+    }
+
+    public function businessPerformance(Request $request)
+    {
+        return Inertia::render('ACC/BusinessPerformanceReport');
+    }
+
     public function getAccounts(Request $request)
     {
         $start_date = $request->start_date ?: date('Y-01-01');

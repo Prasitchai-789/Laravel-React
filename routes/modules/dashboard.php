@@ -41,6 +41,11 @@ Route::middleware(['auth', 'permission:developer.view|gm.view'])->group(function
     Route::get('purchase/po', [POController::class, 'index']);
     Route::get('/purchase/po/show/{id}', [POController::class, 'show'])->name('po.show');
     Route::get('/expense-by-dept', [POController::class, 'expenseByDept'])->name('expense-by-dept');
+});
+
+Route::middleware(['auth', 'permission:developer.view|gm.view|acc.view'])->group(function () {
+    Route::get('/accounts/dashboard-report', [AccountController::class, 'dashboardReport'])->name('accounts.dashboard-report');
+    Route::get('/accounts/business-performance', [AccountController::class, 'businessPerformance'])->name('accounts.business-performance');
     Route::get('/accounts', [AccountController::class, 'index'])->name('accounts');
 });
 
@@ -59,8 +64,6 @@ Route::middleware(['auth', 'permission:developer.view|gm.view'])->group(function
         return Inertia::render('Dashboard/Stock/ProductStockReport');
     })->name('stock.valuation.report');
 
-    Route::get('/api/stock/valuation-summary', [ProductStockReportController::class, 'getProductStockSummary'])->name('api.stock.valuation.summary');
-
     Route::get('/market/palm-price-report', function () {
         return Inertia::render('Dashboard/Market/PalmPriceReport');
     })->name('market.palm-price-report');
@@ -70,4 +73,8 @@ Route::middleware(['auth', 'permission:developer.view|gm.view'])->group(function
     })->name('stock.cpo.supply.page');
 
     Route::get('/api/stock/cpo-supply-dashboard', [ProductStockReportController::class, 'getCpoSupplyDashboard'])->name('api.stock.cpo.supply');
+});
+
+Route::middleware(['auth', 'permission:developer.view|gm.view|acc.view'])->group(function () {
+    Route::get('/api/stock/valuation-summary', [ProductStockReportController::class, 'getProductStockSummary'])->name('api.stock.valuation.summary');
 });
