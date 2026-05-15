@@ -37,6 +37,7 @@ const rightNavItems: NavItem[] = [
 ];
 
 const activeItemStyles = 'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
+const navItemKey = (item: NavItem) => `${item.href}-${item.title}`;
 
 interface AppHeaderProps {
     breadcrumbs?: BreadcrumbItem[];
@@ -67,7 +68,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                     <div className="flex h-full flex-col justify-between text-sm">
                                         <div className="flex flex-col space-y-4">
                                             {mainNavItems.map((item) => (
-                                                <Link key={item.title} href={item.href} className="flex items-center space-x-2 font-medium">
+                                                <Link key={navItemKey(item)} href={item.href} className="flex items-center space-x-2 font-medium">
                                                     {item.icon && <Icon iconNode={item.icon} className="h-5 w-5" />}
                                                     <span>{item.title}</span>
                                                 </Link>
@@ -77,7 +78,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                                         <div className="flex flex-col space-y-4">
                                             {rightNavItems.map((item) => (
                                                 <a
-                                                    key={item.title}
+                                                    key={navItemKey(item)}
                                                     href={item.href}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
@@ -131,7 +132,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                             </Button>
                             <div className="hidden lg:flex">
                                 {rightNavItems.map((item) => (
-                                    <TooltipProvider key={item.title} delayDuration={0}>
+                                    <TooltipProvider key={navItemKey(item)} delayDuration={0}>
                                         <Tooltip>
                                             <TooltipTrigger>
                                                 <a

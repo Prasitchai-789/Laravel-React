@@ -31,6 +31,33 @@ interface POInvWin {
     total_amount: number;
 }
 
+const normalizeRows = <T,>(value: unknown): T[] => {
+    if (Array.isArray(value)) return value as T[];
+
+    if (value && typeof value === 'object') {
+        return Object.values(value as Record<string, unknown>).filter((item) => item && typeof item === 'object') as T[];
+    }
+
+    return [];
+};
+
+const readRows = <T,>(payload: unknown, keys: string[]): T[] => {
+    if (Array.isArray(payload)) return payload as T[];
+
+    if (!payload || typeof payload !== 'object') return [];
+
+    const data = payload as Record<string, unknown>;
+    for (const key of keys) {
+        const rows = normalizeRows<T>(data[key]);
+        if (rows.length > 0) return rows;
+    }
+
+    return [];
+};
+
+const normalizeGoodId = (item: Record<string, unknown>) => Number(item.GoodID ?? item.good_id ?? 0);
+const normalizeAmount = (value: unknown) => Number(value ?? 0);
+
 export default function FinancialReport() {
     const getCurrentDate = () => {
         const now = new Date();
@@ -162,20 +189,44 @@ export default function FinancialReport() {
         setSummaryLoading(true);
         setLoading(true);
         try {
+            const otherAccountCodes = ['527009'];
+            const accountCodes = Array.from(
+                new Set([...Object.keys(incomeMap).map((key) => key.split('_')[0]), ...Object.keys(categoryMap), ...otherAccountCodes]),
+            );
+
             // ดึงข้อมูลพร้อมกันทั้งหมดเพื่อป้องกัน race condition
             const [accRes, salesWebRes, salesWinRes, poRes] = await Promise.all([
-                axios.get('/accounts/api', { params: { start_date: startDate, end_date: endDate } }),
+                axios.get('/accounts/api', { params: { start_date: startDate, end_date: endDate, account_codes: accountCodes } }),
                 axios.get('/sales-mar/api', { params: { start_date: startDate, end_date: endDate } }),
                 axios.get('/sales-mar-win/api', { params: { start_date: startDate, end_date: endDate } }),
                 axios.get('/poinv-win-summary/api', { params: { start_date: startDate, end_date: endDate } }),
             ]);
 
             // 1. เก็บข้อมูลดิบ
-            const rawAccounts: Account[] = accRes.data.data || [];
-            const rawSalesWeb: SaleMar[] = salesWebRes.data.data || [];
-            const rawSalesWin: SaleMarWinRe[] = salesWinRes.data.sales || [];
-            const rawReturnsWin: SaleMarWinRe[] = salesWinRes.data.returns || [];
-            const rawPOInv: POInvWin[] = poRes.data.data || [];
+            const rawAccounts: Account[] = readRows<Account>(accRes.data, ['data']);
+            const salesWebProducts = readRows<Record<string, unknown>>(salesWebRes.data.data ?? salesWebRes.data, ['products', 'data']);
+            const salesWinProducts = readRows<Record<string, unknown>>(salesWinRes.data.data ?? salesWinRes.data, ['products', 'data']);
+            const legacySalesWin = readRows<SaleMarWinRe>(salesWinRes.data, ['sales']);
+            const legacyReturnsWin = readRows<SaleMarWinRe>(salesWinRes.data, ['returns']);
+            const rawSalesWeb: SaleMar[] = salesWebProducts.map((item) => ({
+                GoodID: normalizeGoodId(item),
+                total_goodnet: normalizeAmount(item.total_goodnet ?? item.total_weight),
+            }));
+            const rawSalesWin: SaleMarWinRe[] =
+                legacySalesWin.length > 0
+                    ? legacySalesWin
+                    : salesWinProducts.map((item) => ({
+                          GoodID: normalizeGoodId(item),
+                          total_amount: normalizeAmount(item.total_amount ?? item.sales_amount),
+                      }));
+            const rawReturnsWin: SaleMarWinRe[] =
+                legacyReturnsWin.length > 0
+                    ? legacyReturnsWin
+                    : salesWinProducts.map((item) => ({
+                          GoodID: normalizeGoodId(item),
+                          total_amount: normalizeAmount(item.returns_amount),
+                      }));
+            const rawPOInv: POInvWin[] = readRows<POInvWin>(poRes.data, ['data']);
 
             setSalesDataWeb(rawSalesWeb);
             setSalesDataWin(rawSalesWin);
@@ -595,7 +646,7 @@ export default function FinancialReport() {
                                 </div>
                                 <div className="p-4">
                                     <div className="space-y-3">
-                                        {incomeData.map((cat) => {
+                                        {incomeData.map((cat, index) => {
                                             const goodId = Object.keys(incomeGoodMap).find((key) => incomeMap[key] === cat.category);
                                             const saleWeb = salesDataWeb.find((s) => Number(s.GoodID) === Number(incomeGoodMap[goodId ?? '']));
                                             const saleWinRe = salesDataWinRe.find((s) => Number(s.GoodID) === Number(incomeGoodMap[goodId ?? '']));
@@ -609,7 +660,7 @@ export default function FinancialReport() {
 
                                             return (
                                                 <div
-                                                    key={cat.category}
+                                                    key={`${cat.category}-${index}`}
                                                     className="rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50"
                                                 >
                                                     <div className="flex justify-between">
@@ -696,9 +747,9 @@ export default function FinancialReport() {
                                 </div>
                                 <div className="p-4">
                                     <div className="space-y-3">
-                                        {reportData.slice(0, 6).map((cat) => (
+                                        {reportData.slice(0, 6).map((cat, index) => (
                                             <div
-                                                key={cat.category}
+                                                key={`${cat.category}-${index}`}
                                                 className="rounded-lg border border-gray-100 p-3 transition-colors hover:bg-gray-50"
                                             >
                                                 <div className="flex justify-between">
@@ -892,9 +943,9 @@ export default function FinancialReport() {
                                 </div>
                             </div>
 
-                            {filteredReportData.map((category) => (
+                            {filteredReportData.map((category, index) => (
                                 <div
-                                    key={category.category}
+                                    key={`${category.category}-${index}`}
                                     className="overflow-hidden rounded-2xl bg-white shadow-lg transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl"
                                 >
                                     <button
