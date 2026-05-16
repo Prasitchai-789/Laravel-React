@@ -229,6 +229,9 @@ class CPORecordController extends Controller
                     + (($cleanOilVal * 3.5) + 1)
                     + $adjustmentVal;
         $cpoOilRoom = round($cpoOilRoom, 3);
+        if ($purgeSystemStatus) {
+            $cpoOilRoom = 0;
+        }
         
         if ($existingRecord) {
             // Update ข้อมูลที่มีอยู่
@@ -607,6 +610,9 @@ class CPORecordController extends Controller
                     + (($cleanOilVal * 3.5) + 1)
                     + $adjustmentVal;
         $cpoOilRoom = round($cpoOilRoom, 3);
+        if ($purgeSystemStatus) {
+            $cpoOilRoom = 0;
+        }
 
 
         $cpoData->update(['cpo_oil_room' => $cpoOilRoom]);
