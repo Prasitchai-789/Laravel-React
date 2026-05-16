@@ -52,7 +52,9 @@ class YieldReportController extends Controller
 
             if ($latestDate) {
                 $latestProductCpo = floatval($latestCpo->product_cpo ?? 0);
-                $latestCpoOilRoom = floatval($latestCpo->cpo_oil_room ?? 0);
+                $latestCpoOilRoom = $this->shouldResetOilRoom($latestCpo)
+                    ? 0
+                    : floatval($latestCpo->cpo_oil_room ?? 0);
 
                 $latestProd = Production::whereDate('Date', $latestDate)->first();
                 $latestFfb = $latestProd ? floatval($latestProd->FFBGoodQty ?? 0) : 0;
@@ -68,7 +70,9 @@ class YieldReportController extends Controller
             $rangeProductCpo = $cpoRecords->sum(fn($r) => floatval($r->product_cpo ?? 0));
             // CPO Oil Room uses data from the latest date in the selected range
             $latestRecordInRange = $cpoRecords->sortByDesc('date')->first();
-            $rangeCpoOilRoom = $latestRecordInRange ? floatval($latestRecordInRange->cpo_oil_room ?? 0) : 0;
+            $rangeCpoOilRoom = $latestRecordInRange && !$this->shouldResetOilRoom($latestRecordInRange)
+                ? floatval($latestRecordInRange->cpo_oil_room ?? 0)
+                : 0;
             $rangeSkim = round($cpoRecords->sum(fn($r) => floatval($r->skim ?? 0)), 3);
             $rangeMix = round($cpoRecords->sum(fn($r) => floatval($r->mix ?? 0)), 3);
 
@@ -131,6 +135,11 @@ class YieldReportController extends Controller
         return Carbon::parse($rawDate)->format('Y-m-d');
     }
 
+    private function shouldResetOilRoom($record): bool
+    {
+        return (bool)($record->purge_system_status ?? false);
+    }
+
     /**
      * API — ข้อมูล %Yield รายวัน ตามเดือนที่เลือก (ครบทุกวันในเดือน)
      */
@@ -176,7 +185,7 @@ class YieldReportController extends Controller
                 $prod       = $productions->get($dateStr);
 
                 $productCpo   = $record ? floatval($record->product_cpo  ?? 0) : 0;
-                $cpoOilRoom   = $record ? floatval($record->cpo_oil_room ?? 0) : 0;
+                $cpoOilRoom   = $record && !$this->shouldResetOilRoom($record) ? floatval($record->cpo_oil_room ?? 0) : 0;
                 $ffb          = $prod   ? floatval($prod->FFBGoodQty     ?? 0) : 0;
 
                 $yield            = $ffb > 0 ? round(($productCpo / $ffb) * 100, 2) : 0;
