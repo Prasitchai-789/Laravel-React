@@ -111,10 +111,9 @@ return [
             'encrypt' => env('DB_ENCRYPT', 'yes'),
             'trust_server_certificate' => true,
             'login_timeout' => env('DB_LOGIN_TIMEOUT', 5),
-            'options' => [PDO::ATTR_TIMEOUT => env('DB_LOGIN_TIMEOUT', 5)]
-                + (defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT')
-                    ? [\PDO::SQLSRV_ATTR_QUERY_TIMEOUT => env('DB_QUERY_TIMEOUT', 30)]
-                    : []),
+            'options' => defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT')
+                ? [PDO::SQLSRV_ATTR_QUERY_TIMEOUT => env('DB_QUERY_TIMEOUT', 30)]
+                : [],
         ],
 
         'sqlsrv2' => [
@@ -130,10 +129,9 @@ return [
             'encrypt' => 'yes',
             'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE_2', true),
             'login_timeout' => env('DB_LOGIN_TIMEOUT_2', 5),
-            'options' => [PDO::ATTR_TIMEOUT => env('DB_LOGIN_TIMEOUT_2', 5)]
-                + (defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT')
-                    ? [\PDO::SQLSRV_ATTR_QUERY_TIMEOUT => env('DB_QUERY_TIMEOUT_2', 120)]
-                    : []),
+            'options' => defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT')
+                ? [PDO::SQLSRV_ATTR_QUERY_TIMEOUT => env('DB_QUERY_TIMEOUT', 30)]
+                : [],
         ],
         'sqlsrv3' => [
             'driver' => 'sqlsrv',
@@ -148,10 +146,9 @@ return [
             'encrypt' => env('DB_ENCRYPT_3', 'yes'),
             'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE_3', true),
             'login_timeout' => env('DB_LOGIN_TIMEOUT_3', 5),
-            'options' => [PDO::ATTR_TIMEOUT => env('DB_LOGIN_TIMEOUT_3', 5)]
-                + (defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT')
-                    ? [\PDO::SQLSRV_ATTR_QUERY_TIMEOUT => env('DB_QUERY_TIMEOUT_3', 30)]
-                    : []),
+            'options' => defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT')
+                ? [PDO::SQLSRV_ATTR_QUERY_TIMEOUT => env('DB_QUERY_TIMEOUT', 30)]
+                : [],
         ],
 
     ],
@@ -189,7 +186,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_') . '_database_'),
             'persistent' => env('REDIS_PERSISTENT', false),
         ],
 
