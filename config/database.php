@@ -102,31 +102,38 @@ return [
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', 'localhost'),
             'port' => env('DB_PORT', '1433'),
-            'database' => env('DB_DATABASE' ),
-            'username' => env('DB_USERNAME' ),
-            'password' => env('DB_PASSWORD' ),
+            'database' => env('DB_DATABASE'),
+            'username' => env('DB_USERNAME'),
+            'password' => env('DB_PASSWORD'),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
             'encrypt' => env('DB_ENCRYPT', 'yes'),
             'trust_server_certificate' => true,
+            'login_timeout' => env('DB_LOGIN_TIMEOUT', 5),
+            'options' => [PDO::ATTR_TIMEOUT => env('DB_LOGIN_TIMEOUT', 5)]
+                + (defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT')
+                    ? [\PDO::SQLSRV_ATTR_QUERY_TIMEOUT => env('DB_QUERY_TIMEOUT', 30)]
+                    : []),
         ],
 
         'sqlsrv2' => [
             'driver' => 'sqlsrv',
             'host' => env('DB_HOST_2', 'localhost'),
             'port' => env('DB_PORT_2', '1433'),
-            'database' => env('DB_DATABASE_2' ),
-            'username' => env('DB_USERNAME_2' ),
-            'password' => env('DB_PASSWORD_2' ),
+            'database' => env('DB_DATABASE_2'),
+            'username' => env('DB_USERNAME_2'),
+            'password' => env('DB_PASSWORD_2'),
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
             'encrypt' => 'yes',
             'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE_2', true),
-            'options' => [
-                (defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT') ? \PDO::SQLSRV_ATTR_QUERY_TIMEOUT : 1001) => 120,
-            ],
+            'login_timeout' => env('DB_LOGIN_TIMEOUT_2', 5),
+            'options' => [PDO::ATTR_TIMEOUT => env('DB_LOGIN_TIMEOUT_2', 5)]
+                + (defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT')
+                    ? [\PDO::SQLSRV_ATTR_QUERY_TIMEOUT => env('DB_QUERY_TIMEOUT_2', 120)]
+                    : []),
         ],
         'sqlsrv3' => [
             'driver' => 'sqlsrv',
@@ -140,8 +147,12 @@ return [
             'prefix_indexes' => true,
             'encrypt' => env('DB_ENCRYPT_3', 'yes'),
             'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE_3', true),
+            'login_timeout' => env('DB_LOGIN_TIMEOUT_3', 5),
+            'options' => [PDO::ATTR_TIMEOUT => env('DB_LOGIN_TIMEOUT_3', 5)]
+                + (defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT')
+                    ? [\PDO::SQLSRV_ATTR_QUERY_TIMEOUT => env('DB_QUERY_TIMEOUT_3', 30)]
+                    : []),
         ],
-
 
     ],
 
@@ -178,7 +189,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_') . '_database_'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
             'persistent' => env('REDIS_PERSISTENT', false),
         ],
 

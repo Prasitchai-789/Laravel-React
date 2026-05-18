@@ -2,39 +2,41 @@
 
 namespace Database\Seeders;
 
+use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
 
 class PermissionSeeder extends Seeder
 {
     public function run(): void
     {
         $permissions = [
-            "users.view",
-            "users.edit",
-            "users.delete",
-            "users.create",
+            'users.view',
+            'users.edit',
+            'users.delete',
+            'users.create',
 
-            "roles.view",
-            "roles.edit",
-            "roles.delete",
-            "roles.create",
-          
-            "permission.view",
-            "permission.edit",
-            "permission.delete",
-            "permission.create",
+            'roles.view',
+            'roles.edit',
+            'roles.delete',
+            'roles.create',
 
-            "admin.view",
-            "admin.edit",
-            "admin.delete",
-            "admin.create",
+            'permission.view',
+            'permission.edit',
+            'permission.delete',
+            'permission.create',
 
-            "qmr.view",
-         
+            'admin.view',
+            'admin.edit',
+            'admin.delete',
+            'admin.create',
+
+            'qmr.view',
+            'qmr.edit',
+            'qmr.delete',
+
         ];
 
         // ✅ สร้าง permission ทั้งหมด
@@ -51,7 +53,7 @@ class PermissionSeeder extends Seeder
         // ✅ สร้างหรืออัปเดต User id=1
         $user = User::find(1);
 
-        if (!$user) {
+        if (! $user) {
             $user = User::create([
                 'id' => 1, // ✅ บังคับ id=1
                 'name' => 'Admin',

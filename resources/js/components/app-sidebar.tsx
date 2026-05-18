@@ -50,7 +50,8 @@ import {
     Fence,
     Camera,
     Globe,
-    Droplets
+    Droplets,
+    ShieldAlert,
 } from 'lucide-react';
 
 import React from 'react';
@@ -169,6 +170,11 @@ const QACReportNavItems: NavItem[] = [
 const QACNavItems: NavItem[] = [...QACReportNavItems, ...QACDataEntryNavItems];
 
 const QMRNavItems: NavItem[] = [
+    { title: 'ภาพรวมความเสี่ยงและโอกาส', href: '/qmr/risk-management', icon: ChartNoAxesCombined, permission: ['qmr.view', 'admin.view', 'developer.view', 'gm.view', 'qac.view'] },
+    { title: 'ทะเบียนความเสี่ยงและโอกาส', href: '/qmr/risk-management/risks', icon: ShieldAlert, permission: ['qmr.view', 'admin.view', 'developer.view', 'gm.view', 'qac.view'] },
+    { title: 'รายละเอียด KPI', href: '/qmr/risk-management/kpi', icon: ChartLine, permission: ['qmr.view', 'admin.view', 'developer.view', 'gm.view', 'qac.view'] },
+    { title: 'มาตรการและการติดตามผล', href: '/qmr/risk-management/controls', icon: ClipboardList, permission: ['qmr.view', 'admin.view', 'developer.view', 'gm.view', 'qac.view'] },
+    { title: 'รายงานความเสี่ยงและโอกาส', href: '/qmr/risk-management/reports', icon: ScrollText, permission: ['qmr.view', 'admin.view', 'developer.view', 'gm.view', 'qac.view'] },
     { title: 'บันทึกข้อมูลน้ำ', href: '/qmr/water-usage-reports', icon: Droplets, permission: ['qmr.view', 'admin.view', 'developer.view', 'gm.view', 'qac.view'] },
 ];
 

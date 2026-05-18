@@ -64,7 +64,6 @@ Route::middleware(['auth', 'permission:developer.view|mar.view|gm.view|qac.user|
     Route::post('/plan-order', [SOPlanController::class, 'store'])->name('plan-order.store');
     Route::put('/plan-order/{id}', [SOPlanController::class, 'update'])->name('plan-order.update');
     Route::put('/plan-order/{id}/status', [SOPlanController::class, 'updateStatus'])->name('plan-order.update-status');
-    Route::post('/plan-order/{id}/generate-coa', [SOPlanController::class, 'generateCoa'])->name('plan-order.generate-coa');
     Route::delete('/plan-order/{id}', [SOPlanController::class, 'destroy'])->name('plan-order.destroy');
     Route::patch('/plan-order/{id}/restore', [SOPlanController::class, 'restore'])->name('plan-order.restore');
     Route::delete('/plan-order/{id}/force', [SOPlanController::class, 'forceDelete'])->name('plan-order.force-delete');
