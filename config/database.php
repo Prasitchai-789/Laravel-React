@@ -110,10 +110,6 @@ return [
             'prefix_indexes' => true,
             'encrypt' => env('DB_ENCRYPT', 'yes'),
             'trust_server_certificate' => true,
-            'login_timeout' => env('DB_LOGIN_TIMEOUT', 5),
-            'options' => defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT')
-                ? [PDO::SQLSRV_ATTR_QUERY_TIMEOUT => env('DB_QUERY_TIMEOUT', 30)]
-                : [],
         ],
 
         'sqlsrv2' => [
@@ -126,6 +122,7 @@ return [
             'charset' => 'utf8',
             'prefix' => '',
             'prefix_indexes' => true,
+            'encrypt' => 'yes',
             'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE_2', true),
             'options' => [
                 (defined('PDO::SQLSRV_ATTR_QUERY_TIMEOUT') ? \PDO::SQLSRV_ATTR_QUERY_TIMEOUT : 1001) => 120,
