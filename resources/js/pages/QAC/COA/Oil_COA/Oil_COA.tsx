@@ -167,6 +167,40 @@ const formatDisplayDate = (dateStr?: string) => {
     return `${d}/${m}/${y}`;
 };
 
+const getCoaSortKey = (coaNo?: string) => {
+    const normalized = (coaNo || '').trim().toUpperCase();
+    if (!normalized || normalized === '-') {
+        return null;
+    }
+
+    const match = normalized.match(/^[A-Z]*\s*(\d+)\s*\/\s*(\d{4})$/);
+    if (!match) {
+        return null;
+    }
+
+    return {
+        sequence: Number(match[1]),
+        year: Number(match[2]),
+    };
+};
+
+const sortByCoaNumberDesc = (items: OilCOAData[]) =>
+    [...items].sort((a, b) => {
+        const aKey = getCoaSortKey(a.coa_no);
+        const bKey = getCoaSortKey(b.coa_no);
+
+        if (aKey && bKey) {
+            if (bKey.year !== aKey.year) return bKey.year - aKey.year;
+            if (bKey.sequence !== aKey.sequence) return bKey.sequence - aKey.sequence;
+        } else if (aKey) {
+            return -1;
+        } else if (bKey) {
+            return 1;
+        }
+
+        return (b.created_at || '').localeCompare(a.created_at || '');
+    });
+
 const mapSOPlanStatus = (status?: string): OilCOAData['sop_status'] => {
     const statusMap: Record<string, OilCOAData['sop_status']> = {
         w: 'pending',
@@ -686,7 +720,7 @@ const Oil_COA: React.FC = () => {
                     sop_status: mapSOPlanStatus(s.Status),
                     created_at: parseDateString(s.coa_date || s.SOPDate || ''),
                 }));
-                setData(mapped);
+                setData(sortByCoaNumberDesc(mapped));
             }
         } catch (err) {
             console.error('Fetch error:', err);
