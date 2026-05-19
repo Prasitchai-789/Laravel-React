@@ -227,6 +227,40 @@ const formatDisplayDate = (dateStr: string) => {
     return `${d}/${m}/${y}`;
 };
 
+const getCoaSortKey = (coaNo?: string) => {
+    const normalized = (coaNo || '').trim().toUpperCase();
+    if (!normalized || normalized === '-') {
+        return null;
+    }
+
+    const match = normalized.match(/^[A-Z]*\s*(\d+)\s*\/\s*(\d{4})$/);
+    if (!match) {
+        return null;
+    }
+
+    return {
+        sequence: Number(match[1]),
+        year: Number(match[2]),
+    };
+};
+
+const sortByCoaNumberDesc = (items: SeedCOAData[]) =>
+    [...items].sort((a, b) => {
+        const aKey = getCoaSortKey(a.coa_no);
+        const bKey = getCoaSortKey(b.coa_no);
+
+        if (aKey && bKey) {
+            if (bKey.year !== aKey.year) return bKey.year - aKey.year;
+            if (bKey.sequence !== aKey.sequence) return bKey.sequence - aKey.sequence;
+        } else if (aKey) {
+            return -1;
+        } else if (bKey) {
+            return 1;
+        }
+
+        return (b.created_at || '').localeCompare(a.created_at || '');
+    });
+
 const _getSignaturePath = (identity?: string | number) => {
     const id = identity ? identity.toString().trim() : '';
     const base = typeof window !== 'undefined' ? window.location.origin : '';
@@ -666,7 +700,7 @@ const Seed_COA: React.FC = () => {
                     sop_status: s.Status,
                     created_at: parseDateString(s.coa_date || s.SOPDate || ''),
                 }));
-                setData(mapped);
+                setData(sortByCoaNumberDesc(mapped));
             }
         } catch (err) {
             console.error('Fetch error:', err);
