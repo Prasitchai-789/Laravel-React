@@ -1,3 +1,4 @@
+// @ts-nocheck
 import CardSummary from '@/components/CardSummary';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';

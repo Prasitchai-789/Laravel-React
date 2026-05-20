@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';

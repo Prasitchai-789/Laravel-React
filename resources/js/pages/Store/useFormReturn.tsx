@@ -4,6 +4,7 @@ import axios from 'axios';
 import Swal from 'sweetalert2';
 
 interface ReturnFormProps {
+    data?: any;
     onClose: () => void;
     onSuccess: () => void;
 }
@@ -16,6 +17,7 @@ interface DocumentItem {
     returnQty: number;
     unit?: string;
     remainingQty: number;
+    storeItemId?: number;
 }
 
 interface Document {
@@ -480,7 +482,7 @@ const ReturnForm: React.FC<ReturnFormProps> = ({ onClose, onSuccess }) => {
                 )}
             </form>
 
-            <style jsx>{`
+            <style>{`
                 @keyframes slideDown {
                     from {
                         opacity: 0;

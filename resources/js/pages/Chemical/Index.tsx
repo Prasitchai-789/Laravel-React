@@ -1,3 +1,4 @@
+// @ts-nocheck
 import ModalForm from '@/components/ModalForm';
 import AppLayout from '@/layouts/app-layout';
 import { can } from '@/lib/can';

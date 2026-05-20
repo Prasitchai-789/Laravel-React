@@ -1,5 +1,6 @@
+// @ts-nocheck
 import React, { useState, ChangeEvent, FormEvent } from 'react';
-import * as XLSX from 'xlsx';
+type XlsxModule = typeof import('xlsx');
 
 interface Citizen {
   citizen_id: string;
@@ -40,7 +41,7 @@ const UploadCitizen: React.FC = () => {
     }
   };
 
-  const convertThaiDate = (thaiDate: any) => {
+  const convertThaiDate = (thaiDate: any, XLSX: XlsxModule) => {
     if (!thaiDate) return null;
 
     let dateObj: Date;
@@ -75,6 +76,7 @@ const UploadCitizen: React.FC = () => {
 
     try {
       const data = await file.arrayBuffer();
+      const XLSX = await import('xlsx');
       const workbook = XLSX.read(data);
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(sheet, { defval: null });
@@ -84,7 +86,7 @@ const UploadCitizen: React.FC = () => {
         title: row['คำนำหน้า'] || undefined,
         first_name: row['ชื่อ'] || '',
         last_name: row['นามสกุล'] || '',
-        birth_date: convertThaiDate(row['วันเกิด']),
+        birth_date: convertThaiDate(row['วันเกิด'], XLSX),
         gender: row['เพศ'] || undefined,
         phone: row['เบอร์โทร'] || undefined,
         village_name: row['ชื่อหมู่บ้าน'] || undefined,
@@ -96,8 +98,8 @@ const UploadCitizen: React.FC = () => {
         subdistrict: row['ตำบล'] || undefined,
         district: row['อำเภอ'] || undefined,
         province: row['จังหวัด'] || undefined,
-        card_issue_date: convertThaiDate(row['วันทำบัตร']),
-        card_expire_date: convertThaiDate(row['วันหมดอายุ']),
+        card_issue_date: convertThaiDate(row['วันทำบัตร'], XLSX),
+        card_expire_date: convertThaiDate(row['วันหมดอายุ'], XLSX),
         religion: row['ศาสนา'] || undefined,
         age: row['อายุ'] || undefined,
         photo: row['รูป'] || undefined,

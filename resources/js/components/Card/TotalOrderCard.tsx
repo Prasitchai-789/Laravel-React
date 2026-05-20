@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, type Transition } from 'framer-motion';
 import { Calendar, TrendingUp } from 'lucide-react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -28,7 +28,7 @@ export default function TotalOrderCard({
     variant = 'modern',
 }: TotalOrderCardProps) {
     // ใช้ transition กลางแบบ "เร็ว" สำหรับทุก motion
-    const fast = { duration: 0.2, ease: 'easeOut' };
+    const fast: Transition = { duration: 0.2, ease: 'easeOut' };
 
     // สีตาม variant และค่า change
     const getVariantStyles = () => {

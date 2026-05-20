@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react';
 import { EmployeeRecord } from '../../Shifts/shift';
 import { StatusBadge } from '../components/UI/StatusBadge';

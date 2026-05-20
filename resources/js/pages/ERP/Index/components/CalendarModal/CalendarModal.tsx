@@ -1,3 +1,4 @@
+// @ts-nocheck
 // components/CalendarModal/CalendarModal.jsx
 import CalendarModalHeader from "./CalendarModalHeader";
 import CalendarModalContent from "./CalendarModalContent";

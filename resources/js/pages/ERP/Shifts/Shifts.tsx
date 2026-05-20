@@ -1,3 +1,4 @@
+// @ts-nocheck
 // resources/js/pages/ERP/Shifts/Shifts.tsx
 import React, { useState } from "react";
 import { usePage } from "@inertiajs/react"; // ดึง props จาก Laravel

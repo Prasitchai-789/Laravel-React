@@ -178,7 +178,7 @@ export default function Index({ customers = [], cities = [] }: { customers: Cust
                 </div>
             </div>
 
-            <CustomerTable customers={customers} onEdit={handleEdit} onDelete={openDeleteModal} cities={cities} />
+            <CustomerTable customers={customers} onEdit={handleEdit} onDelete={(customer) => openDeleteModal(customer.id)} cities={cities} />
 
             <ModalForm
                 isModalOpen={isCustomerModalOpen}

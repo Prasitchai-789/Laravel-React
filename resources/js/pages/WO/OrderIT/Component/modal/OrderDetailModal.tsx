@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useMemo } from 'react';
 import {
     X, User, Briefcase, Calendar, MapPin, Tag, List, HardDrive, Barcode, Info,

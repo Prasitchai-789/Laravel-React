@@ -117,8 +117,8 @@ const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
                     endDate = now.endOf('month').format('YYYY-MM-DD');
                     break;
                 case 'quarter':
-                    startDate = now.startOf('quarter').format('YYYY-MM-DD');
-                    endDate = now.endOf('quarter').format('YYYY-MM-DD');
+                    startDate = now.startOf('quarter' as any).format('YYYY-MM-DD');
+                    endDate = now.endOf('quarter' as any).format('YYYY-MM-DD');
                     break;
                 case 'all':
                     startDate = undefined;
@@ -543,7 +543,7 @@ const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
                         </div>
                     </div>
                     <div style={{ height: '400px' }}>
-                        <Bar data={chartData} options={chartOptions} />
+                        <Bar data={chartData} options={chartOptions as any} />
                     </div>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-4 text-center">
                         💡 เลื่อนเมาส์เหนือแท่งกราฟเพื่อดูรายละเอียดจำนวนและราคา

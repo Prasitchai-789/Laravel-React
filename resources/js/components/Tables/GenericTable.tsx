@@ -8,12 +8,14 @@ import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Search, ChevronsLeft
 import React, { useState } from 'react';
 
 export type Column<T> = {
-    key: keyof T | 'actions';
+    key: keyof T | 'actions' | string;
     label: string;
     sortable?: boolean;
     align?: 'left' | 'center' | 'right';
     render?: (row: T) => React.ReactNode;
     filterable?: boolean;
+    width?: string | number;
+    className?: string;
 };
 
 export type GenericTableProps<T> = {
@@ -36,6 +38,12 @@ export type GenericTableProps<T> = {
     externalSearch?: boolean;
     externalSort?: boolean;
     loading?: boolean;
+    emptyMessage?: React.ReactNode;
+    highlightLastRow?: boolean;
+    rowClassName?: string | ((row: T, index: number) => string);
+    headerClassName?: string;
+    thClassName?: string;
+    tdClassName?: string;
 };
 
 export default function GenericTable<T extends Record<string, any>>({
@@ -57,6 +65,12 @@ export default function GenericTable<T extends Record<string, any>>({
     externalSearch = false,
     externalSort = false,
     loading = false,
+    emptyMessage,
+    highlightLastRow = false,
+    rowClassName,
+    headerClassName = '',
+    thClassName = '',
+    tdClassName = '',
 }: GenericTableProps<T>) {
     // State สำหรับ internal management
     const [internalSortField, setInternalSortField] = useState<keyof T | null>(initialSort ?? null);
@@ -243,11 +257,12 @@ export default function GenericTable<T extends Record<string, any>>({
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-gray-50 hover:bg-gray-50">
+                            <TableRow className={`bg-gray-50 hover:bg-gray-50 ${headerClassName}`}>
                                 {columns.map((col) => (
                                     <TableHead
                                         key={col.key as string}
-                                        className={`py-3 font-semibold text-gray-700 ${
+                                        style={col.width ? { width: col.width } : undefined}
+                                        className={`py-3 font-semibold text-gray-700 ${thClassName} ${
                                             col.align === 'right' ? 'text-right' :
                                             col.align === 'center' ? 'text-center' : ''
                                         }`}
@@ -289,15 +304,23 @@ export default function GenericTable<T extends Record<string, any>>({
 
                         <TableBody>
                             {displayData.length > 0 ? (
-                                displayData.map((row, index) => (
+                                displayData.map((row, index) => {
+                                  const customRowClassName =
+                                      typeof rowClassName === 'function' ? rowClassName(row, index) : rowClassName;
+
+                                  return (
                                     <TableRow
                                         key={row[idField] as React.Key}
-                                        className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}
+                                        className={[
+                                            index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50',
+                                            highlightLastRow && index === displayData.length - 1 ? 'font-semibold' : '',
+                                            customRowClassName || '',
+                                        ].filter(Boolean).join(' ')}
                                     >
                                         {columns.map((col) => (
                                             <TableCell
                                                 key={col.key as string}
-                                                className={`py-3 ${
+                                                className={`py-3 ${tdClassName} ${col.className || ''} ${
                                                     col.align === 'right' ? 'text-right' :
                                                     col.align === 'center' ? 'text-center' : ''
                                                 }`}
@@ -309,12 +332,13 @@ export default function GenericTable<T extends Record<string, any>>({
                                                 ) : col.render ? (
                                                     col.render(row)
                                                 ) : (
-                                                    <span className="text-gray-700">{row[col.key]}</span>
+                                                    <span className="text-gray-700">{row[col.key as keyof T]}</span>
                                                 )}
                                             </TableCell>
                                         ))}
                                     </TableRow>
-                                ))
+                                  );
+                                })
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={columns.length} className="py-12 text-center text-gray-500">
@@ -322,8 +346,14 @@ export default function GenericTable<T extends Record<string, any>>({
                                             <div className="mb-3 rounded-full bg-gray-100 p-3">
                                                 <Search size={24} className="text-gray-400" />
                                             </div>
-                                            <p className="font-medium">ไม่พบข้อมูล</p>
-                                            <p className="mt-1 text-sm">ลองเปลี่ยนคำค้นหาหรือตัวกรองดูอีกครั้ง</p>
+                                            {emptyMessage ? (
+                                                <div>{emptyMessage}</div>
+                                            ) : (
+                                                <>
+                                                    <p className="font-medium">ไม่พบข้อมูล</p>
+                                                    <p className="mt-1 text-sm">ลองเปลี่ยนคำค้นหาหรือตัวกรองดูอีกครั้ง</p>
+                                                </>
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>

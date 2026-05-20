@@ -1,4 +1,4 @@
-import { motion, useAnimation, useInView } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
 interface ProgressCircleProps {
@@ -20,16 +20,8 @@ export default function ProgressCircle({
   const circleRef = useRef<SVGCircleElement>(null);
   const [progress, setProgress] = useState(0);
 
-  const controls = useAnimation();
   const ref = useRef(null);
   const inView = useInView(ref, { once: true });
-
-  // เมื่อ component เข้าสู่ viewport → ให้แอนิเมต
-  useEffect(() => {
-    if (inView) {
-      controls.start({ progress: value, transition: { duration: 1.2, ease: "easeOut" } });
-    }
-  }, [inView, controls, value]);
 
   // อัปเดตค่าตัวเลขที่แสดง
   useEffect(() => {
@@ -46,7 +38,7 @@ export default function ProgressCircle({
       setProgress(Math.floor(start));
     }, step);
     return () => clearInterval(interval);
-  }, [value]);
+  }, [value, inView]);
 
   return (
     <div

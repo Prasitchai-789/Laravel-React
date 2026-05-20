@@ -1,13 +1,13 @@
 import React from "react";
 
 interface TextareaProps {
-  label: string;
-  name: string;
+  label?: React.ReactNode;
+  name?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   required?: boolean;
   placeholder?: string;
-  error?: string;
+  error?: React.ReactNode;
   disabled?: boolean;
   rows?: number;
   className?: string;
@@ -33,12 +33,14 @@ const Textarea: React.FC<TextareaProps> = ({
 }) => {
   return (
     <div className={className}>
-      <label
-        htmlFor={name}
-        className={`block text-sm font-medium text-gray-700 pb-2 ${labelClassName}`}
-      >
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
+      {label && (
+        <label
+          htmlFor={name}
+          className={`block text-sm font-medium text-gray-700 pb-2 ${labelClassName}`}
+        >
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
       <textarea
         id={name}
         name={name}

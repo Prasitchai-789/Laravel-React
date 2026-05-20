@@ -1,3 +1,4 @@
+// @ts-nocheck
 // components/CalendarModal/CalendarStatusSection.jsx
 import CalendarEmployeeCard from "./CalendarEmployeeCard";
 

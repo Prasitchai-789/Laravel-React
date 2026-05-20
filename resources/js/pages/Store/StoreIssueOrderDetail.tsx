@@ -3,7 +3,7 @@ import { X, FileText, Calendar, User, Package, ChevronDown, ChevronUp, TrendingU
 
 interface HistoryItem {
     movement_type: 'เบิก' | 'คืน';
-    quantity: number;
+    quantity?: number;
     docu_no: string;
     docu_date: string;
     user_id: string;
@@ -12,10 +12,11 @@ interface HistoryItem {
 
 interface OrderItem {
     id: number;
+    product_id?: number;
     product_name: string;
-    product_code: string;
-    quantity: number;
-    unit: string;
+    product_code?: string;
+    quantity?: number;
+    unit?: string;
     history?: HistoryItem[];
 }
 

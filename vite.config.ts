@@ -21,9 +21,17 @@ export default defineConfig({
         alias: {
             'ziggy-js': resolve(__dirname, 'vendor/tightenco/ziggy'),
         },
-    },  
-  
-
-
-  
+    },
+    build: {
+        chunkSizeWarningLimit: 1200,
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (id.includes('node_modules/xlsx')) return 'vendor-xlsx';
+                    if (id.includes('node_modules/apexcharts') || id.includes('node_modules/react-apexcharts')) return 'vendor-apexcharts';
+                    if (id.includes('node_modules/pdf-lib') || id.includes('node_modules/@pdf-lib')) return 'vendor-pdf';
+                },
+            },
+        },
+    },
 });

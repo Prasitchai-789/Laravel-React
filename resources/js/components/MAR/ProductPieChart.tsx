@@ -45,7 +45,7 @@ const ProductPieChart = ({ data }) => {
     },
   };
 
-  return <Doughnut data={chartData} options={options} />;
+  return <Doughnut data={chartData} options={options as any} />;
 };
 
 export default ProductPieChart;

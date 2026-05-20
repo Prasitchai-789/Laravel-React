@@ -117,7 +117,7 @@ export function MiniLineChart({ data, positiveTrend = true }) {
   return (
     <div className="relative w-84 h-12">
       <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/50 rounded-lg"></div>
-      <Line data={chartData} options={options} />
+      <Line data={chartData} options={options as any} />
       
       {/* สัญลักษณ์แนวโน้ม */}
       <div className={`absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full ${

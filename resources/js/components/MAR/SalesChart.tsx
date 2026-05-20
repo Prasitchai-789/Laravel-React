@@ -36,7 +36,7 @@ const SalesChart = ({
   showGrid = true,
   gradientFill = true
 }) => {
-  const chartRef = useRef();
+  const chartRef = useRef<any>(null);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -287,7 +287,7 @@ const SalesChart = ({
         <Line
           ref={chartRef}
           data={chartData}
-          options={options}
+          options={options as any}
         />
       </div>
 

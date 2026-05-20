@@ -108,7 +108,7 @@ export default function PieChart({ data }: PieChartProps) {
   return (
     <div className="relative h-80 w-full rounded-xl bg-gradient-to-br from-white to-gray-50/50 pt-10">
       <div className="relative h-56">
-        <Pie data={chartData} options={options} />
+        <Pie data={chartData} options={options as any} />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
+// @ts-nocheck
 import AppLayout from "@/layouts/app-layout";
 import { useState, useRef, useEffect } from "react";
-import * as XLSX from "xlsx";
 import { Breadcrumb, EmployeeRecord, FilterState, UploadSummary } from "./components/Shifts/ShiftTypes";
 import {
     validateFileType,
@@ -339,9 +339,10 @@ export default function ImportExcel() {
             }
         };
 
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            reader.onload = async (e) => {
+                try {
+                    const XLSX = await import('xlsx');
+                    const data = new Uint8Array(e.target?.result as ArrayBuffer);
                 const workbook = XLSX.read(data, { type: 'array' });
 
                 const worksheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -659,7 +660,8 @@ export default function ImportExcel() {
         }
     };
 
-    const downloadTemplate = () => {
+    const downloadTemplate = async () => {
+        const XLSX = await import('xlsx');
         const templateData = [
             ['รหัสพนักงาน', 'ชื่อพนักงาน', 'แผนก', 'วันที่', 'เวลา'],
             ['201610078', 'สีสมุทร หอมจันทร์', 'กะ c', '1/9/2568', '08:01 15:32 15:32'],

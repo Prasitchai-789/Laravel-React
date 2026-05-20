@@ -1,8 +1,27 @@
 import { Dialog, Transition } from '@headlessui/react';
-import { Fragment } from 'react';
+import { Fragment, ReactNode } from 'react';
 
+interface FormModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title?: ReactNode;
+  description?: ReactNode;
+  children?: ReactNode;
+  cancelText?: ReactNode;
+  confirmText?: ReactNode;
+}
 
-export function FormModal({ isOpen, onClose, onConfirm }) {
+export function FormModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  title = '',
+  description,
+  children,
+  cancelText = 'Cancel',
+  confirmText = 'Confirm',
+}: FormModalProps) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-10" onClose={onClose}>

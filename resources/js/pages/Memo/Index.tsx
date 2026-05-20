@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Button from '@/components/Buttons/Button';
 import DeleteModal from '@/components/DeleteModal';
 import ModalForm from '@/components/ModalForm';

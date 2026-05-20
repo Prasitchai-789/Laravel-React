@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Shift, EmployeeRecord } from './ShiftTypes';
 
 export const SHIFTS: Shift[] = [

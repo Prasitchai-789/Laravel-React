@@ -11,9 +11,13 @@ export default function AppLogo() {
                         alt="ISANPALM Logo"
                         className="w-5 h-6 object-contain"
                         onError={(e) => {
-                            // ถ้าไม่มีรูป logo ให้แสดง fallback icon
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'block';
+                            const image = e.currentTarget;
+                            const fallback = image.nextElementSibling as HTMLElement | null;
+
+                            image.style.display = 'none';
+                            if (fallback) {
+                                fallback.style.display = 'block';
+                            }
                         }}
                     />
                     <div className="w-4 h-4 bg-yellow-600 rounded-full flex items-center justify-center text-white font-bold text-sm hidden">

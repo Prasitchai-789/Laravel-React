@@ -1,9 +1,9 @@
 import React from "react";
 
 interface InputProps {
-  label: React.ReactNode;
-  name: string;
-  value: string;
+  label?: React.ReactNode;
+  name?: string;
+  value?: string | number;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   type?: string;
   required?: boolean;
@@ -16,7 +16,8 @@ interface InputProps {
   errorClassName?: string;
   min?: number;
   max?: number | string;
-  step?: number
+  step?: number;
+  accept?: string;
 }
 
 const InputLabel: React.FC<InputProps> = ({
@@ -35,16 +36,19 @@ const InputLabel: React.FC<InputProps> = ({
   errorClassName = "",
   min,
   max,
-  step
+  step,
+  accept
 }) => {
   return (
     <div className={className}>
-      <label
-        htmlFor={name}
-        className={`mb-2 block text-sm font-medium text-gray-700 ${labelClassName}`}
-      >
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
+      {label && (
+        <label
+          htmlFor={name}
+          className={`mb-2 block text-sm font-medium text-gray-700 ${labelClassName}`}
+        >
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
       <input
         type={type}
         id={name}
@@ -57,6 +61,7 @@ const InputLabel: React.FC<InputProps> = ({
         min={min === undefined ? undefined : String(min)}
         max={max === undefined ? undefined : String(max)}
         step={step === undefined ? undefined : String(step)}
+        accept={accept}
         className={`block w-full rounded-lg border border-gray-300 px-4 py-3 font-anuphan shadow-sm transition duration-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 ${inputClassName} ${error ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
           }`}
       />

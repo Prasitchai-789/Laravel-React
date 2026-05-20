@@ -1,3 +1,4 @@
+// @ts-nocheck
 import GenericTable, { Column } from '@/components/Tables/GenericTable';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';

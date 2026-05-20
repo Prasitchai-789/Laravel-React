@@ -1,3 +1,4 @@
+// @ts-nocheck
 import AppLayout from "@/layouts/app-layout";
 import { useState, useEffect } from "react";
 

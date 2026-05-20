@@ -33,9 +33,10 @@ interface CostAnalysisProps {
   auth: any;
 }
 
-interface FormData {
+interface CostAnalysisForm {
   startDate: string;
   endDate: string;
+  [key: string]: string;
 }
 
 export default function CostAnalysis({ auth }: CostAnalysisProps) {
@@ -87,7 +88,7 @@ export default function CostAnalysis({ auth }: CostAnalysisProps) {
   const defaultStart = formatDateLocal(new Date(today.getFullYear(), today.getMonth(), 1));
   const defaultEnd = formatDateLocal(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
-  const { data, setData, processing, errors } = useForm<FormData>({
+  const { data, setData, processing, errors } = useForm<CostAnalysisForm>({
     startDate: propStart ?? defaultStart,
     endDate: propEnd ?? defaultEnd,
   });
@@ -190,7 +191,7 @@ export default function CostAnalysis({ auth }: CostAnalysisProps) {
                       type="date"
                       className="flex-1 rounded-lg border border-gray-300 px-4 py-3 shadow-sm transition-all duration-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
                       value={data.startDate}
-                      onChange={(e) => setData('startDate', e.target.value)}
+                      onChange={(e) => setData((current) => ({ ...current, startDate: e.target.value }))}
                     />
                   </div>
                   <div className="flex items-center gap-3">
@@ -199,7 +200,7 @@ export default function CostAnalysis({ auth }: CostAnalysisProps) {
                       type="date"
                       className="flex-1 rounded-lg border border-gray-300 px-4 py-3 shadow-sm transition-all duration-200 focus:border-green-500 focus:ring-2 focus:ring-green-200 focus:outline-none"
                       value={data.endDate}
-                      onChange={(e) => setData('endDate', e.target.value)}
+                      onChange={(e) => setData((current) => ({ ...current, endDate: e.target.value }))}
                     />
                   </div>
                 </div>

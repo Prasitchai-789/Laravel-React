@@ -10,6 +10,9 @@ import { User, MapPin, Phone, IdCard, FileText, X } from 'lucide-react';
 interface CustomerFormProps {
     onClose: () => void;
     onSuccess: () => void;
+    provinces?: { ProvinceID: number; ProvinceName: string }[];
+    districts?: { DistrictID: number; DistrictName: string; ProvinceID: number }[];
+    subdistricts?: { SubDistrictID: number; SubDistrictName: string; DistrictID: number }[];
     cities: {
         ProvinceID: number;
         ProvinceName: string;

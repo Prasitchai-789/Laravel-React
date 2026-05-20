@@ -33,7 +33,6 @@ function DropdownMenuContent({
   className,
   disableAnimation = true,
   hideUntilPlaced = true,
-  onPlaced,
   sideOffset = 4,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content> & {
@@ -44,7 +43,6 @@ function DropdownMenuContent({
     <DropdownMenuPrimitive.Content
       data-slot="dropdown-menu-content"
       sideOffset={sideOffset}
-      onPlaced={onPlaced}
       className={cn(
         "bg-popover text-popover-foreground z-50 min-w-[8rem] overflow-hidden rounded-md border p-1 shadow-md",
         !disableAnimation &&

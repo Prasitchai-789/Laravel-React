@@ -8,6 +8,7 @@ interface PurchaseData {
     DeptID: number;
     DeptName: string;
     SumTotalAmount: number;
+    TotalNet?: number;
 }
 
 interface DashboardData {
@@ -20,7 +21,7 @@ interface DashboardData {
 }
 
 export default function Index() {
-    const { dashboard: initialDashboard } = usePage().props as { dashboard: PurchaseData[] };
+    const { dashboard: initialDashboard } = usePage().props as unknown as { dashboard: PurchaseData[] };
     const [dashboard, setDashboard] = useState<DashboardData[]>([]);
     const [year, setYear] = useState(new Date().getFullYear());
     const [month, setMonth] = useState(new Date().getMonth() + 1);

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { AlertCircle, Factory, Target, TrendingUp, Calendar, BarChart3 } from 'lucide-react';
-import ReactApexChart from 'react-apexcharts';
-import { ApexOptions } from 'apexcharts';
+import type { ApexOptions } from 'apexcharts';
+
+const ReactApexChart = lazy(() => import('react-apexcharts'));
 
 // ─── Types (คงเดิม) ───────────────────────────────────────────────────────
 interface Production {
@@ -228,12 +229,14 @@ export default function ProductionReport({ date, production, cs, summary, chart 
                                 </div>
                                 <div className="p-5">
                                     <div className="h-16 -ml-7 -mr-7 -mt-7">
-                                        <ReactApexChart 
-                                            options={chartOptions} 
-                                            series={[{ name: 'FFB', data: chart.values }]} 
-                                            type="area" 
-                                            height={90} 
-                                        />
+                                        <Suspense fallback={<div className="flex h-[90px] items-center justify-center text-xs text-slate-500">กำลังโหลดกราฟ...</div>}>
+                                            <ReactApexChart
+                                                options={chartOptions}
+                                                series={[{ name: 'FFB', data: chart.values }]}
+                                                type="area"
+                                                height={90}
+                                            />
+                                        </Suspense>
                                     </div>
                                     <div className="flex items-end justify-between mt-4">
                                         <div className="flex items-center gap-3">

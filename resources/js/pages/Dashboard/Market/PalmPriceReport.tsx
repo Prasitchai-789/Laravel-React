@@ -229,8 +229,8 @@ export default function PalmPriceReport() {
             <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-xl">
                 <p className="mb-3 text-sm font-bold text-slate-800">{label}</p>
                 <div className="space-y-2">
-                    {payload.map((entry) => (
-                        <div key={entry.dataKey} className="flex min-w-52 items-center justify-between gap-6">
+                    {payload.map((entry, index) => (
+                        <div key={`${entry.dataKey ?? entry.name ?? index}`} className="flex min-w-52 items-center justify-between gap-6">
                             <div className="flex items-center gap-2">
                                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
                                 <span className="text-xs font-semibold text-slate-500">{entry.name}</span>
@@ -471,7 +471,7 @@ export default function PalmPriceReport() {
                                                                 domain={['auto', 'auto']}
                                                                 width={46}
                                                             />
-                                                            <Tooltip content={<CustomTooltip />} />
+                                                            <Tooltip content={(props) => <CustomTooltip {...props} />} />
                                                             <Legend iconType="circle" wrapperStyle={{ paddingTop: 16, fontSize: 12, fontWeight: 700 }} />
                                                             <Area
                                                                 type="monotone"

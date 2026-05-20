@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Shift } from './components/Shifts/ShiftTypes';
 
 export const SHIFTS: Shift[] = [

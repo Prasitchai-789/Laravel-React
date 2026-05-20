@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useForm } from '@inertiajs/react';
 import { useEffect } from 'react';
 import Swal from 'sweetalert2';

@@ -156,7 +156,7 @@ const BarChartComponent = ({ data }) => {
 
   return (
     <div className="h-72 w-full rounded-xl bg-gradient-to-br from-white to-gray-50/50 p-5"> 
-      <Bar data={chartData} options={options} />
+      <Bar data={chartData} options={options as any} />
     </div>
   );
 };

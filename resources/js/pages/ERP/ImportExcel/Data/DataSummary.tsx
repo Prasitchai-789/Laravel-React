@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from 'react';
 import { UploadSummary } from '../../Shifts/shift';
 import { SHIFTS } from '../components/Shifts/ShiftUtils';

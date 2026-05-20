@@ -57,6 +57,7 @@ interface Sale {
 
 interface Payment {
     id: number;
+    sale_id?: number;
     paid_at: string;
     method: string;
     amount: number;
@@ -415,7 +416,7 @@ export default function PayForm({ mode = 'create', sale, products, customers = [
                                 name="payment_slip"
                                 type="file"
                                 accept="image/*,.pdf"
-                                onChange={(e) => setData({ ...data, payment_slip: e.target.files[0] })}
+                                onChange={(e) => setData({ ...data, payment_slip: e.target.files?.[0] ?? null })}
                                 required={false}
                                 error={errors.payment_slip}
                                 disabled={processing}

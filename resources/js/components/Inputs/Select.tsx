@@ -1,19 +1,19 @@
 import React from "react";
 
 interface SelectOption {
-  value: string;
+  value: string | number;
   label: string;
   disabled?: boolean;
 }
 
 interface SelectProps {
-  label: string;
-  name: string;
-  value: string;
+  label?: React.ReactNode;
+  name?: string;
+  value: string | number;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   options: SelectOption[];
   required?: boolean;
-  error?: string;
+  error?: React.ReactNode;
   disabled?: boolean;
   className?: string;
   labelClassName?: string;
@@ -39,12 +39,14 @@ const Select: React.FC<SelectProps> = ({
 }) => {
   return (
     <div className={className}>
-      <label
-        htmlFor={name}
-        className={`block text-sm font-medium text-gray-700 p-1 ${labelClassName}`}
-      >
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
+      {label && (
+        <label
+          htmlFor={name}
+          className={`block text-sm font-medium text-gray-700 p-1 ${labelClassName}`}
+        >
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
       <div className="relative">
         <select
           id={name}

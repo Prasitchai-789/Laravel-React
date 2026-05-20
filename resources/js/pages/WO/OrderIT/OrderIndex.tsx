@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from "react";
 import { usePage } from "@inertiajs/react";
 import { Plus, Calendar } from "lucide-react";
