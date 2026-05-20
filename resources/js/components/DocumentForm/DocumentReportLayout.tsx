@@ -41,7 +41,7 @@ export default function DocumentReportLayout({
     };
 
     return (
-        <div className="min-h-screen bg-slate-100 font-anuphan print:bg-white p-4 md:p-8">
+        <div className="min-h-screen bg-slate-100 font-anuphan p-4 md:p-8 print:bg-white print:p-0">
             {/* Control Bar - Hidden on print */}
             {(showBackButton || showPrintButton) && (
                 <div className="max-w-[800px] mx-auto mb-6 flex items-center justify-between bg-white/80 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-white print:hidden">
@@ -80,7 +80,7 @@ export default function DocumentReportLayout({
                     @media print {
                         @page {
                             size: A4;
-                            margin: 10mm;
+                            margin: 7mm;
                         }
                         body {
                             margin: 0;
@@ -95,9 +95,17 @@ export default function DocumentReportLayout({
                         .report-container {
                             width: 100% !important;
                             max-width: 100% !important;
+                            min-height: calc(297mm - 14mm) !important;
                             margin: 0 !important;
-                            padding: 0 !important;
+                            padding: 0 0 8mm 0 !important;
                             box-shadow: none !important;
+                            box-sizing: border-box !important;
+                        }
+                        .document-content {
+                            padding-bottom: 5mm !important;
+                        }
+                        .document-footer {
+                            bottom: 0 !important;
                         }
                     }
                 ` }} />
@@ -115,7 +123,7 @@ export default function DocumentReportLayout({
                 </div>
 
                 {/* Footer Info */}
-                <div className="absolute bottom-4 left-0 right-0 flex justify-between px-8 text-[9px] text-slate-400">
+                <div className="document-footer absolute bottom-4 left-0 right-0 flex justify-between px-8 text-[9px] text-slate-400">
                     <span>พิมพ์เมื่อ: {new Date().toLocaleString('th-TH')}</span>
                     <div className="flex gap-4">
                         {/* <span>หน้า 1/1</span> */}
