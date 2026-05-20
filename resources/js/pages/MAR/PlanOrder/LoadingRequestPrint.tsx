@@ -68,9 +68,73 @@ export default function LoadingRequestPrint({ selectedOrders }: Props) {
             onBack={() => window.close()}
         >
             <Head title="ใบขอเข้าบรรทุก/เบิก" />
+            <style dangerouslySetInnerHTML={{ __html: `
+                @media print {
+                    .report-container table {
+                        margin-bottom: 3.5mm !important;
+                    }
+                    .report-container td {
+                        padding-top: 1.5mm !important;
+                        padding-bottom: 1.5mm !important;
+                    }
+                    .report-container img {
+                        height: 14mm !important;
+                    }
+                    .loading-request-print {
+                        font-size: 12px !important;
+                        line-height: 1.35 !important;
+                    }
+                    .lr-form {
+                        font-size: 12px !important;
+                        line-height: 1.35 !important;
+                    }
+                    .lr-products {
+                        row-gap: 2mm !important;
+                        margin-bottom: 4mm !important;
+                    }
+                    .lr-text-lines {
+                        margin-bottom: 4mm !important;
+                    }
+                    .lr-text-lines > :not([hidden]) ~ :not([hidden]) {
+                        margin-top: 3mm !important;
+                    }
+                    .lr-signatures {
+                        row-gap: 4mm !important;
+                    }
+                    .lr-separator {
+                        margin-top: 4.5mm !important;
+                        margin-bottom: 4.5mm !important;
+                    }
+                    .lr-bottom-options {
+                        margin-bottom: 4mm !important;
+                    }
+                    .lr-top-form .lr-top-header {
+                        margin-bottom: 4.5mm !important;
+                    }
+                    .lr-top-form .lr-top-date {
+                        margin-bottom: 3.5mm !important;
+                    }
+                    .lr-top-form .lr-products {
+                        row-gap: 2.6mm !important;
+                        margin-bottom: 5mm !important;
+                    }
+                    .lr-top-form .lr-text-lines {
+                        margin-bottom: 5mm !important;
+                    }
+                    .lr-top-form .lr-text-lines > :not([hidden]) ~ :not([hidden]) {
+                        margin-top: 3.8mm !important;
+                    }
+                    .lr-top-form .lr-signatures {
+                        row-gap: 5mm !important;
+                    }
+                    .document-footer {
+                        font-size: 8px !important;
+                    }
+                }
+            ` }} />
 
             {/* Orders Form Loop */}
-            <div className="w-full">
+            <div className="loading-request-print w-full">
                 {selectedOrders.map((order, index) => {
                     const getCheckedProduct = (name: string) => {
                         if (!name) return null;
@@ -99,9 +163,9 @@ export default function LoadingRequestPrint({ selectedOrders }: Props) {
                     return (
                         <div key={order.id} className={index > 0 ? 'print:break-before-page' : ''}>
                             {/* Top Form */}
-                            <div className="relative text-[12px] text-black">
+                            <div className="lr-top-form lr-form relative text-[12px] text-black">
                                 {/* Header area */}
-                                <div className="flex justify-between items-start mb-3">
+                                <div className="lr-top-header flex justify-between items-start mb-3">
                                     <div className="space-y-1 mt-1">
                                         <PrintCheckbox checked={false} label="ปกติ" />
                                         <PrintCheckbox checked={false} label="เร่งด่วน" />
@@ -117,7 +181,7 @@ export default function LoadingRequestPrint({ selectedOrders }: Props) {
                                 </div>
 
                                 {/* Date and No */}
-                                <div className="flex justify-between mb-2 px-2">
+                                <div className="lr-top-date flex justify-between mb-2 px-2">
                                     <div>
                                         <span>วันที่</span>
                                         <span className="inline-block w-48 border-b border-dotted border-black text-center mx-2 text-blue-700 font-bold ">{formatThaiDate(order.SOPDate)}</span>
@@ -131,7 +195,7 @@ export default function LoadingRequestPrint({ selectedOrders }: Props) {
                                 </div>
 
                                 {/* Products Grid */}
-                                <div className="grid grid-cols-2 gap-y-1.5 mb-3 px-16">
+                                <div className="lr-products grid grid-cols-2 gap-y-1.5 mb-3 px-16">
                                     <PrintCheckbox checked={prod === 'CPO'} label="น้ำมันปาล์มดิบ" />
                                     <PrintCheckbox checked={prod === 'PK'} label="เมล็ดในปาล์ม" />
                                     <PrintCheckbox checked={prod === 'PAO'} label="น้ำมันกรดสูง" />
@@ -148,7 +212,7 @@ export default function LoadingRequestPrint({ selectedOrders }: Props) {
                                 </div>
 
                                 {/* Text lines */}
-                                <div className="space-y-2.5 mb-4 px-2">
+                                <div className="lr-text-lines space-y-2.5 mb-4 px-2">
                                     <div className="flex">
                                         <span className="whitespace-nowrap">ขออนุญาตให้รถหมายเลขทะเบียน</span>
                                         <span className="inline-block w-48 border-b border-dotted border-black text-center mx-2 font-bold text-blue-700">{order.NumberCar}</span>
@@ -174,7 +238,7 @@ export default function LoadingRequestPrint({ selectedOrders }: Props) {
                                 </div>
 
                                 {/* Signatures */}
-                                <div className="grid grid-cols-2 gap-y-4 text-center px-4">
+                                <div className="lr-signatures grid grid-cols-2 gap-y-4 text-center px-4">
                                     <div>
                                         <div className="mb-1.5">
                                             ลงชื่อ <span className="inline-block w-48 border-b border-dotted border-black mx-2 text-center">มะลิวัลย์</span> ผู้แจ้ง
@@ -212,12 +276,12 @@ export default function LoadingRequestPrint({ selectedOrders }: Props) {
                             </div>
 
                             {/* Separator line */}
-                            <div className="my-5 border-b-1 border-dashed border-gray-400 print:border-black"></div>
+                            <div className="lr-separator my-5 border-b-1 border-dashed border-gray-400 print:border-black"></div>
 
                             {/* Bottom Form (ส่วนที่ 2) */}
                             <DocumentHeaderTable header={header} readOnly={true} />
 
-                            <div className="relative text-[12px] text-black">
+                            <div className="lr-form relative text-[12px] text-black">
                                 {/* Header area */}
                                 <div className="flex justify-between items-start">
                                     <div className="space-y-1 mt-1">
@@ -234,7 +298,7 @@ export default function LoadingRequestPrint({ selectedOrders }: Props) {
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end items-end mb-4 mr-24">
+                                <div className="lr-bottom-options flex justify-end items-end mb-4 mr-24">
                                     <div className="space-y-1 text-left">
                                         <PrintCheckbox checked={false} label="ฝ่ายผลิต" />
                                         <PrintCheckbox checked={false} label="ฝ่ายควบคุมคุณภาพ" />
@@ -255,7 +319,7 @@ export default function LoadingRequestPrint({ selectedOrders }: Props) {
                                 </div>
 
                                 {/* Products Grid */}
-                                <div className="grid grid-cols-2 gap-y-1.5 mb-3 px-16">
+                                <div className="lr-products grid grid-cols-2 gap-y-1.5 mb-3 px-16">
                                     <PrintCheckbox checked={prod === 'CPO'} label="น้ำมันปาล์มดิบ" />
                                     <PrintCheckbox checked={prod === 'PK'} label="เมล็ดในปาล์ม" />
                                     <PrintCheckbox checked={prod === 'PAO'} label="น้ำมันกรดสูง" />
