@@ -4,9 +4,11 @@ namespace App\Http\Controllers\MAR;
 
 use App\Http\Controllers\Controller;
 use App\Models\Certificate;
+use App\Models\MAR\MARLoadingRequest;
 use App\Models\MAR\SOPlan;
 use App\Models\VehicleInspection;
 use App\Models\WIN\WebappEmp;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +30,70 @@ class SOPlanController extends Controller
         }
 
         return $empIdOrName;
+    }
+
+    private function formatLoadingRequestNumber(Carbon $date, int $sequence): string
+    {
+        $buddhistYear = (int) $date->format('Y') + 543;
+        $year = substr((string) $buddhistYear, -2);
+
+        return 'MAR'.$year.$date->format('md').'/'.str_pad((string) $sequence, 3, '0', STR_PAD_LEFT);
+    }
+
+    private function nextLoadingRequestSequence(Carbon $date): int
+    {
+        return ((int) MARLoadingRequest::whereDate('request_date', $date->toDateString())->max('sequence')) + 1;
+    }
+
+    private function parseLoadingRequestSequence(?string $number): ?int
+    {
+        if (! $number || ! preg_match('/\/(\d+)$/', $number, $matches)) {
+            return null;
+        }
+
+        return (int) $matches[1];
+    }
+
+    private function makeLoadingRequestNumber(?string $requestedNumber, Carbon $date, int $index): string
+    {
+        if ($requestedNumber && preg_match('/^(.*\/)(\d+)$/', $requestedNumber, $matches)) {
+            $width = strlen($matches[2]);
+
+            return $matches[1].str_pad((string) (((int) $matches[2]) + $index), $width, '0', STR_PAD_LEFT);
+        }
+
+        if ($requestedNumber && $index === 0) {
+            return $requestedNumber;
+        }
+
+        return $this->formatLoadingRequestNumber($date, $this->nextLoadingRequestSequence($date) + $index);
+    }
+
+    private function saveLoadingRequestForPlan(SOPlan $plan, string $requestNumber, Carbon $date): void
+    {
+        $sequence = $this->parseLoadingRequestSequence($requestNumber) ?? $this->nextLoadingRequestSequence($date);
+
+        MARLoadingRequest::updateOrCreate(
+            ['SOPID' => (string) $plan->SOPID],
+            [
+                'request_number' => $requestNumber,
+                'request_date' => $date->toDateString(),
+                'sequence' => $sequence,
+                'GoodID' => $plan->GoodID,
+                'NumberCar' => $plan->NumberCar,
+                'CustID' => $plan->CustID,
+            ]
+        );
+    }
+
+    public function nextLoadingRequestNumber(Request $request): JsonResponse
+    {
+        $date = Carbon::parse($request->get('date', now()->toDateString()));
+
+        return response()->json([
+            'success' => true,
+            'request_number' => $this->formatLoadingRequestNumber($date, $this->nextLoadingRequestSequence($date)),
+        ]);
     }
 
     // ============================================================
@@ -126,8 +192,21 @@ class SOPlanController extends Controller
                 'Remarks' => $s->Remarks,
                 'Status_coa' => $s->Status_coa,
                 'coa_number' => null,
+                'loading_request_number' => null,
                 'is_inspected' => false,
             ];
+        }
+
+        if (! empty($sopids)) {
+            $loadingRequests = MARLoadingRequest::whereIn('SOPID', array_map('strval', $sopids))
+                ->get()
+                ->keyBy('SOPID');
+
+            foreach ($mapped as &$item) {
+                $loadingRequest = $loadingRequests->get((string) $item['SOPID']);
+                $item['loading_request_number'] = $loadingRequest?->request_number;
+            }
+            unset($item);
         }
 
         // ดึง coa_number จากตาราง certificates (SOPID ใน certificates)
@@ -285,6 +364,7 @@ class SOPlanController extends Controller
                     'CustName' => $s->CustName,
                     'Recipient' => $s->Recipient,
                     'Status_coa' => $s->Status_coa,
+                    'loading_request_number' => MARLoadingRequest::where('SOPID', (string) $s->SOPID)->value('request_number'),
                     // Certificate data
                     'coa_date' => $displayCert ? $displayCert->date_coa : null,
                     'coa_no' => $displayCert ? $displayCert->coa_number : null,
@@ -456,6 +536,7 @@ class SOPlanController extends Controller
                     'Recipient' => $s->Recipient,
                     'Status' => $s->Status,
                     'Status_coa' => $displayCert ? $displayCert->status : $s->Status_coa,
+                    'loading_request_number' => MARLoadingRequest::where('SOPID', $rowId)->value('request_number'),
                     // Certificate data
                     'coa_date' => $displayCert ? $displayCert->date_coa : null,
                     'coa_no' => $displayCert ? $displayCert->coa_number : null,
@@ -510,9 +591,11 @@ class SOPlanController extends Controller
             'vehicles' => 'array',
             'vehicles.*.numberCar' => 'nullable|string',
             'vehicles.*.driverName' => 'nullable|string',
+            'loadingRequestNumber' => 'required|string|max:50',
         ]);
 
-        $receiveDate = \Carbon\Carbon::parse($data['receiveDate'])->format('Y-m-d H:i:s');
+        $receiveDateCarbon = Carbon::parse($data['receiveDate']);
+        $receiveDate = $receiveDateCarbon->format('Y-m-d H:i:s');
 
         $savedPlans = [];
 
@@ -554,6 +637,8 @@ class SOPlanController extends Controller
                 ]);
                 $plan->save();
                 $sopidString = (string) $plan->SOPID;
+                $requestNumber = $this->makeLoadingRequestNumber($data['loadingRequestNumber'], $receiveDateCarbon, $index);
+                $this->saveLoadingRequestForPlan($plan, $requestNumber, $receiveDateCarbon);
                 Log::info('🔹 SOPlan saved: SOPID='.$sopidString.' for Car='.$plan->NumberCar);
 
                 $savedPlans[] = [
@@ -600,6 +685,7 @@ class SOPlanController extends Controller
             'vehicles' => 'array',
             'vehicles.*.numberCar' => 'nullable|string',
             'vehicles.*.driverName' => 'nullable|string',
+            'loadingRequestNumber' => 'required|string|max:50',
         ]);
 
         DB::beginTransaction();
@@ -613,7 +699,8 @@ class SOPlanController extends Controller
                 return $this->errorResponse($request, 'ไม่พบข้อมูลที่ต้องการแก้ไข (SOPID: '.$id.')', 404);
             }
 
-            $receiveDate = \Carbon\Carbon::parse($data['receiveDate'])->format('Y-m-d H:i:s');
+            $receiveDateCarbon = Carbon::parse($data['receiveDate']);
+            $receiveDate = $receiveDateCarbon->format('Y-m-d H:i:s');
 
             $plan->SOPDate = $receiveDate;
             $plan->GoodID = $data['goodID'];
@@ -638,6 +725,7 @@ class SOPlanController extends Controller
             }
 
             $plan->save();
+            $this->saveLoadingRequestForPlan($plan, $data['loadingRequestNumber'], $receiveDateCarbon);
             DB::commit();
 
             Log::info('✅ SOPlan updated', ['SOPID' => $id]);
@@ -823,5 +911,78 @@ class SOPlanController extends Controller
         }
 
         return redirect()->back()->with('error', $message);
+    }
+
+    // ============================================================
+    // PRINT — พิมพ์ใบขอเข้าบรรทุก/เบิก
+    // ============================================================
+    public function printLoadingRequest(Request $request)
+    {
+        try {
+            $selectedOrders = $request->get('selectedOrders', []);
+
+            if (empty($selectedOrders)) {
+                return redirect()->back()->with('error', 'ไม่มีรายการที่เลือก');
+            }
+
+            // ดึงข้อมูล SOPlan ที่เลือก
+            $orders = SOPlan::leftJoin('EMCust as c', 'SOPlan.CustID', '=', 'c.CustID')
+                ->whereIn('SOPlan.SOPID', $selectedOrders)
+                ->select(
+                    'SOPlan.SOPID',
+                    'SOPlan.SOPDate',
+                    'SOPlan.GoodID',
+                    'SOPlan.GoodName',
+                    'SOPlan.NumberCar',
+                    'SOPlan.DriverName',
+                    'SOPlan.CustID',
+                    'SOPlan.Recipient',
+                    'SOPlan.AmntLoad',
+                    'SOPlan.IBWei',
+                    'SOPlan.OBWei',
+                    'SOPlan.NetWei',
+                    'SOPlan.GoodPrice',
+                    'SOPlan.GoodAmnt',
+                    'SOPlan.Status',
+                    'SOPlan.ReceivedDate',
+                    'SOPlan.Remarks',
+                    'SOPlan.Status_coa',
+                    'c.CustName as CustName',
+                    'c.CustCode'
+                )
+                ->orderByRaw('ISNULL(TRY_CAST(SOPlan.SOPID AS INT), 0) DESC')
+                ->get();
+
+            $loadingRequests = MARLoadingRequest::whereIn('SOPID', array_map('strval', $selectedOrders))
+                ->get()
+                ->keyBy('SOPID');
+
+            // แมพข้อมูลสำหรับแสดงผล
+            $mappedOrders = [];
+            foreach ($orders as $order) {
+                $loadingRequest = $loadingRequests->get((string) $order->SOPID);
+                $mappedOrders[] = [
+                    'id' => (int) (is_numeric($order->SOPID) ? $order->SOPID : 0),
+                    'SOPID' => $order->SOPID,
+                    'loading_request_number' => $loadingRequest?->request_number,
+                    'SOPDate' => $order->SOPDate,
+                    'GoodName' => $order->GoodName,
+                    'NumberCar' => $order->NumberCar,
+                    'DriverName' => $order->DriverName,
+                    'CustName' => $order->CustName,
+                    'Recipient' => $order->Recipient,
+                    'AmntLoad' => $order->AmntLoad,
+                    'NetWei' => $order->NetWei,
+                ];
+            }
+
+            // ส่งไปหน้า React สำหรับพิมพ์
+            return Inertia::render('MAR/PlanOrder/LoadingRequestPrint', [
+                'selectedOrders' => $mappedOrders,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ Error printing loading request: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'เกิดข้อผิดพลาดในการสร้างเอกสาร');
+        }
     }
 }

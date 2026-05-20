@@ -15,7 +15,7 @@ import {
     Plus, Trash2, Calendar, Loader2, AlertCircle,
     Package, Building2, MapPin, Truck, User, Search,
     X, Save, FilePlus2, CheckCircle2, MessageSquare,
-    ClipboardList, Weight, ArrowRight, GripVertical
+    ClipboardList, Weight, ArrowRight, GripVertical, Hash
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -88,6 +88,7 @@ const CreatePlanOrderModal = ({
         goodID: '',
         goodName: '',
         productCode: '',
+        loadingRequestNumber: '',
         loadPlan: '',
         custID: '',
         custCode: '',
@@ -138,18 +139,33 @@ const CreatePlanOrderModal = ({
         }
     };
 
+    const fetchNextLoadingRequestNumber = async (date: string) => {
+        try {
+            const response = await fetch(`/mar/plan-order/next-loading-request-number?date=${encodeURIComponent(date)}`);
+            const result = await response.json();
+            if (result?.success && result.request_number) {
+                setFormData(prev => ({ ...prev, loadingRequestNumber: result.request_number }));
+            }
+        } catch (error) {
+            console.error('Unable to fetch loading request number:', error);
+        }
+    };
+
     useEffect(() => {
         if (!isOpen) return;
 
         if (editData) {
             const currentGoodId = String(editData.rawData?.goodId || editData.goodID || editData.productType || '');
             const matchedProduct = ALLOWED_PRODUCTS.find(p => String(p.goodID) === currentGoodId);
+            const receiveDate = formatDateForInput(editData.orderDate || editData.rawData?.orderDate);
+            const loadingRequestNumber = editData.rawData?.loadingRequestNumber || editData.loadingRequestNumber || '';
             
             setFormData({
-                receiveDate: formatDateForInput(editData.orderDate || editData.rawData?.orderDate),
+                receiveDate,
                 goodID: currentGoodId,
                 goodName: editData.productName || matchedProduct?.goodName || '',
                 productCode: matchedProduct?.productCode || '',
+                loadingRequestNumber,
                 loadPlan: editData.rawData?.amntLoad || editData.rawData?.netWei || editData.netWeight?.toString() || '',
                 custID: String(editData.customerID || ''),
                 custCode: editData.customerCode || '',
@@ -169,12 +185,17 @@ const CreatePlanOrderModal = ({
             } else {
                 setVehiclesList([{ numberCar: '', driverName: '' }]);
             }
+
+            if (!loadingRequestNumber) {
+                fetchNextLoadingRequestNumber(receiveDate);
+            }
         } else {
             setFormData({
                 receiveDate: new Date().toISOString().split('T')[0],
                 goodID: '',
                 goodName: '',
                 productCode: '',
+                loadingRequestNumber: '',
                 loadPlan: '',
                 custID: '',
                 custCode: '',
@@ -183,6 +204,7 @@ const CreatePlanOrderModal = ({
                 notes: '',
             });
             setVehiclesList([{ numberCar: '', driverName: '' }]);
+            fetchNextLoadingRequestNumber(new Date().toISOString().split('T')[0]);
         }
         setSearchResults({ product: [], customer: [], destination: [], vehicle: [] });
         setActiveSection(null);
@@ -267,6 +289,10 @@ const CreatePlanOrderModal = ({
             Swal.fire({ icon: 'warning', title: 'กรุณาระบุปลายทาง', timer: 1500, showConfirmButton: false });
             return false;
         }
+        if (!data.loadingRequestNumber) {
+            Swal.fire({ icon: 'warning', title: 'กรุณาระบุเลขที่', timer: 1500, showConfirmButton: false });
+            return false;
+        }
         if (!data.loadPlan || parseFloat(data.loadPlan) <= 0) {
             Swal.fire({ icon: 'warning', title: 'กรุณาระบุน้ำหนักแผนการโหลด', timer: 1500, showConfirmButton: false });
             return false;
@@ -302,13 +328,14 @@ const CreatePlanOrderModal = ({
         });
     };
 
-    const isValid = formData.goodName && formData.custName && formData.destination && formData.loadPlan;
+    const isValid = formData.goodName && formData.custName && formData.destination && formData.loadingRequestNumber && formData.loadPlan;
     const progressPercentage = [
         formData.goodName, 
         formData.custName, 
         formData.destination, 
+        formData.loadingRequestNumber,
         formData.loadPlan
-    ].filter(Boolean).length / 4 * 100;
+    ].filter(Boolean).length / 5 * 100;
 
     const getProgressColor = () => {
         if (progressPercentage === 100) return 'from-emerald-400 to-emerald-500';
@@ -370,7 +397,7 @@ const CreatePlanOrderModal = ({
                             {/* Left Column - Main Info (8 cols on large screens) */}
                             <div className="lg:col-span-8 space-y-3.5">
                                 {/* Top Row: Date & Weight */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     {/* Date Card */}
                                     <div className={cn(sectionCardClasses, "hover:border-blue-200")}>
                                         <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300 rounded-l-2xl" />
@@ -383,8 +410,29 @@ const CreatePlanOrderModal = ({
                                         <Input 
                                             type="date" 
                                             value={formData.receiveDate} 
-                                            onChange={e => setFormData({ ...formData, receiveDate: e.target.value })} 
+                                            onChange={e => {
+                                                const nextDate = e.target.value;
+                                                setFormData({ ...formData, receiveDate: nextDate });
+                                                if (!editData) fetchNextLoadingRequestNumber(nextDate);
+                                            }}
                                             className={cn(inputClasses, "focus:ring-blue-500/30")}
+                                        />
+                                    </div>
+
+                                    {/* Loading Request Number Card */}
+                                    <div className={cn(sectionCardClasses, "hover:border-indigo-200")}>
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300 rounded-l-2xl" />
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <div className={cn(iconContainerClasses, "bg-indigo-50 text-indigo-600")}>
+                                                <Hash className="h-4 w-4" />
+                                            </div>
+                                            <span className={sectionTitleClasses}>เลขที่</span>
+                                        </div>
+                                        <Input
+                                            placeholder="MAR690520/010"
+                                            value={formData.loadingRequestNumber}
+                                            onChange={e => setFormData({ ...formData, loadingRequestNumber: e.target.value })}
+                                            className={cn(inputClasses, "font-bold text-indigo-700 border-indigo-100 bg-indigo-50/30 focus:ring-indigo-500/30")}
                                         />
                                     </div>
 

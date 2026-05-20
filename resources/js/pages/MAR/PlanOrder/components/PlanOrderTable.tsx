@@ -59,6 +59,7 @@ import Swal from 'sweetalert2';
 export interface PlanOrder {
     id: number | string;
     orderNumber: string;
+    loadingRequestNumber?: string;
     orderDate: string;
     productName: string;
     productType?: string;
@@ -87,6 +88,7 @@ export interface PlanOrder {
         remarks?: string;
         statusCoa?: string;
         coaNumber?: string;
+        loadingRequestNumber?: string;
         originalStatus?: string;
         originalCustID?: string;
         custCode?: string;
@@ -490,9 +492,16 @@ export default function PlanOrderTable({
                                             >
                                                 {/* วันที่ */}
                                                 <TableCell className="px-4 py-3 align-middle border-l border-blue-50">
-                                                    <span className="text-sm font-semibold text-slate-800">
-                                                        {formatDateThai(order.orderDate)}
-                                                    </span>
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-sm font-semibold text-slate-800">
+                                                            {formatDateThai(order.orderDate)}
+                                                        </span>
+                                                        {order.loadingRequestNumber && (
+                                                            <span className="w-fit rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                                                                {order.loadingRequestNumber}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
 
                                                 {/* สินค้า */}
@@ -595,6 +604,21 @@ export default function PlanOrderTable({
                                                                     <Pencil className="h-3 w-3 text-amber-600" />
                                                                 </div>
                                                                 <span>แก้ไขข้อมูล</span>
+                                                            </DropdownMenuItem>
+
+                                                            <DropdownMenuItem
+                                                                onClick={() => {
+                                                                    const url = route('mar.plan-order.print-loading-request', {
+                                                                        selectedOrders: [order.rawData?.sopId || order.id]
+                                                                    });
+                                                                    window.open(url, '_blank');
+                                                                }}
+                                                                className="gap-2 text-xs cursor-pointer"
+                                                            >
+                                                                <div className="rounded bg-blue-100 p-1">
+                                                                    <Printer className="h-3 w-3 text-blue-600" />
+                                                                </div>
+                                                                <span>พิมพ์ใบขอเข้าบรรทุก</span>
                                                             </DropdownMenuItem>
 
                                                             {(order.productType === 'cpo' || order.productType === 'palm-kernel') && (() => {

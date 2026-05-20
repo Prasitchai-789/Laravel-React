@@ -9,7 +9,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { FileText, CheckCircle, XCircle, Calendar } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, Calendar, Printer } from 'lucide-react';
+import { router } from '@inertiajs/react';
 
 interface Props {
     selectedOrders: (number | string)[];
@@ -29,6 +30,15 @@ export default function PlanOrderActions({ selectedOrders, onActionComplete }: P
     const handleUpdateStatus = (status: string) => {
         console.log(`อัปเดตสถานะเป็น ${status} สำหรับคำสั่งซื้อ:`, selectedOrders);
         setShowUpdateStatus(false);
+        onActionComplete();
+    };
+
+    const handlePrintLoadingRequest = () => {
+        // เปิดหน้าพิมพ์ใบขอเข้าบรรทุกในแท็บใหม่
+        const url = route('mar.plan-order.print-loading-request', {
+            selectedOrders: selectedOrders
+        });
+        window.open(url, '_blank');
         onActionComplete();
     };
 
@@ -134,6 +144,16 @@ export default function PlanOrderActions({ selectedOrders, onActionComplete }: P
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* ปุ่มพิมพ์ใบขอเข้าบรรทุก */}
+            <Button
+                size="sm"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={handlePrintLoadingRequest}
+            >
+                <Printer className="h-4 w-4" />
+                <span>พิมพ์ใบขอเข้าบรรทุก</span>
+            </Button>
         </div>
     );
 }
