@@ -3,7 +3,14 @@ import Textarea from '@/components/Inputs/Textarea';
 import { useForm } from '@inertiajs/react';
 import Swal from 'sweetalert2';
 
-export default function LocationForm({ mode = 'create', project = null, onClose = () => {} }) {
+interface LocationFormProps {
+    mode?: string;
+    project?: { id: number } | null;
+    onClose?: () => void;
+    onSuccess?: () => void;
+}
+
+export default function LocationForm({ mode = 'create', project = null, onClose = () => {}, onSuccess = () => {} }: LocationFormProps) {
     const { data, setData, post, put, processing, errors , reset } = useForm({
         location_name: '',
         note: '',
@@ -34,16 +41,18 @@ export default function LocationForm({ mode = 'create', project = null, onClose 
                     });
                     reset();
                     onClose();
+                    onSuccess();
                 },
             });
         } else {
-            put(`/projects/${project.id}`, {
+            put(`/projects/${project?.id}`, {
                 onSuccess: () => {
                     Toast.fire({
                         icon: 'success',
                         title: 'Updated successfully',
                     });
                     onClose();
+                    onSuccess();
                 },
             });
         }

@@ -1,9 +1,18 @@
 // resources/js/components/Modal.tsx
 import { Dialog, Transition } from '@headlessui/react';
 import { Trash2 } from 'lucide-react';
-import { Fragment } from 'react';
+import { Fragment, ReactNode } from 'react';
 
-export default function DeleteModal({ isModalOpen, onClose, title, size = 'max-w-sm', onConfirm, children }) {
+interface DeleteModalProps {
+    isModalOpen: boolean;
+    onClose: () => void;
+    title: ReactNode;
+    size?: string;
+    onConfirm: () => void;
+    children?: ReactNode;
+}
+
+export default function DeleteModal({ isModalOpen, onClose, title, size = 'max-w-sm', onConfirm, children }: DeleteModalProps) {
     return (
         <Transition appear show={isModalOpen} as={Fragment}>
             <Dialog as="div" className="relative z-10" onClose={onClose}>

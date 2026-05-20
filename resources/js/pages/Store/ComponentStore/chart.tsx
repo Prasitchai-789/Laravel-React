@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp } from 'lucide-react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface WaveCardProps {
-    value: string;
+    value: string | number;
     label: string;
     color?: string;
     direction?: 'up' | 'down';

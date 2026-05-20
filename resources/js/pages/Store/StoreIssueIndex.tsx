@@ -25,7 +25,7 @@ interface Order {
     status: string;
     source: 'WEB' | 'WIN';
     department?: string;
-    requester?: string;
+    requester: string;
     items?: OrderItem[];
 }
 interface Props {

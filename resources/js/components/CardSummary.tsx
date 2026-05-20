@@ -1,12 +1,34 @@
-// components/CardSummary.jsx
 import React from 'react';
+
+type ColorKey = 'green' | 'blue' | 'red' | 'yellow' | 'indigo' | 'purple' | 'pink' | 'gray' | 'orange';
+type TitleColorKey = 'gray-800' | 'blue-800' | 'red-800' | 'green-800' | 'orange-800' | 'purple-800';
+type MainValueColorKey = 'gray-800' | 'blue-700' | 'red-700' | 'green-700' | 'orange-700' | 'purple-700';
+type Trend = 'up' | 'down' | 'stable' | string;
+
+interface CardSummaryProps {
+  title: React.ReactNode;
+  mainValue: number | string;
+  unit?: string;
+  percentage?: number;
+  trend?: Trend;
+  value1?: number | string;
+  label1?: React.ReactNode;
+  value2?: number | string;
+  label2?: React.ReactNode;
+  progressValue?: number;
+  progressColor?: ColorKey;
+  titleColor?: TitleColorKey;
+  mainValueColor?: MainValueColorKey;
+  showDivider?: boolean;
+  className?: string;
+}
 
 const CardSummary = ({
   title,
   mainValue,
-  unit,
-  percentage,
-  trend,
+  unit = '',
+  percentage = 0,
+  trend = 'stable',
   value1,
   label1,
   value2,
@@ -17,9 +39,9 @@ const CardSummary = ({
   mainValueColor = 'gray-800',
   showDivider = true,
   className = ''
-}) => {
+}: CardSummaryProps) => {
   // ฟังก์ชันกำหนดสี progress bar
-  const getProgressColorClass = (color) => {
+  const getProgressColorClass = (color: ColorKey) => {
     const colorMap = {
       green: 'bg-green-500',
       blue: 'bg-blue-500',
@@ -35,7 +57,7 @@ const CardSummary = ({
   };
 
   // ฟังก์ชันกำหนดสีข้อความ title
-  const getTitleColorClass = (color) => {
+  const getTitleColorClass = (color: TitleColorKey) => {
     const colorMap = {
       'gray-800': 'text-gray-800',
       'blue-800': 'text-blue-800',
@@ -48,7 +70,7 @@ const CardSummary = ({
   };
 
   // ฟังก์ชันกำหนดสีข้อความค่าหลัก
-  const getMainValueColorClass = (color) => {
+  const getMainValueColorClass = (color: MainValueColorKey) => {
     const colorMap = {
       'gray-800': 'text-gray-800',
       'blue-700': 'text-blue-700',
@@ -61,7 +83,7 @@ const CardSummary = ({
   };
 
   // ฟังก์ชันกำหนดสีลูกศรเทรนด์
-  const getTrendIcon = (trend) => {
+  const getTrendIcon = (trend: Trend) => {
     if (trend === 'up') {
       return <i className="fa-solid fa-arrow-up ms-2 text-green-500"></i>;
     } else if (trend === 'down') {
@@ -118,8 +140,8 @@ const CardSummary = ({
           className={`flex flex-col justify-center overflow-hidden rounded-full ${getProgressColorClass(progressColor)}`}
           role="progressbar"
           aria-valuenow={progressValue || percentage}
-          aria-valuemin="0"
-          aria-valuemax="100"
+          aria-valuemin={0}
+          aria-valuemax={100}
           style={{ width: `${progressValue || percentage}%` }}
         ></div>
       </div>

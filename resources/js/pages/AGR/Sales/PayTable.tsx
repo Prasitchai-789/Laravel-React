@@ -3,7 +3,7 @@ import 'dayjs/locale/th'; // ภาษาไทย
 
 interface Payment {
     id: number;
-    sale_id: number;
+    sale_id?: number;
     paid_at: string;
     method: string;
     amount: number;
@@ -20,14 +20,14 @@ interface PayTableProps {
 
 export default function PayTable({ payments = [], saleId }: PayTableProps) {
     // กรองการชำระเงินที่ตรงกับ sale_id
-    const filteredPayments = payments.filter((payment) => payment.sale_id.toString() === saleId.toString());
+    const filteredPayments = payments.filter((payment) => payment.sale_id == null || payment.sale_id.toString() === saleId.toString());
 
     // ฟังก์ชันแปลงวันที่
     const formatDate = (dateString: string) => {
         return dayjs(dateString).locale('th').format('DD/MM/YYYY');
     };
 
-    const getPaymentMethodText = (method: number) => {
+    const getPaymentMethodText = (method: string | number) => {
         const paymentMethods = {
             1: 'เงินสด',
             2: 'โอนเงิน',
@@ -35,7 +35,8 @@ export default function PayTable({ payments = [], saleId }: PayTableProps) {
             4: 'อื่นๆ',
         };
 
-        return paymentMethods[method as keyof typeof paymentMethods] || `วิธีที่ ${method}`;
+        const methodKey = Number(method) as keyof typeof paymentMethods;
+        return paymentMethods[methodKey] || `วิธีที่ ${method}`;
     };
 
     return (

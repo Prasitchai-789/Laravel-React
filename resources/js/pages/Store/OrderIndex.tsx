@@ -47,11 +47,23 @@ const getStatusText = (stockQty: number, safetyStock: number) => {
     return 'ต่ำกว่าขั้นต่ำ';
 };
 
-const GoodsIndex = ({ goods: initialGoods }) => {
+interface StoreGood {
+    GoodID?: number | string;
+    GoodCode?: string;
+    GoodName?: string;
+    GoodName1?: string;
+    stock_qty?: number | string;
+    availableQty?: number | string;
+    reservedQty?: number | string;
+    safety_stock?: number | string;
+    [key: string]: unknown;
+}
+
+const GoodsIndex = ({ goods: initialGoods = [] }: { goods?: StoreGood[] }) => {
     // 🔹 State
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('ทั้งหมด');
-    const [sortField, setSortField] = useState('GoodID');
+    const [sortField, setSortField] = useState<keyof StoreGood>('GoodID');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [currentPage, setCurrentPage] = useState(1);
     const [viewMode, setViewMode] = useState<'card' | 'table'>('table');
@@ -123,15 +135,15 @@ const GoodsIndex = ({ goods: initialGoods }) => {
             let bValue = b[sortField] ?? '';
 
             if (sortField === 'stock_qty') {
-                aValue = Number(a.stock_qty) || 0;
-                bValue = Number(b.stock_qty) || 0;
-                return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+                const aNumber = Number(a.stock_qty) || 0;
+                const bNumber = Number(b.stock_qty) || 0;
+                return sortDirection === 'asc' ? aNumber - bNumber : bNumber - aNumber;
             }
 
             if (sortField === 'availableQty') {
-                aValue = Number(a.availableQty) || 0;
-                bValue = Number(b.availableQty) || 0;
-                return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+                const aNumber = Number(a.availableQty) || 0;
+                const bNumber = Number(b.availableQty) || 0;
+                return sortDirection === 'asc' ? aNumber - bNumber : bNumber - aNumber;
             }
 
             return sortDirection === 'asc'
@@ -232,7 +244,7 @@ const GoodsIndex = ({ goods: initialGoods }) => {
                             <select
                                 className="w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                 value={sortField}
-                                onChange={e => setSortField(e.target.value)}
+                                onChange={e => setSortField(e.target.value as keyof StoreGood)}
                             >
                                 <option value="GoodCode">รหัสสินค้า</option>
                                 <option value="GoodName">ชื่อสินค้า</option>

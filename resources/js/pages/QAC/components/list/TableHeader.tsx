@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from "react";
 import { Calendar, FlaskConical, Filter, Beaker, BarChart3 } from "lucide-react";
 

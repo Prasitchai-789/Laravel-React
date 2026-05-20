@@ -1,11 +1,11 @@
-import { Card, CardContent } from '@/Components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { MiniLineChart } from '@/components/Charts/MiniLineChart';
 import PieChartComponent from '@/components/Charts/PieChartComponent';
 import { Head } from '@inertiajs/react';
 import { BarChart3, ChevronDown, ChevronUp, DollarSign, Download, Filter, PieChart, ScatterChart, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import ScatterChartComponent from "@/components/Charts/ScatterChartComponent";
-import BarChartComponent from "@/Components/Charts/BarChartComponent";
+import BarChartComponent from "@/components/Charts/BarChartComponent";
 
 // Mock chart components
 // const BarChart = ({ data }) => (

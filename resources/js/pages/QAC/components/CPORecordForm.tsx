@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';

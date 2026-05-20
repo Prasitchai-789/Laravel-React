@@ -3,6 +3,7 @@ import { executiveApi } from '@/services/executiveApi';
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import CountUp from 'react-countup';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
@@ -93,12 +94,13 @@ export default function ExecutiveProductionReport() {
         show: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.1 } }
     };
 
-    const itemVariants = {
+    const itemVariants: Variants = {
         hidden: { opacity: 0, y: 20 },
         show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 400, damping: 25 } }
     };
 
     const totalAmountMB = Object.values(reportData?.production || {}).reduce((acc: number, curr: any) => acc + (curr.amount_mb || 0), 0);
+    const totalAmountMBValue = Number(totalAmountMB) || 0;
     const isLoading = loading || loadingPurchase || loadingProductionSummary || loadingCPOSummary;
 
     const generateSparklinePath = (data: any[], width: number, height: number, isClosed: boolean = false) => {
@@ -559,7 +561,7 @@ export default function ExecutiveProductionReport() {
                                         <div className="text-right">
                                             <div className="flex items-baseline gap-1">
                                                 <span className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                                                    <CountUp end={totalAmountMB} decimals={2} duration={2} />
+                                                    <CountUp end={totalAmountMBValue} decimals={2} duration={2} />
                                                 </span>
                                                 <span className="text-[10px] font-bold text-slate-400">MB</span>
                                             </div>

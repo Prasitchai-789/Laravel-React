@@ -25,7 +25,8 @@ import {
 import Swal from 'sweetalert2';
 
 import SharedLabModal, { SharedCOAData } from '../components/SharedLabModal';
-import { generateAndDownloadCoa, COAFields } from '../PDF/coaPdfGenerator';
+import type { COAFields } from '../PDF/coaPdfGenerator';
+import { getCoaErrorMessage, getSignaturePath, sortByCoaNumberDesc } from '../utils/coaWorkflow';
 
 interface OilCOAData {
     id: number;
@@ -96,15 +97,6 @@ interface PendingCOAItem {
     coa_lot?: string;
 }
 
-const getErrorMessage = (error: unknown) => {
-    if (axios.isAxiosError(error)) {
-        const data = error.response?.data as { message?: string } | undefined;
-        return data?.message || error.message;
-    }
-
-    return error instanceof Error ? error.message : 'ไม่ทราบสาเหตุ';
-};
-
 const STATUS_CONFIG = {
     pending: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700', icon: Clock, label: 'รอตรวจสอบ' },
     processing: { bg: 'bg-sky-50', border: 'border-sky-200', text: 'text-sky-700', icon: RefreshCw, label: 'กำลังดำเนินการ' },
@@ -166,40 +158,6 @@ const formatDisplayDate = (dateStr?: string) => {
     const [y, m, d] = parts;
     return `${d}/${m}/${y}`;
 };
-
-const getCoaSortKey = (coaNo?: string) => {
-    const normalized = (coaNo || '').trim().toUpperCase();
-    if (!normalized || normalized === '-') {
-        return null;
-    }
-
-    const match = normalized.match(/^[A-Z]*\s*(\d+)\s*\/\s*(\d{4})$/);
-    if (!match) {
-        return null;
-    }
-
-    return {
-        sequence: Number(match[1]),
-        year: Number(match[2]),
-    };
-};
-
-const sortByCoaNumberDesc = (items: OilCOAData[]) =>
-    [...items].sort((a, b) => {
-        const aKey = getCoaSortKey(a.coa_no);
-        const bKey = getCoaSortKey(b.coa_no);
-
-        if (aKey && bKey) {
-            if (bKey.year !== aKey.year) return bKey.year - aKey.year;
-            if (bKey.sequence !== aKey.sequence) return bKey.sequence - aKey.sequence;
-        } else if (aKey) {
-            return -1;
-        } else if (bKey) {
-            return 1;
-        }
-
-        return (b.created_at || '').localeCompare(a.created_at || '');
-    });
 
 const mapSOPlanStatus = (status?: string): OilCOAData['sop_status'] => {
     const statusMap: Record<string, OilCOAData['sop_status']> = {
@@ -265,18 +223,6 @@ interface COADetailModalProps {
     onEdit: (row: OilCOAData) => void;
 }
 
-const _getSignaturePath = (identity?: string | number) => {
-    const id = identity ? identity.toString().trim() : '';
-    const base = typeof window !== 'undefined' ? window.location.origin : '';
-    if (id === '1149' || id.includes('ประสิทธิ์ชัย')) return `${base}/images/signature/prasitchai.png`;
-    if (id === '1143' || id.includes('ประภาพร'))     return `${base}/images/signature/prapaporn.png`;
-    if (id === '1177' || id.includes('ยุพา'))         return `${base}/images/signature/yapha.png`;
-    if (id === '1183' || id.includes('สุกัญญา'))      return `${base}/images/signature/sukanya.png`;
-    if (id === '1434' || id.includes('ธัญ'))          return `${base}/images/signature/than.png`;
-    if (id === '1476' || id.includes('วีระยุทธ'))     return `${base}/images/signature/veerayut.png`;
-    return `${base}/images/signature/sukanya.png`;
-};
-
 const _fmtNum = (v?: number | string) => {
     if (v === undefined || v === null || v === '' || v === '-') return '-';
     const n = typeof v === 'string' ? parseFloat(v) : v;
@@ -301,7 +247,7 @@ const COADetailModal: React.FC<COADetailModalProps> = ({ open, data, canApprove,
     const isWaiting  = data.status === 'W';
     const isApproved = data.status === 'A';
     const thaiDate   = _formatThaiDate(data.created_at);
-    const inspSig    = _getSignaturePath(data.inspector || data.coa_user);
+    const inspSig    = getSignaturePath(data.inspector || data.coa_user);
     const mgrSig     = `${window.location.origin}/images/signature/prapaporn.png`;
 
     const results = [
@@ -890,7 +836,7 @@ const Oil_COA: React.FC = () => {
             Swal.fire({
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
-                text: getErrorMessage(err),
+                text: getCoaErrorMessage(err),
                 confirmButtonColor: '#ef4444'
             });
         }
@@ -922,6 +868,7 @@ const Oil_COA: React.FC = () => {
                 coa_mgr:       isMun ? 'MUN_PEACH' : undefined,
                 notes:         row.notes,
             };
+            const { generateAndDownloadCoa } = await import('../PDF/coaPdfGenerator');
             await generateAndDownloadCoa(pdfData, coaType);
             Swal.fire({
                 icon: 'success',
@@ -1098,7 +1045,7 @@ const Oil_COA: React.FC = () => {
                 Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: response.data.message, confirmButtonColor: '#ef4444' });
             }
         } catch (err: unknown) {
-            Swal.fire('เกิดข้อผิดพลาด', getErrorMessage(err), 'error');
+            Swal.fire('เกิดข้อผิดพลาด', getCoaErrorMessage(err), 'error');
         }
     };
 

@@ -12,11 +12,14 @@ interface ProductFormProps {
         id: number;
         sku: string;
         name: string;
-        price: string;
-        stock: string;
-        notes: string;
-        store_id: string;
+        price: string | number;
+        stock: string | number;
+        notes?: string;
+        store_id: string | number;
+        category?: string;
     };
+    locations?: { id: number; location_name: string }[];
+    products?: unknown[];
     location?: {
         location_name: string;
     } | null;
@@ -26,6 +29,7 @@ export default function ProductForm({ onClose, onSuccess, product, locations, mo
     const { data, setData, post, put, processing, errors, reset } = useForm({
         sku: product?.sku ?? '',
         name: product?.name ?? '',
+        category: product?.category ?? '',
         price: product?.price ?? '',
         stock: product?.stock ?? '',
         notes: product?.notes ?? '',

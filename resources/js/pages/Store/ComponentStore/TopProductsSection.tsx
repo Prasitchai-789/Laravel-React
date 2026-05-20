@@ -19,7 +19,15 @@ interface ApiResponse {
     column_used?: string;
 }
 
-const TopProductsSection: React.FC = () => {
+interface TopProductsSectionProps {
+    timeRange?: string;
+    selectedDate?: Date | null;
+    dateRange?: [Date | null, Date | null];
+    dateMode?: 'single' | 'range';
+    onDataUpdate?: () => void;
+}
+
+const TopProductsSection: React.FC<TopProductsSectionProps> = () => {
     const [topProducts, setTopProducts] = useState<ProductData[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);

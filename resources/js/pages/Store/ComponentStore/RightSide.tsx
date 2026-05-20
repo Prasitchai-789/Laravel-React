@@ -45,7 +45,8 @@ const RightSide: React.FC<RightSideProps> = ({
         usageRate: 0,
         comparisonRate: 0,
         totalItems: 0,
-        totalValue: 0
+        totalValue: 0,
+        totalOrders: 0
     });
 
     // ดึงข้อมูลสรุปภาพรวม

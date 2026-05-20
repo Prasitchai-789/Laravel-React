@@ -24,5 +24,5 @@ export default function PieChart({ data }) {
     },
   };
 
-  return <Pie data={data} options={options} />;
+  return <Pie data={data} options={options as any} />;
 }

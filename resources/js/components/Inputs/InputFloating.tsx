@@ -1,4 +1,5 @@
 import * as LucideIcons from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React from 'react';
 
 interface InputFloatingProps {
@@ -25,7 +26,7 @@ const InputFloating: React.FC<InputFloatingProps> = ({
     disabled = false,
 }) => {
     // เลือกไอคอนจาก Lucide ตามชื่อที่ส่งมา
-    const IconComponent = icon ? LucideIcons[icon] : null;
+    const IconComponent = icon ? (LucideIcons[icon] as LucideIcon | undefined) : undefined;
 
     return (
         <div className="mb-5 w-full font-anuphan">

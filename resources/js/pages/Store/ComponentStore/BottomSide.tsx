@@ -29,8 +29,8 @@ interface OrderItem {
 
 interface BottomSideProps {
     timeRange?: string;
-    selectedDate?: string | null;
-    dateRange?: { start: string; end: string } | null;
+    selectedDate?: string | Date | null;
+    dateRange?: { start: string; end: string } | [Date | null, Date | null] | null;
     dateMode?: string;
     departments?: Department[];
 }
@@ -192,8 +192,10 @@ const BottomSide: React.FC<BottomSideProps> = ({
         }
 
         // range date
-        if (dateMode === 'range' && dateRange?.length === 2) {
-            params.dateRange = [toCE(dateRange[0]), toCE(dateRange[1])];
+        if (dateMode === 'range' && Array.isArray(dateRange) && dateRange.length === 2) {
+            params.dateRange = [dateRange[0] ? toCE(dateRange[0]) : null, dateRange[1] ? toCE(dateRange[1]) : null];
+        } else if (dateMode === 'range' && dateRange && !Array.isArray(dateRange)) {
+            params.dateRange = [toCE(dateRange.start), toCE(dateRange.end)];
         }
 
         console.log('📅 Sending params (CE):', params);

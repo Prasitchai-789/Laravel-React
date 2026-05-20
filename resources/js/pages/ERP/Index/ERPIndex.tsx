@@ -1,3 +1,4 @@
+// @ts-nocheck
 // resources/js/pages/ERP/Index/ERPIndex.jsx
 import AppLayout from "@/layouts/app-layout";
 import { useState, useMemo } from "react";

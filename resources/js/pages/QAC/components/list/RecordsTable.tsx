@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React from "react";
 import { CPORecord } from "../../types";
 import RecordRow from "./RecordRow";

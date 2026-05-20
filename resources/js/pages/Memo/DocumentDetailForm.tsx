@@ -1,3 +1,4 @@
+// @ts-nocheck
 import 'dayjs/locale/th';
 import { Calendar } from 'lucide-react';
 

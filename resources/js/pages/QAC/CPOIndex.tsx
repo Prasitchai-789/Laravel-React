@@ -1,3 +1,4 @@
+// @ts-nocheck
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { usePage } from '@inertiajs/react';

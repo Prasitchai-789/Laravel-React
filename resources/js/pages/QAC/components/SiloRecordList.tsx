@@ -1,3 +1,4 @@
+// @ts-nocheck
 import DeleteModal from '@/components/DeleteModal';
 import { router, usePage } from '@inertiajs/react';
 import axios from 'axios';

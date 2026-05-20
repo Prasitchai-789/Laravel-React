@@ -5,9 +5,11 @@ interface Product {
     id: number;
     sku: string;
     name: string;
-    stock: number;
-    price: number;
-    store_id: number;
+    stock: number | string;
+    price: number | string;
+    store_id: number | string;
+    category?: string;
+    notes?: string;
     location?: { location_name: string };
 }
 
@@ -53,15 +55,15 @@ const productsColumns: Column<Product>[] = [
         render: (product) => (
             <div className="flex flex-col items-center min-w-[80px]">
                 <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
-                    product.stock > 10
+                    Number(product.stock) > 10
                         ? 'bg-green-100 text-green-800'
-                        : product.stock > 0
+                        : Number(product.stock) > 0
                         ? 'bg-yellow-100 text-yellow-800'
                         : 'bg-red-100 text-red-800'
                 }`}>
                     <Package size={14} />
                     {product.stock !== undefined && product.stock !== null
-                        ? product.stock.toLocaleString('th-TH')
+                        ? Number(product.stock).toLocaleString('th-TH')
                         : '-'}
                 </div>
             </div>
@@ -75,7 +77,7 @@ const productsColumns: Column<Product>[] = [
         render: (product) => (
             <div className="min-w-[100px]">
                 <div className="text-lg font-bold text-purple-700">
-                    ฿{product.price.toLocaleString('th-TH')}
+                    ฿{Number(product.price).toLocaleString('th-TH')}
                 </div>
             </div>
         )

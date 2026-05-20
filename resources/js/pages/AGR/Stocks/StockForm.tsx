@@ -13,15 +13,15 @@ interface StockFormProps {
         id: number;
         sku: string;
         name: string;
-        category: string;
-        price: string;
-        stock: string;
-        notes: string;
-        store_id: string;
+        category?: string;
+        price: string | number;
+        stock: string | number;
+        notes?: string;
+        store_id: string | number;
+        location?: { location_name: string };
     };
-    location?: {
-        location_name: string;
-    } | null;
+    locations?: { id: number; location_name: string }[];
+    products?: unknown[];
     mode?: 'create' | 'edit' | 'stockEdit';
 }
 export default function StockForm({ onClose, onSuccess, product, locations, mode = 'create' }: StockFormProps) {
@@ -33,7 +33,7 @@ export default function StockForm({ onClose, onSuccess, product, locations, mode
         stock: product?.stock ?? '',
         notes: product?.notes ?? '',
         store_id: product?.store_id ?? '',
-        location: locations?.location_name ?? '',
+        location: product?.location?.location_name ?? '',
         transactionType: 'in', // ค่าเริ่มต้น = รับเข้า
         mode: mode,
     });
@@ -49,8 +49,9 @@ export default function StockForm({ onClose, onSuccess, product, locations, mode
                 stock: '',
                 notes: '',
                 store_id: product.store_id || '',
-                location: locations?.location_name || '',
+                location: product.location?.location_name || '',
                 transactionType: 'in',
+                mode,
             });
         }
     }, [product, locations]);

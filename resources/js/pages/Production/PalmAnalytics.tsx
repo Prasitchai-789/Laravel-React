@@ -1,9 +1,8 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { useState, useEffect, useMemo } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import Chart from 'react-apexcharts';
 import { 
     TrendingUp, TrendingDown, DollarSign, Activity, 
     AlertCircle, AlertTriangle, Calendar, Filter, BarChart3, 
@@ -16,6 +15,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CountUp from 'react-countup';
+
+const Chart = lazy(() => import('react-apexcharts'));
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'การผลิตและวิศวกรรม', href: '/production-dashboard' },
@@ -458,7 +459,9 @@ export default function PalmAnalytics() {
                                     </div>
                                 </div>
                                 <div className="h-[400px]">
-                                    <Chart options={mainChartOptions} series={mainChartSeries} type="line" height="100%" />
+                                    <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-slate-500">กำลังโหลดกราฟ...</div>}>
+                                        <Chart options={mainChartOptions} series={mainChartSeries} type="line" height="100%" />
+                                    </Suspense>
                                 </div>
                             </div>
                         </GlassCard>
@@ -492,7 +495,9 @@ export default function PalmAnalytics() {
                                 </div>
                                 
                                 <div className="h-[220px] -mx-4">
-                                    <Chart options={forecastChartOptions} series={forecastSeries} type="area" height="100%" />
+                                    <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-slate-500">กำลังโหลดกราฟ...</div>}>
+                                        <Chart options={forecastChartOptions} series={forecastSeries} type="area" height="100%" />
+                                    </Suspense>
                                 </div>
                                 
                                 <div className="mt-4 p-4 bg-white/5 rounded-2xl border border-white/10">

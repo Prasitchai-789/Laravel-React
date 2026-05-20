@@ -19,6 +19,14 @@ interface Good {
     GoodPrice2?: number;
     DocuDate?: string;
     SafetyStock?: number;
+    stock_qty?: number;
+    safety_stock?: number;
+}
+
+interface FormCreateProps {
+    data?: any;
+    onClose?: () => void;
+    onSuccess?: () => void;
 }
 
 interface SelectedGood extends Good {
@@ -26,7 +34,7 @@ interface SelectedGood extends Good {
     inputSafetyStock: number;
 }
 
-const FormCreate: React.FC = () => {
+const FormCreate: React.FC<FormCreateProps> = () => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<Good[]>([]);
     const [selectedGoods, setSelectedGoods] = useState<SelectedGood[]>([]);

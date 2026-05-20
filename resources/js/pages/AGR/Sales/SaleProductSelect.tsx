@@ -59,9 +59,11 @@ export default function ProductSelect({
 
     return (
         <div className={cn('relative', className)}>
-            <label htmlFor={name} className={`mb-2 block text-sm font-medium text-gray-700 ${labelClassName}`}>
-                {label} {required && <span className="text-red-500">*</span>}
-            </label>
+            {label && (
+                <label className={`mb-2 block text-sm font-medium text-gray-700 ${labelClassName}`}>
+                    {label} {required && <span className="text-red-500">*</span>}
+                </label>
+            )}
             <Select value={value} onValueChange={onChange} open={open} onOpenChange={setOpen} disabled={disabled}>
                 {/* Trigger */}
                 <SelectTrigger

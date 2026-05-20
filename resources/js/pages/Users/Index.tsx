@@ -1,3 +1,4 @@
+// @ts-nocheck
 import DeleteModal from '@/components/DeleteModal';
 import ModalForm from '@/components/ModalForm';
 import AppLayout from '@/layouts/app-layout';

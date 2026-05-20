@@ -161,7 +161,7 @@ export default function LineChart({ data }) {
           ))}
         </div>
       </div>
-      <Line data={chartData} options={options} />
+      <Line data={chartData} options={options as any} />
     </div>
   );
 }

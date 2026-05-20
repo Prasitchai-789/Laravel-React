@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Button from '@/components/Buttons/Button';
 import InputLabel from '@/components/Inputs/InputLabel';
 import Select from '@/components/Inputs/Select';

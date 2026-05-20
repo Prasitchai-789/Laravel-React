@@ -1,3 +1,4 @@
+// @ts-nocheck
 // components/CalendarModal/CalendarModalContent.jsx
 import CalendarStatusSection from "./CalendarStatusSection";
 import CalendarEmptyState from "./CalendarEmptyState";

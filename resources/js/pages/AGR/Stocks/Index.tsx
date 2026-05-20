@@ -12,7 +12,24 @@ import StockForm from './StockForm';
 import ProductForm from './ProductForm';
 import ProductTable from './ProductTable';
 
-export default function Index({ locations = [], products = [] }) {
+interface Location {
+    id: number;
+    location_name: string;
+}
+
+interface Product {
+    id: number;
+    sku: string;
+    name: string;
+    category?: string;
+    price: string | number;
+    stock: string | number;
+    notes?: string;
+    store_id: string | number;
+    location?: Location;
+}
+
+export default function Index({ locations = [], products = [] }: { locations?: Location[]; products?: Product[] }) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
         { title: 'สต๊อกสินค้า', href: '/stock-agr' },
@@ -115,7 +132,7 @@ export default function Index({ locations = [], products = [] }) {
                 </div>
             </div>
 
-            <ProductTable products={products} onStockEdit={handleStockEdit} onEdit={handleEdit} onDelete={openDeleteModal} />
+            <ProductTable products={products} onStockEdit={handleStockEdit} onEdit={handleEdit} onDelete={(product) => openDeleteModal(product.id)} />
 
             {/* Stock Form Modal */}
             <ModalForm
@@ -149,7 +166,7 @@ export default function Index({ locations = [], products = [] }) {
                     onClose={() => setIsProductModalOpen(false)}
                     onSuccess={() => setIsProductModalOpen(false)}
                     product={selectedProduct}
-                    mode={mode}
+                    mode={mode === 'stockEdit' ? 'edit' : mode}
                 />
             </ModalForm>
 

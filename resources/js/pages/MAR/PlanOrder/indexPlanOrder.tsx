@@ -17,7 +17,6 @@ import { PlanOrder } from './components/PlanOrderTable';
 import { Package, Droplets, Leaf, Trees, Flower2, Loader2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import axios from 'axios';
-import { generateAndDownloadCoa } from '../../QAC/COA/PDF/coaPdfGenerator';
 
 // ============ INTERFACES ============
 
@@ -462,6 +461,7 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
                 (pdfData as any).customer_name = data.Recipient || order.destination || data.CustName || order.customerName || '-';
             }
 
+            const { generateAndDownloadCoa } = await import('../../QAC/COA/PDF/coaPdfGenerator');
             await generateAndDownloadCoa(pdfData as any, docType as any);
 
             // คืนค่า coa_no ตามเดิม
