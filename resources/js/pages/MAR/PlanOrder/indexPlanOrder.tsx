@@ -57,6 +57,7 @@ interface SOPlanData {
     Remarks: string;
     Status_coa: string;
     coa_number?: string;
+    loading_request_number?: string;
     productType?: string;
     is_inspected?: boolean;
 }
@@ -156,6 +157,7 @@ const convertSOPlanToPlanOrder = (s: SOPlanData, index?: number): PlanOrder => {
     return {
         id: (s.SOPID !== null && s.SOPID !== undefined && s.SOPID !== '') ? s.SOPID : `TEMP-${String((index || 0) + 1).padStart(3, '0')}`,
         orderNumber: (s.SOPID !== null && s.SOPID !== undefined && s.SOPID !== '') ? s.SOPID : `TEMP-${String((index || 0) + 1).padStart(3, '0')}`,
+        loadingRequestNumber: s.loading_request_number || '',
         orderDate: s.ReceivedDate || s.SOPDate || new Date().toISOString().split('T')[0],
         productType: productType,
         productName: s.GoodName || 'ไม่ระบุสินค้า',
@@ -184,6 +186,7 @@ const convertSOPlanToPlanOrder = (s: SOPlanData, index?: number): PlanOrder => {
             remarks: s.Remarks,
             statusCoa: s.Status_coa,
             coaNumber: s.coa_number,
+            loadingRequestNumber: s.loading_request_number,
             originalStatus: s.Status,
             originalCustID: s.CustID,
             custCode: s.CustCode,
@@ -519,7 +522,8 @@ export default function IndexPlanOrder({ soplans = [], selectedYear, availableYe
                     order.licensePlate,
                     order.driverName,
                     order.customerCode,
-                    order.customerID
+                    order.customerID,
+                    order.loadingRequestNumber,
                 ].map((field: any) => (field ?? '').toString().toLowerCase());
 
                 const matchSearch = searchFields.some(field => field.includes(searchLower));

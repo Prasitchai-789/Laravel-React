@@ -42,6 +42,7 @@ Route::middleware(['auth', 'permission:developer.view|mar.view|mar.edit|gm.view'
 
 Route::middleware(['auth', 'permission:developer.view|mar.view|gm.view|qac.user|QAC.User|qac.admin|qac_admin|QAC.Admin|qac.view|qac.edit|qac.delete'])->prefix('mar')->name('mar.')->group(function () {
     Route::get('/plan-order', [SOPlanController::class, 'index'])->name('plan-order.index');
+    Route::get('/plan-order/next-loading-request-number', [SOPlanController::class, 'nextLoadingRequestNumber'])->name('plan-order.next-loading-request-number');
     Route::get('/plan-order/data/{id}', [SOPlanController::class, 'show'])->name('plan-order.data-item');
     Route::get('/plan-order/pending-coa', [SOPlanController::class, 'pendingCOA'])->name('plan-order.pending-coa');
 
@@ -60,6 +61,9 @@ Route::middleware(['auth', 'permission:developer.view|mar.view|gm.view|qac.user|
 
     Route::get('/vehicle-inspections/{sop_id}', [VehicleInspectionController::class, 'show']);
     Route::post('/vehicle-inspections', [VehicleInspectionController::class, 'store']);
+
+    // Print Routes
+    Route::match(['get', 'post'], '/plan-order/print-loading-request', [SOPlanController::class, 'printLoadingRequest'])->name('plan-order.print-loading-request');
 
     Route::post('/plan-order', [SOPlanController::class, 'store'])->name('plan-order.store');
     Route::put('/plan-order/{id}', [SOPlanController::class, 'update'])->name('plan-order.update');
